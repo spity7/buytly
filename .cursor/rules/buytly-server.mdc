@@ -1,0 +1,45 @@
+---
+description: Buytly server API conventions — module structure, validation, and docs
+globs: server/**
+alwaysApply: false
+---
+
+# Buytly Server
+
+Follow `.cursor/rules/docs-sync.mdc` — update docs in the same PR as code changes.
+
+Key references in `server/docs/`:
+
+- `architecture.md` — layers and request lifecycle
+- `api-rules.md` — response shape, pagination, rate limits
+- `modules.md` — endpoint contracts
+- `database-schema.md` — collections and indexes
+- `auth-flow.md` — JWT and role permissions
+- `deployment.md` — env vars and production setup
+
+## Module pattern
+
+Each domain module under `server/src/modules/<name>/`:
+
+- `*.routes.js` — routes, Swagger annotations, middleware chain
+- `*.controller.js` — thin HTTP handlers (delegate to service)
+- `*.service.js` — business logic, DB, external services
+- `*.model.js` — Mongoose schema (when persisted)
+- `*.validation.js` — Zod schemas
+
+Routes: `router → validate → authenticate/authorize → asyncHandler(controller)`.
+
+## Conventions
+
+- Use `ApiResponse.success` / `ApiResponse.paginated` / `ApiResponse.created` for all responses
+- Throw `AppError` from services; never send raw `res.status()` from services
+- Validate with Zod via `validate()` / `validateMultiple()` middleware
+- Cross-cutting concerns: `server/src/services/` (email, GCS, cache, tokens)
+- Notifications: call `notificationService.notify()` — never email from controllers
+- New endpoints: update `server/docs/modules.md`, add Swagger annotations (paths relative to `/api/v1`, e.g. `/properties` not `/api/v1/properties`)
+
+## Tests
+
+- Run from `server/`: `npm test`
+- Unit tests for Zod schemas; integration tests use Vitest + Supertest (require MongoDB on `buytly-test` DB or set `MONGODB_URI`)
+- Set env in `tests/setup.js`; do not import `src/` before test env is configured

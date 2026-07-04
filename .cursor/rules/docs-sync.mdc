@@ -1,0 +1,32 @@
+---
+description: Keep server/docs and Cursor rules in sync after every implementation
+alwaysApply: true
+---
+
+# Docs & Rules Sync (required)
+
+After **any** implementation that changes behavior, APIs, data, auth, config, or architecture — **before finishing the task** — update the affected docs and rules in the same change.
+
+## What to update
+
+| You changed                                      | Update                                              |
+| ------------------------------------------------ | --------------------------------------------------- |
+| Routes, endpoints, auth on a route               | `server/docs/modules.md` + Swagger in `*.routes.js` |
+| Mongoose schema, indexes, collections            | `server/docs/database-schema.md`                    |
+| JWT, roles, permissions, password flow           | `server/docs/auth-flow.md`                          |
+| Response shape, pagination, filters, rate limits | `server/docs/api-rules.md`                          |
+| Modules, middleware, services, request flow      | `server/docs/architecture.md`                       |
+| Env vars, ports, deploy steps, health check      | `server/docs/deployment.md` + `server/.env.example` |
+| Project conventions or agent instructions        | `.cursor/rules/buytly-server.mdc`                   |
+
+## Completion checklist
+
+Do not mark the task done until:
+
+1. Every row above that applies has been updated (or you explicitly confirm no doc impact).
+2. Tests added/updated when behavior changed (`server/tests/`).
+3. Implementation matches docs — docs describe **current** code, not planned behavior.
+
+## When finishing
+
+In your final response, include a short **Docs sync** line listing which doc files you updated (or "none — no API/schema/auth/config impact").

@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "hooks": {
+    "stop": [
+      {
+        "type": "prompt",
+        "prompt": "Review the agent's work in this session. If files under server/src/ were created or modified, verify server/docs/ and .cursor/rules/ were updated per the docs-sync rule. If server code changed but docs/rules were NOT updated and the change affects APIs, schemas, auth, env vars, architecture, or conventions, respond with JSON: {\"followup_message\": \"Sync server/docs and .cursor/rules with the implementation per .cursor/rules/docs-sync.mdc. List which files you updated in a Docs sync section.\"}. Otherwise respond with empty JSON: {}.",
+        "loop_limit": 1
+      }
+    ]
+  }
+}
