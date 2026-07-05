@@ -37,6 +37,7 @@ Routes: `router → validate → authenticate/authorize → asyncHandler(control
 - Cross-cutting concerns: `server/src/services/` (email, GCS, cache, tokens)
 - Notifications: call `notificationService.notify()` — never email from controllers
 - New endpoints: update `server/docs/modules.md`, add Swagger annotations (paths relative to `/api/v1`, e.g. `/properties` not `/api/v1/properties`)
+- Swagger: define reusable schemas in `server/src/config/swagger.schemas.js`; each operation needs `operationId`, request/response `$ref`s, and standard error responses (for Orval)
 
 ## Tests
 

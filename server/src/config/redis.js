@@ -30,3 +30,9 @@ export const disconnectRedis = async () => {
 };
 
 export const isRedisConnected = () => redis?.status === "ready";
+
+/** Health-check status: not_configured | connected | disconnected */
+export const getRedisStatus = () => {
+  if (!env.REDIS_URL) return "not_configured";
+  return isRedisConnected() ? "connected" : "disconnected";
+};

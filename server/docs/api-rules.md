@@ -117,3 +117,25 @@ OpenAPI JSON: `/api/docs.json`
 Swagger `servers` base URL is `/api/v1` — path annotations in `*.routes.js` must be **relative** (e.g. `/health`, `/auth/login`), not `/api/v1/health`.
 
 On Windows, `swagger.js` normalizes glob paths to forward slashes so `swagger-jsdoc` discovers all route files.
+
+### Orval / client generation
+
+Shared component schemas, parameters, and error responses live in `server/src/config/swagger.schemas.js`. Each endpoint defines:
+
+- `operationId` — stable function name for generated clients
+- `summary` / `description` — human-readable docs
+- Request body and query parameter schemas with examples
+- Response schemas (`$ref` to `#/components/schemas/*`) including paginated wrappers
+- Standard error responses (`400`, `401`, `403`, `404`, `409`, `429`)
+
+Example Orval config:
+
+```ts
+// orval.config.ts
+export default {
+  buytly: {
+    input: "http://localhost:3001/api/docs.json",
+    output: { target: "./src/api/generated.ts", client: "react-query" },
+  },
+};
+```

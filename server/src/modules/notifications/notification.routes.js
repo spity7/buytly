@@ -10,36 +10,36 @@ import {
 
 const router = Router();
 
-/**
- * @swagger
- * tags:
- *   name: Notifications
- *   description: In-app notifications
- */
-
 router.use(authenticate);
 
 /**
  * @swagger
  * /notifications:
  *   get:
+ *     operationId: listNotifications
  *     summary: List user notifications
+ *     description: Returns paginated in-app notifications. Use `unread=true` for unread only or `unread=false` for read only.
  *     tags: [Notifications]
  *     security:
  *       - BearerAuth: []
  *     parameters:
- *       - in: query
- *         name: page
- *         schema: { type: integer }
- *       - in: query
- *         name: limit
- *         schema: { type: integer }
+ *       - $ref: '#/components/parameters/PageParam'
+ *       - $ref: '#/components/parameters/LimitParam'
  *       - in: query
  *         name: unread
- *         schema: { type: string, enum: [true, false] }
+ *         schema:
+ *           type: string
+ *           enum: ['true', 'false']
+ *         description: Filter by read status. Omit for all notifications.
  *     responses:
  *       200:
  *         description: Notifications list
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/PaginatedNotificationsResponse'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
  */
 router.get(
   "/",
@@ -51,13 +51,26 @@ router.get(
  * @swagger
  * /notifications/unread-count:
  *   get:
+ *     operationId: getUnreadNotificationCount
  *     summary: Get unread notification count
+ *     description: Returns the number of unread notifications for the authenticated user.
  *     tags: [Notifications]
  *     security:
  *       - BearerAuth: []
  *     responses:
  *       200:
  *         description: Unread count
+ *         content:
+ *           application/json:
+ *             schema:
+ *               allOf:
+ *                 - $ref: '#/components/schemas/SuccessResponse'
+ *                 - type: object
+ *                   properties:
+ *                     data:
+ *                       $ref: '#/components/schemas/UnreadCountData'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
  */
 router.get("/unread-count", asyncHandler(notificationController.unreadCount));
 
@@ -65,13 +78,25 @@ router.get("/unread-count", asyncHandler(notificationController.unreadCount));
  * @swagger
  * /notifications/read-all:
  *   patch:
+ *     operationId: markAllNotificationsRead
  *     summary: Mark all notifications as read
+ *     description: Marks every unread notification as read for the authenticated user.
  *     tags: [Notifications]
  *     security:
  *       - BearerAuth: []
  *     responses:
  *       200:
  *         description: All marked as read
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/SuccessResponse'
+ *             example:
+ *               success: true
+ *               message: All notifications marked as read
+ *               data: null
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
  */
 router.patch("/read-all", asyncHandler(notificationController.markAllRead));
 
@@ -79,18 +104,30 @@ router.patch("/read-all", asyncHandler(notificationController.markAllRead));
  * @swagger
  * /notifications/{id}/read:
  *   patch:
+ *     operationId: markNotificationRead
  *     summary: Mark notification as read
+ *     description: Marks a single notification as read. Idempotent — re-marking does not change readAt.
  *     tags: [Notifications]
  *     security:
  *       - BearerAuth: []
  *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema: { type: string }
+ *       - $ref: '#/components/parameters/ObjectIdParam'
  *     responses:
  *       200:
  *         description: Marked as read
+ *         content:
+ *           application/json:
+ *             schema:
+ *               allOf:
+ *                 - $ref: '#/components/schemas/SuccessResponse'
+ *                 - type: object
+ *                   properties:
+ *                     data:
+ *                       $ref: '#/components/schemas/Notification'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
  */
 router.patch(
   "/:id/read",

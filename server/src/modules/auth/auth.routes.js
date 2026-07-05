@@ -18,35 +18,41 @@ const router = Router();
 
 /**
  * @swagger
- * tags:
- *   name: Auth
- *   description: Authentication endpoints
- */
-
-/**
- * @swagger
  * /auth/register:
  *   post:
+ *     operationId: registerUser
  *     summary: Register a new user
+ *     description: Creates a buyer, seller, or agent account. Returns JWT tokens and sends a verification email.
  *     tags: [Auth]
  *     requestBody:
  *       required: true
  *       content:
  *         application/json:
  *           schema:
- *             type: object
- *             required: [email, password, confirmPassword]
- *             properties:
- *               email: { type: string, format: email }
- *               password: { type: string, minLength: 8 }
- *               confirmPassword: { type: string, minLength: 8 }
- *               firstName: { type: string }
- *               lastName: { type: string }
- *               phone: { type: string }
- *               role: { type: string, enum: [buyer, seller, agent] }
+ *             $ref: '#/components/schemas/RegisterRequest'
+ *           examples:
+ *             buyer:
+ *               summary: Register as buyer
+ *               value:
+ *                 email: john@example.com
+ *                 password: SecurePass123
+ *                 confirmPassword: SecurePass123
+ *                 firstName: John
+ *                 lastName: Doe
+ *                 role: buyer
  *     responses:
  *       201:
  *         description: Registration successful
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/AuthSuccessResponse'
+ *       400:
+ *         $ref: '#/components/responses/ValidationError'
+ *       409:
+ *         $ref: '#/components/responses/Conflict'
+ *       429:
+ *         $ref: '#/components/responses/TooManyRequests'
  */
 router.post(
   "/register",
@@ -59,21 +65,29 @@ router.post(
  * @swagger
  * /auth/login:
  *   post:
+ *     operationId: loginUser
  *     summary: Login user
+ *     description: Authenticates with email and password. Returns JWT access and refresh tokens.
  *     tags: [Auth]
  *     requestBody:
  *       required: true
  *       content:
  *         application/json:
  *           schema:
- *             type: object
- *             required: [email, password]
- *             properties:
- *               email: { type: string }
- *               password: { type: string }
+ *             $ref: '#/components/schemas/LoginRequest'
  *     responses:
  *       200:
  *         description: Login successful
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/AuthSuccessResponse'
+ *       400:
+ *         $ref: '#/components/responses/ValidationError'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       429:
+ *         $ref: '#/components/responses/TooManyRequests'
  */
 router.post(
   "/login",
@@ -86,20 +100,27 @@ router.post(
  * @swagger
  * /auth/refresh:
  *   post:
+ *     operationId: refreshToken
  *     summary: Refresh access token
+ *     description: Exchanges a valid refresh token for a new access/refresh token pair. The old refresh token is revoked.
  *     tags: [Auth]
  *     requestBody:
  *       required: true
  *       content:
  *         application/json:
  *           schema:
- *             type: object
- *             required: [refreshToken]
- *             properties:
- *               refreshToken: { type: string }
+ *             $ref: '#/components/schemas/RefreshTokenRequest'
  *     responses:
  *       200:
  *         description: Token refreshed
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/AuthSuccessResponse'
+ *       400:
+ *         $ref: '#/components/responses/ValidationError'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
  */
 router.post(
   "/refresh",
@@ -111,20 +132,29 @@ router.post(
  * @swagger
  * /auth/logout:
  *   post:
+ *     operationId: logoutUser
  *     summary: Logout user
+ *     description: Revokes the provided refresh token.
  *     tags: [Auth]
  *     requestBody:
  *       required: true
  *       content:
  *         application/json:
  *           schema:
- *             type: object
- *             required: [refreshToken]
- *             properties:
- *               refreshToken: { type: string }
+ *             $ref: '#/components/schemas/RefreshTokenRequest'
  *     responses:
  *       200:
  *         description: Logged out
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/SuccessResponse'
+ *             example:
+ *               success: true
+ *               message: Logged out successfully
+ *               data: null
+ *       400:
+ *         $ref: '#/components/responses/ValidationError'
  */
 router.post(
   "/logout",
@@ -136,7 +166,9 @@ router.post(
  * @swagger
  * /auth/forgot-password:
  *   post:
+ *     operationId: forgotPassword
  *     summary: Request password reset
+ *     description: Sends a password reset email if the account exists. Always returns the same message to prevent email enumeration.
  *     tags: [Auth]
  *     requestBody:
  *       required: true
@@ -146,10 +178,21 @@ router.post(
  *             type: object
  *             required: [email]
  *             properties:
- *               email: { type: string }
+ *               email:
+ *                 type: string
+ *                 format: email
+ *                 example: john@example.com
  *     responses:
  *       200:
  *         description: Reset email sent if account exists
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/MessageResponse'
+ *       400:
+ *         $ref: '#/components/responses/ValidationError'
+ *       429:
+ *         $ref: '#/components/responses/TooManyRequests'
  */
 router.post(
   "/forgot-password",
@@ -162,7 +205,9 @@ router.post(
  * @swagger
  * /auth/reset-password:
  *   post:
+ *     operationId: resetPassword
  *     summary: Reset password with token
+ *     description: Sets a new password using the token from the reset email. Revokes all existing refresh tokens.
  *     tags: [Auth]
  *     requestBody:
  *       required: true
@@ -172,11 +217,28 @@ router.post(
  *             type: object
  *             required: [token, password]
  *             properties:
- *               token: { type: string }
- *               password: { type: string, minLength: 8 }
+ *               token:
+ *                 type: string
+ *                 example: abc123def456
+ *               password:
+ *                 type: string
+ *                 minLength: 8
+ *                 maxLength: 128
+ *                 example: NewSecurePass456
  *     responses:
  *       200:
  *         description: Password reset successful
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/MessageResponse'
+ *             example:
+ *               success: true
+ *               message: Password reset successfully
+ *               data:
+ *                 message: Password reset successfully
+ *       400:
+ *         $ref: '#/components/responses/ValidationError'
  */
 router.post(
   "/reset-password",
@@ -188,7 +250,9 @@ router.post(
  * @swagger
  * /auth/verify-email:
  *   post:
+ *     operationId: verifyEmail
  *     summary: Verify email address with token
+ *     description: Marks the user's email as verified using the token from the verification email.
  *     tags: [Auth]
  *     requestBody:
  *       required: true
@@ -198,10 +262,31 @@ router.post(
  *             type: object
  *             required: [token]
  *             properties:
- *               token: { type: string }
+ *               token:
+ *                 type: string
+ *                 example: abc123def456
  *     responses:
  *       200:
  *         description: Email verified
+ *         content:
+ *           application/json:
+ *             schema:
+ *               allOf:
+ *                 - $ref: '#/components/schemas/SuccessResponse'
+ *                 - type: object
+ *                   properties:
+ *                     data:
+ *                       type: object
+ *                       properties:
+ *                         message:
+ *                           type: string
+ *                           example: Email verified successfully
+ *                         user:
+ *                           $ref: '#/components/schemas/User'
+ *       400:
+ *         $ref: '#/components/responses/ValidationError'
+ *       429:
+ *         $ref: '#/components/responses/TooManyRequests'
  */
 router.post(
   "/verify-email",
@@ -214,7 +299,9 @@ router.post(
  * @swagger
  * /auth/resend-verification:
  *   post:
+ *     operationId: resendVerification
  *     summary: Resend email verification link
+ *     description: Resends verification email for unverified accounts. Always returns the same message to prevent email enumeration.
  *     tags: [Auth]
  *     requestBody:
  *       required: true
@@ -224,10 +311,21 @@ router.post(
  *             type: object
  *             required: [email]
  *             properties:
- *               email: { type: string, format: email }
+ *               email:
+ *                 type: string
+ *                 format: email
+ *                 example: john@example.com
  *     responses:
  *       200:
  *         description: Verification email sent if applicable
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/MessageResponse'
+ *       400:
+ *         $ref: '#/components/responses/ValidationError'
+ *       429:
+ *         $ref: '#/components/responses/TooManyRequests'
  */
 router.post(
   "/resend-verification",

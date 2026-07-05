@@ -15,27 +15,34 @@ const router = Router();
 
 /**
  * @swagger
- * tags:
- *   name: Agents
- *   description: Real estate agent profiles
- */
-
-/**
- * @swagger
  * /agents:
  *   get:
+ *     operationId: listAgents
  *     summary: List agents
+ *     description: Returns a paginated list of agent profiles sorted by rating.
  *     tags: [Agents]
  *     parameters:
+ *       - $ref: '#/components/parameters/PageParam'
+ *       - $ref: '#/components/parameters/LimitParam'
  *       - in: query
  *         name: city
- *         schema: { type: string }
+ *         schema:
+ *           type: string
+ *         example: Dubai
  *       - in: query
  *         name: specialty
- *         schema: { type: string }
+ *         schema:
+ *           type: string
+ *         example: luxury
  *     responses:
  *       200:
  *         description: Agent list
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/PaginatedAgentsResponse'
+ *       400:
+ *         $ref: '#/components/responses/ValidationError'
  */
 router.get(
   "/",
@@ -43,6 +50,64 @@ router.get(
   asyncHandler(agentController.list),
 );
 
+/**
+ * @swagger
+ * /agents/me:
+ *   patch:
+ *     operationId: updateMyAgentProfile
+ *     summary: Update own agent profile
+ *     description: Updates the authenticated agent's extended profile (license, agency, bio, etc.).
+ *     tags: [Agents]
+ *     security:
+ *       - BearerAuth: []
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               licenseNumber:
+ *                 type: string
+ *                 maxLength: 50
+ *                 example: RE-12345
+ *               agency:
+ *                 type: string
+ *                 maxLength: 100
+ *                 example: Buytly Realty
+ *               bio:
+ *                 type: string
+ *                 maxLength: 2000
+ *                 example: 10+ years experience in luxury properties.
+ *               specialties:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                 example: [luxury, commercial]
+ *               city:
+ *                 type: string
+ *                 maxLength: 100
+ *                 example: Dubai
+ *     responses:
+ *       200:
+ *         description: Agent profile updated
+ *         content:
+ *           application/json:
+ *             schema:
+ *               allOf:
+ *                 - $ref: '#/components/schemas/SuccessResponse'
+ *                 - type: object
+ *                   properties:
+ *                     data:
+ *                       $ref: '#/components/schemas/AgentProfile'
+ *       400:
+ *         $ref: '#/components/responses/ValidationError'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ */
 router.patch(
   "/me",
   authenticate,
@@ -55,16 +120,26 @@ router.patch(
  * @swagger
  * /agents/{id}:
  *   get:
+ *     operationId: getAgentById
  *     summary: Get agent profile
+ *     description: Returns agent user info, extended profile, and active listings count.
  *     tags: [Agents]
  *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema: { type: string }
+ *       - $ref: '#/components/parameters/ObjectIdParam'
  *     responses:
  *       200:
  *         description: Agent profile
+ *         content:
+ *           application/json:
+ *             schema:
+ *               allOf:
+ *                 - $ref: '#/components/schemas/SuccessResponse'
+ *                 - type: object
+ *                   properties:
+ *                     data:
+ *                       $ref: '#/components/schemas/AgentDetail'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
  */
 router.get(
   "/:id",
@@ -72,6 +147,58 @@ router.get(
   asyncHandler(agentController.getById),
 );
 
+/**
+ * @swagger
+ * /agents/{id}/properties:
+ *   get:
+ *     operationId: getAgentProperties
+ *     summary: List agent's properties
+ *     description: Returns a paginated list of active properties listed by the agent.
+ *     tags: [Agents]
+ *     parameters:
+ *       - $ref: '#/components/parameters/ObjectIdParam'
+ *       - $ref: '#/components/parameters/PageParam'
+ *       - $ref: '#/components/parameters/LimitParam'
+ *       - in: query
+ *         name: minPrice
+ *         schema:
+ *           type: number
+ *       - in: query
+ *         name: maxPrice
+ *         schema:
+ *           type: number
+ *       - in: query
+ *         name: type
+ *         schema:
+ *           $ref: '#/components/schemas/PropertyType'
+ *       - in: query
+ *         name: listingType
+ *         schema:
+ *           $ref: '#/components/schemas/ListingType'
+ *       - in: query
+ *         name: city
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: sortBy
+ *         schema:
+ *           type: string
+ *           enum: [price, createdAt, viewCount]
+ *       - in: query
+ *         name: sortOrder
+ *         schema:
+ *           type: string
+ *           enum: [asc, desc]
+ *     responses:
+ *       200:
+ *         description: Agent property list
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/PaginatedPropertiesResponse'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ */
 router.get(
   "/:id/properties",
   validateMultiple({ params: agentIdSchema, query: listPropertiesSchema }),

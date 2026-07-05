@@ -10,7 +10,7 @@ Buytly is a modular real estate marketplace backend built with Node.js, Express,
 server/src/
 ├── modules/          # Domain modules (auth, users, properties, etc.)
 ├── shared/           # ApiResponse, AppError, constants, pagination
-├── config/           # env, db, redis, swagger
+├── config/           # env, db, redis, swagger, swagger.schemas
 ├── middleware/       # auth, validate, sanitize, errorHandler, rateLimit
 ├── services/         # Cross-cutting services (GCS, email, cache, tokens)
 ├── utils/            # Helpers (asyncHandler, pick, slugify)
@@ -25,7 +25,8 @@ Each module contains:
 - `*.validation.js` — Zod schemas
 - `*.service.js` — Business logic
 - `*.controller.js` — HTTP handlers
-- `*.routes.js` — Routes + Swagger annotations
+- `*.routes.js` — Routes + Swagger annotations (`operationId`, request/response schemas)
+- `config/swagger.schemas.js` — Shared OpenAPI components (schemas, parameters, error responses)
 
 ## Module Interactions
 

@@ -33,7 +33,17 @@ const options = {
     info: {
       title: "Buytly API",
       version: "1.0.0",
-      description: "Production-ready real estate marketplace backend API",
+      description:
+        "Production-ready real estate marketplace backend API. " +
+        "All successful responses use `{ success, message, data }`. " +
+        "Paginated lists add a top-level `pagination` object. " +
+        "OpenAPI spec is Orval-compatible — each operation has an `operationId`.",
+      contact: {
+        name: "Buytly",
+      },
+      license: {
+        name: "Proprietary",
+      },
     },
     servers: servers,
     components: {
@@ -42,42 +52,6 @@ const options = {
           type: "http",
           scheme: "bearer",
           bearerFormat: "JWT",
-        },
-      },
-      schemas: {
-        ApiResponse: {
-          type: "object",
-          properties: {
-            success: { type: "boolean", example: true },
-            message: { type: "string" },
-            data: { type: "object" },
-          },
-        },
-        PaginationMeta: {
-          type: "object",
-          properties: {
-            page: { type: "integer" },
-            limit: { type: "integer" },
-            total: { type: "integer" },
-            totalPages: { type: "integer" },
-          },
-        },
-        ErrorResponse: {
-          type: "object",
-          properties: {
-            success: { type: "boolean", example: false },
-            message: { type: "string" },
-            errors: {
-              type: "array",
-              items: {
-                type: "object",
-                properties: {
-                  field: { type: "string" },
-                  message: { type: "string" },
-                },
-              },
-            },
-          },
         },
       },
     },
@@ -94,7 +68,11 @@ const options = {
       { name: "Notifications", description: "Notifications" },
     ],
   },
-  apis: [apiGlob("../modules/**/*.routes.js"), apiGlob("../routes/index.js")],
+  apis: [
+    apiGlob("./swagger.schemas.js"),
+    apiGlob("../modules/**/*.routes.js"),
+    apiGlob("../routes/index.js"),
+  ],
 };
 
 export const swaggerSpec = swaggerJsdoc(options);

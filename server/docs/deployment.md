@@ -237,6 +237,10 @@ Response (healthy):
 }
 ```
 
-When `REDIS_URL` is unset, `services.redis` is `"not_configured"` instead of `"connected"`.
+`services.redis` values:
 
-Returns 503 with `"status": "degraded"` if MongoDB is disconnected.
+- `"not_configured"` — `REDIS_URL` is unset (caching disabled)
+- `"connected"` — Redis is configured and reachable
+- `"disconnected"` — `REDIS_URL` is set but Redis is not connected
+
+Returns **503** with `"status": "degraded"` if MongoDB is disconnected (body still has `success: true`).

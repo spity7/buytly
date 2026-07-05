@@ -9,7 +9,7 @@ import transactionRoutes from "../modules/transactions/transaction.routes.js";
 import adminRoutes from "../modules/admin/admin.routes.js";
 import notificationRoutes from "../modules/notifications/notification.routes.js";
 import { isDBConnected } from "../config/db.js";
-import { isRedisConnected } from "../config/redis.js";
+import { getRedisStatus } from "../config/redis.js";
 import { ApiResponse } from "../shared/ApiResponse.js";
 
 const router = Router();
@@ -18,26 +18,56 @@ const router = Router();
  * @swagger
  * /health:
  *   get:
+ *     operationId: getHealth
  *     summary: Health check
+ *     description: Returns service health status including MongoDB and Redis connectivity. Returns 503 when MongoDB is disconnected.
  *     tags: [Health]
  *     responses:
  *       200:
- *         description: Service health status
+ *         description: Service is healthy
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/HealthSuccessResponse'
+ *             example:
+ *               success: true
+ *               message: Service is healthy
+ *               data:
+ *                 status: ok
+ *                 timestamp: '2026-07-05T09:00:00.000Z'
+ *                 services:
+ *                   mongodb: connected
+ *                   redis: not_configured
+ *       503:
+ *         description: Service degraded (MongoDB disconnected)
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/HealthSuccessResponse'
+ *             example:
+ *               success: true
+ *               message: Service degraded
+ *               data:
+ *                 status: degraded
+ *                 timestamp: '2026-07-05T09:00:00.000Z'
+ *                 services:
+ *                   mongodb: disconnected
+ *                   redis: not_configured
  */
 router.get("/health", (req, res) => {
-  const healthy = isDBConnected();
+  const dbConnected = isDBConnected();
   ApiResponse.success(
     res,
     {
-      status: healthy ? "ok" : "degraded",
+      status: dbConnected ? "ok" : "degraded",
       timestamp: new Date().toISOString(),
       services: {
-        mongodb: isDBConnected() ? "connected" : "disconnected",
-        redis: isRedisConnected() ? "connected" : "not_configured",
+        mongodb: dbConnected ? "connected" : "disconnected",
+        redis: getRedisStatus(),
       },
     },
-    healthy ? "Service is healthy" : "Service degraded",
-    healthy ? 200 : 503,
+    dbConnected ? "Service is healthy" : "Service degraded",
+    dbConnected ? 200 : 503,
   );
 });
 
