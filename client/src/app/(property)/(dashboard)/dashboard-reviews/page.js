@@ -7,7 +7,7 @@ import SidebarDashboard from "@/components/property/dashboard/SidebarDashboard";
 import AllReviews from "@/components/property/dashboard/dashboard-reviews";
 
 export const metadata = {
-  title: "Dashboard Reviews || Homez - Real Estate NextJS Template",
+  title: "Dashboard Reviews",
 };
 
 const DashboardReviews = () => {

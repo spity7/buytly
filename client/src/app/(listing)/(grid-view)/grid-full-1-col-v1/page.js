@@ -7,7 +7,7 @@ import PropertyFiltering from "@/components/listing/grid-view/grid-full-1-col-v1
 import React from "react";
 
 export const metadata = {
-  title: "Gird Full 1 Column V1 || Homez - Real Estate NextJS Template",
+  title: "Gird Full 1 Column V1",
 };
 
 const GridFull1ColV1 = () => {

@@ -7,7 +7,7 @@ import SidebarDashboard from "@/components/property/dashboard/SidebarDashboard";
 import ListingsFavourites from "@/components/property/dashboard/dashboard-my-favourites/ListingsFavourites";
 
 export const metadata = {
-  title: "Dashboard My Favourites || Homez - Real Estate NextJS Template",
+  title: "Dashboard My Favourites",
 };
 
 const DashboardMyFavourites = () => {

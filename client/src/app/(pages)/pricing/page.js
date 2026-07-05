@@ -5,7 +5,7 @@ import MobileMenu from "@/components/common/mobile-menu";
 import Pricing from "@/components/pages/pricing/Pricing";
 
 export const metadata = {
-  title: "Pricing  || Homez - Real Estate NextJS Template",
+  title: "Pricing ",
 };
 
 const PricingPlan = () => {

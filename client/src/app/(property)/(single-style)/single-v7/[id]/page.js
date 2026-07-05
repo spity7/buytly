@@ -27,7 +27,7 @@ import WalkScore from "@/components/property/property-single-style/common/WalkSc
 import OverView from "@/components/property/property-single-style/single-v7/OverView";
 
 export const metadata = {
-  title: "Property Single V7 || Homez - Real Estate NextJS Template",
+  title: "Property Single V7",
 };
 
 const SingleV7 = async props => {

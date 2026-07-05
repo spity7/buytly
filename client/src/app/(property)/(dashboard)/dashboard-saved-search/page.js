@@ -7,7 +7,7 @@ import SidebarDashboard from "@/components/property/dashboard/SidebarDashboard";
 import SearchDataTable from "@/components/property/dashboard/dashboard-saved-search/SearchDataTable";
 
 export const metadata = {
-  title: "Dashboard Saved Search || Homez - Real Estate NextJS Template",
+  title: "Dashboard Saved Search",
 };
 
 const DashboardSavedSearch = () => {

@@ -8,7 +8,7 @@ import TopStateBlock from "@/components/property/dashboard/dashboard-home/TopSta
 import PropertyViews from "@/components/property/dashboard/dashboard-home/property-view";
 
 export const metadata = {
-  title: "Dashboard Home || Homez - Real Estate NextJS Template",
+  title: "Dashboard Home",
 };
 
 const DashboardHome = () => {

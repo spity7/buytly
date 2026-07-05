@@ -14,8 +14,8 @@ const ContactMeta = () => {
     },
     {
       text: "Need Live Support?",
-      info: "hi@homez.com",
-      link: "mailto:hi@homez.com",
+      info: "hi@buytly.com",
+      link: "mailto:hi@buytly.com",
     },
   ];
 

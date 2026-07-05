@@ -7,7 +7,7 @@ import PropertyFilteringBanner from "@/components/listing/grid-view/banner-searc
 import React from "react";
 
 export const metadata = {
-  title: "Banner Search V1 || Homez - Real Estate NextJS Template",
+  title: "Banner Search V1",
 };
 
 const BannerSearchV1 = () => {

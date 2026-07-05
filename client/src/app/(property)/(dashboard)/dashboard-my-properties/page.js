@@ -8,7 +8,7 @@ import PropertyDataTable from "@/components/property/dashboard/dashboard-my-prop
 import DboardMobileNavigation from "@/components/property/dashboard/DboardMobileNavigation";
 
 export const metadata = {
-  title: "Dashboard Properties || Homez - Real Estate NextJS Template",
+  title: "Dashboard Properties",
 };
 
 const DashboardMyProperties = () => {

@@ -10,7 +10,7 @@ import PropertyFiltering from "@/components/listing/grid-view/grid-full-2-col/Pr
 import React from "react";
 
 export const metadata = {
-  title: "Gird Full 2 Column || Homez - Real Estate NextJS Template",
+  title: "Gird Full 2 Column",
 };
 
 const GridFull2Col = () => {

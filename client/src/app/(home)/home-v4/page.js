@@ -15,7 +15,7 @@ import FilterProperties from "@/components/home/home-v4/FilterProperties";
 import Footer from "@/components/home/home-v4/footer";
 
 export const metadata = {
-  title: "Home v4 || Homez - Real Estate NextJS Template",
+  title: "Home v4",
 };
 
 const Home_V4 = () => {

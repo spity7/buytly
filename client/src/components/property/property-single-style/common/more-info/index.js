@@ -74,7 +74,7 @@ const InfoWithForm = () => {
                 <input
                   type="email"
                   className="form-control"
-                  placeholder="creativelayers088"
+                  placeholder="buytly"
                 />
               </div>
             </div>

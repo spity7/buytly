@@ -15,7 +15,7 @@ import Pricing from "@/components/home/home-v9/Pricing";
 import Cta from "@/components/home/home-v9/Cta";
 
 export const metadata = {
-  title: "Home v9 || Homez - Real Estate NextJS Template",
+  title: "Home v9",
 };
 
 const Home_V9 = () => {

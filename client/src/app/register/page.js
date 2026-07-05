@@ -4,7 +4,7 @@ import Link from "next/link";
 import React from "react";
 
 export const metadata = {
-  title: "Register  || Homez - Real Estate NextJS Template",
+  title: "Register ",
 };
 
 const Register = () => {

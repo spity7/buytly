@@ -6,7 +6,7 @@ import Link from "next/link";
 import React from "react";
 
 export const metadata = {
-  title: "Not-Found  || Homez - Real Estate NextJS Template",
+  title: "Not-Found ",
 };
 
 const NotFound = () => {

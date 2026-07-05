@@ -1,6 +1,7 @@
 {
-  "name": "homez-nextjs",
+  "name": "buytly-client",
   "version": "2.1.0",
+  "description": "Buytly real estate marketplace frontend",
   "private": true,
   "scripts": {
     "dev": "concurrently -k -n api,next -c yellow,cyan \"node scripts/watch-api.cjs\" \"next dev\"",

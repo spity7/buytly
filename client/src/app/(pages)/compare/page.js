@@ -5,7 +5,7 @@ import MobileMenu from "@/components/common/mobile-menu";
 import ComapareTable from "@/components/pages/compare/ComapareTable";
 
 export const metadata = {
-  title: "Compare  || Homez - Real Estate NextJS Template",
+  title: "Compare ",
 };
 
 const Compare = () => {

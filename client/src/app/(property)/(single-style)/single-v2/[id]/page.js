@@ -26,7 +26,7 @@ import PropertyHeader from "@/components/property/property-single-style/single-v
 import ScheduleForm from "@/components/property/property-single-style/single-v2/ScheduleForm";
 
 export const metadata = {
-  title: "Property Single V2 || Homez - Real Estate NextJS Template",
+  title: "Property Single V2",
 };
 
 const SingleV2 = async props => {

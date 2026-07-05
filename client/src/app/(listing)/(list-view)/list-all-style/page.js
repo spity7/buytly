@@ -12,7 +12,7 @@ import Listing8 from "@/components/listing/list-view/all-list-style/Listing8";
 import React from "react";
 
 export const metadata = {
-  title: "List V1 || Homez - Real Estate NextJS Template",
+  title: "List V1",
 };
 
 const ListV1 = () => {

@@ -3,6 +3,14 @@ import ClientLayout from "./ClientLayout";
 import ExtensionHydrationFix from "./ExtensionHydrationFix";
 import "../../public/scss/main.scss";
 
+export const metadata = {
+  title: {
+    default: "Buytly",
+    template: "%s | Buytly",
+  },
+  description: "Find, list, and manage real estate on Buytly.",
+};
+
 const dmSans = localFont({
   src: "../fonts/DMSans-latin.woff2",
   weight: "400 700",

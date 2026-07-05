@@ -7,7 +7,7 @@ import PropertyFilteringMapFive from "@/components/listing/map-style/map-v4/Prop
 import React from "react";
 
 export const metadata = {
-  title: "Map V4 || Homez - Real Estate NextJS Template",
+  title: "Map V4",
 };
 
 const MapV4 = () => {

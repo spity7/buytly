@@ -18,7 +18,7 @@ import Link from "next/link";
 import PropertyListing from "@/components/home/home-v7/PropertyListing";
 
 export const metadata = {
-  title: "Home v7 || Homez - Real Estate NextJS Template",
+  title: "Home v7",
 };
 
 const Home_V7 = () => {

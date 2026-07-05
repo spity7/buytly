@@ -11,7 +11,7 @@ import Image from "next/image";
 import Link from "next/link";
 
 export const metadata = {
-  title: "About  || Homez - Real Estate NextJS Template",
+  title: "About ",
 };
 
 const About = () => {

@@ -6,7 +6,7 @@ import SidebarDashboard from "@/components/property/dashboard/SidebarDashboard";
 import AddPropertyTabContent from "@/components/property/dashboard/dashboard-add-property";
 
 export const metadata = {
-  title: "Dashboard Add Property || Homez - Real Estate NextJS Template",
+  title: "Dashboard Add Property",
 };
 
 const DashboardAddProperty = () => {

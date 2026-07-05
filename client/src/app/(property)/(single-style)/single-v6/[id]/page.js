@@ -27,7 +27,7 @@ import MortgageCalculator from "@/components/property/property-single-style/comm
 import WalkScore from "@/components/property/property-single-style/common/WalkScore";
 
 export const metadata = {
-  title: "Property Single V6 || Homez - Real Estate NextJS Template",
+  title: "Property Single V6",
 };
 
 const SingleV6 = async props => {

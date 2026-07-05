@@ -6,7 +6,7 @@ import SidebarDashboard from "@/components/property/dashboard/SidebarDashboard";
 import PackageDataTable from "@/components/property/dashboard/dashboard-package/PackageDataTable";
 
 export const metadata = {
-  title: "Dashboard My Package || Homez - Real Estate NextJS Template",
+  title: "Dashboard My Package",
 };
 
 const DashboardMyPackage = () => {

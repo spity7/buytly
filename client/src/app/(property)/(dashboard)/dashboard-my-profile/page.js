@@ -9,7 +9,7 @@ import ProfileBox from "@/components/property/dashboard/dashboard-profile/Profil
 import SocialField from "@/components/property/dashboard/dashboard-profile/SocialField";
 
 export const metadata = {
-  title: "Dashboard My Profile || Homez - Real Estate NextJS Template",
+  title: "Dashboard My Profile",
 };
 
 const DashboardMyProfile = () => {

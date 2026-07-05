@@ -16,7 +16,7 @@ import Link from "next/link";
 import PropertyByCitiesWrapper from "@/components/home/home-v3/PropertyByCitiesWrapper";
 
 export const metadata = {
-  title: "Home v3 || Homez - Real Estate NextJS Template",
+  title: "Home v3",
 };
 
 const Home_V3 = () => {

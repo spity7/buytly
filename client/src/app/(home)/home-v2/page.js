@@ -17,7 +17,7 @@ import Cta from "@/components/home/home-v2/Cta";
 import Link from "next/link";
 
 export const metadata = {
-  title: "Home v2 || Homez - Real Estate NextJS Template",
+  title: "Home v2",
 };
 
 const Home_V2 = () => {
