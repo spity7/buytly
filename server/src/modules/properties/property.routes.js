@@ -61,26 +61,23 @@ const router = Router();
  *         name: search
  *         schema:
  *           type: string
- *         description: Full-text search on title and description
+ *         description: Full-text search on title and description. Can be combined with geo-radius filters.
  *         example: downtown apartment
  *       - in: query
  *         name: lat
  *         schema:
  *           type: number
- *         description: Latitude for geo-radius search (requires lng and radiusKm)
- *         example: 25.2048
+ *         description: Latitude for geo-radius search (requires lng and radiusKm). Omit for a text-only search.
  *       - in: query
  *         name: lng
  *         schema:
  *           type: number
- *         description: Longitude for geo-radius search
- *         example: 55.2708
+ *         description: Longitude for geo-radius search (requires lat and radiusKm)
  *       - in: query
  *         name: radiusKm
  *         schema:
  *           type: number
- *         description: Search radius in kilometers
- *         example: 10
+ *         description: Search radius in kilometers (requires lat and lng)
  *       - in: query
  *         name: sortBy
  *         schema:

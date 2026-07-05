@@ -92,7 +92,7 @@ Property list supports:
 - `sortOrder` — `asc`, `desc`
 - `minPrice`, `maxPrice`, `type`, `listingType`, `status`, `city`, `bedrooms`
 - `search` — Full-text search on title/description
-- `lat`, `lng`, `radiusKm` — Geo-radius search
+- `lat`, `lng`, `radiusKm` — Geo-radius search (all three required). When combined with `search`, radius filtering uses `$geoWithin` instead of distance sorting so MongoDB accepts the query.
 
 ## Versioning
 

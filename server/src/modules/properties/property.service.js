@@ -9,6 +9,8 @@ import {
 import { slugify } from "../../utils/slugify.js";
 import { ROLES } from "../../shared/constants.js";
 
+const EARTH_RADIUS_KM = 6378.1;
+
 const attachMediaUrls = async (property) => {
   if (!property) return property;
   const doc = property.toObject ? property.toObject() : { ...property };
@@ -78,17 +80,33 @@ export const propertyService = {
     if (query.city) filter["location.city"] = new RegExp(query.city, "i");
     if (query.bedrooms) filter.bedrooms = { $gte: query.bedrooms };
 
-    if (query.search) {
+    const hasTextSearch = Boolean(query.search);
+    const hasGeoSearch =
+      query.lat != null && query.lng != null && query.radiusKm != null;
+
+    if (hasTextSearch) {
       filter.$text = { $search: query.search };
     }
 
-    if (query.lat && query.lng && query.radiusKm) {
-      filter.location = {
-        $nearSphere: {
-          $geometry: { type: "Point", coordinates: [query.lng, query.lat] },
-          $maxDistance: query.radiusKm * 1000,
-        },
-      };
+    if (hasGeoSearch) {
+      // MongoDB rejects $text with $nearSphere/$geoNear in the same query.
+      if (hasTextSearch) {
+        filter.location = {
+          $geoWithin: {
+            $centerSphere: [
+              [query.lng, query.lat],
+              query.radiusKm / EARTH_RADIUS_KM,
+            ],
+          },
+        };
+      } else {
+        filter.location = {
+          $nearSphere: {
+            $geometry: { type: "Point", coordinates: [query.lng, query.lat] },
+            $maxDistance: query.radiusKm * 1000,
+          },
+        };
+      }
     }
 
     const sortField = query.sortBy || "createdAt";

@@ -841,19 +841,19 @@ export type ListPropertiesParams = {
   city?: string;
   bedrooms?: number;
   /**
-   * Full-text search on title and description
+   * Full-text search on title and description. Can be combined with geo-radius filters.
    */
   search?: string;
   /**
-   * Latitude for geo-radius search (requires lng and radiusKm)
+   * Latitude for geo-radius search (requires lng and radiusKm). Omit for a text-only search.
    */
   lat?: number;
   /**
-   * Longitude for geo-radius search
+   * Longitude for geo-radius search (requires lat and radiusKm)
    */
   lng?: number;
   /**
-   * Search radius in kilometers
+   * Search radius in kilometers (requires lat and lng)
    */
   radiusKm?: number;
   sortBy?: ListPropertiesSortBy;
