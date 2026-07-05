@@ -9,10 +9,10 @@
 
 ## Domain layout (buytly.com)
 
-| Host                            | Purpose                                                |
-| ------------------------------- | ------------------------------------------------------ |
-| `buytly.com` / `www.buytly.com` | Frontend dashboard (future) — `APP_URL`, `CORS_ORIGIN` |
-| `api.buytly.com`                | Backend API — `API_URL`, nginx + SSL                   |
+| Host                            | Purpose                                      |
+| ------------------------------- | -------------------------------------------- |
+| `buytly.com` / `www.buytly.com` | Frontend (future) — `APP_URL`, `CORS_ORIGIN` |
+| `api.buytly.com`                | Backend API — `API_URL`, nginx + SSL         |
 
 The repo is API-only today. Point `api.buytly.com` at your VPS; reserve apex/`www` for the Next.js app when it ships.
 
@@ -118,8 +118,8 @@ sudo npm install -g pm2
 ### 2. Deploy application
 
 ```bash
-git clone <your-repo-url> /var/www/buytly-dashboard
-cd /var/www/buytly-dashboard/server
+git clone <your-repo-url> /var/www/buytly
+cd /var/www/buytly/server
 cp .env.example .env
 npm run generate-secrets   # paste output into .env
 # Edit .env: comment local lines, uncomment prod line below each pair

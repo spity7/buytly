@@ -1,11 +1,11 @@
-# Buytly Dashboard
+# Buytly
 
-Monorepo for the Buytly real estate marketplace. Currently contains the **backend API** only; the frontend dashboard will live here as the project grows.
+Monorepo for the Buytly real estate marketplace. Currently contains the **backend API** only; the frontend will live here as the project grows.
 
 ## Structure
 
 ```
-buytly-dashboard/
+buytly/
 └── server/          # Node.js / Express REST API
     ├── src/         # Application source
     ├── docs/        # Architecture, API rules, auth flow, schemas

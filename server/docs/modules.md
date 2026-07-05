@@ -126,7 +126,7 @@
 | /admin/users/:id/role          | PATCH  | Admin | role     | updated user      |
 | /admin/properties              | GET    | Admin | filters  | all listings      |
 | /admin/properties/:id/moderate | PATCH  | Admin | status   | moderated listing |
-| /admin/analytics               | GET    | Admin | —        | KPI dashboard     |
+| /admin/analytics               | GET    | Admin | —        | KPI analytics     |
 
 **Dependencies:** users, properties, bookings, transactions, cache.service
 

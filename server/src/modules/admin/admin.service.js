@@ -86,7 +86,7 @@ export const adminService = {
   },
 
   async getAnalytics() {
-    const cacheKey = "analytics:dashboard";
+    const cacheKey = "admin:analytics";
     const cached = await cacheService.get(cacheKey);
     if (cached) return cached;
 

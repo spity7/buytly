@@ -233,7 +233,7 @@ router.patch(
  *   get:
  *     operationId: getAnalytics
  *     summary: Get platform analytics KPIs
- *     description: Returns dashboard analytics including users by role, listings, bookings, transactions, and top cities. Cached for 10 minutes.
+ *     description: Returns platform analytics including users by role, listings, bookings, transactions, and top cities. Cached for 10 minutes.
  *     tags: [Admin]
  *     security:
  *       - BearerAuth: []
