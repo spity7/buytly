@@ -5,616 +5,98 @@
  * Production-ready real estate marketplace backend API. All successful responses use `{ success, message, data }`. Paginated lists add a top-level `pagination` object. OpenAPI spec is Orval-compatible — each operation has an `operationId`.
  * OpenAPI spec version: 1.0.0
  */
-import { useMutation, useQuery } from "@tanstack/react-query";
 import type {
-  DataTag,
-  DefinedInitialDataOptions,
-  DefinedUseQueryResult,
-  MutationFunction,
-  QueryClient,
-  QueryFunction,
-  QueryKey,
-  UndefinedInitialDataOptions,
-  UseMutationOptions,
-  UseMutationResult,
-  UseQueryOptions,
-  UseQueryResult,
-} from "@tanstack/react-query";
-
-import type {
-  ForbiddenResponse,
   GetAgentById200,
   GetAgentPropertiesParams,
   ListAgentsParams,
-  NotFoundResponse,
   PaginatedAgentsResponse,
   PaginatedPropertiesResponse,
-  UnauthorizedResponse,
   UpdateMyAgentProfile200,
   UpdateMyAgentProfileBody,
-  ValidationErrorResponse,
-} from "../../models";
+} from "../buytly.schemas";
 
 import { customInstance } from "../../../lib/api/custom-instance";
-import type { ErrorType, BodyType } from "../../../lib/api/custom-instance";
+import type { BodyType } from "../../../lib/api/custom-instance";
+
+type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];
+
+export const getAgents = () => {
+  /**
+   * Returns a paginated list of agent profiles sorted by rating.
+   * @summary List agents
+   */
+  const listAgents = (
+    params?: ListAgentsParams,
+    options?: SecondParameter<typeof customInstance<PaginatedAgentsResponse>>,
+  ) => {
+    return customInstance<PaginatedAgentsResponse>(
+      { url: `/agents`, method: "GET", params },
+      options,
+    );
+  };
+  /**
+   * Updates the authenticated agent's extended profile (license, agency, bio, etc.).
+   * @summary Update own agent profile
+   */
+  const updateMyAgentProfile = (
+    updateMyAgentProfileBody: BodyType<UpdateMyAgentProfileBody>,
+    options?: SecondParameter<typeof customInstance<UpdateMyAgentProfile200>>,
+  ) => {
+    return customInstance<UpdateMyAgentProfile200>(
+      {
+        url: `/agents/me`,
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        data: updateMyAgentProfileBody,
+      },
+      options,
+    );
+  };
+  /**
+   * Returns agent user info, extended profile, and active listings count.
+   * @summary Get agent profile
+   */
+  const getAgentById = (
+    id: string,
+    options?: SecondParameter<typeof customInstance<GetAgentById200>>,
+  ) => {
+    return customInstance<GetAgentById200>(
+      { url: `/agents/${id}`, method: "GET" },
+      options,
+    );
+  };
+  /**
+   * Returns a paginated list of active properties listed by the agent.
+   * @summary List agent's properties
+   */
+  const getAgentProperties = (
+    id: string,
+    params?: GetAgentPropertiesParams,
+    options?: SecondParameter<
+      typeof customInstance<PaginatedPropertiesResponse>
+    >,
+  ) => {
+    return customInstance<PaginatedPropertiesResponse>(
+      { url: `/agents/${id}/properties`, method: "GET", params },
+      options,
+    );
+  };
+  return { listAgents, updateMyAgentProfile, getAgentById, getAgentProperties };
+};
 
 type AwaitedInput<T> = PromiseLike<T> | T;
 
 type Awaited<O> = O extends AwaitedInput<infer T> ? T : never;
 
-type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];
-
-/**
- * Returns a paginated list of agent profiles sorted by rating.
- * @summary List agents
- */
-export const listAgents = (
-  params?: ListAgentsParams,
-  options?: SecondParameter<typeof customInstance>,
-  signal?: AbortSignal,
-) => {
-  return customInstance<PaginatedAgentsResponse>(
-    { url: `/agents`, method: "GET", params, signal },
-    options,
-  );
-};
-
-export const getListAgentsQueryKey = (params?: ListAgentsParams) => {
-  return [`/agents`, ...(params ? [params] : [])] as const;
-};
-
-export const getListAgentsQueryOptions = <
-  TData = Awaited<ReturnType<typeof listAgents>>,
-  TError = ErrorType<ValidationErrorResponse>,
->(
-  params?: ListAgentsParams,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof listAgents>>, TError, TData>
-    >;
-    request?: SecondParameter<typeof customInstance>;
-  },
-) => {
-  const { query: queryOptions, request: requestOptions } = options ?? {};
-
-  const queryKey = queryOptions?.queryKey ?? getListAgentsQueryKey(params);
-
-  const queryFn: QueryFunction<Awaited<ReturnType<typeof listAgents>>> = ({
-    signal,
-  }) => listAgents(params, requestOptions, signal);
-
-  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
-    Awaited<ReturnType<typeof listAgents>>,
-    TError,
-    TData
-  > & { queryKey: DataTag<QueryKey, TData, TError> };
-};
-
-export type ListAgentsQueryResult = NonNullable<
-  Awaited<ReturnType<typeof listAgents>>
+export type ListAgentsResult = NonNullable<
+  Awaited<ReturnType<ReturnType<typeof getAgents>["listAgents"]>>
 >;
-export type ListAgentsQueryError = ErrorType<ValidationErrorResponse>;
-
-export function useListAgents<
-  TData = Awaited<ReturnType<typeof listAgents>>,
-  TError = ErrorType<ValidationErrorResponse>,
->(
-  params: undefined | ListAgentsParams,
-  options: {
-    query: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof listAgents>>, TError, TData>
-    > &
-      Pick<
-        DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof listAgents>>,
-          TError,
-          Awaited<ReturnType<typeof listAgents>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof customInstance>;
-  },
-  queryClient?: QueryClient,
-): DefinedUseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-};
-export function useListAgents<
-  TData = Awaited<ReturnType<typeof listAgents>>,
-  TError = ErrorType<ValidationErrorResponse>,
->(
-  params?: ListAgentsParams,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof listAgents>>, TError, TData>
-    > &
-      Pick<
-        UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof listAgents>>,
-          TError,
-          Awaited<ReturnType<typeof listAgents>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof customInstance>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-};
-export function useListAgents<
-  TData = Awaited<ReturnType<typeof listAgents>>,
-  TError = ErrorType<ValidationErrorResponse>,
->(
-  params?: ListAgentsParams,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof listAgents>>, TError, TData>
-    >;
-    request?: SecondParameter<typeof customInstance>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-};
-/**
- * @summary List agents
- */
-
-export function useListAgents<
-  TData = Awaited<ReturnType<typeof listAgents>>,
-  TError = ErrorType<ValidationErrorResponse>,
->(
-  params?: ListAgentsParams,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof listAgents>>, TError, TData>
-    >;
-    request?: SecondParameter<typeof customInstance>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-} {
-  const queryOptions = getListAgentsQueryOptions(params, options);
-
-  const query = useQuery(queryOptions, queryClient) as UseQueryResult<
-    TData,
-    TError
-  > & { queryKey: DataTag<QueryKey, TData, TError> };
-
-  query.queryKey = queryOptions.queryKey;
-
-  return query;
-}
-
-/**
- * Updates the authenticated agent's extended profile (license, agency, bio, etc.).
- * @summary Update own agent profile
- */
-export const updateMyAgentProfile = (
-  updateMyAgentProfileBody: BodyType<UpdateMyAgentProfileBody>,
-  options?: SecondParameter<typeof customInstance>,
-) => {
-  return customInstance<UpdateMyAgentProfile200>(
-    {
-      url: `/agents/me`,
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      data: updateMyAgentProfileBody,
-    },
-    options,
-  );
-};
-
-export const getUpdateMyAgentProfileMutationOptions = <
-  TError = ErrorType<
-    | ValidationErrorResponse
-    | UnauthorizedResponse
-    | ForbiddenResponse
-    | NotFoundResponse
-  >,
-  TContext = unknown,
->(options?: {
-  mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof updateMyAgentProfile>>,
-    TError,
-    { data: BodyType<UpdateMyAgentProfileBody> },
-    TContext
-  >;
-  request?: SecondParameter<typeof customInstance>;
-}): UseMutationOptions<
-  Awaited<ReturnType<typeof updateMyAgentProfile>>,
-  TError,
-  { data: BodyType<UpdateMyAgentProfileBody> },
-  TContext
-> => {
-  const mutationKey = ["updateMyAgentProfile"];
-  const { mutation: mutationOptions, request: requestOptions } = options
-    ? options.mutation &&
-      "mutationKey" in options.mutation &&
-      options.mutation.mutationKey
-      ? options
-      : { ...options, mutation: { ...options.mutation, mutationKey } }
-    : { mutation: { mutationKey }, request: undefined };
-
-  const mutationFn: MutationFunction<
-    Awaited<ReturnType<typeof updateMyAgentProfile>>,
-    { data: BodyType<UpdateMyAgentProfileBody> }
-  > = (props) => {
-    const { data } = props ?? {};
-
-    return updateMyAgentProfile(data, requestOptions);
-  };
-
-  return { mutationFn, ...mutationOptions };
-};
-
-export type UpdateMyAgentProfileMutationResult = NonNullable<
-  Awaited<ReturnType<typeof updateMyAgentProfile>>
+export type UpdateMyAgentProfileResult = NonNullable<
+  Awaited<ReturnType<ReturnType<typeof getAgents>["updateMyAgentProfile"]>>
 >;
-export type UpdateMyAgentProfileMutationBody =
-  BodyType<UpdateMyAgentProfileBody>;
-export type UpdateMyAgentProfileMutationError = ErrorType<
-  | ValidationErrorResponse
-  | UnauthorizedResponse
-  | ForbiddenResponse
-  | NotFoundResponse
+export type GetAgentByIdResult = NonNullable<
+  Awaited<ReturnType<ReturnType<typeof getAgents>["getAgentById"]>>
 >;
-
-/**
- * @summary Update own agent profile
- */
-export const useUpdateMyAgentProfile = <
-  TError = ErrorType<
-    | ValidationErrorResponse
-    | UnauthorizedResponse
-    | ForbiddenResponse
-    | NotFoundResponse
-  >,
-  TContext = unknown,
->(
-  options?: {
-    mutation?: UseMutationOptions<
-      Awaited<ReturnType<typeof updateMyAgentProfile>>,
-      TError,
-      { data: BodyType<UpdateMyAgentProfileBody> },
-      TContext
-    >;
-    request?: SecondParameter<typeof customInstance>;
-  },
-  queryClient?: QueryClient,
-): UseMutationResult<
-  Awaited<ReturnType<typeof updateMyAgentProfile>>,
-  TError,
-  { data: BodyType<UpdateMyAgentProfileBody> },
-  TContext
-> => {
-  const mutationOptions = getUpdateMyAgentProfileMutationOptions(options);
-
-  return useMutation(mutationOptions, queryClient);
-};
-/**
- * Returns agent user info, extended profile, and active listings count.
- * @summary Get agent profile
- */
-export const getAgentById = (
-  id: string,
-  options?: SecondParameter<typeof customInstance>,
-  signal?: AbortSignal,
-) => {
-  return customInstance<GetAgentById200>(
-    { url: `/agents/${id}`, method: "GET", signal },
-    options,
-  );
-};
-
-export const getGetAgentByIdQueryKey = (id?: string) => {
-  return [`/agents/${id}`] as const;
-};
-
-export const getGetAgentByIdQueryOptions = <
-  TData = Awaited<ReturnType<typeof getAgentById>>,
-  TError = ErrorType<NotFoundResponse>,
->(
-  id: string,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof getAgentById>>, TError, TData>
-    >;
-    request?: SecondParameter<typeof customInstance>;
-  },
-) => {
-  const { query: queryOptions, request: requestOptions } = options ?? {};
-
-  const queryKey = queryOptions?.queryKey ?? getGetAgentByIdQueryKey(id);
-
-  const queryFn: QueryFunction<Awaited<ReturnType<typeof getAgentById>>> = ({
-    signal,
-  }) => getAgentById(id, requestOptions, signal);
-
-  return {
-    queryKey,
-    queryFn,
-    enabled: !!id,
-    ...queryOptions,
-  } as UseQueryOptions<
-    Awaited<ReturnType<typeof getAgentById>>,
-    TError,
-    TData
-  > & { queryKey: DataTag<QueryKey, TData, TError> };
-};
-
-export type GetAgentByIdQueryResult = NonNullable<
-  Awaited<ReturnType<typeof getAgentById>>
+export type GetAgentPropertiesResult = NonNullable<
+  Awaited<ReturnType<ReturnType<typeof getAgents>["getAgentProperties"]>>
 >;
-export type GetAgentByIdQueryError = ErrorType<NotFoundResponse>;
-
-export function useGetAgentById<
-  TData = Awaited<ReturnType<typeof getAgentById>>,
-  TError = ErrorType<NotFoundResponse>,
->(
-  id: string,
-  options: {
-    query: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof getAgentById>>, TError, TData>
-    > &
-      Pick<
-        DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof getAgentById>>,
-          TError,
-          Awaited<ReturnType<typeof getAgentById>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof customInstance>;
-  },
-  queryClient?: QueryClient,
-): DefinedUseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-};
-export function useGetAgentById<
-  TData = Awaited<ReturnType<typeof getAgentById>>,
-  TError = ErrorType<NotFoundResponse>,
->(
-  id: string,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof getAgentById>>, TError, TData>
-    > &
-      Pick<
-        UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof getAgentById>>,
-          TError,
-          Awaited<ReturnType<typeof getAgentById>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof customInstance>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-};
-export function useGetAgentById<
-  TData = Awaited<ReturnType<typeof getAgentById>>,
-  TError = ErrorType<NotFoundResponse>,
->(
-  id: string,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof getAgentById>>, TError, TData>
-    >;
-    request?: SecondParameter<typeof customInstance>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-};
-/**
- * @summary Get agent profile
- */
-
-export function useGetAgentById<
-  TData = Awaited<ReturnType<typeof getAgentById>>,
-  TError = ErrorType<NotFoundResponse>,
->(
-  id: string,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof getAgentById>>, TError, TData>
-    >;
-    request?: SecondParameter<typeof customInstance>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-} {
-  const queryOptions = getGetAgentByIdQueryOptions(id, options);
-
-  const query = useQuery(queryOptions, queryClient) as UseQueryResult<
-    TData,
-    TError
-  > & { queryKey: DataTag<QueryKey, TData, TError> };
-
-  query.queryKey = queryOptions.queryKey;
-
-  return query;
-}
-
-/**
- * Returns a paginated list of active properties listed by the agent.
- * @summary List agent's properties
- */
-export const getAgentProperties = (
-  id: string,
-  params?: GetAgentPropertiesParams,
-  options?: SecondParameter<typeof customInstance>,
-  signal?: AbortSignal,
-) => {
-  return customInstance<PaginatedPropertiesResponse>(
-    { url: `/agents/${id}/properties`, method: "GET", params, signal },
-    options,
-  );
-};
-
-export const getGetAgentPropertiesQueryKey = (
-  id?: string,
-  params?: GetAgentPropertiesParams,
-) => {
-  return [`/agents/${id}/properties`, ...(params ? [params] : [])] as const;
-};
-
-export const getGetAgentPropertiesQueryOptions = <
-  TData = Awaited<ReturnType<typeof getAgentProperties>>,
-  TError = ErrorType<NotFoundResponse>,
->(
-  id: string,
-  params?: GetAgentPropertiesParams,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<
-        Awaited<ReturnType<typeof getAgentProperties>>,
-        TError,
-        TData
-      >
-    >;
-    request?: SecondParameter<typeof customInstance>;
-  },
-) => {
-  const { query: queryOptions, request: requestOptions } = options ?? {};
-
-  const queryKey =
-    queryOptions?.queryKey ?? getGetAgentPropertiesQueryKey(id, params);
-
-  const queryFn: QueryFunction<
-    Awaited<ReturnType<typeof getAgentProperties>>
-  > = ({ signal }) => getAgentProperties(id, params, requestOptions, signal);
-
-  return {
-    queryKey,
-    queryFn,
-    enabled: !!id,
-    ...queryOptions,
-  } as UseQueryOptions<
-    Awaited<ReturnType<typeof getAgentProperties>>,
-    TError,
-    TData
-  > & { queryKey: DataTag<QueryKey, TData, TError> };
-};
-
-export type GetAgentPropertiesQueryResult = NonNullable<
-  Awaited<ReturnType<typeof getAgentProperties>>
->;
-export type GetAgentPropertiesQueryError = ErrorType<NotFoundResponse>;
-
-export function useGetAgentProperties<
-  TData = Awaited<ReturnType<typeof getAgentProperties>>,
-  TError = ErrorType<NotFoundResponse>,
->(
-  id: string,
-  params: undefined | GetAgentPropertiesParams,
-  options: {
-    query: Partial<
-      UseQueryOptions<
-        Awaited<ReturnType<typeof getAgentProperties>>,
-        TError,
-        TData
-      >
-    > &
-      Pick<
-        DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof getAgentProperties>>,
-          TError,
-          Awaited<ReturnType<typeof getAgentProperties>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof customInstance>;
-  },
-  queryClient?: QueryClient,
-): DefinedUseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-};
-export function useGetAgentProperties<
-  TData = Awaited<ReturnType<typeof getAgentProperties>>,
-  TError = ErrorType<NotFoundResponse>,
->(
-  id: string,
-  params?: GetAgentPropertiesParams,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<
-        Awaited<ReturnType<typeof getAgentProperties>>,
-        TError,
-        TData
-      >
-    > &
-      Pick<
-        UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof getAgentProperties>>,
-          TError,
-          Awaited<ReturnType<typeof getAgentProperties>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof customInstance>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-};
-export function useGetAgentProperties<
-  TData = Awaited<ReturnType<typeof getAgentProperties>>,
-  TError = ErrorType<NotFoundResponse>,
->(
-  id: string,
-  params?: GetAgentPropertiesParams,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<
-        Awaited<ReturnType<typeof getAgentProperties>>,
-        TError,
-        TData
-      >
-    >;
-    request?: SecondParameter<typeof customInstance>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-};
-/**
- * @summary List agent's properties
- */
-
-export function useGetAgentProperties<
-  TData = Awaited<ReturnType<typeof getAgentProperties>>,
-  TError = ErrorType<NotFoundResponse>,
->(
-  id: string,
-  params?: GetAgentPropertiesParams,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<
-        Awaited<ReturnType<typeof getAgentProperties>>,
-        TError,
-        TData
-      >
-    >;
-    request?: SecondParameter<typeof customInstance>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-} {
-  const queryOptions = getGetAgentPropertiesQueryOptions(id, params, options);
-
-  const query = useQuery(queryOptions, queryClient) as UseQueryResult<
-    TData,
-    TError
-  > & { queryKey: DataTag<QueryKey, TData, TError> };
-
-  query.queryKey = queryOptions.queryKey;
-
-  return query;
-}

@@ -5,527 +5,96 @@
  * Production-ready real estate marketplace backend API. All successful responses use `{ success, message, data }`. Paginated lists add a top-level `pagination` object. OpenAPI spec is Orval-compatible — each operation has an `operationId`.
  * OpenAPI spec version: 1.0.0
  */
-import { useMutation, useQuery } from "@tanstack/react-query";
-import type {
-  DataTag,
-  DefinedInitialDataOptions,
-  DefinedUseQueryResult,
-  MutationFunction,
-  QueryClient,
-  QueryFunction,
-  QueryKey,
-  UndefinedInitialDataOptions,
-  UseMutationOptions,
-  UseMutationResult,
-  UseQueryOptions,
-  UseQueryResult,
-} from "@tanstack/react-query";
-
 import type {
   AddFavorite201,
   AddFavoriteBody,
   CheckFavorite200,
-  ConflictResponse,
   ListFavoritesParams,
-  NotFoundResponse,
   PaginatedFavoritesResponse,
   SuccessResponse,
-  UnauthorizedResponse,
-  ValidationErrorResponse,
-} from "../../models";
+} from "../buytly.schemas";
 
 import { customInstance } from "../../../lib/api/custom-instance";
-import type { ErrorType, BodyType } from "../../../lib/api/custom-instance";
+import type { BodyType } from "../../../lib/api/custom-instance";
+
+type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];
+
+export const getFavorites = () => {
+  /**
+   * Returns a paginated list of saved properties with thumbnail URLs.
+   * @summary List user favorites
+   */
+  const listFavorites = (
+    params?: ListFavoritesParams,
+    options?: SecondParameter<
+      typeof customInstance<PaginatedFavoritesResponse>
+    >,
+  ) => {
+    return customInstance<PaginatedFavoritesResponse>(
+      { url: `/favorites`, method: "GET", params },
+      options,
+    );
+  };
+  /**
+   * Saves a property to the authenticated user's favorites.
+   * @summary Add property to favorites
+   */
+  const addFavorite = (
+    addFavoriteBody: BodyType<AddFavoriteBody>,
+    options?: SecondParameter<typeof customInstance<AddFavorite201>>,
+  ) => {
+    return customInstance<AddFavorite201>(
+      {
+        url: `/favorites`,
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        data: addFavoriteBody,
+      },
+      options,
+    );
+  };
+  /**
+   * Returns whether the authenticated user has saved the given property.
+   * @summary Check if property is favorited
+   */
+  const checkFavorite = (
+    propertyId: string,
+    options?: SecondParameter<typeof customInstance<CheckFavorite200>>,
+  ) => {
+    return customInstance<CheckFavorite200>(
+      { url: `/favorites/check/${propertyId}`, method: "GET" },
+      options,
+    );
+  };
+  /**
+   * Removes a property from the authenticated user's favorites.
+   * @summary Remove property from favorites
+   */
+  const removeFavorite = (
+    propertyId: string,
+    options?: SecondParameter<typeof customInstance<SuccessResponse>>,
+  ) => {
+    return customInstance<SuccessResponse>(
+      { url: `/favorites/${propertyId}`, method: "DELETE" },
+      options,
+    );
+  };
+  return { listFavorites, addFavorite, checkFavorite, removeFavorite };
+};
 
 type AwaitedInput<T> = PromiseLike<T> | T;
 
 type Awaited<O> = O extends AwaitedInput<infer T> ? T : never;
 
-type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];
-
-/**
- * Returns a paginated list of saved properties with thumbnail URLs.
- * @summary List user favorites
- */
-export const listFavorites = (
-  params?: ListFavoritesParams,
-  options?: SecondParameter<typeof customInstance>,
-  signal?: AbortSignal,
-) => {
-  return customInstance<PaginatedFavoritesResponse>(
-    { url: `/favorites`, method: "GET", params, signal },
-    options,
-  );
-};
-
-export const getListFavoritesQueryKey = (params?: ListFavoritesParams) => {
-  return [`/favorites`, ...(params ? [params] : [])] as const;
-};
-
-export const getListFavoritesQueryOptions = <
-  TData = Awaited<ReturnType<typeof listFavorites>>,
-  TError = ErrorType<UnauthorizedResponse>,
->(
-  params?: ListFavoritesParams,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof listFavorites>>, TError, TData>
-    >;
-    request?: SecondParameter<typeof customInstance>;
-  },
-) => {
-  const { query: queryOptions, request: requestOptions } = options ?? {};
-
-  const queryKey = queryOptions?.queryKey ?? getListFavoritesQueryKey(params);
-
-  const queryFn: QueryFunction<Awaited<ReturnType<typeof listFavorites>>> = ({
-    signal,
-  }) => listFavorites(params, requestOptions, signal);
-
-  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
-    Awaited<ReturnType<typeof listFavorites>>,
-    TError,
-    TData
-  > & { queryKey: DataTag<QueryKey, TData, TError> };
-};
-
-export type ListFavoritesQueryResult = NonNullable<
-  Awaited<ReturnType<typeof listFavorites>>
+export type ListFavoritesResult = NonNullable<
+  Awaited<ReturnType<ReturnType<typeof getFavorites>["listFavorites"]>>
 >;
-export type ListFavoritesQueryError = ErrorType<UnauthorizedResponse>;
-
-export function useListFavorites<
-  TData = Awaited<ReturnType<typeof listFavorites>>,
-  TError = ErrorType<UnauthorizedResponse>,
->(
-  params: undefined | ListFavoritesParams,
-  options: {
-    query: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof listFavorites>>, TError, TData>
-    > &
-      Pick<
-        DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof listFavorites>>,
-          TError,
-          Awaited<ReturnType<typeof listFavorites>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof customInstance>;
-  },
-  queryClient?: QueryClient,
-): DefinedUseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-};
-export function useListFavorites<
-  TData = Awaited<ReturnType<typeof listFavorites>>,
-  TError = ErrorType<UnauthorizedResponse>,
->(
-  params?: ListFavoritesParams,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof listFavorites>>, TError, TData>
-    > &
-      Pick<
-        UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof listFavorites>>,
-          TError,
-          Awaited<ReturnType<typeof listFavorites>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof customInstance>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-};
-export function useListFavorites<
-  TData = Awaited<ReturnType<typeof listFavorites>>,
-  TError = ErrorType<UnauthorizedResponse>,
->(
-  params?: ListFavoritesParams,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof listFavorites>>, TError, TData>
-    >;
-    request?: SecondParameter<typeof customInstance>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-};
-/**
- * @summary List user favorites
- */
-
-export function useListFavorites<
-  TData = Awaited<ReturnType<typeof listFavorites>>,
-  TError = ErrorType<UnauthorizedResponse>,
->(
-  params?: ListFavoritesParams,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof listFavorites>>, TError, TData>
-    >;
-    request?: SecondParameter<typeof customInstance>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-} {
-  const queryOptions = getListFavoritesQueryOptions(params, options);
-
-  const query = useQuery(queryOptions, queryClient) as UseQueryResult<
-    TData,
-    TError
-  > & { queryKey: DataTag<QueryKey, TData, TError> };
-
-  query.queryKey = queryOptions.queryKey;
-
-  return query;
-}
-
-/**
- * Saves a property to the authenticated user's favorites.
- * @summary Add property to favorites
- */
-export const addFavorite = (
-  addFavoriteBody: BodyType<AddFavoriteBody>,
-  options?: SecondParameter<typeof customInstance>,
-  signal?: AbortSignal,
-) => {
-  return customInstance<AddFavorite201>(
-    {
-      url: `/favorites`,
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      data: addFavoriteBody,
-      signal,
-    },
-    options,
-  );
-};
-
-export const getAddFavoriteMutationOptions = <
-  TError = ErrorType<
-    | ValidationErrorResponse
-    | UnauthorizedResponse
-    | NotFoundResponse
-    | ConflictResponse
-  >,
-  TContext = unknown,
->(options?: {
-  mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof addFavorite>>,
-    TError,
-    { data: BodyType<AddFavoriteBody> },
-    TContext
-  >;
-  request?: SecondParameter<typeof customInstance>;
-}): UseMutationOptions<
-  Awaited<ReturnType<typeof addFavorite>>,
-  TError,
-  { data: BodyType<AddFavoriteBody> },
-  TContext
-> => {
-  const mutationKey = ["addFavorite"];
-  const { mutation: mutationOptions, request: requestOptions } = options
-    ? options.mutation &&
-      "mutationKey" in options.mutation &&
-      options.mutation.mutationKey
-      ? options
-      : { ...options, mutation: { ...options.mutation, mutationKey } }
-    : { mutation: { mutationKey }, request: undefined };
-
-  const mutationFn: MutationFunction<
-    Awaited<ReturnType<typeof addFavorite>>,
-    { data: BodyType<AddFavoriteBody> }
-  > = (props) => {
-    const { data } = props ?? {};
-
-    return addFavorite(data, requestOptions);
-  };
-
-  return { mutationFn, ...mutationOptions };
-};
-
-export type AddFavoriteMutationResult = NonNullable<
-  Awaited<ReturnType<typeof addFavorite>>
+export type AddFavoriteResult = NonNullable<
+  Awaited<ReturnType<ReturnType<typeof getFavorites>["addFavorite"]>>
 >;
-export type AddFavoriteMutationBody = BodyType<AddFavoriteBody>;
-export type AddFavoriteMutationError = ErrorType<
-  | ValidationErrorResponse
-  | UnauthorizedResponse
-  | NotFoundResponse
-  | ConflictResponse
+export type CheckFavoriteResult = NonNullable<
+  Awaited<ReturnType<ReturnType<typeof getFavorites>["checkFavorite"]>>
 >;
-
-/**
- * @summary Add property to favorites
- */
-export const useAddFavorite = <
-  TError = ErrorType<
-    | ValidationErrorResponse
-    | UnauthorizedResponse
-    | NotFoundResponse
-    | ConflictResponse
-  >,
-  TContext = unknown,
->(
-  options?: {
-    mutation?: UseMutationOptions<
-      Awaited<ReturnType<typeof addFavorite>>,
-      TError,
-      { data: BodyType<AddFavoriteBody> },
-      TContext
-    >;
-    request?: SecondParameter<typeof customInstance>;
-  },
-  queryClient?: QueryClient,
-): UseMutationResult<
-  Awaited<ReturnType<typeof addFavorite>>,
-  TError,
-  { data: BodyType<AddFavoriteBody> },
-  TContext
-> => {
-  const mutationOptions = getAddFavoriteMutationOptions(options);
-
-  return useMutation(mutationOptions, queryClient);
-};
-/**
- * Returns whether the authenticated user has saved the given property.
- * @summary Check if property is favorited
- */
-export const checkFavorite = (
-  propertyId: string,
-  options?: SecondParameter<typeof customInstance>,
-  signal?: AbortSignal,
-) => {
-  return customInstance<CheckFavorite200>(
-    { url: `/favorites/check/${propertyId}`, method: "GET", signal },
-    options,
-  );
-};
-
-export const getCheckFavoriteQueryKey = (propertyId?: string) => {
-  return [`/favorites/check/${propertyId}`] as const;
-};
-
-export const getCheckFavoriteQueryOptions = <
-  TData = Awaited<ReturnType<typeof checkFavorite>>,
-  TError = ErrorType<UnauthorizedResponse>,
->(
-  propertyId: string,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof checkFavorite>>, TError, TData>
-    >;
-    request?: SecondParameter<typeof customInstance>;
-  },
-) => {
-  const { query: queryOptions, request: requestOptions } = options ?? {};
-
-  const queryKey =
-    queryOptions?.queryKey ?? getCheckFavoriteQueryKey(propertyId);
-
-  const queryFn: QueryFunction<Awaited<ReturnType<typeof checkFavorite>>> = ({
-    signal,
-  }) => checkFavorite(propertyId, requestOptions, signal);
-
-  return {
-    queryKey,
-    queryFn,
-    enabled: !!propertyId,
-    ...queryOptions,
-  } as UseQueryOptions<
-    Awaited<ReturnType<typeof checkFavorite>>,
-    TError,
-    TData
-  > & { queryKey: DataTag<QueryKey, TData, TError> };
-};
-
-export type CheckFavoriteQueryResult = NonNullable<
-  Awaited<ReturnType<typeof checkFavorite>>
+export type RemoveFavoriteResult = NonNullable<
+  Awaited<ReturnType<ReturnType<typeof getFavorites>["removeFavorite"]>>
 >;
-export type CheckFavoriteQueryError = ErrorType<UnauthorizedResponse>;
-
-export function useCheckFavorite<
-  TData = Awaited<ReturnType<typeof checkFavorite>>,
-  TError = ErrorType<UnauthorizedResponse>,
->(
-  propertyId: string,
-  options: {
-    query: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof checkFavorite>>, TError, TData>
-    > &
-      Pick<
-        DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof checkFavorite>>,
-          TError,
-          Awaited<ReturnType<typeof checkFavorite>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof customInstance>;
-  },
-  queryClient?: QueryClient,
-): DefinedUseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-};
-export function useCheckFavorite<
-  TData = Awaited<ReturnType<typeof checkFavorite>>,
-  TError = ErrorType<UnauthorizedResponse>,
->(
-  propertyId: string,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof checkFavorite>>, TError, TData>
-    > &
-      Pick<
-        UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof checkFavorite>>,
-          TError,
-          Awaited<ReturnType<typeof checkFavorite>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof customInstance>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-};
-export function useCheckFavorite<
-  TData = Awaited<ReturnType<typeof checkFavorite>>,
-  TError = ErrorType<UnauthorizedResponse>,
->(
-  propertyId: string,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof checkFavorite>>, TError, TData>
-    >;
-    request?: SecondParameter<typeof customInstance>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-};
-/**
- * @summary Check if property is favorited
- */
-
-export function useCheckFavorite<
-  TData = Awaited<ReturnType<typeof checkFavorite>>,
-  TError = ErrorType<UnauthorizedResponse>,
->(
-  propertyId: string,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof checkFavorite>>, TError, TData>
-    >;
-    request?: SecondParameter<typeof customInstance>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-} {
-  const queryOptions = getCheckFavoriteQueryOptions(propertyId, options);
-
-  const query = useQuery(queryOptions, queryClient) as UseQueryResult<
-    TData,
-    TError
-  > & { queryKey: DataTag<QueryKey, TData, TError> };
-
-  query.queryKey = queryOptions.queryKey;
-
-  return query;
-}
-
-/**
- * Removes a property from the authenticated user's favorites.
- * @summary Remove property from favorites
- */
-export const removeFavorite = (
-  propertyId: string,
-  options?: SecondParameter<typeof customInstance>,
-) => {
-  return customInstance<SuccessResponse>(
-    { url: `/favorites/${propertyId}`, method: "DELETE" },
-    options,
-  );
-};
-
-export const getRemoveFavoriteMutationOptions = <
-  TError = ErrorType<UnauthorizedResponse | NotFoundResponse>,
-  TContext = unknown,
->(options?: {
-  mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof removeFavorite>>,
-    TError,
-    { propertyId: string },
-    TContext
-  >;
-  request?: SecondParameter<typeof customInstance>;
-}): UseMutationOptions<
-  Awaited<ReturnType<typeof removeFavorite>>,
-  TError,
-  { propertyId: string },
-  TContext
-> => {
-  const mutationKey = ["removeFavorite"];
-  const { mutation: mutationOptions, request: requestOptions } = options
-    ? options.mutation &&
-      "mutationKey" in options.mutation &&
-      options.mutation.mutationKey
-      ? options
-      : { ...options, mutation: { ...options.mutation, mutationKey } }
-    : { mutation: { mutationKey }, request: undefined };
-
-  const mutationFn: MutationFunction<
-    Awaited<ReturnType<typeof removeFavorite>>,
-    { propertyId: string }
-  > = (props) => {
-    const { propertyId } = props ?? {};
-
-    return removeFavorite(propertyId, requestOptions);
-  };
-
-  return { mutationFn, ...mutationOptions };
-};
-
-export type RemoveFavoriteMutationResult = NonNullable<
-  Awaited<ReturnType<typeof removeFavorite>>
->;
-
-export type RemoveFavoriteMutationError = ErrorType<
-  UnauthorizedResponse | NotFoundResponse
->;
-
-/**
- * @summary Remove property from favorites
- */
-export const useRemoveFavorite = <
-  TError = ErrorType<UnauthorizedResponse | NotFoundResponse>,
-  TContext = unknown,
->(
-  options?: {
-    mutation?: UseMutationOptions<
-      Awaited<ReturnType<typeof removeFavorite>>,
-      TError,
-      { propertyId: string },
-      TContext
-    >;
-    request?: SecondParameter<typeof customInstance>;
-  },
-  queryClient?: QueryClient,
-): UseMutationResult<
-  Awaited<ReturnType<typeof removeFavorite>>,
-  TError,
-  { propertyId: string },
-  TContext
-> => {
-  const mutationOptions = getRemoveFavoriteMutationOptions(options);
-
-  return useMutation(mutationOptions, queryClient);
-};

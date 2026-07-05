@@ -5,1057 +5,211 @@
  * Production-ready real estate marketplace backend API. All successful responses use `{ success, message, data }`. Paginated lists add a top-level `pagination` object. OpenAPI spec is Orval-compatible — each operation has an `operationId`.
  * OpenAPI spec version: 1.0.0
  */
-import { useMutation, useQuery } from "@tanstack/react-query";
-import type {
-  DataTag,
-  DefinedInitialDataOptions,
-  DefinedUseQueryResult,
-  MutationFunction,
-  QueryClient,
-  QueryFunction,
-  QueryKey,
-  UndefinedInitialDataOptions,
-  UseMutationOptions,
-  UseMutationResult,
-  UseQueryOptions,
-  UseQueryResult,
-} from "@tanstack/react-query";
-
 import type {
   AddSavedSearch201,
   AddSavedSearchBody,
   DeleteCurrentUserBody,
-  ErrorResponse,
   GetPublicUserProfile200,
   GetSavedSearches200,
   MessageResponse,
-  NotFoundResponse,
   RemoveSavedSearch200,
-  UnauthorizedResponse,
   UpdateCurrentUserBody,
   UploadUserAvatar200,
   UploadUserAvatarBody,
   UserPreferences,
   UserSuccessResponse,
-  ValidationErrorResponse,
-} from "../../models";
+} from "../buytly.schemas";
 
 import { customInstance } from "../../../lib/api/custom-instance";
-import type { ErrorType, BodyType } from "../../../lib/api/custom-instance";
+import type { BodyType } from "../../../lib/api/custom-instance";
+
+type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];
+
+export const getUsers = () => {
+  /**
+   * Returns the authenticated user's full profile including preferences and avatar signed URL.
+   * @summary Get current user profile
+   */
+  const getCurrentUser = (
+    options?: SecondParameter<typeof customInstance<UserSuccessResponse>>,
+  ) => {
+    return customInstance<UserSuccessResponse>(
+      { url: `/users/me`, method: "GET" },
+      options,
+    );
+  };
+  /**
+   * Updates firstName, lastName, and/or phone for the authenticated user.
+   * @summary Update current user profile
+   */
+  const updateCurrentUser = (
+    updateCurrentUserBody: BodyType<UpdateCurrentUserBody>,
+    options?: SecondParameter<typeof customInstance<UserSuccessResponse>>,
+  ) => {
+    return customInstance<UserSuccessResponse>(
+      {
+        url: `/users/me`,
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        data: updateCurrentUserBody,
+      },
+      options,
+    );
+  };
+  /**
+   * Soft-deletes the account after password confirmation. Revokes all refresh tokens and anonymizes email.
+   * @summary Delete current user account (soft delete)
+   */
+  const deleteCurrentUser = (
+    deleteCurrentUserBody: BodyType<DeleteCurrentUserBody>,
+    options?: SecondParameter<typeof customInstance<MessageResponse>>,
+  ) => {
+    return customInstance<MessageResponse>(
+      {
+        url: `/users/me`,
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        data: deleteCurrentUserBody,
+      },
+      options,
+    );
+  };
+  /**
+   * Updates search preferences (budget range, locations, property types).
+   * @summary Update user preferences
+   */
+  const updateUserPreferences = (
+    userPreferences: BodyType<UserPreferences>,
+    options?: SecondParameter<typeof customInstance<UserSuccessResponse>>,
+  ) => {
+    return customInstance<UserSuccessResponse>(
+      {
+        url: `/users/me/preferences`,
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        data: userPreferences,
+      },
+      options,
+    );
+  };
+  /**
+   * Adds a named saved search with arbitrary filter criteria.
+   * @summary Save a search filter
+   */
+  const addSavedSearch = (
+    addSavedSearchBody: BodyType<AddSavedSearchBody>,
+    options?: SecondParameter<typeof customInstance<AddSavedSearch201>>,
+  ) => {
+    return customInstance<AddSavedSearch201>(
+      {
+        url: `/users/me/saved-searches`,
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        data: addSavedSearchBody,
+      },
+      options,
+    );
+  };
+  /**
+   * Returns all saved searches for the authenticated user.
+   * @summary List saved searches
+   */
+  const getSavedSearches = (
+    options?: SecondParameter<typeof customInstance<GetSavedSearches200>>,
+  ) => {
+    return customInstance<GetSavedSearches200>(
+      { url: `/users/me/saved-searches`, method: "GET" },
+      options,
+    );
+  };
+  /**
+   * Removes a saved search by ID. Returns the updated list.
+   * @summary Delete a saved search
+   */
+  const removeSavedSearch = (
+    id: string,
+    options?: SecondParameter<typeof customInstance<RemoveSavedSearch200>>,
+  ) => {
+    return customInstance<RemoveSavedSearch200>(
+      { url: `/users/me/saved-searches/${id}`, method: "DELETE" },
+      options,
+    );
+  };
+  /**
+   * Uploads a profile avatar image (multipart/form-data). Replaces any existing avatar.
+   * @summary Upload user avatar
+   */
+  const uploadUserAvatar = (
+    uploadUserAvatarBody: BodyType<UploadUserAvatarBody>,
+    options?: SecondParameter<typeof customInstance<UploadUserAvatar200>>,
+  ) => {
+    const formData = new FormData();
+    formData.append(`avatar`, uploadUserAvatarBody.avatar);
+
+    return customInstance<UploadUserAvatar200>(
+      {
+        url: `/users/me/avatar`,
+        method: "POST",
+        headers: { "Content-Type": "multipart/form-data" },
+        data: formData,
+      },
+      options,
+    );
+  };
+  /**
+   * Returns a limited public profile (name, role, avatar). No authentication required.
+   * @summary Get public user profile
+   */
+  const getPublicUserProfile = (
+    id: string,
+    options?: SecondParameter<typeof customInstance<GetPublicUserProfile200>>,
+  ) => {
+    return customInstance<GetPublicUserProfile200>(
+      { url: `/users/${id}`, method: "GET" },
+      options,
+    );
+  };
+  return {
+    getCurrentUser,
+    updateCurrentUser,
+    deleteCurrentUser,
+    updateUserPreferences,
+    addSavedSearch,
+    getSavedSearches,
+    removeSavedSearch,
+    uploadUserAvatar,
+    getPublicUserProfile,
+  };
+};
 
 type AwaitedInput<T> = PromiseLike<T> | T;
 
 type Awaited<O> = O extends AwaitedInput<infer T> ? T : never;
 
-type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];
-
-/**
- * Returns the authenticated user's full profile including preferences and avatar signed URL.
- * @summary Get current user profile
- */
-export const getCurrentUser = (
-  options?: SecondParameter<typeof customInstance>,
-  signal?: AbortSignal,
-) => {
-  return customInstance<UserSuccessResponse>(
-    { url: `/users/me`, method: "GET", signal },
-    options,
-  );
-};
-
-export const getGetCurrentUserQueryKey = () => {
-  return [`/users/me`] as const;
-};
-
-export const getGetCurrentUserQueryOptions = <
-  TData = Awaited<ReturnType<typeof getCurrentUser>>,
-  TError = ErrorType<UnauthorizedResponse | NotFoundResponse>,
->(options?: {
-  query?: Partial<
-    UseQueryOptions<Awaited<ReturnType<typeof getCurrentUser>>, TError, TData>
-  >;
-  request?: SecondParameter<typeof customInstance>;
-}) => {
-  const { query: queryOptions, request: requestOptions } = options ?? {};
-
-  const queryKey = queryOptions?.queryKey ?? getGetCurrentUserQueryKey();
-
-  const queryFn: QueryFunction<Awaited<ReturnType<typeof getCurrentUser>>> = ({
-    signal,
-  }) => getCurrentUser(requestOptions, signal);
-
-  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
-    Awaited<ReturnType<typeof getCurrentUser>>,
-    TError,
-    TData
-  > & { queryKey: DataTag<QueryKey, TData, TError> };
-};
-
-export type GetCurrentUserQueryResult = NonNullable<
-  Awaited<ReturnType<typeof getCurrentUser>>
+export type GetCurrentUserResult = NonNullable<
+  Awaited<ReturnType<ReturnType<typeof getUsers>["getCurrentUser"]>>
 >;
-export type GetCurrentUserQueryError = ErrorType<
-  UnauthorizedResponse | NotFoundResponse
+export type UpdateCurrentUserResult = NonNullable<
+  Awaited<ReturnType<ReturnType<typeof getUsers>["updateCurrentUser"]>>
 >;
-
-export function useGetCurrentUser<
-  TData = Awaited<ReturnType<typeof getCurrentUser>>,
-  TError = ErrorType<UnauthorizedResponse | NotFoundResponse>,
->(
-  options: {
-    query: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof getCurrentUser>>, TError, TData>
-    > &
-      Pick<
-        DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof getCurrentUser>>,
-          TError,
-          Awaited<ReturnType<typeof getCurrentUser>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof customInstance>;
-  },
-  queryClient?: QueryClient,
-): DefinedUseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-};
-export function useGetCurrentUser<
-  TData = Awaited<ReturnType<typeof getCurrentUser>>,
-  TError = ErrorType<UnauthorizedResponse | NotFoundResponse>,
->(
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof getCurrentUser>>, TError, TData>
-    > &
-      Pick<
-        UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof getCurrentUser>>,
-          TError,
-          Awaited<ReturnType<typeof getCurrentUser>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof customInstance>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-};
-export function useGetCurrentUser<
-  TData = Awaited<ReturnType<typeof getCurrentUser>>,
-  TError = ErrorType<UnauthorizedResponse | NotFoundResponse>,
->(
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof getCurrentUser>>, TError, TData>
-    >;
-    request?: SecondParameter<typeof customInstance>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-};
-/**
- * @summary Get current user profile
- */
-
-export function useGetCurrentUser<
-  TData = Awaited<ReturnType<typeof getCurrentUser>>,
-  TError = ErrorType<UnauthorizedResponse | NotFoundResponse>,
->(
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof getCurrentUser>>, TError, TData>
-    >;
-    request?: SecondParameter<typeof customInstance>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-} {
-  const queryOptions = getGetCurrentUserQueryOptions(options);
-
-  const query = useQuery(queryOptions, queryClient) as UseQueryResult<
-    TData,
-    TError
-  > & { queryKey: DataTag<QueryKey, TData, TError> };
-
-  query.queryKey = queryOptions.queryKey;
-
-  return query;
-}
-
-/**
- * Updates firstName, lastName, and/or phone for the authenticated user.
- * @summary Update current user profile
- */
-export const updateCurrentUser = (
-  updateCurrentUserBody: BodyType<UpdateCurrentUserBody>,
-  options?: SecondParameter<typeof customInstance>,
-) => {
-  return customInstance<UserSuccessResponse>(
-    {
-      url: `/users/me`,
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      data: updateCurrentUserBody,
-    },
-    options,
-  );
-};
-
-export const getUpdateCurrentUserMutationOptions = <
-  TError = ErrorType<ValidationErrorResponse | UnauthorizedResponse>,
-  TContext = unknown,
->(options?: {
-  mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof updateCurrentUser>>,
-    TError,
-    { data: BodyType<UpdateCurrentUserBody> },
-    TContext
-  >;
-  request?: SecondParameter<typeof customInstance>;
-}): UseMutationOptions<
-  Awaited<ReturnType<typeof updateCurrentUser>>,
-  TError,
-  { data: BodyType<UpdateCurrentUserBody> },
-  TContext
-> => {
-  const mutationKey = ["updateCurrentUser"];
-  const { mutation: mutationOptions, request: requestOptions } = options
-    ? options.mutation &&
-      "mutationKey" in options.mutation &&
-      options.mutation.mutationKey
-      ? options
-      : { ...options, mutation: { ...options.mutation, mutationKey } }
-    : { mutation: { mutationKey }, request: undefined };
-
-  const mutationFn: MutationFunction<
-    Awaited<ReturnType<typeof updateCurrentUser>>,
-    { data: BodyType<UpdateCurrentUserBody> }
-  > = (props) => {
-    const { data } = props ?? {};
-
-    return updateCurrentUser(data, requestOptions);
-  };
-
-  return { mutationFn, ...mutationOptions };
-};
-
-export type UpdateCurrentUserMutationResult = NonNullable<
-  Awaited<ReturnType<typeof updateCurrentUser>>
+export type DeleteCurrentUserResult = NonNullable<
+  Awaited<ReturnType<ReturnType<typeof getUsers>["deleteCurrentUser"]>>
 >;
-export type UpdateCurrentUserMutationBody = BodyType<UpdateCurrentUserBody>;
-export type UpdateCurrentUserMutationError = ErrorType<
-  ValidationErrorResponse | UnauthorizedResponse
+export type UpdateUserPreferencesResult = NonNullable<
+  Awaited<ReturnType<ReturnType<typeof getUsers>["updateUserPreferences"]>>
 >;
-
-/**
- * @summary Update current user profile
- */
-export const useUpdateCurrentUser = <
-  TError = ErrorType<ValidationErrorResponse | UnauthorizedResponse>,
-  TContext = unknown,
->(
-  options?: {
-    mutation?: UseMutationOptions<
-      Awaited<ReturnType<typeof updateCurrentUser>>,
-      TError,
-      { data: BodyType<UpdateCurrentUserBody> },
-      TContext
-    >;
-    request?: SecondParameter<typeof customInstance>;
-  },
-  queryClient?: QueryClient,
-): UseMutationResult<
-  Awaited<ReturnType<typeof updateCurrentUser>>,
-  TError,
-  { data: BodyType<UpdateCurrentUserBody> },
-  TContext
-> => {
-  const mutationOptions = getUpdateCurrentUserMutationOptions(options);
-
-  return useMutation(mutationOptions, queryClient);
-};
-/**
- * Soft-deletes the account after password confirmation. Revokes all refresh tokens and anonymizes email.
- * @summary Delete current user account (soft delete)
- */
-export const deleteCurrentUser = (
-  deleteCurrentUserBody: BodyType<DeleteCurrentUserBody>,
-  options?: SecondParameter<typeof customInstance>,
-) => {
-  return customInstance<MessageResponse>(
-    {
-      url: `/users/me`,
-      method: "DELETE",
-      headers: { "Content-Type": "application/json" },
-      data: deleteCurrentUserBody,
-    },
-    options,
-  );
-};
-
-export const getDeleteCurrentUserMutationOptions = <
-  TError = ErrorType<ValidationErrorResponse | UnauthorizedResponse>,
-  TContext = unknown,
->(options?: {
-  mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof deleteCurrentUser>>,
-    TError,
-    { data: BodyType<DeleteCurrentUserBody> },
-    TContext
-  >;
-  request?: SecondParameter<typeof customInstance>;
-}): UseMutationOptions<
-  Awaited<ReturnType<typeof deleteCurrentUser>>,
-  TError,
-  { data: BodyType<DeleteCurrentUserBody> },
-  TContext
-> => {
-  const mutationKey = ["deleteCurrentUser"];
-  const { mutation: mutationOptions, request: requestOptions } = options
-    ? options.mutation &&
-      "mutationKey" in options.mutation &&
-      options.mutation.mutationKey
-      ? options
-      : { ...options, mutation: { ...options.mutation, mutationKey } }
-    : { mutation: { mutationKey }, request: undefined };
-
-  const mutationFn: MutationFunction<
-    Awaited<ReturnType<typeof deleteCurrentUser>>,
-    { data: BodyType<DeleteCurrentUserBody> }
-  > = (props) => {
-    const { data } = props ?? {};
-
-    return deleteCurrentUser(data, requestOptions);
-  };
-
-  return { mutationFn, ...mutationOptions };
-};
-
-export type DeleteCurrentUserMutationResult = NonNullable<
-  Awaited<ReturnType<typeof deleteCurrentUser>>
+export type AddSavedSearchResult = NonNullable<
+  Awaited<ReturnType<ReturnType<typeof getUsers>["addSavedSearch"]>>
 >;
-export type DeleteCurrentUserMutationBody = BodyType<DeleteCurrentUserBody>;
-export type DeleteCurrentUserMutationError = ErrorType<
-  ValidationErrorResponse | UnauthorizedResponse
+export type GetSavedSearchesResult = NonNullable<
+  Awaited<ReturnType<ReturnType<typeof getUsers>["getSavedSearches"]>>
 >;
-
-/**
- * @summary Delete current user account (soft delete)
- */
-export const useDeleteCurrentUser = <
-  TError = ErrorType<ValidationErrorResponse | UnauthorizedResponse>,
-  TContext = unknown,
->(
-  options?: {
-    mutation?: UseMutationOptions<
-      Awaited<ReturnType<typeof deleteCurrentUser>>,
-      TError,
-      { data: BodyType<DeleteCurrentUserBody> },
-      TContext
-    >;
-    request?: SecondParameter<typeof customInstance>;
-  },
-  queryClient?: QueryClient,
-): UseMutationResult<
-  Awaited<ReturnType<typeof deleteCurrentUser>>,
-  TError,
-  { data: BodyType<DeleteCurrentUserBody> },
-  TContext
-> => {
-  const mutationOptions = getDeleteCurrentUserMutationOptions(options);
-
-  return useMutation(mutationOptions, queryClient);
-};
-/**
- * Updates search preferences (budget range, locations, property types).
- * @summary Update user preferences
- */
-export const updateUserPreferences = (
-  userPreferences: BodyType<UserPreferences>,
-  options?: SecondParameter<typeof customInstance>,
-) => {
-  return customInstance<UserSuccessResponse>(
-    {
-      url: `/users/me/preferences`,
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      data: userPreferences,
-    },
-    options,
-  );
-};
-
-export const getUpdateUserPreferencesMutationOptions = <
-  TError = ErrorType<ValidationErrorResponse | UnauthorizedResponse>,
-  TContext = unknown,
->(options?: {
-  mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof updateUserPreferences>>,
-    TError,
-    { data: BodyType<UserPreferences> },
-    TContext
-  >;
-  request?: SecondParameter<typeof customInstance>;
-}): UseMutationOptions<
-  Awaited<ReturnType<typeof updateUserPreferences>>,
-  TError,
-  { data: BodyType<UserPreferences> },
-  TContext
-> => {
-  const mutationKey = ["updateUserPreferences"];
-  const { mutation: mutationOptions, request: requestOptions } = options
-    ? options.mutation &&
-      "mutationKey" in options.mutation &&
-      options.mutation.mutationKey
-      ? options
-      : { ...options, mutation: { ...options.mutation, mutationKey } }
-    : { mutation: { mutationKey }, request: undefined };
-
-  const mutationFn: MutationFunction<
-    Awaited<ReturnType<typeof updateUserPreferences>>,
-    { data: BodyType<UserPreferences> }
-  > = (props) => {
-    const { data } = props ?? {};
-
-    return updateUserPreferences(data, requestOptions);
-  };
-
-  return { mutationFn, ...mutationOptions };
-};
-
-export type UpdateUserPreferencesMutationResult = NonNullable<
-  Awaited<ReturnType<typeof updateUserPreferences>>
+export type RemoveSavedSearchResult = NonNullable<
+  Awaited<ReturnType<ReturnType<typeof getUsers>["removeSavedSearch"]>>
 >;
-export type UpdateUserPreferencesMutationBody = BodyType<UserPreferences>;
-export type UpdateUserPreferencesMutationError = ErrorType<
-  ValidationErrorResponse | UnauthorizedResponse
+export type UploadUserAvatarResult = NonNullable<
+  Awaited<ReturnType<ReturnType<typeof getUsers>["uploadUserAvatar"]>>
 >;
-
-/**
- * @summary Update user preferences
- */
-export const useUpdateUserPreferences = <
-  TError = ErrorType<ValidationErrorResponse | UnauthorizedResponse>,
-  TContext = unknown,
->(
-  options?: {
-    mutation?: UseMutationOptions<
-      Awaited<ReturnType<typeof updateUserPreferences>>,
-      TError,
-      { data: BodyType<UserPreferences> },
-      TContext
-    >;
-    request?: SecondParameter<typeof customInstance>;
-  },
-  queryClient?: QueryClient,
-): UseMutationResult<
-  Awaited<ReturnType<typeof updateUserPreferences>>,
-  TError,
-  { data: BodyType<UserPreferences> },
-  TContext
-> => {
-  const mutationOptions = getUpdateUserPreferencesMutationOptions(options);
-
-  return useMutation(mutationOptions, queryClient);
-};
-/**
- * Adds a named saved search with arbitrary filter criteria.
- * @summary Save a search filter
- */
-export const addSavedSearch = (
-  addSavedSearchBody: BodyType<AddSavedSearchBody>,
-  options?: SecondParameter<typeof customInstance>,
-  signal?: AbortSignal,
-) => {
-  return customInstance<AddSavedSearch201>(
-    {
-      url: `/users/me/saved-searches`,
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      data: addSavedSearchBody,
-      signal,
-    },
-    options,
-  );
-};
-
-export const getAddSavedSearchMutationOptions = <
-  TError = ErrorType<ValidationErrorResponse | UnauthorizedResponse>,
-  TContext = unknown,
->(options?: {
-  mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof addSavedSearch>>,
-    TError,
-    { data: BodyType<AddSavedSearchBody> },
-    TContext
-  >;
-  request?: SecondParameter<typeof customInstance>;
-}): UseMutationOptions<
-  Awaited<ReturnType<typeof addSavedSearch>>,
-  TError,
-  { data: BodyType<AddSavedSearchBody> },
-  TContext
-> => {
-  const mutationKey = ["addSavedSearch"];
-  const { mutation: mutationOptions, request: requestOptions } = options
-    ? options.mutation &&
-      "mutationKey" in options.mutation &&
-      options.mutation.mutationKey
-      ? options
-      : { ...options, mutation: { ...options.mutation, mutationKey } }
-    : { mutation: { mutationKey }, request: undefined };
-
-  const mutationFn: MutationFunction<
-    Awaited<ReturnType<typeof addSavedSearch>>,
-    { data: BodyType<AddSavedSearchBody> }
-  > = (props) => {
-    const { data } = props ?? {};
-
-    return addSavedSearch(data, requestOptions);
-  };
-
-  return { mutationFn, ...mutationOptions };
-};
-
-export type AddSavedSearchMutationResult = NonNullable<
-  Awaited<ReturnType<typeof addSavedSearch>>
+export type GetPublicUserProfileResult = NonNullable<
+  Awaited<ReturnType<ReturnType<typeof getUsers>["getPublicUserProfile"]>>
 >;
-export type AddSavedSearchMutationBody = BodyType<AddSavedSearchBody>;
-export type AddSavedSearchMutationError = ErrorType<
-  ValidationErrorResponse | UnauthorizedResponse
->;
-
-/**
- * @summary Save a search filter
- */
-export const useAddSavedSearch = <
-  TError = ErrorType<ValidationErrorResponse | UnauthorizedResponse>,
-  TContext = unknown,
->(
-  options?: {
-    mutation?: UseMutationOptions<
-      Awaited<ReturnType<typeof addSavedSearch>>,
-      TError,
-      { data: BodyType<AddSavedSearchBody> },
-      TContext
-    >;
-    request?: SecondParameter<typeof customInstance>;
-  },
-  queryClient?: QueryClient,
-): UseMutationResult<
-  Awaited<ReturnType<typeof addSavedSearch>>,
-  TError,
-  { data: BodyType<AddSavedSearchBody> },
-  TContext
-> => {
-  const mutationOptions = getAddSavedSearchMutationOptions(options);
-
-  return useMutation(mutationOptions, queryClient);
-};
-/**
- * Returns all saved searches for the authenticated user.
- * @summary List saved searches
- */
-export const getSavedSearches = (
-  options?: SecondParameter<typeof customInstance>,
-  signal?: AbortSignal,
-) => {
-  return customInstance<GetSavedSearches200>(
-    { url: `/users/me/saved-searches`, method: "GET", signal },
-    options,
-  );
-};
-
-export const getGetSavedSearchesQueryKey = () => {
-  return [`/users/me/saved-searches`] as const;
-};
-
-export const getGetSavedSearchesQueryOptions = <
-  TData = Awaited<ReturnType<typeof getSavedSearches>>,
-  TError = ErrorType<UnauthorizedResponse>,
->(options?: {
-  query?: Partial<
-    UseQueryOptions<Awaited<ReturnType<typeof getSavedSearches>>, TError, TData>
-  >;
-  request?: SecondParameter<typeof customInstance>;
-}) => {
-  const { query: queryOptions, request: requestOptions } = options ?? {};
-
-  const queryKey = queryOptions?.queryKey ?? getGetSavedSearchesQueryKey();
-
-  const queryFn: QueryFunction<
-    Awaited<ReturnType<typeof getSavedSearches>>
-  > = ({ signal }) => getSavedSearches(requestOptions, signal);
-
-  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
-    Awaited<ReturnType<typeof getSavedSearches>>,
-    TError,
-    TData
-  > & { queryKey: DataTag<QueryKey, TData, TError> };
-};
-
-export type GetSavedSearchesQueryResult = NonNullable<
-  Awaited<ReturnType<typeof getSavedSearches>>
->;
-export type GetSavedSearchesQueryError = ErrorType<UnauthorizedResponse>;
-
-export function useGetSavedSearches<
-  TData = Awaited<ReturnType<typeof getSavedSearches>>,
-  TError = ErrorType<UnauthorizedResponse>,
->(
-  options: {
-    query: Partial<
-      UseQueryOptions<
-        Awaited<ReturnType<typeof getSavedSearches>>,
-        TError,
-        TData
-      >
-    > &
-      Pick<
-        DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof getSavedSearches>>,
-          TError,
-          Awaited<ReturnType<typeof getSavedSearches>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof customInstance>;
-  },
-  queryClient?: QueryClient,
-): DefinedUseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-};
-export function useGetSavedSearches<
-  TData = Awaited<ReturnType<typeof getSavedSearches>>,
-  TError = ErrorType<UnauthorizedResponse>,
->(
-  options?: {
-    query?: Partial<
-      UseQueryOptions<
-        Awaited<ReturnType<typeof getSavedSearches>>,
-        TError,
-        TData
-      >
-    > &
-      Pick<
-        UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof getSavedSearches>>,
-          TError,
-          Awaited<ReturnType<typeof getSavedSearches>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof customInstance>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-};
-export function useGetSavedSearches<
-  TData = Awaited<ReturnType<typeof getSavedSearches>>,
-  TError = ErrorType<UnauthorizedResponse>,
->(
-  options?: {
-    query?: Partial<
-      UseQueryOptions<
-        Awaited<ReturnType<typeof getSavedSearches>>,
-        TError,
-        TData
-      >
-    >;
-    request?: SecondParameter<typeof customInstance>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-};
-/**
- * @summary List saved searches
- */
-
-export function useGetSavedSearches<
-  TData = Awaited<ReturnType<typeof getSavedSearches>>,
-  TError = ErrorType<UnauthorizedResponse>,
->(
-  options?: {
-    query?: Partial<
-      UseQueryOptions<
-        Awaited<ReturnType<typeof getSavedSearches>>,
-        TError,
-        TData
-      >
-    >;
-    request?: SecondParameter<typeof customInstance>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-} {
-  const queryOptions = getGetSavedSearchesQueryOptions(options);
-
-  const query = useQuery(queryOptions, queryClient) as UseQueryResult<
-    TData,
-    TError
-  > & { queryKey: DataTag<QueryKey, TData, TError> };
-
-  query.queryKey = queryOptions.queryKey;
-
-  return query;
-}
-
-/**
- * Removes a saved search by ID. Returns the updated list.
- * @summary Delete a saved search
- */
-export const removeSavedSearch = (
-  id: string,
-  options?: SecondParameter<typeof customInstance>,
-) => {
-  return customInstance<RemoveSavedSearch200>(
-    { url: `/users/me/saved-searches/${id}`, method: "DELETE" },
-    options,
-  );
-};
-
-export const getRemoveSavedSearchMutationOptions = <
-  TError = ErrorType<UnauthorizedResponse | NotFoundResponse>,
-  TContext = unknown,
->(options?: {
-  mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof removeSavedSearch>>,
-    TError,
-    { id: string },
-    TContext
-  >;
-  request?: SecondParameter<typeof customInstance>;
-}): UseMutationOptions<
-  Awaited<ReturnType<typeof removeSavedSearch>>,
-  TError,
-  { id: string },
-  TContext
-> => {
-  const mutationKey = ["removeSavedSearch"];
-  const { mutation: mutationOptions, request: requestOptions } = options
-    ? options.mutation &&
-      "mutationKey" in options.mutation &&
-      options.mutation.mutationKey
-      ? options
-      : { ...options, mutation: { ...options.mutation, mutationKey } }
-    : { mutation: { mutationKey }, request: undefined };
-
-  const mutationFn: MutationFunction<
-    Awaited<ReturnType<typeof removeSavedSearch>>,
-    { id: string }
-  > = (props) => {
-    const { id } = props ?? {};
-
-    return removeSavedSearch(id, requestOptions);
-  };
-
-  return { mutationFn, ...mutationOptions };
-};
-
-export type RemoveSavedSearchMutationResult = NonNullable<
-  Awaited<ReturnType<typeof removeSavedSearch>>
->;
-
-export type RemoveSavedSearchMutationError = ErrorType<
-  UnauthorizedResponse | NotFoundResponse
->;
-
-/**
- * @summary Delete a saved search
- */
-export const useRemoveSavedSearch = <
-  TError = ErrorType<UnauthorizedResponse | NotFoundResponse>,
-  TContext = unknown,
->(
-  options?: {
-    mutation?: UseMutationOptions<
-      Awaited<ReturnType<typeof removeSavedSearch>>,
-      TError,
-      { id: string },
-      TContext
-    >;
-    request?: SecondParameter<typeof customInstance>;
-  },
-  queryClient?: QueryClient,
-): UseMutationResult<
-  Awaited<ReturnType<typeof removeSavedSearch>>,
-  TError,
-  { id: string },
-  TContext
-> => {
-  const mutationOptions = getRemoveSavedSearchMutationOptions(options);
-
-  return useMutation(mutationOptions, queryClient);
-};
-/**
- * Uploads a profile avatar image (multipart/form-data). Replaces any existing avatar.
- * @summary Upload user avatar
- */
-export const uploadUserAvatar = (
-  uploadUserAvatarBody: BodyType<UploadUserAvatarBody>,
-  options?: SecondParameter<typeof customInstance>,
-  signal?: AbortSignal,
-) => {
-  const formData = new FormData();
-  formData.append(`avatar`, uploadUserAvatarBody.avatar);
-
-  return customInstance<UploadUserAvatar200>(
-    {
-      url: `/users/me/avatar`,
-      method: "POST",
-      headers: { "Content-Type": "multipart/form-data" },
-      data: formData,
-      signal,
-    },
-    options,
-  );
-};
-
-export const getUploadUserAvatarMutationOptions = <
-  TError = ErrorType<ErrorResponse | UnauthorizedResponse>,
-  TContext = unknown,
->(options?: {
-  mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof uploadUserAvatar>>,
-    TError,
-    { data: BodyType<UploadUserAvatarBody> },
-    TContext
-  >;
-  request?: SecondParameter<typeof customInstance>;
-}): UseMutationOptions<
-  Awaited<ReturnType<typeof uploadUserAvatar>>,
-  TError,
-  { data: BodyType<UploadUserAvatarBody> },
-  TContext
-> => {
-  const mutationKey = ["uploadUserAvatar"];
-  const { mutation: mutationOptions, request: requestOptions } = options
-    ? options.mutation &&
-      "mutationKey" in options.mutation &&
-      options.mutation.mutationKey
-      ? options
-      : { ...options, mutation: { ...options.mutation, mutationKey } }
-    : { mutation: { mutationKey }, request: undefined };
-
-  const mutationFn: MutationFunction<
-    Awaited<ReturnType<typeof uploadUserAvatar>>,
-    { data: BodyType<UploadUserAvatarBody> }
-  > = (props) => {
-    const { data } = props ?? {};
-
-    return uploadUserAvatar(data, requestOptions);
-  };
-
-  return { mutationFn, ...mutationOptions };
-};
-
-export type UploadUserAvatarMutationResult = NonNullable<
-  Awaited<ReturnType<typeof uploadUserAvatar>>
->;
-export type UploadUserAvatarMutationBody = BodyType<UploadUserAvatarBody>;
-export type UploadUserAvatarMutationError = ErrorType<
-  ErrorResponse | UnauthorizedResponse
->;
-
-/**
- * @summary Upload user avatar
- */
-export const useUploadUserAvatar = <
-  TError = ErrorType<ErrorResponse | UnauthorizedResponse>,
-  TContext = unknown,
->(
-  options?: {
-    mutation?: UseMutationOptions<
-      Awaited<ReturnType<typeof uploadUserAvatar>>,
-      TError,
-      { data: BodyType<UploadUserAvatarBody> },
-      TContext
-    >;
-    request?: SecondParameter<typeof customInstance>;
-  },
-  queryClient?: QueryClient,
-): UseMutationResult<
-  Awaited<ReturnType<typeof uploadUserAvatar>>,
-  TError,
-  { data: BodyType<UploadUserAvatarBody> },
-  TContext
-> => {
-  const mutationOptions = getUploadUserAvatarMutationOptions(options);
-
-  return useMutation(mutationOptions, queryClient);
-};
-/**
- * Returns a limited public profile (name, role, avatar). No authentication required.
- * @summary Get public user profile
- */
-export const getPublicUserProfile = (
-  id: string,
-  options?: SecondParameter<typeof customInstance>,
-  signal?: AbortSignal,
-) => {
-  return customInstance<GetPublicUserProfile200>(
-    { url: `/users/${id}`, method: "GET", signal },
-    options,
-  );
-};
-
-export const getGetPublicUserProfileQueryKey = (id?: string) => {
-  return [`/users/${id}`] as const;
-};
-
-export const getGetPublicUserProfileQueryOptions = <
-  TData = Awaited<ReturnType<typeof getPublicUserProfile>>,
-  TError = ErrorType<NotFoundResponse>,
->(
-  id: string,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<
-        Awaited<ReturnType<typeof getPublicUserProfile>>,
-        TError,
-        TData
-      >
-    >;
-    request?: SecondParameter<typeof customInstance>;
-  },
-) => {
-  const { query: queryOptions, request: requestOptions } = options ?? {};
-
-  const queryKey =
-    queryOptions?.queryKey ?? getGetPublicUserProfileQueryKey(id);
-
-  const queryFn: QueryFunction<
-    Awaited<ReturnType<typeof getPublicUserProfile>>
-  > = ({ signal }) => getPublicUserProfile(id, requestOptions, signal);
-
-  return {
-    queryKey,
-    queryFn,
-    enabled: !!id,
-    ...queryOptions,
-  } as UseQueryOptions<
-    Awaited<ReturnType<typeof getPublicUserProfile>>,
-    TError,
-    TData
-  > & { queryKey: DataTag<QueryKey, TData, TError> };
-};
-
-export type GetPublicUserProfileQueryResult = NonNullable<
-  Awaited<ReturnType<typeof getPublicUserProfile>>
->;
-export type GetPublicUserProfileQueryError = ErrorType<NotFoundResponse>;
-
-export function useGetPublicUserProfile<
-  TData = Awaited<ReturnType<typeof getPublicUserProfile>>,
-  TError = ErrorType<NotFoundResponse>,
->(
-  id: string,
-  options: {
-    query: Partial<
-      UseQueryOptions<
-        Awaited<ReturnType<typeof getPublicUserProfile>>,
-        TError,
-        TData
-      >
-    > &
-      Pick<
-        DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof getPublicUserProfile>>,
-          TError,
-          Awaited<ReturnType<typeof getPublicUserProfile>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof customInstance>;
-  },
-  queryClient?: QueryClient,
-): DefinedUseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-};
-export function useGetPublicUserProfile<
-  TData = Awaited<ReturnType<typeof getPublicUserProfile>>,
-  TError = ErrorType<NotFoundResponse>,
->(
-  id: string,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<
-        Awaited<ReturnType<typeof getPublicUserProfile>>,
-        TError,
-        TData
-      >
-    > &
-      Pick<
-        UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof getPublicUserProfile>>,
-          TError,
-          Awaited<ReturnType<typeof getPublicUserProfile>>
-        >,
-        "initialData"
-      >;
-    request?: SecondParameter<typeof customInstance>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-};
-export function useGetPublicUserProfile<
-  TData = Awaited<ReturnType<typeof getPublicUserProfile>>,
-  TError = ErrorType<NotFoundResponse>,
->(
-  id: string,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<
-        Awaited<ReturnType<typeof getPublicUserProfile>>,
-        TError,
-        TData
-      >
-    >;
-    request?: SecondParameter<typeof customInstance>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-};
-/**
- * @summary Get public user profile
- */
-
-export function useGetPublicUserProfile<
-  TData = Awaited<ReturnType<typeof getPublicUserProfile>>,
-  TError = ErrorType<NotFoundResponse>,
->(
-  id: string,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<
-        Awaited<ReturnType<typeof getPublicUserProfile>>,
-        TError,
-        TData
-      >
-    >;
-    request?: SecondParameter<typeof customInstance>;
-  },
-  queryClient?: QueryClient,
-): UseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>;
-} {
-  const queryOptions = getGetPublicUserProfileQueryOptions(id, options);
-
-  const query = useQuery(queryOptions, queryClient) as UseQueryResult<
-    TData,
-    TError
-  > & { queryKey: DataTag<QueryKey, TData, TError> };
-
-  query.queryKey = queryOptions.queryKey;
-
-  return query;
-}

@@ -1,5 +1,7 @@
 const { spawnSync } = require("child_process");
+const fs = require("fs");
 const http = require("http");
+const path = require("path");
 const { requireEnv, clientDir } = require("./load-env.cjs");
 
 const specUrl = requireEnv("OPENAPI_URL");
@@ -26,17 +28,51 @@ async function waitForServer(maxAttempts = 15, delayMs = 500) {
   return false;
 }
 
+function resolveOrvalBin() {
+  const candidates = [
+    path.join(clientDir, "node_modules", "orval", "dist", "bin", "orval.js"),
+    path.join(clientDir, "node_modules", "orval", "dist", "bin", "orval.mjs"),
+  ];
+  const found = candidates.find((p) => fs.existsSync(p));
+  if (!found) {
+    throw new Error("Orval binary not found — run npm install in client/");
+  }
+  return found;
+}
+
 function runOrval() {
-  const result = spawnSync("npx", ["orval", "--config", "orval.config.js"], {
-    cwd: clientDir,
-    encoding: "utf8",
-    shell: true,
-  });
+  const orvalBin = resolveOrvalBin();
+  const result = spawnSync(
+    process.execPath,
+    [orvalBin, "--config", "orval.config.js"],
+    {
+      cwd: clientDir,
+      encoding: "utf8",
+    },
+  );
 
   if (result.status !== 0) {
     if (result.stdout) process.stdout.write(result.stdout);
     if (result.stderr) process.stderr.write(result.stderr);
     throw new Error("Orval generation failed");
+  }
+}
+
+function runBarrel() {
+  const barrelScript = path.join(
+    clientDir,
+    "scripts",
+    "generate-orval-barrel.mjs",
+  );
+  const result = spawnSync(process.execPath, [barrelScript], {
+    cwd: clientDir,
+    encoding: "utf8",
+  });
+
+  if (result.status !== 0) {
+    if (result.stdout) process.stdout.write(result.stdout);
+    if (result.stderr) process.stderr.write(result.stderr);
+    throw new Error("Orval barrel generation failed");
   }
 }
 
@@ -54,6 +90,7 @@ async function main({ quiet = false } = {}) {
   }
 
   runOrval();
+  runBarrel();
 
   if (!quiet) {
     console.log("[gen:api] Done");

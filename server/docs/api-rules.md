@@ -131,20 +131,14 @@ Shared component schemas, parameters, and error responses live in `server/src/co
 Example Orval config (see `client/orval.config.js`):
 
 ```js
-// client/orval.config.js
-const { requireEnv } = require("./scripts/load-env.cjs");
-
-const specUrl = requireEnv("OPENAPI_URL");
-
+// client/orval.config.js — thin axios clients per tag, not react-query hooks
 module.exports = defineConfig({
   buytly: {
     input: { target: specUrl },
     output: {
       mode: "tags-split",
-      target: "./src/api/generated",
-      schemas: "./src/api/models",
-      client: "react-query",
-      httpClient: "axios",
+      target: "./src/api/generated/buytly.ts",
+      client: "axios",
       override: {
         mutator: {
           path: "./src/lib/api/custom-instance.ts",
@@ -159,6 +153,6 @@ module.exports = defineConfig({
 **Client generation workflow**
 
 1. Keep the API server running (`cd server && npm run dev` locally, or point `OPENAPI_URL` at production).
-2. Run the frontend (`cd client && npm run dev`) — Orval fetches `/api/docs.json` from the running API. After Swagger annotation changes, nodemon restarts the API and the client watcher regenerates hooks.
-3. Generated hooks live under `client/src/api/generated/` with types in `client/src/api/models/`.
+2. Run the frontend (`cd client && npm run dev`) — Orval fetches `/api/docs.json` from the running API. After Swagger annotation changes, nodemon restarts the API and the client watcher regenerates clients.
+3. Generated axios clients live under `client/src/api/generated/` (one file per OpenAPI tag). Types are in `buytly.schemas.ts`. `scripts/generate-orval-barrel.mjs` composes `buytlyApi` in `index.ts`. Import via `@/lib/api` (`buytlyApi`, types). Write React Query hooks in app code when needed.
 4. Copy `client/.env.example` → `client/.env.local` and set `NEXT_PUBLIC_API_URL` and `OPENAPI_URL` (both required).

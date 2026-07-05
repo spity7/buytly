@@ -10,7 +10,7 @@
     "start": "next start",
     "lint": "next lint",
     "gen:api": "node scripts/gen-api.cjs",
-    "format:api": "prettier --write --log-level warn \"src/api/generated\" \"src/api/models\""
+    "format:api": "prettier --write --log-level warn \"src/api/generated\""
   },
   "dependencies": {
     "@popperjs/core": "^2.11.8",
