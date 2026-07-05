@@ -1,51 +1,37 @@
-"use client";
-import ScrollToTop from "@/components/common/ScrollTop";
-import Aos from "aos";
-import "swiper/css";
-import "swiper/css/navigation";
-import "swiper/css/pagination";
-import "aos/dist/aos.css";
+import localFont from "next/font/local";
+import ClientLayout from "./ClientLayout";
+import ExtensionHydrationFix from "./ExtensionHydrationFix";
 import "../../public/scss/main.scss";
-import "rc-slider/assets/index.css";
-import { DM_Sans, Poppins } from "next/font/google";
-import { useEffect } from "react";
 
-// DM_Sans font
-const dmSans = DM_Sans({
-  subsets: ["latin"],
-  weight: ["400", "500", "700"],
+const dmSans = localFont({
+  src: "../fonts/DMSans-latin.woff2",
+  weight: "400 700",
   variable: "--body-font-family",
+  display: "swap",
 });
 
-// Poppins font
-const poppins = Poppins({
-  subsets: ["latin"],
-  weight: ["300", "400", "500", "600", "700", "800"],
+const poppins = localFont({
+  src: [
+    { path: "../fonts/Poppins-300.woff2", weight: "300", style: "normal" },
+    { path: "../fonts/Poppins-400.woff2", weight: "400", style: "normal" },
+    { path: "../fonts/Poppins-500.woff2", weight: "500", style: "normal" },
+    { path: "../fonts/Poppins-600.woff2", weight: "600", style: "normal" },
+    { path: "../fonts/Poppins-700.woff2", weight: "700", style: "normal" },
+    { path: "../fonts/Poppins-800.woff2", weight: "800", style: "normal" },
+  ],
   variable: "--title-font-family",
+  display: "swap",
 });
 
 export default function RootLayout({ children }) {
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      import("bootstrap");
-    }
-  }, []);
-  useEffect(() => {
-    Aos.init({
-      duration: 1200,
-      once: true,
-    });
-  }, []);
-
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body
-        className={`body  ${poppins.variable} ${dmSans.variable}`}
-        cz-shortcut-listen="false"
+        className={`body ${poppins.variable} ${dmSans.variable}`}
+        suppressHydrationWarning
       >
-        <div className="wrapper ovh">{children}</div>
-
-        <ScrollToTop />
+        <ExtensionHydrationFix />
+        <ClientLayout>{children}</ClientLayout>
       </body>
     </html>
   );
