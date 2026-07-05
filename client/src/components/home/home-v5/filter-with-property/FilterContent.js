@@ -27,7 +27,7 @@ const FilterContent = () => {
     setPrice(value);
   };
   return (
-    <div className="advance-style4 at-home5 mt-100 mt50-lg mb10 mx-auto animate-up-2">
+    <div className="advance-style4 at-home5 mt-120 mt60-lg mb10 mx-auto animate-up-2">
       <ul className="nav nav-tabs p-0 m-0">
         {tabs.map((tab) => (
           <li className="nav-item" key={tab.id}>

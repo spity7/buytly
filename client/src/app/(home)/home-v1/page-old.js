@@ -10,12 +10,11 @@ import Partner from "@/components/common/Partner";
 import PopularListings from "@/components/home/home-v1/PopularListings";
 import PropertiesByCities from "@/components/home/home-v1/PropertiesByCities";
 import Testimonial from "@/components/home/home-v1/Testimonial";
-import Hero from "@/components/home/home-v5/Hero";
+import Hero from "@/components/home/home-v1/hero";
 import Image from "next/image";
 import Blog from "@/components/common/Blog";
 import Link from "next/link";
 import PopulerProperty from "@/components/home/home-v1/PopulerProperty";
-import FilterWithProperties from "@/components/home/home-v5/filter-with-property";
 
 export const metadata = {
   title: "Home v1",
@@ -32,27 +31,31 @@ const Home_V1 = () => {
       <MobileMenu />
       {/* End Mobile Nav  */}
 
-      {/* Hero Slide */}
-      <div className="banner-wrapper position-relative">
-        <section className="thumbimg-countnumber-carousel p-0">
-          <Hero />
-        </section>
-      </div>
-      {/* Edn Hero Slide */}
-
-      {/* Filter with properties */}
-      <section className="pt-0 pb110 bgc-f7 pb50-md">
-        <div className="container">
-          <div className="row">
-            <div className="col-lg-12">
-              <FilterWithProperties />
+      {/* Home Banner Style V1 */}
+      <section className="home-banner-style1 p0">
+        <div className="home-style1">
+          <div className="container">
+            <div className="row">
+              <div className="col-xl-11 mx-auto">
+                <Hero />
+              </div>
             </div>
           </div>
-          {/* End .row */}
+          {/* End .container */}
+
+          <a href="#explore-property">
+            <div className="mouse_scroll animate-up-4">
+              <Image
+                width={20}
+                height={105}
+                src="/images/about/home-scroll.png"
+                alt="scroll image"
+              />
+            </div>
+          </a>
         </div>
-        {/* End .container */}
       </section>
-      {/* End Filter with properties */}
+      {/* End Home Banner Style V1 */}
 
       {/* Explore Apartment */}
       <section id="explore-property" className="pb90 pb30-md">

@@ -355,6 +355,12 @@ header.nav-homepage-style.light-header .ace-responsive-menu a {
 }
 
 .hero-large-home5 {
+    .slider-slide-item {
+        height: 750px;
+        @media (max-width: 1199px) {
+            height: 500px;
+        }
+    }
     .swiper {
         @media (max-width: 1199px) {
             height: 500px !important;

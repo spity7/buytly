@@ -50,7 +50,7 @@ const Hero = () => {
             swiper:
               thumbsSwiper && !thumbsSwiper.destroyed ? thumbsSwiper : null,
           }}
-          style={{ height: "850px" }}
+          style={{ height: "750px" }}
         >
           {sliderItems.map((item, index) => (
             <SwiperSlide key={index}>
@@ -99,7 +99,7 @@ const Hero = () => {
           onSwiper={setThumbsSwiper}
           slidesPerView={sliderItems.length} // Display all thumbs at once
           spaceBetween={0} // Adjust the space between thumbs
-          style={{ height: "268px" }} // Set a fixed height for the thumbs gallery
+          style={{ height: "236px" }} // Set a fixed height for the thumbs gallery
         >
           {sliderItems.map((item, index) => (
             <SwiperSlide key={index}>
