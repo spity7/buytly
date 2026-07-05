@@ -65,7 +65,7 @@ Production setup: copy `server/.env.example` → `.env` on the server, then comm
 
 ## SMTP Configuration (Gmail)
 
-The app uses Nodemailer (`email.service.js`). Use port **587** (STARTTLS). `SMTP_USER` and `SMTP_FROM` must be the same Gmail address.
+The app uses Nodemailer (`email.service.js`) with branded HTML + plain-text templates (`email.templates.js`). Use port **587** (STARTTLS). `SMTP_USER` and `SMTP_FROM` must be the same Gmail address.
 
 1. Enable 2FA on your Google account
 2. Create an [App Password](https://myaccount.google.com/apppasswords)
@@ -80,6 +80,8 @@ The app uses Nodemailer (`email.service.js`). Use port **587** (STARTTLS). `SMTP
 | SMTP_FROM | same as `SMTP_USER`       |
 
 `SMTP_FROM` must be a plain email address (no display name like `Buytly <...>`).
+
+**Deliverability:** Set `APP_URL` to your real frontend domain in production (not `localhost`) so verification and password-reset links use a trusted domain. Action emails include a plain-text body and a visible URL fallback in addition to the button link.
 
 **Gmail limits:** ~500 emails/day for free accounts. For higher volume later, consider SendGrid or Google Workspace.
 

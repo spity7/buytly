@@ -12,7 +12,7 @@ server/src/
 ├── shared/           # ApiResponse, AppError, constants, pagination
 ├── config/           # env, db, redis, swagger, swagger.schemas
 ├── middleware/       # auth, validate, sanitize, errorHandler, rateLimit
-├── services/         # Cross-cutting services (GCS, email, cache, tokens)
+├── services/         # Cross-cutting services (GCS, email, email.templates, cache, tokens)
 ├── utils/            # Helpers (asyncHandler, pick, slugify)
 ├── routes/           # Route aggregator
 ├── app.js            # Express app configuration

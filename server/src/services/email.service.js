@@ -1,5 +1,6 @@
 import nodemailer from "nodemailer";
 import { env } from "../config/env.js";
+import { emailTemplates } from "./email.templates.js";
 
 let transporter = null;
 
@@ -18,36 +19,12 @@ const getTransporter = () => {
   return transporter;
 };
 
-const templates = {
-  welcome: ({ name }) => ({
-    subject: "Welcome to Buytly",
-    html: `<h1>Welcome, ${name}!</h1><p>Your Buytly account has been created successfully.</p>`,
-  }),
-  passwordReset: ({ name, resetUrl }) => ({
-    subject: "Reset your Buytly password",
-    html: `<h1>Password Reset</h1><p>Hi ${name},</p><p><a href="${resetUrl}">Click here to reset your password</a></p><p>This link expires in 1 hour.</p>`,
-  }),
-  emailVerification: ({ name, verifyUrl }) => ({
-    subject: "Verify your Buytly email",
-    html: `<h1>Verify your email</h1><p>Hi ${name},</p><p><a href="${verifyUrl}">Click here to verify your email address</a></p><p>This link expires in 24 hours.</p>`,
-  }),
-  bookingStatus: ({ name, status, propertyTitle }) => ({
-    subject: `Booking ${status} - Buytly`,
-    html: `<h1>Booking Update</h1><p>Hi ${name},</p><p>Your booking for "${propertyTitle}" has been ${status}.</p>`,
-  }),
-  transactionUpdate: ({ name, status, propertyTitle }) => ({
-    subject: `Transaction ${status} - Buytly`,
-    html: `<h1>Transaction Update</h1><p>Hi ${name},</p><p>Your transaction for "${propertyTitle}" is now ${status}.</p>`,
-  }),
-  generic: ({ title, message }) => ({
-    subject: title,
-    html: `<h1>${title}</h1><p>${message}</p>`,
-  }),
-};
+const renderTemplate = (template, data) =>
+  emailTemplates[template]?.(data) || emailTemplates.generic(data);
 
 export const emailService = {
   async send(to, template, data) {
-    const tpl = templates[template]?.(data) || templates.generic(data);
+    const tpl = renderTemplate(template, data);
 
     if (env.NODE_ENV === "test") {
       return;
@@ -63,6 +40,7 @@ export const emailService = {
       from: env.SMTP_FROM,
       to,
       subject: tpl.subject,
+      text: tpl.text,
       html: tpl.html,
     });
   },
