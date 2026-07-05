@@ -10,6 +10,8 @@ import {
   logoutSchema,
   forgotPasswordSchema,
   resetPasswordSchema,
+  verifyEmailSchema,
+  resendVerificationSchema,
 } from "./auth.validation.js";
 
 const router = Router();
@@ -33,12 +35,14 @@ const router = Router();
  *         application/json:
  *           schema:
  *             type: object
- *             required: [email, password]
+ *             required: [email, password, confirmPassword]
  *             properties:
  *               email: { type: string, format: email }
  *               password: { type: string, minLength: 8 }
+ *               confirmPassword: { type: string, minLength: 8 }
  *               firstName: { type: string }
  *               lastName: { type: string }
+ *               phone: { type: string }
  *               role: { type: string, enum: [buyer, seller, agent] }
  *     responses:
  *       201:
@@ -178,6 +182,58 @@ router.post(
   "/reset-password",
   validate(resetPasswordSchema),
   asyncHandler(authController.resetPassword),
+);
+
+/**
+ * @swagger
+ * /auth/verify-email:
+ *   post:
+ *     summary: Verify email address with token
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [token]
+ *             properties:
+ *               token: { type: string }
+ *     responses:
+ *       200:
+ *         description: Email verified
+ */
+router.post(
+  "/verify-email",
+  authRateLimiter,
+  validate(verifyEmailSchema),
+  asyncHandler(authController.verifyEmail),
+);
+
+/**
+ * @swagger
+ * /auth/resend-verification:
+ *   post:
+ *     summary: Resend email verification link
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [email]
+ *             properties:
+ *               email: { type: string, format: email }
+ *     responses:
+ *       200:
+ *         description: Verification email sent if applicable
+ */
+router.post(
+  "/resend-verification",
+  authRateLimiter,
+  validate(resendVerificationSchema),
+  asyncHandler(authController.resendVerification),
 );
 
 export default router;

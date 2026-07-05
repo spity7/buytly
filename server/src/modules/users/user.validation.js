@@ -7,6 +7,10 @@ export const updateProfileSchema = z.object({
   phone: z.string().max(20).optional(),
 });
 
+export const deleteAccountSchema = z.object({
+  password: z.string().min(1),
+});
+
 export const updatePreferencesSchema = z.object({
   budgetMin: z.number().min(0).optional(),
   budgetMax: z.number().min(0).optional(),

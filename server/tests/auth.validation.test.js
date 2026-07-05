@@ -4,6 +4,7 @@ import {
   loginSchema,
   refreshSchema,
   resetPasswordSchema,
+  verifyEmailSchema,
 } from "../src/modules/auth/auth.validation.js";
 
 describe("auth validation schemas", () => {
@@ -12,24 +13,42 @@ describe("auth validation schemas", () => {
       const result = registerSchema.safeParse({
         email: "user@example.com",
         password: "password123",
+        confirmPassword: "password123",
         firstName: "Jane",
         role: "buyer",
       });
       expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.confirmPassword).toBeUndefined();
+      }
     });
 
     it("rejects short passwords", () => {
       const result = registerSchema.safeParse({
         email: "user@example.com",
         password: "short",
+        confirmPassword: "short",
       });
       expect(result.success).toBe(false);
+    });
+
+    it("rejects mismatched passwords", () => {
+      const result = registerSchema.safeParse({
+        email: "user@example.com",
+        password: "password123",
+        confirmPassword: "different123",
+      });
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error.issues[0].path).toContain("confirmPassword");
+      }
     });
 
     it("rejects invalid email", () => {
       const result = registerSchema.safeParse({
         email: "not-an-email",
         password: "password123",
+        confirmPassword: "password123",
       });
       expect(result.success).toBe(false);
     });
@@ -38,6 +57,7 @@ describe("auth validation schemas", () => {
       const result = registerSchema.parse({
         email: "user@example.com",
         password: "password123",
+        confirmPassword: "password123",
       });
       expect(result.role).toBe("buyer");
     });
@@ -76,6 +96,13 @@ describe("auth validation schemas", () => {
           password: "newpassword",
         }).success,
       ).toBe(true);
+    });
+  });
+
+  describe("verifyEmailSchema", () => {
+    it("requires token", () => {
+      expect(verifyEmailSchema.safeParse({}).success).toBe(false);
+      expect(verifyEmailSchema.safeParse({ token: "abc" }).success).toBe(true);
     });
   });
 });

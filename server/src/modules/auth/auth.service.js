@@ -1,5 +1,6 @@
 import bcrypt from "bcrypt";
 import { User } from "../users/user.model.js";
+import { AgentProfile } from "../agents/agent.model.js";
 import { RefreshToken } from "./refreshToken.model.js";
 import { AppError } from "../../shared/AppError.js";
 import {
@@ -8,10 +9,11 @@ import {
   getRefreshTokenExpiry,
   hashToken,
   generatePasswordResetToken,
+  generateEmailVerificationToken,
 } from "../../services/token.service.js";
 import { emailService } from "../../services/email.service.js";
 import { notificationService } from "../notifications/notification.service.js";
-import { NOTIFICATION_TYPES } from "../../shared/constants.js";
+import { NOTIFICATION_TYPES, ROLES } from "../../shared/constants.js";
 import { env } from "../../config/env.js";
 
 const SALT_ROUNDS = 12;
@@ -30,6 +32,29 @@ const issueTokenPair = async (user) => {
   return { accessToken, refreshToken };
 };
 
+const sendVerificationEmail = async (user, plainToken) => {
+  const verifyUrl = `${env.APP_URL}/verify-email?token=${plainToken}`;
+  await emailService.sendEmailVerification(user.email, {
+    name: user.firstName || user.email,
+    verifyUrl,
+  });
+};
+
+const setEmailVerificationToken = async (user) => {
+  const { token, hashed, expires } = generateEmailVerificationToken();
+  user.emailVerificationToken = hashed;
+  user.emailVerificationExpires = expires;
+  await user.save();
+  return token;
+};
+
+const handleDuplicateEmailError = (err) => {
+  if (err.code === 11000) {
+    throw new AppError("Email already registered", 409);
+  }
+  throw err;
+};
+
 export const authService = {
   async register(data) {
     const existing = await User.findOne({ email: data.email, deletedAt: null });
@@ -38,15 +63,31 @@ export const authService = {
     }
 
     const passwordHash = await bcrypt.hash(data.password, SALT_ROUNDS);
+    const {
+      token: verificationToken,
+      hashed,
+      expires,
+    } = generateEmailVerificationToken();
 
-    const user = await User.create({
-      email: data.email,
-      passwordHash,
-      firstName: data.firstName,
-      lastName: data.lastName,
-      phone: data.phone,
-      role: data.role,
-    });
+    let user;
+    try {
+      user = await User.create({
+        email: data.email,
+        passwordHash,
+        firstName: data.firstName,
+        lastName: data.lastName,
+        phone: data.phone,
+        role: data.role,
+        emailVerificationToken: hashed,
+        emailVerificationExpires: expires,
+      });
+    } catch (err) {
+      handleDuplicateEmailError(err);
+    }
+
+    if (data.role === ROLES.AGENT) {
+      await AgentProfile.create({ userId: user._id });
+    }
 
     const tokens = await issueTokenPair(user);
 
@@ -60,7 +101,13 @@ export const authService = {
         emailTemplate: "welcome",
         emailData: { name: user.firstName || user.email },
       })
-      .catch(() => {});
+      .catch((err) =>
+        console.error("Registration notification failed:", err.message),
+      );
+
+    sendVerificationEmail(user, verificationToken).catch((err) =>
+      console.error("Verification email failed:", err.message),
+    );
 
     return {
       user: user.toPublicJSON(),
@@ -87,6 +134,49 @@ export const authService = {
     return {
       user: user.toPublicJSON(),
       ...tokens,
+    };
+  },
+
+  async verifyEmail(token) {
+    const hashed = hashToken(token);
+
+    const user = await User.findOne({
+      emailVerificationToken: hashed,
+      emailVerificationExpires: { $gt: new Date() },
+      deletedAt: null,
+    }).select("+emailVerificationToken +emailVerificationExpires");
+
+    if (!user) {
+      throw new AppError("Invalid or expired verification token", 400);
+    }
+
+    user.isEmailVerified = true;
+    user.emailVerificationToken = undefined;
+    user.emailVerificationExpires = undefined;
+    await user.save();
+
+    return {
+      message: "Email verified successfully",
+      user: user.toPublicJSON(),
+    };
+  },
+
+  async resendVerification(email) {
+    const user = await User.findOne({
+      email,
+      deletedAt: null,
+      isActive: true,
+      isEmailVerified: false,
+    }).select("+emailVerificationToken +emailVerificationExpires");
+
+    if (user) {
+      const token = await setEmailVerificationToken(user);
+      await sendVerificationEmail(user, token);
+    }
+
+    return {
+      message:
+        "If the email exists and is unverified, a verification link has been sent",
     };
   },
 

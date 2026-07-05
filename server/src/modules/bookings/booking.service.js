@@ -48,7 +48,9 @@ export const bookingService = {
           message: `Visit requested for ${property.title}`,
         },
       })
-      .catch(() => {});
+      .catch((err) =>
+        console.error("Booking notification failed:", err.message),
+      );
 
     return populated;
   },
@@ -124,7 +126,9 @@ export const bookingService = {
           propertyTitle: booking.propertyId.title,
         },
       })
-      .catch(() => {});
+      .catch((err) =>
+        console.error("Booking notification failed:", err.message),
+      );
 
     return booking;
   },
@@ -148,7 +152,9 @@ export const bookingService = {
         message: "A buyer cancelled their visit request",
         data: { bookingId: booking._id },
       })
-      .catch(() => {});
+      .catch((err) =>
+        console.error("Booking notification failed:", err.message),
+      );
 
     return booking;
   },

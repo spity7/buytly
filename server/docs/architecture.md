@@ -50,7 +50,7 @@ flowchart LR
 1. **Ingress** — Helmet, CORS, rate limit, body parsing, mongo sanitize
 2. **Routing** — `/api/v1/{module}` matched to module router
 3. **Auth** — JWT verified via `authenticate` middleware (where required)
-4. **Validation** — Zod schemas validate body/query/params
+4. **Validation** — Zod schemas validate body/query/params; parsed query/params are merged in-place (Express 5 compatible)
 5. **Controller** — Thin handler delegates to service
 6. **Service** — Business logic, DB queries, external service calls
 7. **Response** — Unified `{ success, message, data }` format

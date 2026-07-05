@@ -17,7 +17,7 @@
 
 ```javascript
 {
-  email: String (unique),
+  email: String (unique among active users — partial index where deletedAt is null),
   passwordHash: String,
   role: enum [buyer, seller, agent, admin],
   firstName, lastName, phone: String,
@@ -26,13 +26,14 @@
   savedSearches: [{ name, filters, createdAt }],
   isActive: Boolean,
   isEmailVerified: Boolean,
+  emailVerificationToken, emailVerificationExpires: String/Date,
   passwordResetToken, passwordResetExpires: String/Date,
   deletedAt: Date (soft delete),
   timestamps
 }
 ```
 
-**Indexes:** `email` (unique), `role`, `deletedAt`
+**Indexes:** `email` (partial unique where `deletedAt` is null), `role`, `deletedAt`
 
 ## refreshtokens
 

@@ -13,7 +13,6 @@ const userSchema = new mongoose.Schema(
     email: {
       type: String,
       required: true,
-      unique: true,
       lowercase: true,
       trim: true,
     },
@@ -40,6 +39,8 @@ const userSchema = new mongoose.Schema(
     savedSearches: [savedSearchSchema],
     isActive: { type: Boolean, default: true },
     isEmailVerified: { type: Boolean, default: false },
+    emailVerificationToken: { type: String, select: false },
+    emailVerificationExpires: { type: Date, select: false },
     passwordResetToken: { type: String, select: false },
     passwordResetExpires: { type: Date, select: false },
     deletedAt: { type: Date, default: null },
@@ -53,6 +54,10 @@ const userSchema = new mongoose.Schema(
 
 userSchema.index({ role: 1 });
 userSchema.index({ deletedAt: 1 });
+userSchema.index(
+  { email: 1 },
+  { unique: true, partialFilterExpression: { deletedAt: null } },
+);
 
 userSchema.virtual("fullName").get(function () {
   return (
@@ -71,6 +76,7 @@ userSchema.methods.toPublicJSON = function () {
     avatar: this.avatar,
     preferences: this.preferences,
     isActive: this.isActive,
+    isEmailVerified: this.isEmailVerified,
     createdAt: this.createdAt,
   };
 };

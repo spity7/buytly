@@ -7,6 +7,9 @@ import {
   buildPaginationMeta,
 } from "../../shared/pagination.js";
 
+const isDeliverableUser = (user) =>
+  user && user.deletedAt == null && user.isActive;
+
 export const notificationService = {
   async notify({
     userId,
@@ -18,6 +21,11 @@ export const notificationService = {
     emailTemplate = "generic",
     emailData = {},
   }) {
+    const user = await User.findById(userId);
+    if (!isDeliverableUser(user)) {
+      return null;
+    }
+
     const notification = await Notification.create({
       userId,
       type,
@@ -27,18 +35,15 @@ export const notificationService = {
       channels: { inApp: true, email: sendEmail },
     });
 
-    if (sendEmail) {
-      const user = await User.findById(userId);
-      if (user?.email) {
-        emailService
-          .send(user.email, emailTemplate, {
-            title,
-            message,
-            name: user.firstName || user.email,
-            ...emailData,
-          })
-          .catch((err) => console.error("Email send failed:", err.message));
-      }
+    if (sendEmail && user.email) {
+      emailService
+        .send(user.email, emailTemplate, {
+          title,
+          message,
+          name: user.firstName || user.email,
+          ...emailData,
+        })
+        .catch((err) => console.error("Email send failed:", err.message));
     }
 
     return notification;
@@ -48,7 +53,11 @@ export const notificationService = {
     const { page, limit, skip } = parsePagination(query);
     const filter = { userId };
 
-    if (query.unread === "true") filter.isRead = false;
+    if (query.unread === "true") {
+      filter.isRead = false;
+    } else if (query.unread === "false") {
+      filter.isRead = true;
+    }
 
     const [notifications, total] = await Promise.all([
       Notification.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit),
@@ -69,6 +78,10 @@ export const notificationService = {
 
     if (!notification) {
       throw new AppError("Notification not found", 404);
+    }
+
+    if (notification.isRead) {
+      return notification;
     }
 
     notification.isRead = true;

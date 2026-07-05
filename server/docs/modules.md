@@ -4,14 +4,16 @@
 
 **Responsibility:** User registration, login, JWT token management, password reset.
 
-| Endpoint              | Method | Auth   | Input                 | Output         |
-| --------------------- | ------ | ------ | --------------------- | -------------- |
-| /auth/register        | POST   | Public | email, password, role | user + tokens  |
-| /auth/login           | POST   | Public | email, password       | user + tokens  |
-| /auth/refresh         | POST   | Public | refreshToken          | new token pair |
-| /auth/logout          | POST   | Public | refreshToken          | success        |
-| /auth/forgot-password | POST   | Public | email                 | message        |
-| /auth/reset-password  | POST   | Public | token, password       | success        |
+| Endpoint                  | Method | Auth   | Input                                  | Output         |
+| ------------------------- | ------ | ------ | -------------------------------------- | -------------- |
+| /auth/register            | POST   | Public | email, password, confirmPassword, role | user + tokens  |
+| /auth/login               | POST   | Public | email, password                        | user + tokens  |
+| /auth/refresh             | POST   | Public | refreshToken                           | new token pair |
+| /auth/logout              | POST   | Public | refreshToken                           | success        |
+| /auth/verify-email        | POST   | Public | token                                  | user           |
+| /auth/resend-verification | POST   | Public | email                                  | message        |
+| /auth/forgot-password     | POST   | Public | email                                  | message        |
+| /auth/reset-password      | POST   | Public | token, password                        | success        |
 
 **Dependencies:** users (User model), token.service, email.service, notifications
 
@@ -25,6 +27,7 @@
 | ---------------------------- | -------- | ------ | -------------------------- | ---------------------- |
 | /users/me                    | GET      | User   | —                          | full profile           |
 | /users/me                    | PATCH    | User   | firstName, lastName, phone | updated profile        |
+| /users/me                    | DELETE   | User   | password                   | success                |
 | /users/me/preferences        | PATCH    | User   | budget, locations, types   | preferences            |
 | /users/me/saved-searches     | POST/GET | User   | name, filters              | searches               |
 | /users/me/saved-searches/:id | DELETE   | User   | —                          | success                |
@@ -133,13 +136,13 @@
 
 **Responsibility:** In-app notifications and email triggers.
 
-| Endpoint                    | Method | Auth | Input         | Output            |
-| --------------------------- | ------ | ---- | ------------- | ----------------- |
-| /notifications              | GET    | User | unread filter | notification list |
-| /notifications/:id/read     | PATCH  | User | —             | marked read       |
-| /notifications/read-all     | PATCH  | User | —             | all marked read   |
-| /notifications/unread-count | GET    | User | —             | count             |
+| Endpoint                    | Method | Auth | Input                                                     | Output            |
+| --------------------------- | ------ | ---- | --------------------------------------------------------- | ----------------- |
+| /notifications              | GET    | User | `unread=true` (unread only) or `unread=false` (read only) | notification list |
+| /notifications/:id/read     | PATCH  | User | —                                                         | marked read       |
+| /notifications/read-all     | PATCH  | User | —                                                         | all marked read   |
+| /notifications/unread-count | GET    | User | —                                                         | count             |
 
 **Dependencies:** email.service
 
-**Internal API:** Other modules call `notificationService.notify()` — never call email directly from controllers.
+**Internal API:** Other modules call `notificationService.notify()` — never call email directly from controllers. `notify()` skips deleted/inactive users. `unread` query: `true` = unread only, `false` = read only, omit = all.

@@ -9,6 +9,7 @@ import {
   savedSearchSchema,
   userIdParamSchema,
   savedSearchIdParamSchema,
+  deleteAccountSchema,
 } from "./user.validation.js";
 
 const router = Router();
@@ -51,6 +52,34 @@ router.patch(
   authenticate,
   validate(updateProfileSchema),
   asyncHandler(userController.updateProfile),
+);
+
+/**
+ * @swagger
+ * /users/me:
+ *   delete:
+ *     summary: Delete current user account (soft delete)
+ *     tags: [Users]
+ *     security:
+ *       - BearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [password]
+ *             properties:
+ *               password: { type: string }
+ *     responses:
+ *       200:
+ *         description: Account deleted
+ */
+router.delete(
+  "/me",
+  authenticate,
+  validate(deleteAccountSchema),
+  asyncHandler(userController.deleteAccount),
 );
 
 /**

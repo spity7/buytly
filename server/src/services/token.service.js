@@ -29,3 +29,10 @@ export const generatePasswordResetToken = () => {
   const expires = new Date(Date.now() + 60 * 60 * 1000);
   return { token, hashed, expires };
 };
+
+export const generateEmailVerificationToken = () => {
+  const token = crypto.randomBytes(32).toString("hex");
+  const hashed = hashToken(token);
+  const expires = new Date(Date.now() + 24 * 60 * 60 * 1000);
+  return { token, hashed, expires };
+};

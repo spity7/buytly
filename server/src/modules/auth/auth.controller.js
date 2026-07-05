@@ -34,4 +34,14 @@ export const authController = {
     );
     ApiResponse.success(res, result);
   },
+
+  verifyEmail: async (req, res) => {
+    const result = await authService.verifyEmail(req.body.token);
+    ApiResponse.success(res, result, "Email verified successfully");
+  },
+
+  resendVerification: async (req, res) => {
+    const result = await authService.resendVerification(req.body.email);
+    ApiResponse.success(res, result);
+  },
 };

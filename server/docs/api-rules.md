@@ -76,7 +76,11 @@ Protected routes require:
 Authorization: Bearer <access_token>
 ```
 
-Obtain tokens via `POST /api/v1/auth/login` or `POST /api/v1/auth/register`.
+Obtain tokens via `POST /api/v1/auth/login` or `POST /api/v1/auth/register` (requires `confirmPassword` matching `password`).
+
+Verify email via `POST /api/v1/auth/verify-email`. Resend with `POST /api/v1/auth/resend-verification`.
+
+Delete account via `DELETE /api/v1/users/me` with `{ password }` in the body.
 
 Refresh expired access tokens via `POST /api/v1/auth/refresh` with the refresh token in the body.
 
@@ -98,6 +102,12 @@ Current version: `v1`. All routes are prefixed with `/api/v1`.
 
 - Global: 200 requests per 15 minutes per IP
 - Auth endpoints: 20 requests per 15 minutes per IP
+
+## Notifications
+
+`GET /api/v1/notifications` supports `unread=true` (unread only) or `unread=false` (read only). Omit for all.
+
+`PATCH /api/v1/notifications/:id/read` is idempotent — re-marking an already-read notification does not change `readAt`.
 
 ## Documentation
 

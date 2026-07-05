@@ -37,29 +37,29 @@ npm run generate-secrets
 
 ## Environment Variables
 
-| Variable               | Required | Description                                                        |
-| ---------------------- | -------- | ------------------------------------------------------------------ |
-| NODE_ENV               | Yes      | development / production / test                                    |
-| PORT                   | Yes      | Server port (default 5000)                                         |
-| TRUST_PROXY            | No       | `true` behind nginx/ALB (default `false`)                          |
-| MONGODB_URI            | Yes      | MongoDB connection string                                          |
-| JWT_ACCESS_SECRET      | Yes      | Access token secret (min 32 chars)                                 |
-| JWT_REFRESH_SECRET     | Yes      | Refresh token secret (min 32 chars)                                |
-| JWT_ACCESS_EXPIRES_IN  | No       | Access token TTL (default 15m)                                     |
-| JWT_REFRESH_EXPIRES_IN | No       | Refresh token TTL (default 7d)                                     |
-| GCS_PROJECT_ID         | Yes      | GCP project ID                                                     |
-| GCS_BUCKET             | Yes      | GCS bucket name                                                    |
-| GCS_KEY_FILE           | No       | Path to service account JSON                                       |
-| APP_URL                | Yes      | Frontend URL for password-reset links                              |
-| API_URL                | No       | Public API base for Swagger (e.g. `https://api.buytly.com/api/v1`) |
-| CORS_ORIGIN            | Yes      | Allowed origins (comma-separated)                                  |
-| SWAGGER_ENABLED        | No       | Expose `/api/docs` (default: on in dev, off in production)         |
-| SMTP_HOST              | Yes      | SMTP server host                                                   |
-| SMTP_PORT              | Yes      | SMTP port (587 or 465)                                             |
-| SMTP_USER              | Yes      | SMTP username                                                      |
-| SMTP_PASS              | Yes      | SMTP password                                                      |
-| SMTP_FROM              | Yes      | From email address                                                 |
-| REDIS_URL              | No       | Redis connection URL (optional)                                    |
+| Variable               | Required | Description                                                                       |
+| ---------------------- | -------- | --------------------------------------------------------------------------------- |
+| NODE_ENV               | Yes      | development / production / test                                                   |
+| PORT                   | Yes      | Server port (default 5000)                                                        |
+| TRUST_PROXY            | No       | `true` behind nginx/ALB (default `false`)                                         |
+| MONGODB_URI            | Yes      | MongoDB connection string                                                         |
+| JWT_ACCESS_SECRET      | Yes      | Access token secret (min 32 chars)                                                |
+| JWT_REFRESH_SECRET     | Yes      | Reserved for future use; refresh tokens are opaque UUIDs stored hashed in MongoDB |
+| JWT_ACCESS_EXPIRES_IN  | No       | Access token TTL (default 15m)                                                    |
+| JWT_REFRESH_EXPIRES_IN | No       | Refresh token TTL (default 7d)                                                    |
+| GCS_PROJECT_ID         | Yes      | GCP project ID                                                                    |
+| GCS_BUCKET             | Yes      | GCS bucket name                                                                   |
+| GCS_KEY_FILE           | No       | Path to service account JSON                                                      |
+| APP_URL                | Yes      | Frontend URL for password-reset links                                             |
+| API_URL                | No       | Public API base for Swagger (e.g. `https://api.buytly.com/api/v1`)                |
+| CORS_ORIGIN            | Yes      | Allowed origins (comma-separated)                                                 |
+| SWAGGER_ENABLED        | No       | Expose `/api/docs` (default: on in dev, off in production)                        |
+| SMTP_HOST              | Yes      | SMTP server host                                                                  |
+| SMTP_PORT              | Yes      | SMTP port (587 or 465)                                                            |
+| SMTP_USER              | Yes      | SMTP username                                                                     |
+| SMTP_PASS              | Yes      | SMTP password                                                                     |
+| SMTP_FROM              | Yes      | From email address                                                                |
+| REDIS_URL              | No       | Redis connection URL (optional)                                                   |
 
 Production setup: copy `server/.env.example` → `.env` on the server, then comment local lines and uncomment the prod line below each pair. **SMTP** stays on Gmail — same values in dev and production.
 
@@ -159,6 +159,15 @@ SWAGGER_ENABLED=false
 2. Create a database user with read/write permissions
 3. Whitelist your server IP (or 0.0.0.0/0 for development only)
 4. Copy the connection string to `MONGODB_URI`
+
+**Upgrading:** If you previously deployed with a global unique index on `users.email`, drop it after deploy so soft-deleted accounts can free their email via the partial index:
+
+```javascript
+// mongosh
+db.users.dropIndex("email_1");
+```
+
+Mongoose recreates `email_1` as a partial unique index (`deletedAt: null`) on startup. Email is also anonymized on `DELETE /users/me`, so re-registration works even before the index migration.
 
 ## Google Cloud Storage Setup
 

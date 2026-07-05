@@ -1,6 +1,9 @@
 import { User } from "./user.model.js";
+import { RefreshToken } from "../auth/refreshToken.model.js";
 import { gcsService } from "../../services/gcs.service.js";
 import { AppError } from "../../shared/AppError.js";
+import bcrypt from "bcrypt";
+import crypto from "crypto";
 
 export const userService = {
   async getMe(userId) {
@@ -112,5 +115,41 @@ export const userService = {
     }
 
     return profile;
+  },
+
+  async deleteAccount(userId, password) {
+    const user = await User.findById(userId).select("+passwordHash");
+    if (!user || user.deletedAt) {
+      throw new AppError("User not found", 404);
+    }
+
+    const isMatch = await bcrypt.compare(password, user.passwordHash);
+    if (!isMatch) {
+      throw new AppError("Invalid password", 401);
+    }
+
+    if (user.avatar?.gcsKey) {
+      await gcsService.deleteFile(user.avatar.gcsKey).catch(() => {});
+    }
+
+    user.deletedAt = new Date();
+    user.isActive = false;
+    user.email = `deleted_${user._id}@deleted.buytly.internal`;
+    user.passwordHash = await bcrypt.hash(
+      crypto.randomBytes(32).toString("hex"),
+      12,
+    );
+    user.emailVerificationToken = undefined;
+    user.emailVerificationExpires = undefined;
+    user.passwordResetToken = undefined;
+    user.passwordResetExpires = undefined;
+    await user.save();
+
+    await RefreshToken.updateMany(
+      { userId: user._id },
+      { revokedAt: new Date() },
+    );
+
+    return { message: "Account deleted successfully" };
   },
 };

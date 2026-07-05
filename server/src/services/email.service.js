@@ -27,6 +27,10 @@ const templates = {
     subject: "Reset your Buytly password",
     html: `<h1>Password Reset</h1><p>Hi ${name},</p><p><a href="${resetUrl}">Click here to reset your password</a></p><p>This link expires in 1 hour.</p>`,
   }),
+  emailVerification: ({ name, verifyUrl }) => ({
+    subject: "Verify your Buytly email",
+    html: `<h1>Verify your email</h1><p>Hi ${name},</p><p><a href="${verifyUrl}">Click here to verify your email address</a></p><p>This link expires in 24 hours.</p>`,
+  }),
   bookingStatus: ({ name, status, propertyTitle }) => ({
     subject: `Booking ${status} - Buytly`,
     html: `<h1>Booking Update</h1><p>Hi ${name},</p><p>Your booking for "${propertyTitle}" has been ${status}.</p>`,
@@ -65,6 +69,10 @@ export const emailService = {
 
   async sendPasswordReset(to, data) {
     return this.send(to, "passwordReset", data);
+  },
+
+  async sendEmailVerification(to, data) {
+    return this.send(to, "emailVerification", data);
   },
 
   async sendWelcome(to, data) {

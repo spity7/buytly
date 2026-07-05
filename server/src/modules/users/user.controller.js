@@ -60,4 +60,12 @@ export const userController = {
     const profile = await userService.getPublicProfile(req.params.id);
     ApiResponse.success(res, profile);
   },
+
+  deleteAccount: async (req, res) => {
+    const result = await userService.deleteAccount(
+      req.user._id,
+      req.body.password,
+    );
+    ApiResponse.success(res, result, "Account deleted successfully");
+  },
 };

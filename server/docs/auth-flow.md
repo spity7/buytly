@@ -18,6 +18,54 @@ Buytly uses a dual-token authentication system:
 }
 ```
 
+## Register Flow
+
+```mermaid
+sequenceDiagram
+  participant Client
+  participant API
+  participant DB
+
+  Client->>API: POST /auth/register { email, password, confirmPassword, role }
+  API->>DB: Check active email (deletedAt: null)
+  API->>DB: Create user + bcrypt hash + verification token
+  API->>DB: Create AgentProfile if role=agent
+  API->>DB: Store refresh token hash
+  API-->>Client: { accessToken, refreshToken, user }
+  API-->>Client: Verification email sent (async)
+```
+
+- `confirmPassword` must match `password` (validated server-side; clients may also validate locally)
+- Role defaults to `buyer`; `admin` cannot be self-assigned
+- Duplicate active emails return `409`
+- Soft-deleted accounts free the email for re-registration (partial unique index on `email` where `deletedAt` is null)
+
+## Email Verification Flow
+
+1. On registration, server stores SHA-256 hash of verification token (24h expiry) and sends link: `{APP_URL}/verify-email?token={token}`
+2. User submits token via `POST /auth/verify-email`
+3. Unverified users can still log in; `isEmailVerified` is exposed on the user object for client-side prompts
+4. Resend via `POST /auth/resend-verification` (generic response to avoid email enumeration)
+
+## Account Deletion Flow
+
+```mermaid
+sequenceDiagram
+  participant Client
+  participant API
+  participant DB
+
+  Client->>API: DELETE /users/me { password }
+  API->>DB: Verify password, set deletedAt, isActive=false
+  API->>DB: Revoke all refresh tokens
+  API-->>Client: { success: true }
+```
+
+- Soft delete only — user record retained for audit/history
+- Email anonymized on deletion so the address can be re-registered
+- Password hash overwritten on deletion
+- Same email can register again after deletion
+
 ## Login Flow
 
 ```mermaid
@@ -93,6 +141,7 @@ sequenceDiagram
 - Passwords hashed with bcrypt (12 salt rounds)
 - Refresh tokens stored as SHA-256 hashes (never plaintext)
 - Password reset tokens hashed in database
-- All refresh tokens revoked on password reset
+- Email verification tokens hashed in database
+- All refresh tokens revoked on password reset and account deletion
 - Rate limiting on auth endpoints (20 req/15min)
 - JWT secrets validated at startup (min 32 chars)

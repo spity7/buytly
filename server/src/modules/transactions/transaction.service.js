@@ -35,7 +35,13 @@ export const transactionService = {
       { path: "agentId", select: "firstName lastName email" },
     ]);
 
-    const notifyIds = [property.ownerId, property.agentId].filter(Boolean);
+    const notifyIds = [
+      ...new Set(
+        [property.ownerId, property.agentId]
+          .filter(Boolean)
+          .map((id) => id.toString()),
+      ),
+    ];
 
     await Promise.all(
       notifyIds.map((userId) =>
@@ -53,7 +59,9 @@ export const transactionService = {
               message: `Transaction initiated for ${property.title}`,
             },
           })
-          .catch(() => {}),
+          .catch((err) =>
+            console.error("Transaction notification failed:", err.message),
+          ),
       ),
     );
 
@@ -147,7 +155,9 @@ export const transactionService = {
           propertyTitle: transaction.propertyId.title,
         },
       })
-      .catch(() => {});
+      .catch((err) =>
+        console.error("Transaction notification failed:", err.message),
+      );
 
     return transaction;
   },
