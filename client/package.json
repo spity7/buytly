@@ -3,15 +3,20 @@
   "version": "2.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "concurrently -k -n api,next -c yellow,cyan \"node scripts/watch-api.cjs\" \"next dev\"",
+    "dev:next": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "gen:api": "node scripts/gen-api.cjs",
+    "format:api": "prettier --write --log-level warn \"src/api/generated\" \"src/api/models\""
   },
   "dependencies": {
     "@popperjs/core": "^2.11.8",
     "@react-google-maps/api": "^2.20.6",
+    "@tanstack/react-query": "^5.101.2",
     "aos": "^2.3.4",
+    "axios": "^1.18.1",
     "bootstrap": "5.3.8",
     "next": "16.2.10",
     "photoswipe": "^5.4.4",
@@ -30,6 +35,11 @@
     "swiper": "^12.1.2"
   },
   "devDependencies": {
-    "eslint": "9.27.0"
+    "chokidar": "^5.0.0",
+    "concurrently": "^10.0.3",
+    "dotenv": "^17.4.2",
+    "eslint": "9.27.0",
+    "orval": "^7.13.2",
+    "prettier": "^3.9.4"
   }
 }

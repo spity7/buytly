@@ -27,8 +27,8 @@ const envSchema = z.object({
   SMTP_FROM: z.string().email(),
   REDIS_URL: z.string().optional(),
   APP_URL: z.string().url().default("http://localhost:3000"),
-  /** Public API base URL (e.g. https://api.buytly.com/api/v1) — used by Swagger in production */
-  API_URL: z.string().url().optional(),
+  /** Public API base URL (e.g. https://api.buytly.com/api/v1) — Swagger servers + startup logs */
+  API_URL: z.string().url(),
   /** Set to true when behind nginx/Cloud Load Balancer (required for rate limits & HTTPS) */
   TRUST_PROXY: z
     .string()

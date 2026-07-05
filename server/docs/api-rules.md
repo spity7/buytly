@@ -128,14 +128,37 @@ Shared component schemas, parameters, and error responses live in `server/src/co
 - Response schemas (`$ref` to `#/components/schemas/*`) including paginated wrappers
 - Standard error responses (`400`, `401`, `403`, `404`, `409`, `429`)
 
-Example Orval config:
+Example Orval config (see `client/orval.config.js`):
 
-```ts
-// orval.config.ts
-export default {
+```js
+// client/orval.config.js
+const { requireEnv } = require("./scripts/load-env.cjs");
+
+const specUrl = requireEnv("OPENAPI_URL");
+
+module.exports = defineConfig({
   buytly: {
-    input: "http://localhost:3001/api/docs.json",
-    output: { target: "./src/api/generated.ts", client: "react-query" },
+    input: { target: specUrl },
+    output: {
+      mode: "tags-split",
+      target: "./src/api/generated",
+      schemas: "./src/api/models",
+      client: "react-query",
+      httpClient: "axios",
+      override: {
+        mutator: {
+          path: "./src/lib/api/custom-instance.ts",
+          name: "customInstance",
+        },
+      },
+    },
   },
-};
+});
 ```
+
+**Client generation workflow**
+
+1. Keep the API server running (`cd server && npm run dev` locally, or point `OPENAPI_URL` at production).
+2. Run the frontend (`cd client && npm run dev`) — Orval fetches `/api/docs.json` from the running API. After Swagger annotation changes, nodemon restarts the API and the client watcher regenerates hooks.
+3. Generated hooks live under `client/src/api/generated/` with types in `client/src/api/models/`.
+4. Copy `client/.env.example` → `client/.env.local` and set `NEXT_PUBLIC_API_URL` and `OPENAPI_URL` (both required).

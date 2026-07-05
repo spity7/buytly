@@ -1,5 +1,6 @@
 "use client";
 
+import QueryProvider from "@/providers/QueryProvider";
 import ScrollToTop from "@/components/common/ScrollTop";
 import Aos from "aos";
 import "swiper/css";
@@ -22,9 +23,9 @@ export default function ClientLayout({ children }) {
   }, []);
 
   return (
-    <>
+    <QueryProvider>
       <div className="wrapper ovh">{children}</div>
       <ScrollToTop />
-    </>
+    </QueryProvider>
   );
 }

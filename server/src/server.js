@@ -3,8 +3,7 @@ import { env, isSwaggerEnabled } from "./config/env.js";
 import { connectDB, disconnectDB } from "./config/db.js";
 import { connectRedis, disconnectRedis } from "./config/redis.js";
 
-const publicBaseUrl =
-  env.API_URL?.replace(/\/api\/v1\/?$/, "") || `http://localhost:${env.PORT}`;
+const publicBaseUrl = env.API_URL.replace(/\/api\/v1\/?$/, "");
 
 const startServer = async () => {
   try {

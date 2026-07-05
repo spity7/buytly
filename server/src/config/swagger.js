@@ -5,24 +5,6 @@ import { env } from "./env.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
-const devServerUrl = `http://localhost:${env.PORT}/api/v1`;
-const servers = [];
-
-if (env.API_URL && env.API_URL !== devServerUrl) {
-  servers.push({
-    url: env.API_URL,
-    description: "Production server",
-  });
-}
-
-servers.push({
-  url: env.API_URL || devServerUrl,
-  description:
-    env.API_URL && env.API_URL !== devServerUrl
-      ? "Local development"
-      : "Development server",
-});
-
 // swagger-jsdoc glob fails on Windows backslashes — normalize to forward slashes
 const apiGlob = (relativePath) =>
   join(__dirname, relativePath).replace(/\\/g, "/");
@@ -45,7 +27,15 @@ const options = {
         name: "Proprietary",
       },
     },
-    servers: servers,
+    servers: [
+      {
+        url: env.API_URL,
+        description:
+          env.NODE_ENV === "production"
+            ? "Production server"
+            : "Development server",
+      },
+    ],
     components: {
       securitySchemes: {
         BearerAuth: {

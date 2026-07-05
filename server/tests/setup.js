@@ -9,6 +9,7 @@ process.env.MONGODB_URI =
   process.env.MONGODB_URI || "mongodb://127.0.0.1:27017/buytly-test";
 process.env.APP_URL = "http://localhost:3000";
 process.env.CORS_ORIGIN = "http://localhost:3000";
+process.env.API_URL = "http://localhost:5099/api/v1";
 process.env.REDIS_URL = "";
 
 process.env.JWT_ACCESS_SECRET = "test-access-secret-minimum-32-chars!!";

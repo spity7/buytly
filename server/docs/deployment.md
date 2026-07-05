@@ -35,6 +35,8 @@ Generate JWT secrets:
 npm run generate-secrets
 ```
 
+The Next.js client fetches the live OpenAPI spec from `/api/docs.json` for Orval — no file export step. Ensure the API is running before `npm run dev` in `client/`.
+
 ## Environment Variables
 
 | Variable               | Required | Description                                                                       |
@@ -51,7 +53,7 @@ npm run generate-secrets
 | GCS_BUCKET             | Yes      | GCS bucket name                                                                   |
 | GCS_KEY_FILE           | No       | Path to service account JSON                                                      |
 | APP_URL                | Yes      | Frontend URL for password-reset links                                             |
-| API_URL                | No       | Public API base for Swagger (e.g. `https://api.buytly.com/api/v1`)                |
+| API_URL                | Yes      | Public API base for Swagger and logs (e.g. `https://api.buytly.com/api/v1`)       |
 | CORS_ORIGIN            | Yes      | Allowed origins (comma-separated)                                                 |
 | SWAGGER_ENABLED        | No       | Expose `/api/docs` (default: on in dev, off in production)                        |
 | SMTP_HOST              | Yes      | SMTP server host                                                                  |
