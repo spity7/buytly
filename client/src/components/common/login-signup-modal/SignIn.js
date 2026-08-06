@@ -1,5 +1,6 @@
-import Link from "next/link";
 import React from "react";
+import AuthTabSwitch from "./AuthTabSwitch";
+import GoogleIcon from "./GoogleIcon";
 
 const SignIn = () => {
   return (
@@ -50,26 +51,19 @@ const SignIn = () => {
         <span className="hr_top_text">OR</span>
       </div>
 
-      <div className="d-grid mb10">
-        <button className="ud-btn btn-white" type="button">
-          <i className="fab fa-google" /> Continue Google
-        </button>
-      </div>
-      <div className="d-grid mb10">
-        <button className="ud-btn btn-fb" type="button">
-          <i className="fab fa-facebook-f" /> Continue Facebook
-        </button>
-      </div>
       <div className="d-grid mb20">
-        <button className="ud-btn btn-apple" type="button">
-          <i className="fab fa-apple" /> Continue Apple
+        <button className="ud-btn btn-google" type="button">
+          <GoogleIcon className="google-icon" /> Continue with Google
         </button>
       </div>
       <p className="dark-color text-center mb0 mt10">
         Not signed up?{" "}
-        <Link className="dark-color fw600" href="/register">
+        <AuthTabSwitch
+          tab="signup"
+          className="btn btn-link dark-color fw600 p-0 border-0 align-baseline"
+        >
           Create an account.
-        </Link>
+        </AuthTabSwitch>
       </p>
     </form>
   );

@@ -1,7 +1,7 @@
 import React from "react";
 
 const PopularTags = () => {
-  const tags = ["For Sale", "House", "Realton", "Apartments", "Villa"];
+  const tags = ["For Sale", "House", "Buytly", "Apartments", "Villa"];
 
   return (
     <div className="sidebar-widget mb30 pb20">

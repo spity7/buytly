@@ -190,7 +190,7 @@ const Home_V3 = () => {
       </section>
       {/* End Why Chose Us */}
 
-      {/*People Love Living with Realton */}
+      {/*People Love Living with Buytly */}
       <section className="pb30-md bgc-f7">
         <div className="container">
           <div className="row align-items-md-center">
@@ -199,7 +199,7 @@ const Home_V3 = () => {
               data-wow-delay="100ms"
             >
               <div className="main-title">
-                <h2 className="title">People Love Living with Realton</h2>
+                <h2 className="title">People Love Living with Buytly</h2>
                 <p className="paragraph">
                   Aliquam lacinia diam quis lacus euismod
                 </p>
@@ -223,7 +223,7 @@ const Home_V3 = () => {
           </div>
         </div>
       </section>
-      {/* End People Love Living with Realton */}
+      {/* End People Love Living with Buytly */}
 
       {/* Real Estate Inquiry Form */}
       <section className="pb-0">

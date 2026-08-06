@@ -14,8 +14,8 @@ const contactInfo = {
     url: "tel:29110987654",
   },
   email: {
-    address: "info@realton.com",
-    url: "mailto:info@realton.com",
+    address: "info@Buytly.com",
+    url: "mailto:info@Buytly.com",
   },
 };
 

@@ -2,13 +2,16 @@
 
 import QueryProvider from "@/providers/QueryProvider";
 import ScrollToTop from "@/components/common/ScrollTop";
+import GlobalAuthModal, {
+  AuthModalFromQuery,
+} from "@/components/common/login-signup-modal/GlobalAuthModal";
 import Aos from "aos";
 import "swiper/css";
 import "swiper/css/navigation";
 import "swiper/css/pagination";
 import "aos/dist/aos.css";
 import "rc-slider/assets/index.css";
-import { useEffect } from "react";
+import { Suspense, useEffect } from "react";
 
 export default function ClientLayout({ children }) {
   useEffect(() => {
@@ -25,6 +28,10 @@ export default function ClientLayout({ children }) {
   return (
     <QueryProvider>
       <div className="wrapper ovh">{children}</div>
+      <GlobalAuthModal />
+      <Suspense fallback={null}>
+        <AuthModalFromQuery />
+      </Suspense>
       <ScrollToTop />
     </QueryProvider>
   );

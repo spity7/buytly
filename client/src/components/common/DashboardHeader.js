@@ -2,6 +2,7 @@
 
 import MainMenu from "@/components/common/MainMenu";
 import SidebarPanel from "@/components/common/sidebar-panel";
+import AuthModalTrigger from "@/components/common/login-signup-modal/AuthModalTrigger";
 import Image from "next/image";
 import Link from "next/link";
 import React, { useEffect, useState } from "react";
@@ -65,7 +66,7 @@ const DashboardHeader = () => {
           text: "My Profile",
           href: "/dashboard-my-profile",
         },
-        { icon: "flaticon-exit", text: "Logout", href: "/login" },
+        { icon: "flaticon-exit", text: "Logout", authTab: "signin" },
       ],
     },
   ];
@@ -119,9 +120,9 @@ const DashboardHeader = () => {
                 <div className="text-center text-lg-end header_right_widgets">
                   <ul className="mb0 d-flex justify-content-center justify-content-sm-end p-0">
                     <li className="d-none d-sm-block">
-                      <Link className="text-center mr15" href="/login">
+                      <AuthModalTrigger as="a" className="text-center mr15">
                         <span className="flaticon-email" />
-                      </Link>
+                      </AuthModalTrigger>
                     </li>
                     {/* End email box */}
 
@@ -153,18 +154,32 @@ const DashboardHeader = () => {
                                 >
                                   {section.title}
                                 </p>
-                                {section.items.map((item, itemIndex) => (
-                                  <Link
-                                    key={itemIndex}
-                                    className={`dropdown-item ${
-                                      pathname == item.href ? "-is-active" : ""
-                                    } `}
-                                    href={item.href}
-                                  >
-                                    <i className={`${item.icon} mr10`} />
-                                    {item.text}
-                                  </Link>
-                                ))}
+                                {section.items.map((item, itemIndex) =>
+                                  item.authTab ? (
+                                    <AuthModalTrigger
+                                      key={itemIndex}
+                                      tab={item.authTab}
+                                      as="a"
+                                      className="dropdown-item"
+                                    >
+                                      <i className={`${item.icon} mr10`} />
+                                      {item.text}
+                                    </AuthModalTrigger>
+                                  ) : (
+                                    <Link
+                                      key={itemIndex}
+                                      className={`dropdown-item ${
+                                        pathname == item.href
+                                          ? "-is-active"
+                                          : ""
+                                      } `}
+                                      href={item.href}
+                                    >
+                                      <i className={`${item.icon} mr10`} />
+                                      {item.text}
+                                    </Link>
+                                  ),
+                                )}
                               </div>
                             ))}
                           </div>

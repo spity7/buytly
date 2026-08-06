@@ -6,7 +6,7 @@ const LoginSignupModal = () => {
     <div className="modal-content">
       <div className="modal-header">
         <h5 className="modal-title" id="exampleModalToggleLabel">
-          Welcome to Realton
+          Welcome to Buytly
         </h5>
         <button
           type="button"

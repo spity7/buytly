@@ -1,4 +1,5 @@
 import Image from "next/image";
+import AuthModalTrigger from "@/components/common/login-signup-modal/AuthModalTrigger";
 import React from "react";
 
 const Cta = () => {
@@ -17,9 +18,9 @@ const Cta = () => {
               <p className="cta-text mb25 text-white">
                 We only work with the best companies around the globe to survey
               </p>
-              <a href="/register" className="ud-btn btn-white bdrs0">
+              <AuthModalTrigger tab="signup" className="ud-btn btn-white bdrs0">
                 Register Now <i className="fal fa-arrow-right-long" />
-              </a>
+              </AuthModalTrigger>
             </div>
           </div>
           {/* End .col-lg-7 */}

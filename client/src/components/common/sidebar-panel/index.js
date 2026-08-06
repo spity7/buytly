@@ -13,7 +13,7 @@ const SidebarPanel = () => {
         >
           <span className="far fa-times"></span>
         </div>
-        <h4 className="title">Welcome to Realton</h4>
+        <h4 className="title">Welcome to Buytly</h4>
       </div>
       {/* End header */}
 

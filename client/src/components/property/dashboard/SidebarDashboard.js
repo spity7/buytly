@@ -2,6 +2,7 @@
 import Link from "next/link";
 import React from "react";
 import { usePathname } from "next/navigation";
+import AuthModalTrigger from "@/components/common/login-signup-modal/AuthModalTrigger";
 
 const SidebarDashboard = () => {
   const pathname = usePathname();
@@ -66,7 +67,7 @@ const SidebarDashboard = () => {
           text: "My Profile",
         },
         {
-          href: "/login",
+          authTab: "signin",
           icon: "flaticon-logout",
           text: "Logout",
         },
@@ -88,15 +89,26 @@ const SidebarDashboard = () => {
             </p>
             {section.items.map((item, itemIndex) => (
               <div key={itemIndex} className="sidebar_list_item">
-                <Link
-                  href={item.href}
-                  className={`items-center   ${
-                    pathname == item.href ? "-is-active" : ""
-                  } `}
-                >
-                  <i className={`${item.icon} mr15`} />
-                  {item.text}
-                </Link>
+                {item.authTab ? (
+                  <AuthModalTrigger
+                    tab={item.authTab}
+                    as="a"
+                    className="items-center"
+                  >
+                    <i className={`${item.icon} mr15`} />
+                    {item.text}
+                  </AuthModalTrigger>
+                ) : (
+                  <Link
+                    href={item.href}
+                    className={`items-center   ${
+                      pathname == item.href ? "-is-active" : ""
+                    } `}
+                  >
+                    <i className={`${item.icon} mr15`} />
+                    {item.text}
+                  </Link>
+                )}
               </div>
             ))}
           </div>

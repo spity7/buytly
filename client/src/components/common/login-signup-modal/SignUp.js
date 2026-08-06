@@ -1,4 +1,5 @@
-import Link from "next/link";
+import AuthTabSwitch from "./AuthTabSwitch";
+import GoogleIcon from "./GoogleIcon";
 
 const SignUp = () => {
   return (
@@ -35,26 +36,19 @@ const SignUp = () => {
         <span className="hr_top_text">OR</span>
       </div>
 
-      <div className="d-grid mb10">
-        <button className="ud-btn btn-white" type="button">
-          <i className="fab fa-google" /> Continue Google
-        </button>
-      </div>
-      <div className="d-grid mb10">
-        <button className="ud-btn btn-fb" type="button">
-          <i className="fab fa-facebook-f" /> Continue Facebook
-        </button>
-      </div>
       <div className="d-grid mb20">
-        <button className="ud-btn btn-apple" type="button">
-          <i className="fab fa-apple" /> Continue Apple
+        <button className="ud-btn btn-google" type="button">
+          <GoogleIcon className="google-icon" /> Continue with Google
         </button>
       </div>
       <p className="dark-color text-center mb0 mt10">
         Already Have an Account?{" "}
-        <Link className="dark-color fw600" href="/login">
+        <AuthTabSwitch
+          tab="signin"
+          className="btn btn-link dark-color fw600 p-0 border-0 align-baseline"
+        >
           Login
-        </Link>
+        </AuthTabSwitch>
       </p>
     </form>
   );

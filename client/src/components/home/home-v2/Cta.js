@@ -45,7 +45,7 @@ const Cta = () => {
             >
               <div className="cta-style2">
                 <h2 className="cta-title">
-                  Start Listing or Buying a Property With Realton
+                  Start Listing or Buying a Property With Buytly
                 </h2>
                 <p className="cta-text">
                   Talk to our experts or Browse through more properties.

@@ -57,7 +57,7 @@ const Home_V10 = () => {
           <div className="row mt100 mt60-lg ">
             <div className="col-lg-6 m-auto">
               <div className="main-title text-center">
-                <h2 className="title">See How Realton Can Help</h2>
+                <h2 className="title">See How Buytly Can Help</h2>
                 <p className="paragraph">
                   Aliquam lacinia diam quis lacus euismod
                 </p>
@@ -219,7 +219,7 @@ const Home_V10 = () => {
                 data-aos="fade-up"
                 data-aos-delay="300"
               >
-                <h2 className="title">People Love Living with Realton</h2>
+                <h2 className="title">People Love Living with Buytly</h2>
                 <p className="paragraph">
                   Aliquam lacinia diam quis lacus euismod
                 </p>

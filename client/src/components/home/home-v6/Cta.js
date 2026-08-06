@@ -24,7 +24,7 @@ const Cta = () => {
               <span className="app-tag mb25">Start today</span>
               <h2 className="cta-title">Download the App</h2>
               <p className="cta-text mb60">
-                Take classes on the go with the realton app. Stream or download
+                Take classes on the go with the Buytly app. Stream or download
                 to watch on the plane, the subway, or wherever you learn best.
               </p>
               <AppWidget />

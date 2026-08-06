@@ -3,12 +3,12 @@ import React from "react";
 const InvoiceFooter = () => {
   const footerData = [
     {
-      text: "www.realton.com",
-      link: "https://www.realton.com",
+      text: "www.Buytly.com",
+      link: "https://www.Buytly.com",
     },
     {
-      text: "invoice@realton.com",
-      link: "mailto:invoice@realton.com",
+      text: "invoice@Buytly.com",
+      link: "mailto:invoice@Buytly.com",
     },
     {
       text: "(123) 123-456",
