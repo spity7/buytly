@@ -41,7 +41,7 @@ const Home_V1 = () => {
       {/* Edn Hero Slide */}
 
       {/* Filter with properties */}
-      <section className="pt-0 pb110 bgc-f7 pb50-md">
+      <section className="pt-0 pb0 bgc-f7 pb50-md mt-60 mt0-lg">
         <div className="container">
           <div className="row">
             <div className="col-lg-12">
@@ -112,32 +112,6 @@ const Home_V1 = () => {
                 <ApartmentType />
               </div>
             </div>
-          </div>
-        </div>
-      </section>
-      {/* End Explore Apartment */}
-
-      {/* Explore Apartment */}
-      <section className="pt0 pb90 pb10-md">
-        <div className="container">
-          <div className="row">
-            <div
-              className="col-lg-6 m-auto"
-              data-aos="fade-up"
-              data-aos-delay="300"
-            >
-              <div className="main-title text-center">
-                <h2 className="title">See How Realton Can Help</h2>
-                <p className="paragraph">
-                  Aliquam lacinia diam quis lacus euismod
-                </p>
-              </div>
-            </div>
-          </div>
-          {/* End .row */}
-
-          <div className="row">
-            <Explore />
           </div>
         </div>
       </section>
@@ -219,18 +193,6 @@ const Home_V1 = () => {
       </section>
       {/* End Explore property-city */}
 
-      {/* <!-- About Us --> */}
-      <section className="pt0 pb40-md">
-        <div className="container">
-          <About />
-        </div>
-      </section>
-      {/*  <!-- End About Us --> */}
-
-      {/* Popular Property */}
-      <PopulerProperty />
-      {/* End  Popular Property */}
-
       {/* Our Testimonials */}
       <section className="pb100 pb50-md bgc-thm-light">
         <div className="container">
@@ -290,31 +252,8 @@ const Home_V1 = () => {
       </section>
       {/* End Our Testimonials */}
 
-      {/* Explore Blog */}
-      <section className="pb90 pb20-md">
-        <div className="container">
-          <div className="row">
-            <div className="col-lg-6 m-auto" data-aos="fade-up">
-              <div className="main-title text-start text-md-center">
-                <h2 className="title">From Our Blog</h2>
-                <p className="paragraph">
-                  Aliquam lacinia diam quis lacus euismod
-                </p>
-              </div>
-            </div>
-          </div>
-          {/* End .row */}
-
-          <div className="row" data-aos="fade-up" data-aos-delay="300">
-            <Blog />
-          </div>
-          {/* End .row */}
-        </div>
-      </section>
-      {/* Explore Blog */}
-
       {/* Our Partners */}
-      <section className="our-partners pt0">
+      <section className="our-partners py40">
         <div className="container">
           <div className="row">
             <div className="col-lg-12" data-aos="fade-up">
