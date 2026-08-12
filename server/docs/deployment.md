@@ -62,6 +62,7 @@ The Next.js client fetches the live OpenAPI spec from `/api/docs.json` for Orval
 | SMTP_PASS              | Yes      | SMTP password                                                                     |
 | SMTP_FROM              | Yes      | From email address                                                                |
 | REDIS_URL              | No       | Redis connection URL (optional)                                                   |
+| GOOGLE_CLIENT_ID       | Yes      | Google OAuth Web client ID (same as client `NEXT_PUBLIC_GOOGLE_CLIENT_ID`)        |
 
 Production setup: copy `server/.env.example` → `.env` on the server, then comment local lines and uncomment the prod line below each pair. **SMTP** stays on Gmail — same values in dev and production.
 

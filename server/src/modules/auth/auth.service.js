@@ -16,6 +16,7 @@ import { emailService } from "../../services/email.service.js";
 import { notificationService } from "../notifications/notification.service.js";
 import { NOTIFICATION_TYPES, ROLES } from "../../shared/constants.js";
 import { env } from "../../config/env.js";
+import { googleService } from "../../services/google.service.js";
 
 const SALT_ROUNDS = 12;
 
@@ -75,6 +76,7 @@ export const authService = {
       user = new User({
         email: data.email,
         passwordHash,
+        authProvider: "local",
         firstName: data.firstName,
         lastName: data.lastName,
         phoneCountryCode: data.phoneCountryCode,
@@ -131,12 +133,93 @@ export const authService = {
       throw new AppError("Invalid email or password", 401);
     }
 
+    if (!user.passwordHash) {
+      throw new AppError("Invalid email or password", 401);
+    }
+
     const isMatch = await bcrypt.compare(password, user.passwordHash);
     if (!isMatch) {
       throw new AppError("Invalid email or password", 401);
     }
 
     const tokens = await issueTokenPair(user);
+
+    return {
+      user: user.toPublicJSON(),
+      ...tokens,
+    };
+  },
+
+  async googleAuth({ idToken, role = ROLES.BUYER }) {
+    const profile = await googleService.verifyIdToken(idToken);
+
+    if (!profile.emailVerified) {
+      throw new AppError("Google email is not verified", 401);
+    }
+
+    let user = await User.findOne({
+      googleId: profile.googleId,
+      deletedAt: null,
+    }).select("+googleId");
+
+    if (user) {
+      if (!user.isActive) {
+        throw new AppError("Account inactive", 401);
+      }
+
+      const tokens = await issueTokenPair(user);
+      return {
+        user: user.toPublicJSON(),
+        ...tokens,
+      };
+    }
+
+    const existingByEmail = await User.findOne({
+      email: profile.email,
+      deletedAt: null,
+    }).select("+googleId +passwordHash");
+
+    if (existingByEmail) {
+      throw new AppError(
+        "An account with this email already exists. Sign in with your password.",
+        409,
+      );
+    }
+
+    try {
+      user = new User({
+        email: profile.email,
+        googleId: profile.googleId,
+        authProvider: "google",
+        firstName: profile.firstName,
+        lastName: profile.lastName,
+        role,
+        isEmailVerified: true,
+      });
+      await user.save();
+    } catch (err) {
+      handleDuplicateEmailError(err);
+    }
+
+    if (role === ROLES.AGENT) {
+      await AgentProfile.create({ userId: user._id });
+    }
+
+    const tokens = await issueTokenPair(user);
+
+    notificationService
+      .notify({
+        userId: user._id,
+        type: NOTIFICATION_TYPES.AUTH,
+        title: "Welcome to Buytly",
+        message: "Your account has been created successfully.",
+        sendEmail: true,
+        emailTemplate: "welcome",
+        emailData: { name: user.firstName || user.email },
+      })
+      .catch((err) =>
+        console.error("Registration notification failed:", err.message),
+      );
 
     return {
       user: user.toPublicJSON(),
@@ -286,6 +369,13 @@ export const authService = {
     const user = await User.findById(userId).select("+passwordHash");
     if (!user || user.deletedAt) {
       throw new AppError("User not found", 404);
+    }
+
+    if (user.authProvider === "google") {
+      throw new AppError(
+        "Password change is not available for Google sign-in accounts",
+        400,
+      );
     }
 
     const isMatch = await bcrypt.compare(currentPassword, user.passwordHash);

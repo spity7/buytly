@@ -16,7 +16,19 @@ const userSchema = new mongoose.Schema(
       lowercase: true,
       trim: true,
     },
-    passwordHash: { type: String, required: true, select: false },
+    authProvider: {
+      type: String,
+      enum: ["local", "google"],
+      default: "local",
+    },
+    googleId: { type: String, select: false },
+    passwordHash: {
+      type: String,
+      required: function requiredPasswordForLocal() {
+        return this.authProvider !== "google";
+      },
+      select: false,
+    },
     role: {
       type: String,
       enum: ["buyer", "seller", "agent", "admin"],
@@ -65,6 +77,13 @@ userSchema.index(
   { email: 1 },
   { unique: true, partialFilterExpression: { deletedAt: null } },
 );
+userSchema.index(
+  { googleId: 1 },
+  {
+    unique: true,
+    partialFilterExpression: { deletedAt: null, googleId: { $type: "string" } },
+  },
+);
 
 userSchema.virtual("fullName").get(function () {
   return (
@@ -95,6 +114,7 @@ userSchema.methods.toPublicJSON = function () {
       : undefined,
     socialLinks: this.socialLinks,
     preferences: this.preferences,
+    authProvider: this.authProvider,
     isActive: this.isActive,
     isEmailVerified: this.isEmailVerified,
     createdAt: this.createdAt,

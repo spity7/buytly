@@ -80,6 +80,37 @@ sequenceDiagram
   API-->>Client: { accessToken, refreshToken, user }
 ```
 
+## Google Sign-In Flow
+
+Uses [Google Identity Services](https://developers.google.com/identity/gsi/web) on the client. The browser obtains a Google **ID token** (JWT); the API verifies it with `google-auth-library` and issues the same Buytly access/refresh token pair as email login.
+
+```mermaid
+sequenceDiagram
+  participant Client
+  participant Google
+  participant API
+  participant DB
+
+  Client->>Google: GIS popup (Continue with Google)
+  Google-->>Client: ID token
+  Client->>API: POST /auth/google { idToken, role? }
+  API->>Google: Verify ID token (audience = GOOGLE_CLIENT_ID)
+  alt Existing googleId
+    API->>DB: Find user by googleId
+  else New user
+    API->>DB: Reject if email exists (local account)
+    API->>DB: Create user (authProvider=google, isEmailVerified=true)
+  end
+  API->>DB: Store refresh token hash
+  API-->>Client: { accessToken, refreshToken, user }
+```
+
+- `role` is optional and only applied on **first** Google sign-up (defaults to `buyer`; `agent` creates an `AgentProfile`)
+- Google users have no local password; change-password is unavailable; account deletion does not require a password
+- Email/password accounts with the same email are **not** auto-linked — user must sign in with password
+
+**Env:** `GOOGLE_CLIENT_ID` (server) and `NEXT_PUBLIC_GOOGLE_CLIENT_ID` (client) must match the OAuth Web client ID. Add the app origin (e.g. `http://localhost:3000`) under **Authorized JavaScript origins** in Google Cloud Console.
+
 ## Refresh Token Rotation
 
 Every refresh request rotates the token — the old token is revoked and a new pair is issued. This prevents replay attacks with stolen refresh tokens.

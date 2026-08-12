@@ -91,6 +91,11 @@ export const resendVerificationSchema = z.object({
   email: z.string().email(),
 });
 
+export const googleAuthSchema = z.object({
+  idToken: z.string().min(1),
+  role: z.enum([ROLES.BUYER, ROLES.SELLER, ROLES.AGENT]).optional(),
+});
+
 export const changePasswordSchema = z
   .object({
     currentPassword: z.string().min(1),

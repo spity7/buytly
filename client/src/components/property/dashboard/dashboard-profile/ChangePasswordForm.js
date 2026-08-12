@@ -5,9 +5,11 @@ import DashboardFormSubmit from "@/components/property/dashboard/dashboard-profi
 import { buytlyApi } from "@/api/generated";
 import { getApiError } from "@/lib/auth/getApiError";
 import { notifyError, notifySuccess } from "@/lib/toast";
+import { useAuth } from "@/providers/AuthProvider";
 import { useMemo, useState } from "react";
 
 const ChangePasswordForm = () => {
+  const { user } = useAuth();
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmNewPassword, setConfirmNewPassword] = useState("");
@@ -49,6 +51,15 @@ const ChangePasswordForm = () => {
       setIsSubmitting(false);
     }
   };
+
+  if (user?.authProvider === "google") {
+    return (
+      <p className="text mb0">
+        You signed in with Google. Password changes are managed through your
+        Google account.
+      </p>
+    );
+  }
 
   return (
     <form className="form-style1" onSubmit={handleSubmit}>

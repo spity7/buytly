@@ -151,9 +151,15 @@ export const userService = {
       throw new AppError("User not found", 404);
     }
 
-    const isMatch = await bcrypt.compare(password, user.passwordHash);
-    if (!isMatch) {
-      throw new AppError("Invalid password", 401);
+    if (user.authProvider !== "google") {
+      if (!password) {
+        throw new AppError("Invalid password", 401);
+      }
+
+      const isMatch = await bcrypt.compare(password, user.passwordHash);
+      if (!isMatch) {
+        throw new AppError("Invalid password", 401);
+      }
     }
 
     if (user.avatar?.gcsKey) {

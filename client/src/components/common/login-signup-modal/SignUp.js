@@ -1,7 +1,7 @@
 "use client";
 
 import AuthTabSwitch from "./AuthTabSwitch";
-import GoogleIcon from "./GoogleIcon";
+import GoogleAuthButton from "@/components/auth/GoogleAuthButton";
 import PasswordInput from "@/components/common/PasswordInput";
 import PhoneFields from "@/components/common/PhoneFields";
 import { closeAuthModal } from "./authModal";
@@ -15,8 +15,8 @@ const ROLES = [
   { value: "agent", label: "Agent" },
 ];
 
-const SignUp = () => {
-  const { register } = useAuth();
+const SignUp = ({ showGoogleAuth = true }) => {
+  const { register, loginWithGoogle } = useAuth();
   const router = useRouter();
   const [form, setForm] = useState({
     email: "",
@@ -29,8 +29,10 @@ const SignUp = () => {
     role: "buyer",
   });
   const [error, setError] = useState("");
+  const [googleError, setGoogleError] = useState("");
   const [success, setSuccess] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isGoogleSubmitting, setIsGoogleSubmitting] = useState(false);
 
   const updateField = (field) => (event) => {
     setForm((current) => ({ ...current, [field]: event.target.value }));
@@ -77,6 +79,27 @@ const SignUp = () => {
       setError(getApiError(err, "Registration failed. Please try again."));
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleGoogleCredential = async (credential) => {
+    if (!credential) {
+      setGoogleError("Google sign-in was cancelled or failed.");
+      return;
+    }
+
+    setGoogleError("");
+    setSuccess("");
+    setIsGoogleSubmitting(true);
+
+    try {
+      await loginWithGoogle({ idToken: credential, role: form.role });
+      await closeAuthModal();
+      router.push("/dashboard-home");
+    } catch (err) {
+      setGoogleError(getApiError(err, "Google sign-in failed."));
+    } finally {
+      setIsGoogleSubmitting(false);
     }
   };
 
@@ -210,16 +233,15 @@ const SignUp = () => {
         <span className="hr_top_text">OR</span>
       </div>
 
-      <div className="d-grid mb20">
-        <button
-          className="ud-btn btn-google"
-          type="button"
-          disabled
-          title="Coming soon"
-        >
-          <GoogleIcon className="google-icon" /> Continue with Google
-        </button>
-      </div>
+      {showGoogleAuth ? (
+        <div className="d-grid mb20">
+          <GoogleAuthButton
+            onCredential={handleGoogleCredential}
+            disabled={isGoogleSubmitting || isSubmitting}
+            error={googleError}
+          />
+        </div>
+      ) : null}
       <p className="dark-color text-center mb0 mt10">
         Already Have an Account?{" "}
         <AuthTabSwitch

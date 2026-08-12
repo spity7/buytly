@@ -49,4 +49,9 @@ export const authController = {
     const result = await authService.changePassword(req.user._id, req.body);
     ApiResponse.success(res, result, "Password changed successfully");
   },
+
+  googleAuth: async (req, res) => {
+    const result = await authService.googleAuth(req.body);
+    ApiResponse.success(res, result, "Google sign-in successful");
+  },
 };

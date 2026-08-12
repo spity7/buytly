@@ -35,6 +35,8 @@ const envSchema = z.object({
     .optional()
     .default("false")
     .transform((v) => v === "true" || v === "1"),
+  /** Google OAuth Web client ID — used to verify GIS ID tokens */
+  GOOGLE_CLIENT_ID: z.string().min(1),
   /** Expose /api/docs — defaults to on in development, off in production */
   SWAGGER_ENABLED: z
     .string()

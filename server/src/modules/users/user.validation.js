@@ -48,7 +48,7 @@ export const updateSocialLinksSchema = z.object({
 });
 
 export const deleteAccountSchema = z.object({
-  password: z.string().min(1),
+  password: z.string().optional(),
 });
 
 export const updatePreferencesSchema = z.object({

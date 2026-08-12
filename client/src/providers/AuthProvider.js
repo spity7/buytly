@@ -85,14 +85,17 @@ export function AuthProvider({ children }) {
     });
   }, [router]);
 
-  const handleAuthSuccess = useCallback((data) => {
-    persistTokens({
-      accessToken: data.accessToken,
-      refreshToken: data.refreshToken,
-    });
-    setUser(data.user ?? null);
-    return data.user;
-  }, []);
+  const handleAuthSuccess = useCallback(
+    async (data) => {
+      persistTokens({
+        accessToken: data.accessToken,
+        refreshToken: data.refreshToken,
+      });
+      const hydratedUser = await hydrateUser();
+      return hydratedUser ?? data.user ?? null;
+    },
+    [hydrateUser],
+  );
 
   const login = useCallback(
     async ({ email, password }) => {
@@ -105,6 +108,17 @@ export function AuthProvider({ children }) {
   const register = useCallback(
     async (payload) => {
       const response = await buytlyApi.registerUser(payload);
+      return handleAuthSuccess(response.data);
+    },
+    [handleAuthSuccess],
+  );
+
+  const loginWithGoogle = useCallback(
+    async ({ idToken, role }) => {
+      const response = await buytlyApi.googleAuth({
+        idToken,
+        ...(role ? { role } : {}),
+      });
       return handleAuthSuccess(response.data);
     },
     [handleAuthSuccess],
@@ -132,10 +146,11 @@ export function AuthProvider({ children }) {
       isAuthenticated: Boolean(user),
       login,
       register,
+      loginWithGoogle,
       logout,
       refreshUser: hydrateUser,
     }),
-    [user, isLoading, login, register, logout, hydrateUser],
+    [user, isLoading, login, register, loginWithGoogle, logout, hydrateUser],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

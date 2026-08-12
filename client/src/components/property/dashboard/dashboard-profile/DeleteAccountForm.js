@@ -9,8 +9,9 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 const DeleteAccountForm = () => {
-  const { logout } = useAuth();
+  const { user, logout } = useAuth();
   const router = useRouter();
+  const isGoogleAccount = user?.authProvider === "google";
   const [password, setPassword] = useState("");
   const [confirmText, setConfirmText] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -26,7 +27,7 @@ const DeleteAccountForm = () => {
     setIsSubmitting(true);
 
     try {
-      await buytlyApi.deleteCurrentUser({ password });
+      await buytlyApi.deleteCurrentUser(isGoogleAccount ? {} : { password });
       notifySuccess("Your account has been deleted.");
       await logout();
       router.replace("/?auth=signin");
@@ -45,20 +46,22 @@ const DeleteAccountForm = () => {
       </p>
 
       <div className="row">
-        <div className="col-sm-6 col-xl-4">
-          <div className="mb20">
-            <label className="heading-color ff-heading fw600 mb10">
-              Current password
-            </label>
-            <PasswordInput
-              className="form-control"
-              placeholder="Enter your password"
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-              required
-            />
+        {!isGoogleAccount ? (
+          <div className="col-sm-6 col-xl-4">
+            <div className="mb20">
+              <label className="heading-color ff-heading fw600 mb10">
+                Current password
+              </label>
+              <PasswordInput
+                className="form-control"
+                placeholder="Enter your password"
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+                required
+              />
+            </div>
           </div>
-        </div>
+        ) : null}
 
         <div className="col-sm-6 col-xl-4">
           <div className="mb20">
@@ -82,7 +85,11 @@ const DeleteAccountForm = () => {
             <button
               type="submit"
               className="ud-btn btn-white2 delete-account-form__submit"
-              disabled={isSubmitting || !password || confirmText !== "DELETE"}
+              disabled={
+                isSubmitting ||
+                confirmText !== "DELETE" ||
+                (!isGoogleAccount && !password)
+              }
             >
               {isSubmitting ? "Deleting account..." : "Delete my account"}
             </button>

@@ -1,7 +1,7 @@
 "use client";
 
 import AuthTabSwitch from "./AuthTabSwitch";
-import GoogleIcon from "./GoogleIcon";
+import GoogleAuthButton from "@/components/auth/GoogleAuthButton";
 import PasswordInput from "@/components/common/PasswordInput";
 import { closeAuthModal } from "./authModal";
 import { getApiError, useAuth } from "@/providers/AuthProvider";
@@ -9,13 +9,35 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
-const SignIn = () => {
-  const { login } = useAuth();
+const SignIn = ({ showGoogleAuth = true }) => {
+  const { login, loginWithGoogle } = useAuth();
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [googleError, setGoogleError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isGoogleSubmitting, setIsGoogleSubmitting] = useState(false);
+
+  const handleGoogleCredential = async (credential) => {
+    if (!credential) {
+      setGoogleError("Google sign-in was cancelled or failed.");
+      return;
+    }
+
+    setGoogleError("");
+    setIsGoogleSubmitting(true);
+
+    try {
+      await loginWithGoogle({ idToken: credential });
+      await closeAuthModal();
+      router.push("/dashboard-home");
+    } catch (err) {
+      setGoogleError(getApiError(err, "Google sign-in failed."));
+    } finally {
+      setIsGoogleSubmitting(false);
+    }
+  };
 
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -98,16 +120,15 @@ const SignIn = () => {
         <span className="hr_top_text">OR</span>
       </div>
 
-      <div className="d-grid mb20">
-        <button
-          className="ud-btn btn-google"
-          type="button"
-          disabled
-          title="Coming soon"
-        >
-          <GoogleIcon className="google-icon" /> Continue with Google
-        </button>
-      </div>
+      {showGoogleAuth ? (
+        <div className="d-grid mb20">
+          <GoogleAuthButton
+            onCredential={handleGoogleCredential}
+            disabled={isGoogleSubmitting || isSubmitting}
+            error={googleError}
+          />
+        </div>
+      ) : null}
       <p className="dark-color text-center mb0 mt10">
         Not signed up?{" "}
         <AuthTabSwitch

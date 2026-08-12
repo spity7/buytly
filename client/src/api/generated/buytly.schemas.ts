@@ -87,6 +87,15 @@ export interface UserSocialLinks {
   website?: string;
 }
 
+export type UserAuthProvider =
+  (typeof UserAuthProvider)[keyof typeof UserAuthProvider];
+
+// eslint-disable-next-line @typescript-eslint/no-redeclare
+export const UserAuthProvider = {
+  local: "local",
+  google: "google",
+} as const;
+
 /**
  * Authenticated user profile (public fields)
  */
@@ -105,6 +114,7 @@ export interface User {
   preferences?: UserPreferences;
   isActive?: boolean;
   isEmailVerified?: boolean;
+  authProvider?: UserAuthProvider;
   createdAt?: string;
 }
 
@@ -187,6 +197,26 @@ export interface RegisterRequest {
 export interface LoginRequest {
   email: string;
   password: string;
+}
+
+/**
+ * Role for new Google sign-ups only
+ */
+export type GoogleAuthRequestRole =
+  (typeof GoogleAuthRequestRole)[keyof typeof GoogleAuthRequestRole];
+
+// eslint-disable-next-line @typescript-eslint/no-redeclare
+export const GoogleAuthRequestRole = {
+  buyer: "buyer",
+  seller: "seller",
+  agent: "agent",
+} as const;
+
+export interface GoogleAuthRequest {
+  /** Google Identity Services ID token (JWT) */
+  idToken: string;
+  /** Role for new Google sign-ups only */
+  role?: GoogleAuthRequestRole;
 }
 
 export type PropertyType = (typeof PropertyType)[keyof typeof PropertyType];

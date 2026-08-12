@@ -8,6 +8,7 @@
 | ------------------------- | ------ | ------ | -------------------------------------- | -------------- |
 | /auth/register            | POST   | Public | email, password, confirmPassword, role | user + tokens  |
 | /auth/login               | POST   | Public | email, password                        | user + tokens  |
+| /auth/google              | POST   | Public | idToken, role? (new sign-ups)          | user + tokens  |
 | /auth/refresh             | POST   | Public | refreshToken                           | new token pair |
 | /auth/logout              | POST   | Public | refreshToken                           | success        |
 | /auth/verify-email        | POST   | Public | token                                  | user           |

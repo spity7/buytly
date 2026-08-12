@@ -2,6 +2,7 @@
 
 import AccountSummary from "@/components/property/dashboard/dashboard-profile/AccountSummary";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
+import LoadingOverlay from "@/components/common/LoadingOverlay";
 import { buytlyApi } from "@/api/generated";
 import { getApiError } from "@/lib/auth/getApiError";
 import { isExternalImageSrc } from "@/lib/images/isExternalImageSrc";
@@ -26,10 +27,15 @@ const ProfileBox = () => {
   const hasCustomAvatar = Boolean(user?.avatar?.gcsKey || previewUrl);
 
   useEffect(() => {
-    if (user?.avatar?.url) {
+    if (!user) {
+      setPreviewUrl(null);
+      return;
+    }
+
+    if (user.avatar?.url) {
       setPreviewUrl(null);
     }
-  }, [user?.avatar?.url, user?.avatar?.gcsKey]);
+  }, [user?.id, user?.avatar?.url, user?.avatar?.gcsKey]);
 
   const handleUpload = async (event) => {
     const file = event.target.files?.[0];
@@ -141,7 +147,7 @@ const ProfileBox = () => {
             disabled={isUploading || isDeleting}
           />
           <div className="ud-btn btn-white2 mb15">
-            {isUploading ? "Uploading..." : "Upload photo"}
+            {hasCustomAvatar ? "Change photo" : "Upload photo"}
             <i className="fal fa-arrow-right-long" />
           </div>
         </label>
@@ -163,6 +169,8 @@ const ProfileBox = () => {
         }}
         onConfirm={handleDelete}
       />
+
+      <LoadingOverlay open={isUploading} message="Uploading profile photo..." />
     </div>
   );
 };

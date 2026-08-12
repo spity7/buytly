@@ -1,5 +1,6 @@
 "use client";
 
+import { GoogleOAuthProvider } from "@react-oauth/google";
 import { AuthProvider } from "@/providers/AuthProvider";
 import QueryProvider from "@/providers/QueryProvider";
 import AppToaster from "@/components/common/AppToaster";
@@ -29,15 +30,19 @@ export default function ClientLayout({ children }) {
 
   return (
     <QueryProvider>
-      <AuthProvider>
-        <div className="wrapper ovh">{children}</div>
-        <GlobalAuthModal />
-        <Suspense fallback={null}>
-          <AuthModalFromQuery />
-        </Suspense>
-        <ScrollToTop />
-        <AppToaster />
-      </AuthProvider>
+      <GoogleOAuthProvider
+        clientId={process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ?? ""}
+      >
+        <AuthProvider>
+          <div className="wrapper ovh">{children}</div>
+          <GlobalAuthModal />
+          <Suspense fallback={null}>
+            <AuthModalFromQuery />
+          </Suspense>
+          <ScrollToTop />
+          <AppToaster />
+        </AuthProvider>
+      </GoogleOAuthProvider>
     </QueryProvider>
   );
 }

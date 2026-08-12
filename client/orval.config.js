@@ -20,7 +20,7 @@ module.exports = defineConfig({
       mode: "tags-split",
       target: "./src/api/generated/buytly.ts",
       client: "axios",
-      clean: true,
+      clean: process.env.ORVAL_CLEAN !== "false",
       prettier: true,
       override: {
         mutator: {

@@ -1,7 +1,32 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import SignIn from "./SignIn";
 import SignUp from "./SignUp";
 
 const LoginSignupModal = () => {
+  const [activeTab, setActiveTab] = useState("signin");
+
+  useEffect(() => {
+    const signInTab = document.getElementById("nav-home-tab");
+    const signUpTab = document.getElementById("nav-profile-tab");
+
+    if (!signInTab || !signUpTab) {
+      return undefined;
+    }
+
+    const onSignIn = () => setActiveTab("signin");
+    const onSignUp = () => setActiveTab("signup");
+
+    signInTab.addEventListener("shown.bs.tab", onSignIn);
+    signUpTab.addEventListener("shown.bs.tab", onSignUp);
+
+    return () => {
+      signInTab.removeEventListener("shown.bs.tab", onSignIn);
+      signUpTab.removeEventListener("shown.bs.tab", onSignUp);
+    };
+  }, []);
+
   return (
     <div className="modal-content">
       <div className="modal-header">
@@ -57,7 +82,7 @@ const LoginSignupModal = () => {
                 role="tabpanel"
                 aria-labelledby="nav-home-tab"
               >
-                <SignIn />
+                <SignIn showGoogleAuth={activeTab === "signin"} />
               </div>
               {/* End signin content */}
 
@@ -67,7 +92,7 @@ const LoginSignupModal = () => {
                 role="tabpanel"
                 aria-labelledby="nav-profile-tab"
               >
-                <SignUp />
+                <SignUp showGoogleAuth={activeTab === "signup"} />
               </div>
               {/* End signup content */}
             </div>

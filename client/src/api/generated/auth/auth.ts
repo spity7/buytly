@@ -9,6 +9,7 @@ import type {
   AuthSuccessResponse,
   ChangePasswordBody,
   ForgotPasswordBody,
+  GoogleAuthRequest,
   LoginRequest,
   MessageResponse,
   RefreshTokenRequest,
@@ -58,6 +59,24 @@ export const getAuth = () => {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         data: loginRequest,
+      },
+      options,
+    );
+  };
+  /**
+   * Verifies a Google Identity Services ID token, creates a new account on first sign-in, or logs in an existing Google-linked user.
+   * @summary Sign in or register with Google
+   */
+  const googleAuth = (
+    googleAuthRequest: BodyType<GoogleAuthRequest>,
+    options?: SecondParameter<typeof customInstance<AuthSuccessResponse>>,
+  ) => {
+    return customInstance<AuthSuccessResponse>(
+      {
+        url: `/auth/google`,
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        data: googleAuthRequest,
       },
       options,
     );
@@ -191,6 +210,7 @@ export const getAuth = () => {
   return {
     registerUser,
     loginUser,
+    googleAuth,
     refreshToken,
     logoutUser,
     forgotPassword,
@@ -210,6 +230,9 @@ export type RegisterUserResult = NonNullable<
 >;
 export type LoginUserResult = NonNullable<
   Awaited<ReturnType<ReturnType<typeof getAuth>["loginUser"]>>
+>;
+export type GoogleAuthResult = NonNullable<
+  Awaited<ReturnType<ReturnType<typeof getAuth>["googleAuth"]>>
 >;
 export type RefreshTokenResult = NonNullable<
   Awaited<ReturnType<ReturnType<typeof getAuth>["refreshToken"]>>

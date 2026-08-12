@@ -4,7 +4,7 @@
   "description": "Buytly real estate marketplace frontend",
   "private": true,
   "scripts": {
-    "dev": "concurrently -k -n api,next -c yellow,cyan \"node scripts/watch-api.cjs\" \"next dev\"",
+    "dev": "node scripts/dev.cjs",
     "dev:next": "next dev",
     "build": "next build",
     "start": "next start",
@@ -15,6 +15,7 @@
   "dependencies": {
     "@popperjs/core": "^2.11.8",
     "@react-google-maps/api": "^2.20.6",
+    "@react-oauth/google": "^0.13.5",
     "@tanstack/react-query": "^5.101.2",
     "aos": "^2.3.4",
     "axios": "^1.18.1",

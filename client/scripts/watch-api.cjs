@@ -18,7 +18,7 @@ function regenerate(reason) {
   debounceTimer = setTimeout(async () => {
     console.log(`[api-watch] ${reason}`);
     try {
-      await main({ quiet: true });
+      await main({ quiet: true, clean: false });
       console.log("[api-watch] Regenerated");
     } catch (err) {
       console.error(`[api-watch] ${err.message}`);
@@ -26,14 +26,20 @@ function regenerate(reason) {
   }, 800);
 }
 
-main()
-  .then(() => {
-    console.log(`[api-watch] Ready — watching swagger files`);
-  })
-  .catch((err) => {
-    console.error(`[api-watch] ${err.message}`);
-    console.error("[api-watch] Will retry when a swagger file changes");
-  });
+const skipInitial = process.argv.includes("--skip-initial");
+
+if (skipInitial) {
+  console.log("[api-watch] Ready — watching swagger files");
+} else {
+  main()
+    .then(() => {
+      console.log("[api-watch] Ready — watching swagger files");
+    })
+    .catch((err) => {
+      console.error(`[api-watch] ${err.message}`);
+      console.error("[api-watch] Will retry when a swagger file changes");
+    });
+}
 
 chokidar
   .watch(watchPaths, { ignoreInitial: true })

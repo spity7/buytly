@@ -18,7 +18,9 @@
 ```javascript
 {
   email: String (unique among active users — partial index where deletedAt is null),
-  passwordHash: String,
+  authProvider: enum [local, google] (default local),
+  googleId: String (partial unique where deletedAt is null and googleId is set),
+  passwordHash: String (required when authProvider is local),
   role: enum [buyer, seller, agent, admin],
   firstName, lastName, phone: String,
   phoneCountryCode, phoneNumber: String (E.164 parts; `phone` kept as combined),
@@ -35,7 +37,7 @@
 }
 ```
 
-**Indexes:** `email` (partial unique where `deletedAt` is null), `role`, `deletedAt`
+**Indexes:** `email` (partial unique where `deletedAt` is null), `googleId` (partial unique where `deletedAt` is null), `role`, `deletedAt`
 
 ## refreshtokens
 

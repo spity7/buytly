@@ -273,6 +273,10 @@
  *         isEmailVerified:
  *           type: boolean
  *           example: true
+ *         authProvider:
+ *           type: string
+ *           enum: [local, google]
+ *           example: local
  *         createdAt:
  *           type: string
  *           format: date-time
@@ -410,6 +414,19 @@
  *         password:
  *           type: string
  *           example: SecurePass123
+ *
+ *     GoogleAuthRequest:
+ *       type: object
+ *       required: [idToken]
+ *       properties:
+ *         idToken:
+ *           type: string
+ *           description: Google Identity Services ID token (JWT)
+ *         role:
+ *           type: string
+ *           enum: [buyer, seller, agent]
+ *           default: buyer
+ *           description: Role for new Google sign-ups only
  *
  *     PropertyType:
  *       type: string

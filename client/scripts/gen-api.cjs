@@ -76,7 +76,7 @@ function runBarrel() {
   }
 }
 
-async function main({ quiet = false } = {}) {
+async function main({ quiet = false, clean = true } = {}) {
   const serverReady = await waitForServer();
 
   if (!serverReady) {
@@ -89,6 +89,7 @@ async function main({ quiet = false } = {}) {
     console.log(`[gen:api] Regenerating from ${specUrl}`);
   }
 
+  process.env.ORVAL_CLEAN = clean ? "true" : "false";
   runOrval();
   runBarrel();
 

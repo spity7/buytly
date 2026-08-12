@@ -13,6 +13,7 @@ import {
   verifyEmailSchema,
   resendVerificationSchema,
   changePasswordSchema,
+  googleAuthSchema,
 } from "./auth.validation.js";
 import { authenticate } from "../../middleware/auth.js";
 
@@ -96,6 +97,43 @@ router.post(
   authRateLimiter,
   validate(loginSchema),
   asyncHandler(authController.login),
+);
+
+/**
+ * @swagger
+ * /auth/google:
+ *   post:
+ *     operationId: googleAuth
+ *     summary: Sign in or register with Google
+ *     description: Verifies a Google Identity Services ID token, creates a new account on first sign-in, or logs in an existing Google-linked user.
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/GoogleAuthRequest'
+ *     responses:
+ *       200:
+ *         description: Google sign-in successful
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/AuthSuccessResponse'
+ *       400:
+ *         $ref: '#/components/responses/ValidationError'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       409:
+ *         $ref: '#/components/responses/Conflict'
+ *       429:
+ *         $ref: '#/components/responses/TooManyRequests'
+ */
+router.post(
+  "/google",
+  authRateLimiter,
+  validate(googleAuthSchema),
+  asyncHandler(authController.googleAuth),
 );
 
 /**

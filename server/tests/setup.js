@@ -25,6 +25,8 @@ process.env.SMTP_PORT = "587";
 process.env.SMTP_USER = "test@test.com";
 process.env.SMTP_PASS = "password";
 process.env.SMTP_FROM = "noreply@test.com";
+process.env.GOOGLE_CLIENT_ID =
+  "test-google-client-id.apps.googleusercontent.com";
 
 export let mongoAvailable = false;
 
