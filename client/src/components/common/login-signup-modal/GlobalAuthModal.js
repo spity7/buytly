@@ -4,11 +4,14 @@ import { useEffect } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import LoginSignupModal from "./index";
 import { AUTH_MODAL_ID, openAuthModal } from "./authModal";
+import { useAuth } from "@/providers/AuthProvider";
+import { AUTHENTICATED_HOME } from "@/lib/auth/constants";
 
 export function AuthModalFromQuery() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const pathname = usePathname();
+  const { isAuthenticated, isLoading } = useAuth();
 
   useEffect(() => {
     const auth = searchParams.get("auth");
@@ -16,9 +19,18 @@ export function AuthModalFromQuery() {
       return;
     }
 
-    openAuthModal(auth);
+    if (isLoading) {
+      return;
+    }
+
+    if (isAuthenticated) {
+      router.replace(AUTHENTICATED_HOME);
+      return;
+    }
+
     router.replace(pathname, { scroll: false });
-  }, [pathname, router, searchParams]);
+    openAuthModal(auth);
+  }, [isAuthenticated, isLoading, pathname, router, searchParams]);
 
   return null;
 }

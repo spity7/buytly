@@ -12,7 +12,9 @@ import {
   resetPasswordSchema,
   verifyEmailSchema,
   resendVerificationSchema,
+  changePasswordSchema,
 } from "./auth.validation.js";
+import { authenticate } from "../../middleware/auth.js";
 
 const router = Router();
 
@@ -332,6 +334,56 @@ router.post(
   authRateLimiter,
   validate(resendVerificationSchema),
   asyncHandler(authController.resendVerification),
+);
+
+/**
+ * @swagger
+ * /auth/change-password:
+ *   post:
+ *     operationId: changePassword
+ *     summary: Change password
+ *     description: Changes the authenticated user's password after verifying the current password.
+ *     tags: [Auth]
+ *     security:
+ *       - BearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [currentPassword, newPassword, confirmNewPassword]
+ *             properties:
+ *               currentPassword:
+ *                 type: string
+ *                 example: OldSecurePass123
+ *               newPassword:
+ *                 type: string
+ *                 minLength: 8
+ *                 maxLength: 128
+ *                 example: NewSecurePass456
+ *               confirmNewPassword:
+ *                 type: string
+ *                 minLength: 8
+ *                 maxLength: 128
+ *                 example: NewSecurePass456
+ *     responses:
+ *       200:
+ *         description: Password changed
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/MessageResponse'
+ *       400:
+ *         $ref: '#/components/responses/ValidationError'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ */
+router.post(
+  "/change-password",
+  authenticate,
+  validate(changePasswordSchema),
+  asyncHandler(authController.changePassword),
 );
 
 export default router;

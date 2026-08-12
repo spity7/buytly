@@ -1,5 +1,5 @@
 import Image from "next/image";
-import AuthModalTrigger from "@/components/common/login-signup-modal/AuthModalTrigger";
+import AuthSignupCta from "@/components/auth/AuthSignupCta";
 
 const CallToActions = () => {
   return (
@@ -26,9 +26,9 @@ const CallToActions = () => {
                 Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do{" "}
                 <br className="d-none d-md-block" /> eiusmod tempor incididunt.
               </p>
-              <AuthModalTrigger tab="signup" className="ud-btn btn-dark">
+              <AuthSignupCta className="ud-btn btn-dark">
                 Register Now <i className="fal fa-arrow-right-long" />
-              </AuthModalTrigger>
+              </AuthSignupCta>
             </div>
           </div>
           <div className="col-lg-5 col-xl-4 offset-xl-2 d-none d-lg-block">

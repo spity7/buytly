@@ -11,6 +11,7 @@ import {
   generatePasswordResetToken,
   generateEmailVerificationToken,
 } from "../../services/token.service.js";
+import { applyPhoneFields } from "../../shared/phone.js";
 import { emailService } from "../../services/email.service.js";
 import { notificationService } from "../notifications/notification.service.js";
 import { NOTIFICATION_TYPES, ROLES } from "../../shared/constants.js";
@@ -71,16 +72,22 @@ export const authService = {
 
     let user;
     try {
-      user = await User.create({
+      user = new User({
         email: data.email,
         passwordHash,
         firstName: data.firstName,
         lastName: data.lastName,
-        phone: data.phone,
+        phoneCountryCode: data.phoneCountryCode,
+        phoneNumber: data.phoneNumber,
         role: data.role,
         emailVerificationToken: hashed,
         emailVerificationExpires: expires,
       });
+      applyPhoneFields(user, {
+        phoneCountryCode: data.phoneCountryCode,
+        phoneNumber: data.phoneNumber,
+      });
+      await user.save();
     } catch (err) {
       handleDuplicateEmailError(err);
     }
@@ -273,5 +280,22 @@ export const authService = {
     );
 
     return { message: "Password reset successfully" };
+  },
+
+  async changePassword(userId, { currentPassword, newPassword }) {
+    const user = await User.findById(userId).select("+passwordHash");
+    if (!user || user.deletedAt) {
+      throw new AppError("User not found", 404);
+    }
+
+    const isMatch = await bcrypt.compare(currentPassword, user.passwordHash);
+    if (!isMatch) {
+      throw new AppError("Current password is incorrect", 401);
+    }
+
+    user.passwordHash = await bcrypt.hash(newPassword, SALT_ROUNDS);
+    await user.save();
+
+    return { message: "Password changed successfully" };
   },
 };

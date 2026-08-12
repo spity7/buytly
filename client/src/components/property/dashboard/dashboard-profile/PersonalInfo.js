@@ -1,23 +1,152 @@
-import React from "react";
+"use client";
+
+import PhoneFields from "@/components/common/PhoneFields";
+import DashboardFormSubmit from "@/components/property/dashboard/dashboard-profile/DashboardFormSubmit";
+import ProfileFormSkeleton from "@/components/property/dashboard/dashboard-profile/ProfileFormSkeleton";
+import { buytlyApi } from "@/api/generated";
+import { getApiError } from "@/lib/auth/getApiError";
+import { hasFormChanges } from "@/lib/form/hasFormChanges";
+import { parsePhoneFromUser } from "@/lib/phone/parsePhone";
+import { notifyError, notifySuccess } from "@/lib/toast";
+import { useAuth } from "@/providers/AuthProvider";
+import { useEffect, useMemo, useState } from "react";
+
+const emptyForm = {
+  firstName: "",
+  lastName: "",
+  phoneCountryCode: "",
+  phoneNumber: "",
+};
+
+const buildPersonalSnapshot = (user) => {
+  const phone = parsePhoneFromUser(user);
+
+  return {
+    firstName: user.firstName || "",
+    lastName: user.lastName || "",
+    phoneCountryCode: phone.phoneCountryCode,
+    phoneNumber: phone.phoneNumber,
+  };
+};
 
 const PersonalInfo = () => {
+  const { user, refreshUser, isLoading } = useAuth();
+  const [form, setForm] = useState(emptyForm);
+  const [baseline, setBaseline] = useState(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (!user) {
+      return;
+    }
+
+    const snapshot = buildPersonalSnapshot(user);
+    setForm(snapshot);
+    setBaseline(snapshot);
+  }, [user]);
+
+  const isDirty = useMemo(
+    () => hasFormChanges(form, baseline),
+    [form, baseline],
+  );
+
+  const handleChange = (field) => (event) => {
+    setForm((current) => ({ ...current, [field]: event.target.value }));
+  };
+
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    setIsSubmitting(true);
+
+    const trimmedPhone = form.phoneNumber.trim();
+
+    if (trimmedPhone && !form.phoneCountryCode) {
+      notifyError("Please select a country code for your phone number.");
+      setIsSubmitting(false);
+      return;
+    }
+
+    try {
+      await buytlyApi.updateCurrentUser({
+        firstName: form.firstName.trim(),
+        lastName: form.lastName.trim(),
+        ...(trimmedPhone
+          ? {
+              phoneCountryCode: form.phoneCountryCode,
+              phoneNumber: trimmedPhone,
+            }
+          : { phoneNumber: "" }),
+      });
+      await refreshUser();
+      notifySuccess("Personal information updated.");
+    } catch (err) {
+      notifyError(getApiError(err));
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  if (isLoading || !user) {
+    return <ProfileFormSkeleton rows={3} />;
+  }
+
   return (
-    <form className="form-style1">
+    <form className="form-style1" onSubmit={handleSubmit}>
       <div className="row">
         <div className="col-sm-6 col-xl-4">
           <div className="mb20">
             <label className="heading-color ff-heading fw600 mb10">
-              Username
+              First name
             </label>
             <input
               type="text"
               className="form-control"
-              placeholder="Your Name"
+              placeholder="First name"
+              value={form.firstName}
+              onChange={handleChange("firstName")}
+              maxLength={50}
               required
             />
           </div>
         </div>
-        {/* End .col */}
+
+        <div className="col-sm-6 col-xl-4">
+          <div className="mb20">
+            <label className="heading-color ff-heading fw600 mb10">
+              Last name
+            </label>
+            <input
+              type="text"
+              className="form-control"
+              placeholder="Last name"
+              value={form.lastName}
+              onChange={handleChange("lastName")}
+              maxLength={50}
+              required
+            />
+          </div>
+        </div>
+
+        <div className="col-sm-6 col-xl-8">
+          <div className="mb20">
+            <PhoneFields
+              idPrefix="profile-phone"
+              countryCode={form.phoneCountryCode}
+              phoneNumber={form.phoneNumber}
+              onCountryCodeChange={(value) => {
+                setForm((current) => ({ ...current, phoneCountryCode: value }));
+              }}
+              onPhoneNumberChange={(value) => {
+                setForm((current) => ({
+                  ...current,
+                  phoneNumber: value,
+                  phoneCountryCode: value ? current.phoneCountryCode : "",
+                }));
+              }}
+              disabled={isSubmitting}
+            />
+          </div>
+        </div>
 
         <div className="col-sm-6 col-xl-4">
           <div className="mb20">
@@ -25,155 +154,22 @@ const PersonalInfo = () => {
             <input
               type="email"
               className="form-control"
-              placeholder="Your Name"
-              required
+              value={user.email || ""}
+              readOnly
+              aria-readonly="true"
             />
+            <p className="text fz13 mt5 mb0">Email cannot be changed here.</p>
           </div>
         </div>
-        {/* End .col */}
-
-        <div className="col-sm-6 col-xl-4">
-          <div className="mb20">
-            <label className="heading-color ff-heading fw600 mb10">Phone</label>
-            <input
-              type="text"
-              className="form-control"
-              placeholder="Your Name"
-              required
-            />
-          </div>
-        </div>
-        {/* End .col */}
-
-        <div className="col-sm-6 col-xl-4">
-          <div className="mb20">
-            <label className="heading-color ff-heading fw600 mb10">
-              First Name
-            </label>
-            <input
-              type="text"
-              className="form-control"
-              placeholder="Your Name"
-              required
-            />
-          </div>
-        </div>
-        {/* End .col */}
-
-        <div className="col-sm-6 col-xl-4">
-          <div className="mb20">
-            <label className="heading-color ff-heading fw600 mb10">
-              Last Name
-            </label>
-            <input
-              type="text"
-              className="form-control"
-              placeholder="Your Name"
-              required
-            />
-          </div>
-        </div>
-        {/* End .col */}
-
-        <div className="col-sm-6 col-xl-4">
-          <div className="mb20">
-            <label className="heading-color ff-heading fw600 mb10">
-              Position
-            </label>
-            <input
-              type="text"
-              className="form-control"
-              placeholder="Your Name"
-              required
-            />
-          </div>
-        </div>
-        {/* End .col */}
-
-        <div className="col-sm-6 col-xl-4">
-          <div className="mb20">
-            <label className="heading-color ff-heading fw600 mb10">
-              Language
-            </label>
-            <input
-              type="text"
-              className="form-control"
-              placeholder="Your Name"
-              required
-            />
-          </div>
-        </div>
-        {/* End .col */}
-
-        <div className="col-sm-6 col-xl-4">
-          <div className="mb20">
-            <label className="heading-color ff-heading fw600 mb10">
-              Company Name
-            </label>
-            <input
-              type="text"
-              className="form-control"
-              placeholder="Your Name"
-              required
-            />
-          </div>
-        </div>
-        {/* End .col */}
-
-        <div className="col-sm-6 col-xl-4">
-          <div className="mb20">
-            <label className="heading-color ff-heading fw600 mb10">
-              Tax Number
-            </label>
-            <input
-              type="text"
-              className="form-control"
-              placeholder="Your Name"
-              required
-            />
-          </div>
-        </div>
-        {/* End .col */}
-
-        <div className="col-xl-12">
-          <div className="mb20">
-            <label className="heading-color ff-heading fw600 mb10">
-              Address
-            </label>
-            <input
-              type="text"
-              className="form-control"
-              placeholder="Your Name"
-              required
-            />
-          </div>
-        </div>
-        {/* End .col */}
 
         <div className="col-md-12">
-          <div className="mb10">
-            <label className="heading-color ff-heading fw600 mb10">
-              About me
-            </label>
-            <textarea
-              cols={30}
-              rows={4}
-              placeholder="There are many variations of passages."
-              defaultValue={""}
-            />
-          </div>
+          <DashboardFormSubmit
+            isDirty={isDirty}
+            isSubmitting={isSubmitting}
+            idleLabel="Update profile"
+            submittingLabel="Saving..."
+          />
         </div>
-        {/* End .col */}
-
-        <div className="col-md-12">
-          <div className="text-end">
-            <button type="submit" className="ud-btn btn-dark">
-              Update Profile
-              <i className="fal fa-arrow-right-long" />
-            </button>
-          </div>
-        </div>
-        {/* End .col */}
       </div>
     </form>
   );

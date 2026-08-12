@@ -1,5 +1,6 @@
 "use client";
 
+import HeaderAuthLink from "@/components/auth/HeaderAuthLink";
 import MainMenu from "@/components/common/MainMenu";
 import SidebarPanel from "@/components/common/sidebar-panel";
 import Image from "next/image";
@@ -71,16 +72,7 @@ const Header = () => {
                     <i className="far fa-phone fz16 me-2"></i>{" "}
                     <span className="d-none d-xl-block">2 911 098 7654</span>
                   </a>
-                  <a
-                    href="#"
-                    className="login-info d-flex align-items-center"
-                    data-bs-toggle="modal"
-                    data-bs-target="#loginSignupModal"
-                    role="button"
-                  >
-                    <i className="far fa-user-circle fz16 me-2" />{" "}
-                    <span className="d-none d-xl-block">Login / Register</span>
-                  </a>
+                  <HeaderAuthLink className="login-info d-flex align-items-center" />
                   <Link
                     className="ud-btn add-property menu-btn bdrs60 mx-2 mx-xl-4"
                     href="/dashboard-add-property"

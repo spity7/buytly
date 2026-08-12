@@ -1,6 +1,7 @@
 import { Storage } from "@google-cloud/storage";
 import { env } from "../config/env.js";
 import { AppError } from "../shared/AppError.js";
+import { mimeToExtension, prepareImageBuffer } from "./image.service.js";
 
 let storage = null;
 let bucket = null;
@@ -21,17 +22,31 @@ const initGCS = () => {
 export const gcsService = {
   async uploadFile(buffer, { folder, mimeType, originalName }) {
     const gcsBucket = initGCS();
-    const ext = originalName?.split(".").pop() || "bin";
+
+    let uploadBuffer = buffer;
+    let uploadMimeType = mimeType;
+
+    if (mimeType?.startsWith("image/")) {
+      const prepared = await prepareImageBuffer(buffer, mimeType);
+      uploadBuffer = prepared.buffer;
+      uploadMimeType = prepared.mimeType;
+    }
+
+    const ext =
+      uploadMimeType !== mimeType
+        ? mimeToExtension(uploadMimeType)
+        : originalName?.split(".").pop() || mimeToExtension(uploadMimeType);
+
     const gcsKey = `${folder}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
 
     const file = gcsBucket.file(gcsKey);
 
-    await file.save(buffer, {
-      metadata: { contentType: mimeType },
+    await file.save(uploadBuffer, {
+      metadata: { contentType: uploadMimeType },
       resumable: false,
     });
 
-    return { gcsKey, mimeType, size: buffer.length };
+    return { gcsKey, mimeType: uploadMimeType, size: uploadBuffer.length };
   },
 
   async deleteFile(gcsKey) {
@@ -48,6 +63,20 @@ export const gcsService = {
       expires: Date.now() + expiresInSeconds * 1000,
     });
     return url;
+  },
+
+  /** Plain avatar object with signed read URL (safe for JSON responses). */
+  async resolveAvatar(avatar) {
+    if (!avatar?.gcsKey) {
+      return undefined;
+    }
+
+    return {
+      gcsKey: avatar.gcsKey,
+      mimeType: avatar.mimeType,
+      size: avatar.size,
+      url: await gcsService.getSignedUrl(avatar.gcsKey),
+    };
   },
 
   async attachSignedUrls(items, keyField = "gcsKey", urlField = "url") {

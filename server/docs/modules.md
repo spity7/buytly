@@ -14,6 +14,7 @@
 | /auth/resend-verification | POST   | Public | email                                  | message        |
 | /auth/forgot-password     | POST   | Public | email                                  | message        |
 | /auth/reset-password      | POST   | Public | token, password                        | success        |
+| /auth/change-password     | POST   | User   | currentPassword, newPassword           | success        |
 
 **Dependencies:** users (User model), token.service, email.service, notifications
 
@@ -23,18 +24,20 @@
 
 **Responsibility:** Profile management, preferences, saved searches, avatar upload.
 
-| Endpoint                     | Method   | Auth   | Input                      | Output                 |
-| ---------------------------- | -------- | ------ | -------------------------- | ---------------------- |
-| /users/me                    | GET      | User   | —                          | full profile           |
-| /users/me                    | PATCH    | User   | firstName, lastName, phone | updated profile        |
-| /users/me                    | DELETE   | User   | password                   | success                |
-| /users/me/preferences        | PATCH    | User   | budget, locations, types   | preferences            |
-| /users/me/saved-searches     | POST/GET | User   | name, filters              | searches               |
-| /users/me/saved-searches/:id | DELETE   | User   | —                          | success                |
-| /users/me/avatar             | POST     | User   | multipart file             | avatar + signed URL    |
-| /users/:id                   | GET      | Public | —                          | limited public profile |
+| Endpoint                     | Method   | Auth   | Input                                                                                 | Output                 |
+| ---------------------------- | -------- | ------ | ------------------------------------------------------------------------------------- | ---------------------- |
+| /users/me                    | GET      | User   | —                                                                                     | full profile           |
+| /users/me                    | PATCH    | User   | firstName, lastName, phoneCountryCode, phoneNumber (empty `phoneNumber` clears phone) | updated profile        |
+| /users/me                    | DELETE   | User   | password                                                                              | success                |
+| /users/me/preferences        | PATCH    | User   | budget, locations, types                                                              | preferences            |
+| /users/me/saved-searches     | POST/GET | User   | name, filters                                                                         | searches               |
+| /users/me/saved-searches/:id | DELETE   | User   | —                                                                                     | success                |
+| /users/me/social-links       | PATCH    | User   | social URLs                                                                           | updated profile        |
+| /users/me/avatar             | POST     | User   | multipart file                                                                        | avatar + signed URL    |
+| /users/me/avatar             | DELETE   | User   | —                                                                                     | success                |
+| /users/:id                   | GET      | Public | —                                                                                     | limited public profile |
 
-**Dependencies:** gcs.service
+**Dependencies:** gcs.service, image.service (via gcs upload)
 
 ---
 
@@ -51,7 +54,7 @@
 | /properties/:id/media          | POST         | Owner/Agent  | file                | media item       |
 | /properties/:id/media/:mediaId | DELETE       | Owner/Agent  | —                   | success          |
 
-**Dependencies:** gcs.service, cache.service
+**Dependencies:** gcs.service, image.service (via gcs upload), cache.service
 
 ---
 
@@ -62,6 +65,7 @@
 | Endpoint               | Method | Auth   | Input           | Output          |
 | ---------------------- | ------ | ------ | --------------- | --------------- |
 | /agents                | GET    | Public | city, specialty | agent list      |
+| /agents/me             | GET    | Agent  | —               | agent profile   |
 | /agents/:id            | GET    | Public | —               | agent profile   |
 | /agents/me             | PATCH  | Agent  | profile data    | updated profile |
 | /agents/:id/properties | GET    | Public | pagination      | agent listings  |

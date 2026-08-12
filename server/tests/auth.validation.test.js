@@ -61,6 +61,31 @@ describe("auth validation schemas", () => {
       });
       expect(result.role).toBe("buyer");
     });
+
+    it("accepts split phone fields", () => {
+      const result = registerSchema.safeParse({
+        email: "user@example.com",
+        password: "password123",
+        confirmPassword: "password123",
+        phoneCountryCode: "+971",
+        phoneNumber: "501234567",
+      });
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.phoneCountryCode).toBe("+971");
+        expect(result.data.phoneNumber).toBe("501234567");
+      }
+    });
+
+    it("rejects phone number without country code", () => {
+      const result = registerSchema.safeParse({
+        email: "user@example.com",
+        password: "password123",
+        confirmPassword: "password123",
+        phoneNumber: "501234567",
+      });
+      expect(result.success).toBe(false);
+    });
   });
 
   describe("loginSchema", () => {

@@ -12,7 +12,7 @@ server/src/
 ├── shared/           # ApiResponse, AppError, constants, pagination
 ├── config/           # env, db, redis, swagger, swagger.schemas
 ├── middleware/       # auth, validate, sanitize, errorHandler, rateLimit
-├── services/         # Cross-cutting services (GCS, email, email.templates, cache, tokens)
+├── services/         # Cross-cutting services (GCS, image, email, email.templates, cache, tokens)
 ├── utils/            # Helpers (asyncHandler, pick, slugify)
 ├── routes/           # Route aggregator
 ├── app.js            # Express app configuration
@@ -62,8 +62,10 @@ flowchart LR
 ### Media Upload
 
 ```
-Client → Multer (memory) → GCS Service → MongoDB (metadata only) → Signed URL response
+Client → Multer (memory) → image.service (compress if > 800 KB) → GCS Service → MongoDB (metadata only) → Signed URL response
 ```
+
+Images above 800 KB are resized and compressed to WebP (max 800 KB) before upload. Images at or below 800 KB, GIFs, and videos are stored as-is.
 
 ### Booking Flow
 

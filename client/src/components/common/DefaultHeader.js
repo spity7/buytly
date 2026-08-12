@@ -2,6 +2,7 @@
 
 import MainMenu from "@/components/common/MainMenu";
 import SidebarPanel from "@/components/common/sidebar-panel";
+import HeaderAuthLink from "@/components/auth/HeaderAuthLink";
 import Image from "next/image";
 import Link from "next/link";
 import React, { useEffect, useState } from "react";
@@ -64,16 +65,7 @@ const DefaultHeader = () => {
 
               <div className="col-auto">
                 <div className="d-flex align-items-center">
-                  <a
-                    href="#"
-                    className="login-info d-flex align-items-cente"
-                    data-bs-toggle="modal"
-                    data-bs-target="#loginSignupModal"
-                    role="button"
-                  >
-                    <i className="far fa-user-circle fz16 me-2" />{" "}
-                    <span className="d-none d-xl-block">Login / Register</span>
-                  </a>
+                  <HeaderAuthLink className="login-info d-flex align-items-cente" />
                   <Link
                     className="ud-btn btn-white add-property bdrs60 mx-2 mx-xl-4"
                     href="/dashboard-add-property"

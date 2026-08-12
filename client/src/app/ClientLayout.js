@@ -1,6 +1,8 @@
 "use client";
 
+import { AuthProvider } from "@/providers/AuthProvider";
 import QueryProvider from "@/providers/QueryProvider";
+import AppToaster from "@/components/common/AppToaster";
 import ScrollToTop from "@/components/common/ScrollTop";
 import GlobalAuthModal, {
   AuthModalFromQuery,
@@ -27,12 +29,15 @@ export default function ClientLayout({ children }) {
 
   return (
     <QueryProvider>
-      <div className="wrapper ovh">{children}</div>
-      <GlobalAuthModal />
-      <Suspense fallback={null}>
-        <AuthModalFromQuery />
-      </Suspense>
-      <ScrollToTop />
+      <AuthProvider>
+        <div className="wrapper ovh">{children}</div>
+        <GlobalAuthModal />
+        <Suspense fallback={null}>
+          <AuthModalFromQuery />
+        </Suspense>
+        <ScrollToTop />
+        <AppToaster />
+      </AuthProvider>
     </QueryProvider>
   );
 }

@@ -1,6 +1,10 @@
 "use client";
 
+import { AUTHENTICATED_HOME } from "@/lib/auth/constants";
 import { openAuthModal } from "./authModal";
+import { useAuth } from "@/providers/AuthProvider";
+import { useHasMounted } from "@/hooks/useHasMounted";
+import { useRouter } from "next/navigation";
 
 const AuthModalTrigger = ({
   tab = "signin",
@@ -9,8 +13,18 @@ const AuthModalTrigger = ({
   children,
   ...props
 }) => {
+  const { isAuthenticated } = useAuth();
+  const hasMounted = useHasMounted();
+  const router = useRouter();
+
   const handleClick = (event) => {
     event.preventDefault();
+
+    if (hasMounted && isAuthenticated) {
+      router.push(AUTHENTICATED_HOME);
+      return;
+    }
+
     openAuthModal(tab);
   };
 

@@ -21,7 +21,9 @@
   passwordHash: String,
   role: enum [buyer, seller, agent, admin],
   firstName, lastName, phone: String,
-  avatar: { gcsKey, mimeType, size },
+  phoneCountryCode, phoneNumber: String (E.164 parts; `phone` kept as combined),
+  avatar: { gcsKey, mimeType, size } — stored in GCS; API responses add a signed `url` at read time (not persisted).
+  socialLinks: { instagram, linkedin, website },
   preferences: { budgetMin, budgetMax, locations[], propertyTypes[] },
   savedSearches: [{ name, filters, createdAt }],
   isActive: Boolean,

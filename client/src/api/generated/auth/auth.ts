@@ -7,6 +7,7 @@
  */
 import type {
   AuthSuccessResponse,
+  ChangePasswordBody,
   ForgotPasswordBody,
   LoginRequest,
   MessageResponse,
@@ -169,6 +170,24 @@ export const getAuth = () => {
       options,
     );
   };
+  /**
+   * Changes the authenticated user's password after verifying the current password.
+   * @summary Change password
+   */
+  const changePassword = (
+    changePasswordBody: BodyType<ChangePasswordBody>,
+    options?: SecondParameter<typeof customInstance<MessageResponse>>,
+  ) => {
+    return customInstance<MessageResponse>(
+      {
+        url: `/auth/change-password`,
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        data: changePasswordBody,
+      },
+      options,
+    );
+  };
   return {
     registerUser,
     loginUser,
@@ -178,6 +197,7 @@ export const getAuth = () => {
     resetPassword,
     verifyEmail,
     resendVerification,
+    changePassword,
   };
 };
 
@@ -208,4 +228,7 @@ export type VerifyEmailResult = NonNullable<
 >;
 export type ResendVerificationResult = NonNullable<
   Awaited<ReturnType<ReturnType<typeof getAuth>["resendVerification"]>>
+>;
+export type ChangePasswordResult = NonNullable<
+  Awaited<ReturnType<ReturnType<typeof getAuth>["changePassword"]>>
 >;

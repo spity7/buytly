@@ -2,7 +2,7 @@
 import Link from "next/link";
 import React from "react";
 import { usePathname } from "next/navigation";
-import AuthModalTrigger from "@/components/common/login-signup-modal/AuthModalTrigger";
+import LogoutButton from "@/components/auth/LogoutButton";
 
 const SidebarDashboard = () => {
   const pathname = usePathname();
@@ -67,7 +67,7 @@ const SidebarDashboard = () => {
           text: "My Profile",
         },
         {
-          authTab: "signin",
+          logout: true,
           icon: "flaticon-logout",
           text: "Logout",
         },
@@ -89,15 +89,11 @@ const SidebarDashboard = () => {
             </p>
             {section.items.map((item, itemIndex) => (
               <div key={itemIndex} className="sidebar_list_item">
-                {item.authTab ? (
-                  <AuthModalTrigger
-                    tab={item.authTab}
-                    as="a"
-                    className="items-center"
-                  >
+                {item.logout ? (
+                  <LogoutButton as="a" className="items-center">
                     <i className={`${item.icon} mr15`} />
                     {item.text}
-                  </AuthModalTrigger>
+                  </LogoutButton>
                 ) : (
                   <Link
                     href={item.href}

@@ -2,7 +2,9 @@
 
 import MainMenu from "@/components/common/MainMenu";
 import SidebarPanel from "@/components/common/sidebar-panel";
-import AuthModalTrigger from "@/components/common/login-signup-modal/AuthModalTrigger";
+import LogoutButton from "@/components/auth/LogoutButton";
+import { isExternalImageSrc } from "@/lib/images/isExternalImageSrc";
+import { useAuth } from "@/providers/AuthProvider";
 import Image from "next/image";
 import Link from "next/link";
 import React, { useEffect, useState } from "react";
@@ -10,6 +12,8 @@ import { usePathname } from "next/navigation";
 
 const DashboardHeader = () => {
   const pathname = usePathname();
+  const { user } = useAuth();
+  const avatarSrc = user?.avatar?.url || "/images/resource/user.png";
 
   const menuItems = [
     {
@@ -66,7 +70,7 @@ const DashboardHeader = () => {
           text: "My Profile",
           href: "/dashboard-my-profile",
         },
-        { icon: "flaticon-exit", text: "Logout", authTab: "signin" },
+        { icon: "flaticon-exit", text: "Logout", logout: true },
       ],
     },
   ];
@@ -120,9 +124,12 @@ const DashboardHeader = () => {
                 <div className="text-center text-lg-end header_right_widgets">
                   <ul className="mb0 d-flex justify-content-center justify-content-sm-end p-0">
                     <li className="d-none d-sm-block">
-                      <AuthModalTrigger as="a" className="text-center mr15">
+                      <Link
+                        className="text-center mr15"
+                        href="/dashboard-message"
+                      >
                         <span className="flaticon-email" />
-                      </AuthModalTrigger>
+                      </Link>
                     </li>
                     {/* End email box */}
 
@@ -139,8 +146,9 @@ const DashboardHeader = () => {
                           <Image
                             width={44}
                             height={44}
-                            src="/images/resource/user.png"
-                            alt="user.png"
+                            src={avatarSrc}
+                            alt="user avatar"
+                            unoptimized={isExternalImageSrc(avatarSrc)}
                           />
                         </a>
                         <div className="dropdown-menu">
@@ -155,16 +163,15 @@ const DashboardHeader = () => {
                                   {section.title}
                                 </p>
                                 {section.items.map((item, itemIndex) =>
-                                  item.authTab ? (
-                                    <AuthModalTrigger
+                                  item.logout ? (
+                                    <LogoutButton
                                       key={itemIndex}
-                                      tab={item.authTab}
                                       as="a"
                                       className="dropdown-item"
                                     >
                                       <i className={`${item.icon} mr10`} />
                                       {item.text}
-                                    </AuthModalTrigger>
+                                    </LogoutButton>
                                   ) : (
                                     <Link
                                       key={itemIndex}

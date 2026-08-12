@@ -12,6 +12,11 @@ export const agentController = {
     ApiResponse.success(res, agent);
   },
 
+  getMyProfile: async (req, res) => {
+    const agent = await agentService.getMyProfile(req.user._id);
+    ApiResponse.success(res, agent);
+  },
+
   updateMyProfile: async (req, res) => {
     const profile = await agentService.updateMyProfile(req.user._id, req.body);
     ApiResponse.success(res, profile, "Agent profile updated");

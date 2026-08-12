@@ -5,6 +5,7 @@ import { authenticate } from "../../middleware/auth.js";
 import { validate, validateMultiple } from "../../middleware/validate.js";
 import {
   updateProfileSchema,
+  updateSocialLinksSchema,
   updatePreferencesSchema,
   savedSearchSchema,
   userIdParamSchema,
@@ -62,10 +63,12 @@ router.get("/me", authenticate, asyncHandler(userController.getMe));
  *                 type: string
  *                 maxLength: 50
  *                 example: Doe
- *               phone:
+ *               phoneCountryCode:
  *                 type: string
- *                 maxLength: 20
- *                 example: '+971501234567'
+ *                 example: '+961'
+ *               phoneNumber:
+ *                 type: string
+ *                 example: '501234567'
  *     responses:
  *       200:
  *         description: Profile updated
@@ -83,6 +86,40 @@ router.patch(
   authenticate,
   validate(updateProfileSchema),
   asyncHandler(userController.updateProfile),
+);
+
+/**
+ * @swagger
+ * /users/me/social-links:
+ *   patch:
+ *     operationId: updateUserSocialLinks
+ *     summary: Update social media links
+ *     description: Updates the authenticated user's social media profile links.
+ *     tags: [Users]
+ *     security:
+ *       - BearerAuth: []
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/UserSocialLinks'
+ *     responses:
+ *       200:
+ *         description: Social links updated
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/UserSuccessResponse'
+ *       400:
+ *         $ref: '#/components/responses/ValidationError'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ */
+router.patch(
+  "/me/social-links",
+  authenticate,
+  validate(updateSocialLinksSchema),
+  asyncHandler(userController.updateSocialLinks),
 );
 
 /**
@@ -337,6 +374,40 @@ router.delete(
  *         $ref: '#/components/responses/Unauthorized'
  */
 router.post("/me/avatar", authenticate, ...userController.uploadAvatar);
+
+/**
+ * @swagger
+ * /users/me/avatar:
+ *   delete:
+ *     operationId: deleteUserAvatar
+ *     summary: Remove user avatar
+ *     description: Deletes the authenticated user's avatar from storage and clears the profile image.
+ *     tags: [Users]
+ *     security:
+ *       - BearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Avatar removed
+ *         content:
+ *           application/json:
+ *             schema:
+ *               allOf:
+ *                 - $ref: '#/components/schemas/SuccessResponse'
+ *                 - type: object
+ *                   properties:
+ *                     data:
+ *                       type: object
+ *                       properties:
+ *                         avatar:
+ *                           nullable: true
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ */
+router.delete(
+  "/me/avatar",
+  authenticate,
+  asyncHandler(userController.deleteAvatar),
+);
 
 /**
  * @swagger

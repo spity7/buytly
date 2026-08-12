@@ -78,6 +78,15 @@ export interface UserPreferences {
   propertyTypes?: UserPreferencesPropertyTypesItem[];
 }
 
+export interface UserSocialLinks {
+  /** @maxLength 500 */
+  instagram?: string;
+  /** @maxLength 500 */
+  linkedin?: string;
+  /** @maxLength 500 */
+  website?: string;
+}
+
 /**
  * Authenticated user profile (public fields)
  */
@@ -87,8 +96,12 @@ export interface User {
   role?: UserRole;
   firstName?: string;
   lastName?: string;
+  phoneCountryCode?: string;
+  phoneNumber?: string;
+  /** Full E.164 phone (country code + number) */
   phone?: string;
   avatar?: Avatar;
+  socialLinks?: UserSocialLinks;
   preferences?: UserPreferences;
   isActive?: boolean;
   isEmailVerified?: boolean;
@@ -166,8 +179,8 @@ export interface RegisterRequest {
   firstName?: string;
   /** @maxLength 50 */
   lastName?: string;
-  /** @maxLength 20 */
-  phone?: string;
+  phoneCountryCode?: string;
+  phoneNumber?: string;
   role?: RegisterRequestRole;
 }
 
@@ -730,8 +743,8 @@ export type UpdateCurrentUserBody = {
   firstName?: string;
   /** @maxLength 50 */
   lastName?: string;
-  /** @maxLength 20 */
-  phone?: string;
+  phoneCountryCode?: string;
+  phoneNumber?: string;
 };
 
 export type DeleteCurrentUserBody = {
@@ -778,6 +791,22 @@ export type UploadUserAvatar200AllOf = {
 };
 
 export type UploadUserAvatar200 = SuccessResponse & UploadUserAvatar200AllOf;
+
+/**
+ * @nullable
+ */
+export type DeleteUserAvatar200AllOfDataAvatar = unknown | null;
+
+export type DeleteUserAvatar200AllOfData = {
+  /** @nullable */
+  avatar?: DeleteUserAvatar200AllOfDataAvatar;
+};
+
+export type DeleteUserAvatar200AllOf = {
+  data?: DeleteUserAvatar200AllOfData;
+};
+
+export type DeleteUserAvatar200 = SuccessResponse & DeleteUserAvatar200AllOf;
 
 export type GetPublicUserProfile200AllOf = {
   data?: UserPublicProfile;
@@ -1043,6 +1072,20 @@ export type ResendVerificationBody = {
   email: string;
 };
 
+export type ChangePasswordBody = {
+  currentPassword: string;
+  /**
+   * @minLength 8
+   * @maxLength 128
+   */
+  newPassword: string;
+  /**
+   * @minLength 8
+   * @maxLength 128
+   */
+  confirmNewPassword: string;
+};
+
 export type ListAgentsParams = {
   /**
    * Page number (1-based)
@@ -1077,6 +1120,12 @@ export type UpdateMyAgentProfile200AllOf = {
 
 export type UpdateMyAgentProfile200 = SuccessResponse &
   UpdateMyAgentProfile200AllOf;
+
+export type GetMyAgentProfile200AllOf = {
+  data?: AgentDetail;
+};
+
+export type GetMyAgentProfile200 = SuccessResponse & GetMyAgentProfile200AllOf;
 
 export type GetAgentById200AllOf = {
   data?: AgentDetail;

@@ -9,6 +9,7 @@ import type {
   AddSavedSearch201,
   AddSavedSearchBody,
   DeleteCurrentUserBody,
+  DeleteUserAvatar200,
   GetPublicUserProfile200,
   GetSavedSearches200,
   MessageResponse,
@@ -17,6 +18,7 @@ import type {
   UploadUserAvatar200,
   UploadUserAvatarBody,
   UserPreferences,
+  UserSocialLinks,
   UserSuccessResponse,
 } from "../buytly.schemas";
 
@@ -70,6 +72,24 @@ export const getUsers = () => {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
         data: deleteCurrentUserBody,
+      },
+      options,
+    );
+  };
+  /**
+   * Updates the authenticated user's social media profile links.
+   * @summary Update social media links
+   */
+  const updateUserSocialLinks = (
+    userSocialLinks: BodyType<UserSocialLinks>,
+    options?: SecondParameter<typeof customInstance<UserSuccessResponse>>,
+  ) => {
+    return customInstance<UserSuccessResponse>(
+      {
+        url: `/users/me/social-links`,
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        data: userSocialLinks,
       },
       options,
     );
@@ -157,6 +177,18 @@ export const getUsers = () => {
     );
   };
   /**
+   * Deletes the authenticated user's avatar from storage and clears the profile image.
+   * @summary Remove user avatar
+   */
+  const deleteUserAvatar = (
+    options?: SecondParameter<typeof customInstance<DeleteUserAvatar200>>,
+  ) => {
+    return customInstance<DeleteUserAvatar200>(
+      { url: `/users/me/avatar`, method: "DELETE" },
+      options,
+    );
+  };
+  /**
    * Returns a limited public profile (name, role, avatar). No authentication required.
    * @summary Get public user profile
    */
@@ -173,11 +205,13 @@ export const getUsers = () => {
     getCurrentUser,
     updateCurrentUser,
     deleteCurrentUser,
+    updateUserSocialLinks,
     updateUserPreferences,
     addSavedSearch,
     getSavedSearches,
     removeSavedSearch,
     uploadUserAvatar,
+    deleteUserAvatar,
     getPublicUserProfile,
   };
 };
@@ -195,6 +229,9 @@ export type UpdateCurrentUserResult = NonNullable<
 export type DeleteCurrentUserResult = NonNullable<
   Awaited<ReturnType<ReturnType<typeof getUsers>["deleteCurrentUser"]>>
 >;
+export type UpdateUserSocialLinksResult = NonNullable<
+  Awaited<ReturnType<ReturnType<typeof getUsers>["updateUserSocialLinks"]>>
+>;
 export type UpdateUserPreferencesResult = NonNullable<
   Awaited<ReturnType<ReturnType<typeof getUsers>["updateUserPreferences"]>>
 >;
@@ -209,6 +246,9 @@ export type RemoveSavedSearchResult = NonNullable<
 >;
 export type UploadUserAvatarResult = NonNullable<
   Awaited<ReturnType<ReturnType<typeof getUsers>["uploadUserAvatar"]>>
+>;
+export type DeleteUserAvatarResult = NonNullable<
+  Awaited<ReturnType<ReturnType<typeof getUsers>["deleteUserAvatar"]>>
 >;
 export type GetPublicUserProfileResult = NonNullable<
   Awaited<ReturnType<ReturnType<typeof getUsers>["getPublicUserProfile"]>>

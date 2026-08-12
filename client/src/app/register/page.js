@@ -1,5 +1,9 @@
-import { redirect } from "next/navigation";
+import GuestAuthRedirect from "@/components/auth/GuestAuthRedirect";
+
+export const metadata = {
+  title: "Register",
+};
 
 export default function Register() {
-  redirect("/?auth=signup");
+  return <GuestAuthRedirect authTab="signup" />;
 }

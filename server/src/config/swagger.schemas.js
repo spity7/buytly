@@ -217,6 +217,22 @@
  *             enum: [apartment, villa, townhouse, land, commercial, duplex, studio]
  *           example: [apartment, villa]
  *
+ *     UserSocialLinks:
+ *       type: object
+ *       properties:
+ *         instagram:
+ *           type: string
+ *           maxLength: 500
+ *           example: https://instagram.com/johndoe
+ *         linkedin:
+ *           type: string
+ *           maxLength: 500
+ *           example: https://linkedin.com/in/johndoe
+ *         website:
+ *           type: string
+ *           maxLength: 500
+ *           example: johndoe.com
+ *
  *     User:
  *       type: object
  *       description: Authenticated user profile (public fields)
@@ -235,11 +251,20 @@
  *         lastName:
  *           type: string
  *           example: Doe
+ *         phoneCountryCode:
+ *           type: string
+ *           example: '+961'
+ *         phoneNumber:
+ *           type: string
+ *           example: '501234567'
  *         phone:
  *           type: string
+ *           description: Full E.164 phone (country code + number)
  *           example: '+971501234567'
  *         avatar:
  *           $ref: '#/components/schemas/Avatar'
+ *         socialLinks:
+ *           $ref: '#/components/schemas/UserSocialLinks'
  *         preferences:
  *           $ref: '#/components/schemas/UserPreferences'
  *         isActive:
@@ -362,10 +387,12 @@
  *           type: string
  *           maxLength: 50
  *           example: Doe
- *         phone:
+ *         phoneCountryCode:
  *           type: string
- *           maxLength: 20
- *           example: '+971501234567'
+ *           example: '+961'
+ *         phoneNumber:
+ *           type: string
+ *           example: '501234567'
  *         role:
  *           type: string
  *           enum: [buyer, seller, agent]

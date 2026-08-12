@@ -32,7 +32,7 @@ export const agentService = {
         const doc = agent.toObject();
         const user = doc.userId;
         if (user?.avatar?.gcsKey) {
-          user.avatar.url = await gcsService.getSignedUrl(user.avatar.gcsKey);
+          user.avatar = await gcsService.resolveAvatar(user.avatar);
         }
         const listingsCount = await Property.countDocuments({
           agentId: user._id,
@@ -47,6 +47,10 @@ export const agentService = {
       agents: data,
       pagination: buildPaginationMeta(total, page, limit),
     };
+  },
+
+  async getMyProfile(userId) {
+    return this.getById(userId);
   },
 
   async getById(id) {
@@ -77,9 +81,7 @@ export const agentService = {
     };
 
     if (result.user.avatar?.gcsKey) {
-      result.user.avatar.url = await gcsService.getSignedUrl(
-        result.user.avatar.gcsKey,
-      );
+      result.user.avatar = await gcsService.resolveAvatar(result.user.avatar);
     }
 
     return result;

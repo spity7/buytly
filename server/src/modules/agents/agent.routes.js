@@ -118,6 +118,42 @@ router.patch(
 
 /**
  * @swagger
+ * /agents/me:
+ *   get:
+ *     operationId: getMyAgentProfile
+ *     summary: Get own agent profile
+ *     description: Returns the authenticated agent's user info, extended profile, and active listings count.
+ *     tags: [Agents]
+ *     security:
+ *       - BearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Agent profile
+ *         content:
+ *           application/json:
+ *             schema:
+ *               allOf:
+ *                 - $ref: '#/components/schemas/SuccessResponse'
+ *                 - type: object
+ *                   properties:
+ *                     data:
+ *                       $ref: '#/components/schemas/AgentDetail'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ */
+router.get(
+  "/me",
+  authenticate,
+  authorize(ROLES.AGENT),
+  asyncHandler(agentController.getMyProfile),
+);
+
+/**
+ * @swagger
  * /agents/{id}:
  *   get:
  *     operationId: getAgentById

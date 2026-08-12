@@ -16,6 +16,11 @@ export const userController = {
     ApiResponse.success(res, profile, "Profile updated");
   },
 
+  updateSocialLinks: async (req, res) => {
+    const profile = await userService.updateSocialLinks(req.user._id, req.body);
+    ApiResponse.success(res, profile, "Social links updated");
+  },
+
   updatePreferences: async (req, res) => {
     const profile = await userService.updatePreferences(req.user._id, req.body);
     ApiResponse.success(res, profile, "Preferences updated");
@@ -55,6 +60,11 @@ export const userController = {
       }
     },
   ],
+
+  deleteAvatar: async (req, res) => {
+    const result = await userService.deleteAvatar(req.user._id);
+    ApiResponse.success(res, result, "Avatar removed");
+  },
 
   getPublicProfile: async (req, res) => {
     const profile = await userService.getPublicProfile(req.params.id);

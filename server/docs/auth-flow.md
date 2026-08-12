@@ -118,6 +118,12 @@ sequenceDiagram
 4. User submits token + new password via `POST /auth/reset-password`
 5. Password updated, all refresh tokens revoked
 
+## Change Password Flow (authenticated)
+
+1. User submits `currentPassword`, `newPassword`, and `confirmNewPassword` via `POST /auth/change-password`
+2. Server verifies current password with bcrypt
+3. Password hash updated; user remains logged in (refresh tokens are not revoked)
+
 ## Role Permissions Matrix
 
 | Action                | buyer | seller | agent | admin |

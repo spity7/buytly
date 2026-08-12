@@ -8,6 +8,7 @@
 import type {
   GetAgentById200,
   GetAgentPropertiesParams,
+  GetMyAgentProfile200,
   ListAgentsParams,
   PaginatedAgentsResponse,
   PaginatedPropertiesResponse,
@@ -53,6 +54,18 @@ export const getAgents = () => {
     );
   };
   /**
+   * Returns the authenticated agent's user info, extended profile, and active listings count.
+   * @summary Get own agent profile
+   */
+  const getMyAgentProfile = (
+    options?: SecondParameter<typeof customInstance<GetMyAgentProfile200>>,
+  ) => {
+    return customInstance<GetMyAgentProfile200>(
+      { url: `/agents/me`, method: "GET" },
+      options,
+    );
+  };
+  /**
    * Returns agent user info, extended profile, and active listings count.
    * @summary Get agent profile
    */
@@ -81,7 +94,13 @@ export const getAgents = () => {
       options,
     );
   };
-  return { listAgents, updateMyAgentProfile, getAgentById, getAgentProperties };
+  return {
+    listAgents,
+    updateMyAgentProfile,
+    getMyAgentProfile,
+    getAgentById,
+    getAgentProperties,
+  };
 };
 
 type AwaitedInput<T> = PromiseLike<T> | T;
@@ -93,6 +112,9 @@ export type ListAgentsResult = NonNullable<
 >;
 export type UpdateMyAgentProfileResult = NonNullable<
   Awaited<ReturnType<ReturnType<typeof getAgents>["updateMyAgentProfile"]>>
+>;
+export type GetMyAgentProfileResult = NonNullable<
+  Awaited<ReturnType<ReturnType<typeof getAgents>["getMyAgentProfile"]>>
 >;
 export type GetAgentByIdResult = NonNullable<
   Awaited<ReturnType<ReturnType<typeof getAgents>["getAgentById"]>>

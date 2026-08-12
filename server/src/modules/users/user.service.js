@@ -2,6 +2,7 @@ import { User } from "./user.model.js";
 import { RefreshToken } from "../auth/refreshToken.model.js";
 import { gcsService } from "../../services/gcs.service.js";
 import { AppError } from "../../shared/AppError.js";
+import { applyPhoneFields } from "../../shared/phone.js";
 import bcrypt from "bcrypt";
 import crypto from "crypto";
 
@@ -12,19 +13,34 @@ export const userService = {
 
     const profile = user.toPublicJSON();
     if (profile.avatar?.gcsKey) {
-      profile.avatar.url = await gcsService.getSignedUrl(profile.avatar.gcsKey);
+      profile.avatar = await gcsService.resolveAvatar(profile.avatar);
     }
 
     return profile;
   },
 
   async updateProfile(userId, data) {
-    const user = await User.findByIdAndUpdate(userId, data, {
-      new: true,
-      runValidators: true,
-    });
-
+    const user = await User.findById(userId);
     if (!user) throw new AppError("User not found", 404);
+
+    if (data.firstName !== undefined) user.firstName = data.firstName;
+    if (data.lastName !== undefined) user.lastName = data.lastName;
+    applyPhoneFields(user, data);
+
+    await user.save({ runValidators: true });
+    return user.toPublicJSON();
+  },
+
+  async updateSocialLinks(userId, socialLinks) {
+    const user = await User.findById(userId);
+    if (!user) throw new AppError("User not found", 404);
+
+    user.socialLinks = {
+      ...(user.socialLinks?.toObject?.() || user.socialLinks || {}),
+      ...socialLinks,
+    };
+    await user.save();
+
     return user.toPublicJSON();
   },
 
@@ -91,6 +107,19 @@ export const userService = {
     return { avatar: { ...uploaded, url } };
   },
 
+  async deleteAvatar(userId) {
+    const user = await User.findById(userId);
+    if (!user) throw new AppError("User not found", 404);
+
+    if (user.avatar?.gcsKey) {
+      await gcsService.deleteFile(user.avatar.gcsKey);
+    }
+
+    await User.findByIdAndUpdate(userId, { $unset: { avatar: 1 } });
+
+    return { avatar: null };
+  },
+
   async getPublicProfile(userId) {
     const user = await User.findOne({
       _id: userId,
@@ -109,9 +138,8 @@ export const userService = {
     };
 
     if (user.avatar?.gcsKey) {
-      profile.avatar = {
-        url: await gcsService.getSignedUrl(user.avatar.gcsKey),
-      };
+      const resolved = await gcsService.resolveAvatar(user.avatar);
+      profile.avatar = { url: resolved.url };
     }
 
     return profile;

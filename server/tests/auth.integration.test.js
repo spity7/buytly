@@ -163,4 +163,118 @@ describe.skipIf(!mongoAvailable)("auth API", () => {
 
     expect(replay.status).toBe(401);
   });
+
+  it("changes password for authenticated user", async () => {
+    const app = await getApp();
+    const email = "changepw@example.com";
+    const password = "password123";
+    const newPassword = "newpassword456";
+
+    const register = await request(app)
+      .post("/api/v1/auth/register")
+      .send(registerPayload({ email, password }));
+
+    const token = register.body.data.accessToken;
+
+    const change = await request(app)
+      .post("/api/v1/auth/change-password")
+      .set("Authorization", `Bearer ${token}`)
+      .send({
+        currentPassword: password,
+        newPassword,
+        confirmNewPassword: newPassword,
+      });
+
+    expect(change.status).toBe(200);
+
+    const oldLogin = await request(app)
+      .post("/api/v1/auth/login")
+      .send({ email, password });
+    expect(oldLogin.status).toBe(401);
+
+    const newLogin = await request(app)
+      .post("/api/v1/auth/login")
+      .send({ email, password: newPassword });
+    expect(newLogin.status).toBe(200);
+  });
+
+  it("updates social links on profile", async () => {
+    const app = await getApp();
+    const email = "social@example.com";
+    const password = "password123";
+
+    const register = await request(app)
+      .post("/api/v1/auth/register")
+      .send(registerPayload({ email, password }));
+
+    const token = register.body.data.accessToken;
+
+    const update = await request(app)
+      .patch("/api/v1/users/me/social-links")
+      .set("Authorization", `Bearer ${token}`)
+      .send({
+        instagram: "https://instagram.com/johndoe",
+        website: "johndoe.com",
+      });
+
+    expect(update.status).toBe(200);
+    expect(update.body.data.socialLinks.instagram).toBe(
+      "https://instagram.com/johndoe",
+    );
+    expect(update.body.data.socialLinks.website).toBe("johndoe.com");
+  });
+
+  it("updates profile with split phone fields", async () => {
+    const app = await getApp();
+    const email = "phone@example.com";
+    const password = "password123";
+
+    const register = await request(app)
+      .post("/api/v1/auth/register")
+      .send(registerPayload({ email, password }));
+
+    const token = register.body.data.accessToken;
+
+    const update = await request(app)
+      .patch("/api/v1/users/me")
+      .set("Authorization", `Bearer ${token}`)
+      .send({
+        phoneCountryCode: "+971",
+        phoneNumber: "501234567",
+      });
+
+    expect(update.status).toBe(200);
+    expect(update.body.data.phoneCountryCode).toBe("+971");
+    expect(update.body.data.phoneNumber).toBe("501234567");
+  });
+
+  it("clears phone when phoneNumber is sent empty", async () => {
+    const app = await getApp();
+    const email = "phone-clear@example.com";
+    const password = "password123";
+
+    const register = await request(app)
+      .post("/api/v1/auth/register")
+      .send(registerPayload({ email, password }));
+
+    const token = register.body.data.accessToken;
+
+    await request(app)
+      .patch("/api/v1/users/me")
+      .set("Authorization", `Bearer ${token}`)
+      .send({
+        phoneCountryCode: "+971",
+        phoneNumber: "501234567",
+      });
+
+    const clear = await request(app)
+      .patch("/api/v1/users/me")
+      .set("Authorization", `Bearer ${token}`)
+      .send({ phoneNumber: "" });
+
+    expect(clear.status).toBe(200);
+    expect(clear.body.data.phoneCountryCode).toBeUndefined();
+    expect(clear.body.data.phoneNumber).toBeUndefined();
+    expect(clear.body.data.phone).toBeUndefined();
+  });
 });

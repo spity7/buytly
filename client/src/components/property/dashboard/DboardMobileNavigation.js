@@ -2,7 +2,7 @@
 import Link from "next/link";
 import React, { useState } from "react";
 import { usePathname } from "next/navigation";
-import AuthModalTrigger from "@/components/common/login-signup-modal/AuthModalTrigger";
+import LogoutButton from "@/components/auth/LogoutButton";
 
 const DboardMobileNavigation = () => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -68,7 +68,7 @@ const DboardMobileNavigation = () => {
           text: "My Profile",
         },
         {
-          authTab: "signin",
+          logout: true,
           icon: "flaticon-logout",
           text: "Logout",
         },
@@ -97,9 +97,8 @@ const DboardMobileNavigation = () => {
               </p>
               {section.items.map((item, itemIndex) => (
                 <div key={itemIndex} className="sidebar_list_item">
-                  {item.authTab ? (
-                    <AuthModalTrigger
-                      tab={item.authTab}
+                  {item.logout ? (
+                    <LogoutButton
                       as="a"
                       className={`items-center   ${
                         pathname == item.href ? "-is-active" : ""
@@ -107,7 +106,7 @@ const DboardMobileNavigation = () => {
                     >
                       <i className={`${item.icon} mr15`} />
                       {item.text}
-                    </AuthModalTrigger>
+                    </LogoutButton>
                   ) : (
                     <Link
                       href={item.href}

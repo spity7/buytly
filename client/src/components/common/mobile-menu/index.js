@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import Image from "next/image";
-import AuthModalTrigger from "@/components/common/login-signup-modal/AuthModalTrigger";
+import MobileAuthIcon from "@/components/auth/MobileAuthIcon";
 import ContactInfo from "./ContactInfo";
 import Social from "./Social";
 import ProSidebarContent from "./ProSidebarContent";
@@ -35,9 +35,7 @@ const MobileMenu = () => {
                   alt="logo"
                 />
               </Link>
-              <AuthModalTrigger as="a" className="d-inline-block">
-                <span className="icon fz18 far fa-user-circle" />
-              </AuthModalTrigger>
+              <MobileAuthIcon />
             </div>
           </div>
         </div>

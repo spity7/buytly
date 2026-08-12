@@ -8,6 +8,15 @@ if (!process.env.NEXT_PUBLIC_API_URL) {
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  images: {
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "storage.googleapis.com",
+        pathname: "/**",
+      },
+    ],
+  },
   turbopack: {
     root: __dirname,
   },

@@ -24,11 +24,18 @@ const userSchema = new mongoose.Schema(
     },
     firstName: { type: String, trim: true },
     lastName: { type: String, trim: true },
+    phoneCountryCode: { type: String, trim: true },
+    phoneNumber: { type: String, trim: true },
     phone: { type: String, trim: true },
     avatar: {
       gcsKey: String,
       mimeType: String,
       size: Number,
+    },
+    socialLinks: {
+      instagram: { type: String, trim: true, default: "" },
+      linkedin: { type: String, trim: true, default: "" },
+      website: { type: String, trim: true, default: "" },
     },
     preferences: {
       budgetMin: Number,
@@ -72,8 +79,21 @@ userSchema.methods.toPublicJSON = function () {
     role: this.role,
     firstName: this.firstName,
     lastName: this.lastName,
-    phone: this.phone,
-    avatar: this.avatar,
+    phoneCountryCode: this.phoneCountryCode,
+    phoneNumber: this.phoneNumber,
+    phone:
+      this.phone ||
+      (this.phoneCountryCode && this.phoneNumber
+        ? `${this.phoneCountryCode}${this.phoneNumber}`
+        : undefined),
+    avatar: this.avatar?.gcsKey
+      ? {
+          gcsKey: this.avatar.gcsKey,
+          mimeType: this.avatar.mimeType,
+          size: this.avatar.size,
+        }
+      : undefined,
+    socialLinks: this.socialLinks,
     preferences: this.preferences,
     isActive: this.isActive,
     isEmailVerified: this.isEmailVerified,
