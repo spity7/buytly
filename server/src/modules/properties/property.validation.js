@@ -34,6 +34,14 @@ export const createPropertySchema = z.object({
 
 export const updatePropertySchema = createPropertySchema.partial();
 
+export const listMyPropertiesSchema = z.object({
+  page: z.coerce.number().int().positive().optional(),
+  limit: z.coerce.number().int().positive().max(100).optional(),
+  status: z.enum(PROPERTY_STATUSES).optional(),
+  sortBy: z.enum(["price", "createdAt", "viewCount"]).optional(),
+  sortOrder: z.enum(["asc", "desc"]).optional(),
+});
+
 export const listPropertiesSchema = z.object({
   page: z.coerce.number().int().positive().optional(),
   limit: z.coerce.number().int().positive().max(100).optional(),

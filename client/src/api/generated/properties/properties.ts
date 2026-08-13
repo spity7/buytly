@@ -7,6 +7,7 @@
  */
 import type {
   CreatePropertyRequest,
+  ListMyPropertiesParams,
   ListPropertiesParams,
   PaginatedPropertiesResponse,
   PropertySuccessResponse,
@@ -55,7 +56,22 @@ export const getProperties = () => {
     );
   };
   /**
-   * Returns full property details with media signed URLs. Increments view count.
+   * Returns paginated properties owned by or assigned to the authenticated user (seller, agent, or admin).
+   * @summary List current user's properties
+   */
+  const listMyProperties = (
+    params?: ListMyPropertiesParams,
+    options?: SecondParameter<
+      typeof customInstance<PaginatedPropertiesResponse>
+    >,
+  ) => {
+    return customInstance<PaginatedPropertiesResponse>(
+      { url: `/properties/mine`, method: "GET", params },
+      options,
+    );
+  };
+  /**
+   * Returns full property details with media signed URLs. Increments view count for active listings. Non-active listings are only visible to the owner, assigned agent, or admin.
    * @summary Get property by ID
    */
   const getPropertyById = (
@@ -138,6 +154,7 @@ export const getProperties = () => {
   return {
     listProperties,
     createProperty,
+    listMyProperties,
     getPropertyById,
     updateProperty,
     deleteProperty,
@@ -155,6 +172,9 @@ export type ListPropertiesResult = NonNullable<
 >;
 export type CreatePropertyResult = NonNullable<
   Awaited<ReturnType<ReturnType<typeof getProperties>["createProperty"]>>
+>;
+export type ListMyPropertiesResult = NonNullable<
+  Awaited<ReturnType<ReturnType<typeof getProperties>["listMyProperties"]>>
 >;
 export type GetPropertyByIdResult = NonNullable<
   Awaited<ReturnType<ReturnType<typeof getProperties>["getPropertyById"]>>

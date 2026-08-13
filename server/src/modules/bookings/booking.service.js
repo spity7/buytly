@@ -99,8 +99,7 @@ export const bookingService = {
     if (!booking) throw new AppError("Booking not found", 404);
 
     const canUpdate =
-      user.role === ROLES.ADMIN ||
-      (user.role === ROLES.AGENT && booking.agentId.equals(user._id));
+      user.role === ROLES.ADMIN || booking.agentId.equals(user._id);
 
     if (!canUpdate) throw new AppError("Not authorized", 403);
 

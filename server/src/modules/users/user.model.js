@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { ROLES } from "../../shared/constants.js";
 
 const savedSearchSchema = new mongoose.Schema(
   {
@@ -31,8 +32,8 @@ const userSchema = new mongoose.Schema(
     },
     role: {
       type: String,
-      enum: ["buyer", "seller", "agent", "admin"],
-      default: "buyer",
+      enum: Object.values(ROLES),
+      default: ROLES.BUYER,
     },
     firstName: { type: String, trim: true },
     lastName: { type: String, trim: true },

@@ -7,6 +7,7 @@ import {
   formatUserDisplayName,
   formatUserRole,
 } from "@/lib/user/formatUserMeta";
+import { DashboardInlineStatsSkeleton } from "@/components/property/dashboard/skeletons/DashboardSkeletons";
 import { useAuth } from "@/providers/AuthProvider";
 import { useCallback, useEffect, useState } from "react";
 
@@ -68,7 +69,7 @@ const AccountSummary = () => {
       {user.role === "agent" ? (
         <div className="account-summary__agent-stats">
           {isLoadingAgent ? (
-            <p className="text fz13 mb0">Loading agent stats...</p>
+            <DashboardInlineStatsSkeleton />
           ) : agentError ? (
             <div className="d-flex flex-wrap align-items-center gap-2">
               <p className="text-danger fz13 mb0">{agentError}</p>

@@ -1,13 +1,18 @@
 import { Router } from "express";
 import { propertyController } from "./property.controller.js";
 import { asyncHandler } from "../../utils/asyncHandler.js";
-import { authenticate, authorize } from "../../middleware/auth.js";
+import {
+  authenticate,
+  authorize,
+  optionalAuth,
+} from "../../middleware/auth.js";
 import { validate, validateMultiple } from "../../middleware/validate.js";
 import { ROLES } from "../../shared/constants.js";
 import {
   createPropertySchema,
   updatePropertySchema,
   listPropertiesSchema,
+  listMyPropertiesSchema,
   propertyIdSchema,
   mediaIdSchema,
 } from "./property.validation.js";
@@ -108,11 +113,58 @@ router.get(
 
 /**
  * @swagger
+ * /properties/mine:
+ *   get:
+ *     operationId: listMyProperties
+ *     summary: List current user's properties
+ *     description: Returns paginated properties owned by or assigned to the authenticated user (seller, agent, or admin).
+ *     tags: [Properties]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - $ref: '#/components/parameters/PageParam'
+ *       - $ref: '#/components/parameters/LimitParam'
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           $ref: '#/components/schemas/PropertyStatus'
+ *       - in: query
+ *         name: sortBy
+ *         schema:
+ *           type: string
+ *           enum: [price, createdAt, viewCount]
+ *       - in: query
+ *         name: sortOrder
+ *         schema:
+ *           type: string
+ *           enum: [asc, desc]
+ *     responses:
+ *       200:
+ *         description: Paginated property list
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/PaginatedPropertiesResponse'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ */
+router.get(
+  "/mine",
+  authenticate,
+  authorize(ROLES.SELLER, ROLES.AGENT, ROLES.ADMIN),
+  validate(listMyPropertiesSchema, "query"),
+  asyncHandler(propertyController.listMine),
+);
+
+/**
+ * @swagger
  * /properties/{id}:
  *   get:
  *     operationId: getPropertyById
  *     summary: Get property by ID
- *     description: Returns full property details with media signed URLs. Increments view count.
+ *     description: Returns full property details with media signed URLs. Increments view count for active listings. Non-active listings are only visible to the owner, assigned agent, or admin.
  *     tags: [Properties]
  *     parameters:
  *       - $ref: '#/components/parameters/ObjectIdParam'
@@ -128,6 +180,7 @@ router.get(
  */
 router.get(
   "/:id",
+  optionalAuth,
   validateMultiple({ params: propertyIdSchema }),
   asyncHandler(propertyController.getById),
 );

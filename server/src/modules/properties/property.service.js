@@ -11,6 +11,17 @@ import { ROLES } from "../../shared/constants.js";
 
 const EARTH_RADIUS_KM = 6378.1;
 
+const canManageProperty = (property, user) =>
+  Boolean(
+    user &&
+    (user.role === ROLES.ADMIN ||
+      property.ownerId.equals(user._id) ||
+      (property.agentId && property.agentId.equals(user._id))),
+  );
+
+const canViewNonActiveProperty = (property, user) =>
+  canManageProperty(property, user);
+
 const attachMediaUrls = async (property) => {
   if (!property) return property;
   const doc = property.toObject ? property.toObject() : { ...property };
@@ -44,14 +55,19 @@ const buildUniqueSlug = async (title) => {
 export const propertyService = {
   async create(data, user) {
     const slug = await buildUniqueSlug(data.title);
+    const payload = { ...data };
+
+    if (user.role !== ROLES.ADMIN && payload.status === "active") {
+      payload.status = "pending";
+    }
 
     const property = await Property.create({
-      ...data,
+      ...payload,
       slug,
       ownerId: user._id,
       agentId:
-        data.agentId || (user.role === ROLES.AGENT ? user._id : undefined),
-      location: { type: "Point", ...data.location },
+        payload.agentId || (user.role === ROLES.AGENT ? user._id : undefined),
+      location: { type: "Point", ...payload.location },
     });
 
     await cacheService.invalidateProperties();
@@ -134,14 +150,21 @@ export const propertyService = {
     return result;
   },
 
-  async getById(id, incrementView = true) {
+  async getById(id, { incrementView = true, user } = {}) {
     const property = await Property.findOne({ _id: id, deletedAt: null })
       .populate("agentId", "firstName lastName email phone avatar")
       .populate("ownerId", "firstName lastName email phone");
 
     if (!property) throw new AppError("Property not found", 404);
 
-    if (incrementView) {
+    if (
+      property.status !== "active" &&
+      !canViewNonActiveProperty(property, user)
+    ) {
+      throw new AppError("Property not found", 404);
+    }
+
+    if (incrementView && property.status === "active") {
       property.viewCount += 1;
       await property.save({ validateBeforeSave: false });
     }
@@ -153,13 +176,14 @@ export const propertyService = {
     const property = await Property.findOne({ _id: id, deletedAt: null });
     if (!property) throw new AppError("Property not found", 404);
 
-    const canEdit =
-      user.role === ROLES.ADMIN ||
-      property.ownerId.equals(user._id) ||
-      (property.agentId && property.agentId.equals(user._id));
+    const canEdit = canManageProperty(property, user);
 
     if (!canEdit)
       throw new AppError("Not authorized to update this property", 403);
+
+    if (user.role !== ROLES.ADMIN && data.status === "active") {
+      data.status = "pending";
+    }
 
     if (data.title && data.title !== property.title) {
       data.slug = await buildUniqueSlug(data.title);
@@ -180,8 +204,7 @@ export const propertyService = {
     const property = await Property.findOne({ _id: id, deletedAt: null });
     if (!property) throw new AppError("Property not found", 404);
 
-    const canDelete =
-      user.role === ROLES.ADMIN || property.ownerId.equals(user._id);
+    const canDelete = canManageProperty(property, user);
 
     if (!canDelete)
       throw new AppError("Not authorized to delete this property", 403);
@@ -196,10 +219,7 @@ export const propertyService = {
     const property = await Property.findOne({ _id: id, deletedAt: null });
     if (!property) throw new AppError("Property not found", 404);
 
-    const canEdit =
-      user.role === ROLES.ADMIN ||
-      property.ownerId.equals(user._id) ||
-      (property.agentId && property.agentId.equals(user._id));
+    const canEdit = canManageProperty(property, user);
 
     if (!canEdit) throw new AppError("Not authorized", 403);
 
@@ -230,10 +250,7 @@ export const propertyService = {
     const property = await Property.findOne({ _id: id, deletedAt: null });
     if (!property) throw new AppError("Property not found", 404);
 
-    const canEdit =
-      user.role === ROLES.ADMIN ||
-      property.ownerId.equals(user._id) ||
-      (property.agentId && property.agentId.equals(user._id));
+    const canEdit = canManageProperty(property, user);
 
     if (!canEdit) throw new AppError("Not authorized", 403);
 
@@ -244,6 +261,37 @@ export const propertyService = {
     media.deleteOne();
     await property.save();
     await cacheService.invalidateProperties();
+  },
+
+  async listMine(user, query) {
+    const { page, limit, skip } = parsePagination(query);
+    const filter = {
+      deletedAt: null,
+      $or: [{ ownerId: user._id }, { agentId: user._id }],
+    };
+
+    if (query.status) filter.status = query.status;
+
+    const sortField = query.sortBy || "createdAt";
+    const sortOrder = query.sortOrder === "asc" ? 1 : -1;
+    const sort = { [sortField]: sortOrder };
+
+    const [properties, total] = await Promise.all([
+      Property.find(filter)
+        .populate("agentId", "firstName lastName email phone avatar")
+        .populate("ownerId", "firstName lastName email")
+        .sort(sort)
+        .skip(skip)
+        .limit(limit),
+      Property.countDocuments(filter),
+    ]);
+
+    const data = await Promise.all(properties.map(attachMediaUrls));
+
+    return {
+      properties: data,
+      pagination: buildPaginationMeta(total, page, limit),
+    };
   },
 
   async getByAgent(agentId, query) {

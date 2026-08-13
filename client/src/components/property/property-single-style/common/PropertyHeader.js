@@ -1,10 +1,21 @@
 "use client";
 
-import listings from "@/data/listings";
+import FavoriteButton from "@/components/property/FavoriteButton";
+import { usePropertySingle } from "@/providers/PropertySingleProvider";
 import React from "react";
 
-const PropertyHeader = ({ id }) => {
-  const data = listings.filter((elm) => elm.id == id)[0] || listings[0];
+const PropertyHeader = () => {
+  const { card, property } = usePropertySingle();
+  const data = card;
+
+  if (!data) return null;
+
+  const forRent = data.forRent;
+  const pricePerSqft =
+    data.sqft && data.priceValue
+      ? (Number(data.priceValue) / Number(data.sqft)).toFixed(2)
+      : null;
+
   return (
     <>
       <div className="col-lg-8">
@@ -19,20 +30,11 @@ const PropertyHeader = ({ id }) => {
               href="#"
             >
               <i className="fas fa-circle fz10 pe-2" />
-              For {data.forRent ? "rent" : "sale"}
-            </a>
-            <a
-              className="ff-heading bdrr1 fz15 pr10 ml10 ml0-sm bdrrn-sm"
-              href="#"
-            >
-              <i className="far fa-clock pe-2" />
-              {Number(new Date().getFullYear()) -
-                Number(data.yearBuilding)}{" "}
-              years ago
+              For {forRent ? "rent" : "sale"}
             </a>
             <a className="ff-heading ml10 ml0-sm fz15" href="#">
               <i className="flaticon-fullscreen pe-2 align-text-top" />
-              8721
+              {property?.viewCount ?? 0}
             </a>
           </div>
           <div className="property-meta d-flex align-items-center">
@@ -51,15 +53,12 @@ const PropertyHeader = ({ id }) => {
           </div>
         </div>
       </div>
-      {/* End .col-lg--8 */}
 
       <div className="col-lg-4">
         <div className="single-property-content">
           <div className="property-action text-lg-end">
             <div className="d-flex mb20 mb10-md align-items-center justify-content-lg-end">
-              <a className="icon mr10" href="#">
-                <span className="flaticon-like" />
-              </a>
+              <FavoriteButton propertyId={data.id} className="mr10" />
               <a className="icon mr10" href="#">
                 <span className="flaticon-new-tab" />
               </a>
@@ -71,17 +70,12 @@ const PropertyHeader = ({ id }) => {
               </a>
             </div>
             <h3 className="price mb-0">{data.price}</h3>
-            <p className="text space fz15">
-              $
-              {(
-                Number(data.price.split("$")[1].split(",").join("")) / data.sqft
-              ).toFixed(2)}
-              /sq ft
-            </p>
+            {pricePerSqft && (
+              <p className="text space fz15">${pricePerSqft}/sq ft</p>
+            )}
           </div>
         </div>
       </div>
-      {/* End .col-lg--4 */}
     </>
   );
 };

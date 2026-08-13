@@ -3,13 +3,24 @@
 import { useEffect, useState } from "react";
 import SignIn from "./SignIn";
 import SignUp from "./SignUp";
+import { AUTH_MODAL_ID, switchAuthTab } from "./authModal";
+import { consumeAuthIntent } from "@/lib/auth/authIntent";
+import { AUTHENTICATED_HOME } from "@/lib/auth/constants";
+
+const DEFAULT_SIGNUP_CONFIG = {
+  defaultRole: "buyer",
+  redirectTo: AUTHENTICATED_HOME,
+  intentHint: null,
+};
 
 const LoginSignupModal = () => {
   const [activeTab, setActiveTab] = useState("signin");
+  const [signupConfig, setSignupConfig] = useState(DEFAULT_SIGNUP_CONFIG);
 
   useEffect(() => {
     const signInTab = document.getElementById("nav-home-tab");
     const signUpTab = document.getElementById("nav-profile-tab");
+    const modalEl = document.getElementById(AUTH_MODAL_ID);
 
     if (!signInTab || !signUpTab) {
       return undefined;
@@ -17,13 +28,33 @@ const LoginSignupModal = () => {
 
     const onSignIn = () => setActiveTab("signin");
     const onSignUp = () => setActiveTab("signup");
+    const onModalShown = () => {
+      const intent = consumeAuthIntent();
+
+      if (intent) {
+        setSignupConfig({
+          defaultRole: intent.role || DEFAULT_SIGNUP_CONFIG.defaultRole,
+          redirectTo: intent.next || DEFAULT_SIGNUP_CONFIG.redirectTo,
+          intentHint: intent.intentHint || null,
+        });
+
+        if (intent.tab) {
+          switchAuthTab(intent.tab);
+        }
+        return;
+      }
+
+      setSignupConfig(DEFAULT_SIGNUP_CONFIG);
+    };
 
     signInTab.addEventListener("shown.bs.tab", onSignIn);
     signUpTab.addEventListener("shown.bs.tab", onSignUp);
+    modalEl?.addEventListener("shown.bs.modal", onModalShown);
 
     return () => {
       signInTab.removeEventListener("shown.bs.tab", onSignIn);
       signUpTab.removeEventListener("shown.bs.tab", onSignUp);
+      modalEl?.removeEventListener("shown.bs.modal", onModalShown);
     };
   }, []);
 
@@ -92,7 +123,12 @@ const LoginSignupModal = () => {
                 role="tabpanel"
                 aria-labelledby="nav-profile-tab"
               >
-                <SignUp showGoogleAuth={activeTab === "signup"} />
+                <SignUp
+                  showGoogleAuth={activeTab === "signup"}
+                  defaultRole={signupConfig.defaultRole}
+                  redirectTo={signupConfig.redirectTo}
+                  intentHint={signupConfig.intentHint}
+                />
               </div>
               {/* End signup content */}
             </div>

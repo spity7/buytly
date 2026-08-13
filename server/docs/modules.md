@@ -49,11 +49,14 @@
 | Endpoint                       | Method       | Auth         | Input               | Output           |
 | ------------------------------ | ------------ | ------------ | ------------------- | ---------------- |
 | /properties                    | GET          | Public       | filters, pagination | property list    |
+| /properties/mine               | GET          | Seller/Agent | pagination, status  | user's listings  |
 | /properties/:id                | GET          | Public       | —                   | property detail  |
 | /properties                    | POST         | Seller/Agent | property data       | created property |
 | /properties/:id                | PATCH/DELETE | Owner/Agent  | updates             | updated/deleted  |
 | /properties/:id/media          | POST         | Owner/Agent  | file                | media item       |
 | /properties/:id/media/:mediaId | DELETE       | Owner/Agent  | —                   | success          |
+
+Non-admin create/update cannot publish directly: `status: "active"` is stored as `pending`. Public `GET /properties/:id` returns non-active listings only to the owner, assigned agent, or admin (optional auth).
 
 **Dependencies:** gcs.service, image.service (via gcs upload), cache.service
 
@@ -93,13 +96,13 @@
 
 **Responsibility:** Schedule property visits, agent approval workflow.
 
-| Endpoint             | Method | Auth        | Input                   | Output            |
-| -------------------- | ------ | ----------- | ----------------------- | ----------------- |
-| /bookings            | POST   | Buyer       | propertyId, scheduledAt | booking           |
-| /bookings/my         | GET    | Buyer       | filters                 | buyer bookings    |
-| /bookings/agent      | GET    | Agent       | filters                 | agent bookings    |
-| /bookings/:id/status | PATCH  | Agent/Admin | status                  | updated booking   |
-| /bookings/:id/cancel | PATCH  | Buyer       | —                       | cancelled booking |
+| Endpoint             | Method | Auth               | Input                   | Output            |
+| -------------------- | ------ | ------------------ | ----------------------- | ----------------- |
+| /bookings            | POST   | Buyer              | propertyId, scheduledAt | booking           |
+| /bookings/my         | GET    | Buyer              | filters                 | buyer bookings    |
+| /bookings/agent      | GET    | Seller/Agent       | filters                 | assigned bookings |
+| /bookings/:id/status | PATCH  | Seller/Agent/Admin | status                  | updated booking   |
+| /bookings/:id/cancel | PATCH  | Buyer              | —                       | cancelled booking |
 
 **Dependencies:** properties, notifications
 

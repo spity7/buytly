@@ -1,95 +1,101 @@
 "use client";
+
 import React from "react";
 import { Tooltip as ReactTooltip } from "react-tooltip";
-import listings from "@/data/listings";
 import Image from "next/image";
-import { useState } from "react";
 import Link from "next/link";
+import { DashboardGridSkeleton } from "@/components/property/dashboard/skeletons/DashboardSkeletons";
+import { useFavorites, useToggleFavorite } from "@/hooks/useFavorites";
+
+const PLACEHOLDER = "/images/listings/list-1.jpg";
 
 const ListingsFavourites = () => {
-  const [favoriteListings, setFavoriteListings] = useState(
-    listings.slice(0, 8)
-  );
+  const { data, isLoading, isError } = useFavorites({ limit: 50 });
+  const toggleFavorite = useToggleFavorite();
+  const cards = data?.cards || [];
 
-  const handleDeleteListing = (id) => {
-    const updatedListings = favoriteListings.filter(
-      (listing) => listing.id !== id
-    );
-    setFavoriteListings(updatedListings);
+  const handleDeleteListing = async (propertyId) => {
+    toggleFavorite.mutate({ propertyId, isFavorite: true });
   };
+
+  if (isLoading) {
+    return <DashboardGridSkeleton count={4} />;
+  }
+
+  if (isError) {
+    return <p className="p-4 text-danger">Failed to load favorites.</p>;
+  }
 
   return (
     <>
-      {favoriteListings.length === 0 ? (
+      {cards.length === 0 ? (
         <h3>No items available.</h3>
       ) : (
-        favoriteListings.map((listing) => (
-          <div className="col-md-6 col-lg-4 col-xl-3" key={listing.id}>
-            <div className="listing-style1 style2">
-              <div className="list-thumb">
-                <Image
-                  width={382}
-                  height={248}
-                  className="w-100 h-100 cover"
-                  src={listing.image}
-                  alt="listings"
-                />
+        cards.map((listing) => {
+          const id = listing.id || listing._id;
+          const forRent = listing.forRent ?? listing.listingType === "rent";
 
-                <button
-                  className="tag-del"
-                  title="Delete Item"
-                  onClick={() => handleDeleteListing(listing.id)}
-                  style={{ border: "none" }}
-                  data-tooltip-id={`delete-${listing.id}`}
-                >
-                  <span className="fas fa-trash-can"></span>
-                </button>
+          return (
+            <div className="col-md-6 col-lg-4 col-xl-3" key={id}>
+              <div className="listing-style1 style2">
+                <div className="list-thumb">
+                  <Image
+                    width={382}
+                    height={248}
+                    className="w-100 h-100 cover"
+                    src={listing.image || PLACEHOLDER}
+                    alt={listing.title || "listing"}
+                  />
 
-                <ReactTooltip
-                  id={`delete-${listing.id}`}
-                  place="left"
-                  content="Delete"
-                />
+                  <button
+                    className="tag-del"
+                    title="Delete Item"
+                    onClick={() => handleDeleteListing(id)}
+                    style={{ border: "none" }}
+                    data-tooltip-id={`delete-${id}`}
+                    disabled={toggleFavorite.isPending}
+                  >
+                    <span className="fas fa-trash-can"></span>
+                  </button>
 
-                <div className="list-price">
-                  {listing.price} / <span>mo</span>
+                  <ReactTooltip
+                    id={`delete-${id}`}
+                    place="left"
+                    content="Remove from favorites"
+                  />
+
+                  <div className="list-price">
+                    {listing.price}
+                    {forRent && <span> / mo</span>}
+                  </div>
                 </div>
-              </div>
-              <div className="list-content">
-                <h6 className="list-title">
-                  <Link href={`/single-v3/${listing.id}`}>{listing.title}</Link>
-                </h6>
-                <p className="list-text">{listing.location}</p>
-                <div className="list-meta d-flex align-items-center">
-                  <a href="#">
-                    <span className="flaticon-bed" /> {listing.bed} bed
-                  </a>
-                  <a href="#">
-                    <span className="flaticon-shower" /> {listing.bath} bath
-                  </a>
-                  <a href="#">
-                    <span className="flaticon-expand" /> {listing.sqft} sqft
-                  </a>
-                </div>
-                <hr className="mt-2 mb-2" />
-                <div className="list-meta2 d-flex justify-content-between align-items-center">
-                  <span className="for-what">For Rent</span>
-                  <div className="icons d-flex align-items-center">
+                <div className="list-content">
+                  <h6 className="list-title">
+                    <Link href={`/single-v1/${id}`}>{listing.title}</Link>
+                  </h6>
+                  <p className="list-text">{listing.location}</p>
+                  <div className="list-meta d-flex align-items-center">
                     <a href="#">
-                      <span className="flaticon-fullscreen" />
+                      <span className="flaticon-bed" /> {listing.bed} bed
                     </a>
                     <a href="#">
-                      <span className="flaticon-new-tab" />
+                      <span className="flaticon-shower" /> {listing.bath} bath
                     </a>
                     <a href="#">
-                      <span className="flaticon-like" />
+                      <span className="flaticon-expand" /> {listing.sqft} sqft
                     </a>
+                  </div>
+                  <hr className="mt-2 mb-2" />
+                  <div className="list-meta2 d-flex justify-content-between align-items-center">
+                    <span className="for-what">
+                      For {forRent ? "Rent" : "Sale"}
+                    </span>
                   </div>
                 </div>
               </div>
             </div>
-          </div>
-        ))
+          );
+        })
       )}
     </>
   );

@@ -2,6 +2,7 @@
 
 import { buytlyApi } from "@/api/generated";
 import DashboardFormSubmit from "@/components/property/dashboard/dashboard-profile/DashboardFormSubmit";
+import ProfileFormSkeleton from "@/components/property/dashboard/dashboard-profile/ProfileFormSkeleton";
 import { getApiError } from "@/lib/auth/getApiError";
 import { hasFormChanges } from "@/lib/form/hasFormChanges";
 import { notifyError, notifySuccess } from "@/lib/toast";
@@ -109,7 +110,7 @@ const AgentProfileForm = () => {
       <h4 className="title fz17 mb30">Agent details</h4>
 
       {isLoading ? (
-        <p className="text mb0">Loading agent profile...</p>
+        <ProfileFormSkeleton rows={4} />
       ) : loadError ? (
         <div className="agent-profile-error">
           <p className="text-danger mb10">{loadError}</p>

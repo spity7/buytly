@@ -6,8 +6,9 @@ import PasswordInput from "@/components/common/PasswordInput";
 import PhoneFields from "@/components/common/PhoneFields";
 import { closeAuthModal } from "./authModal";
 import { getApiError, useAuth } from "@/providers/AuthProvider";
+import { AUTHENTICATED_HOME } from "@/lib/auth/constants";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 const ROLES = [
   { value: "buyer", label: "Buyer" },
@@ -15,7 +16,12 @@ const ROLES = [
   { value: "agent", label: "Agent" },
 ];
 
-const SignUp = ({ showGoogleAuth = true }) => {
+const SignUp = ({
+  showGoogleAuth = true,
+  defaultRole = "buyer",
+  redirectTo = AUTHENTICATED_HOME,
+  intentHint = null,
+}) => {
   const { register, loginWithGoogle } = useAuth();
   const router = useRouter();
   const [form, setForm] = useState({
@@ -26,13 +32,17 @@ const SignUp = ({ showGoogleAuth = true }) => {
     lastName: "",
     phoneCountryCode: "",
     phoneNumber: "",
-    role: "buyer",
+    role: defaultRole,
   });
   const [error, setError] = useState("");
   const [googleError, setGoogleError] = useState("");
   const [success, setSuccess] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isGoogleSubmitting, setIsGoogleSubmitting] = useState(false);
+
+  useEffect(() => {
+    setForm((current) => ({ ...current, role: defaultRole }));
+  }, [defaultRole]);
 
   const updateField = (field) => (event) => {
     setForm((current) => ({ ...current, [field]: event.target.value }));
@@ -74,7 +84,7 @@ const SignUp = ({ showGoogleAuth = true }) => {
       });
       setSuccess("Account created! Check your email to verify your address.");
       await closeAuthModal();
-      router.push("/dashboard-home");
+      router.push(redirectTo);
     } catch (err) {
       setError(getApiError(err, "Registration failed. Please try again."));
     } finally {
@@ -95,7 +105,7 @@ const SignUp = ({ showGoogleAuth = true }) => {
     try {
       await loginWithGoogle({ idToken: credential, role: form.role });
       await closeAuthModal();
-      router.push("/dashboard-home");
+      router.push(redirectTo);
     } catch (err) {
       setGoogleError(getApiError(err, "Google sign-in failed."));
     } finally {
@@ -114,6 +124,12 @@ const SignUp = ({ showGoogleAuth = true }) => {
         <div className="alert alert-success mb20" role="alert">
           {success}
         </div>
+      ) : null}
+
+      {intentHint === "listing" ? (
+        <p className="text fz14 mb20">
+          Create a seller account to list your property.
+        </p>
       ) : null}
 
       <div className="row">

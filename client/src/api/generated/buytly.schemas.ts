@@ -938,6 +938,42 @@ export const ListPropertiesSortOrder = {
   desc: "desc",
 } as const;
 
+export type ListMyPropertiesParams = {
+  /**
+   * Page number (1-based)
+   * @minimum 1
+   */
+  page?: PageParamParameter;
+  /**
+   * Items per page (max 100)
+   * @minimum 1
+   * @maximum 100
+   */
+  limit?: LimitParamParameter;
+  status?: PropertyStatus;
+  sortBy?: ListMyPropertiesSortBy;
+  sortOrder?: ListMyPropertiesSortOrder;
+};
+
+export type ListMyPropertiesSortBy =
+  (typeof ListMyPropertiesSortBy)[keyof typeof ListMyPropertiesSortBy];
+
+// eslint-disable-next-line @typescript-eslint/no-redeclare
+export const ListMyPropertiesSortBy = {
+  price: "price",
+  createdAt: "createdAt",
+  viewCount: "viewCount",
+} as const;
+
+export type ListMyPropertiesSortOrder =
+  (typeof ListMyPropertiesSortOrder)[keyof typeof ListMyPropertiesSortOrder];
+
+// eslint-disable-next-line @typescript-eslint/no-redeclare
+export const ListMyPropertiesSortOrder = {
+  asc: "asc",
+  desc: "desc",
+} as const;
+
 export type UploadPropertyMediaBody = {
   /** Image or video file */
   media: Blob;

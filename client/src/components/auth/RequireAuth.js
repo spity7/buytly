@@ -4,7 +4,7 @@ import { useAuth } from "@/providers/AuthProvider";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 
-const RequireAuth = ({ children }) => {
+const RequireAuth = ({ children, loadingFallback = null }) => {
   const { isAuthenticated, isLoading } = useAuth();
   const router = useRouter();
 
@@ -16,11 +16,13 @@ const RequireAuth = ({ children }) => {
 
   if (isLoading) {
     return (
-      <div className="d-flex align-items-center justify-content-center py200">
-        <div className="spinner-border text-thm" role="status">
-          <span className="visually-hidden">Loading...</span>
+      loadingFallback ?? (
+        <div className="d-flex align-items-center justify-content-center py200">
+          <div className="spinner-border text-thm" role="status">
+            <span className="visually-hidden">Loading...</span>
+          </div>
         </div>
-      </div>
+      )
     );
   }
 

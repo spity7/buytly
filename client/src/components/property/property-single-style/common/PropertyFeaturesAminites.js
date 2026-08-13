@@ -1,15 +1,26 @@
+"use client";
+
+import { usePropertySingle } from "@/providers/PropertySingleProvider";
 import React from "react";
 
 const PropertyFeaturesAminites = () => {
-  const featuresAmenitiesData = [
-    ["Air Conditioning", "Barbeque", "Dryer", "Gym"],
-    ["Lawn", "Microwave", "Outdoor Shower", "Refrigerator"],
-    ["Swimming Pool", "TV Cable", "Washer", "WiFi6"],
-  ];
+  const { property } = usePropertySingle();
+  const amenities = property?.amenities || [];
+
+  if (!amenities.length) {
+    return <p className="text col-12">No amenities listed.</p>;
+  }
+
+  const chunkSize = Math.ceil(amenities.length / 3) || 1;
+  const rows = [
+    amenities.slice(0, chunkSize),
+    amenities.slice(chunkSize, chunkSize * 2),
+    amenities.slice(chunkSize * 2),
+  ].filter((row) => row.length > 0);
 
   return (
     <>
-      {featuresAmenitiesData.map((row, rowIndex) => (
+      {rows.map((row, rowIndex) => (
         <div key={rowIndex} className="col-sm-6 col-md-4">
           <div className="pd-list">
             {row.map((item, index) => (

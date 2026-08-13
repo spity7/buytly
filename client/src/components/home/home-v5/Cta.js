@@ -1,3 +1,4 @@
+import AddPropertyLink from "@/components/auth/AddPropertyLink";
 import Link from "next/link";
 import React from "react";
 
@@ -14,13 +15,10 @@ const Cta = () => {
                 provides an awesome solution!
               </h1>
               <div className="d-block d-sm-flex justify-content-center">
-                <Link
-                  href="/dashboard-add-property"
-                  className="ud-btn btn-thm me-0 me-sm-4"
-                >
+                <AddPropertyLink className="ud-btn btn-thm me-0 me-sm-4">
                   Submit Property
                   <i className="fal fa-arrow-right-long" />
-                </Link>
+                </AddPropertyLink>
                 <Link href="/grid-default" className="ud-btn btn-white">
                   Browse Properties
                   <i className="fal fa-arrow-right-long" />

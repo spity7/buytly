@@ -1,49 +1,36 @@
+"use client";
+
+import { formatPrice } from "@/lib/properties/formatPrice";
+import { usePropertySingle } from "@/providers/PropertySingleProvider";
 import React from "react";
 
 const PropertyDetails = () => {
+  const { property, card } = usePropertySingle();
+
+  if (!property || !card) return null;
+
   const columns = [
     [
-      {
-        label: "Property ID",
-        value: "RT48",
-      },
-      {
-        label: "Price",
-        value: "$252,000",
-      },
+      { label: "Price", value: card.price },
       {
         label: "Property Size",
-        value: "1500 Sq Ft",
+        value: property.area
+          ? `${property.area} ${property.areaUnit || "sqm"}`
+          : "—",
       },
-      {
-        label: "Bathrooms",
-        value: "3",
-      },
-      {
-        label: "Bedrooms",
-        value: "2",
-      },
+      { label: "Bathrooms", value: property.bathrooms ?? "—" },
+      { label: "Bedrooms", value: property.bedrooms ?? "—" },
     ],
     [
-      {
-        label: "Garage",
-        value: "2",
-      },
-      {
-        label: "Garage Size",
-        value: "200 SqFt",
-      },
-      {
-        label: "Year Built",
-        value: "2022",
-      },
-      {
-        label: "Property Type",
-        value: "Apartment",
-      },
+      { label: "Listing Type", value: property.listingType },
+      { label: "Property Type", value: property.type },
       {
         label: "Property Status",
-        value: "For Sale",
+        value: property.status,
+      },
+      {
+        label: "Price (raw)",
+        value: formatPrice(property.price, property.currency),
       },
     ],
   ];

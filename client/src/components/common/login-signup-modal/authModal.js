@@ -1,3 +1,5 @@
+import { setAuthIntent } from "@/lib/auth/authIntent";
+
 export const AUTH_MODAL_ID = "loginSignupModal";
 
 export const AUTH_TABS = {
@@ -19,7 +21,7 @@ export async function switchAuthTab(tab = "signin") {
   }
 }
 
-export async function openAuthModal(tab = "signin") {
+export async function openAuthModal(tab = "signin", options = {}) {
   if (typeof window === "undefined") {
     return;
   }
@@ -31,6 +33,10 @@ export async function openAuthModal(tab = "signin") {
   if (hasActiveSession()) {
     notifyAuthenticatedAuthAttempt();
     return;
+  }
+
+  if (Object.keys(options).length > 0) {
+    setAuthIntent({ tab, ...options });
   }
 
   await switchAuthTab(tab);

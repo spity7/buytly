@@ -5,6 +5,7 @@ import { getApiError } from "@/lib/auth/getApiError";
 import { notifyError, notifySuccess } from "@/lib/toast";
 import { useCallback, useEffect, useState } from "react";
 import { Tooltip as ReactTooltip } from "react-tooltip";
+import { DashboardTableSkeleton } from "@/components/property/dashboard/skeletons/DashboardSkeletons";
 
 const formatSearchDate = (value) => {
   if (!value) {
@@ -58,7 +59,11 @@ const SearchDataTable = () => {
   };
 
   if (isLoading) {
-    return <p className="text mb0">Loading saved searches...</p>;
+    return (
+      <div className="packages_table table-responsive">
+        <DashboardTableSkeleton rows={4} columns={3} withThumbnail={false} />
+      </div>
+    );
   }
 
   if (error) {

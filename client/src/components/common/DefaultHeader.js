@@ -1,8 +1,8 @@
 "use client";
 
 import MainMenu from "@/components/common/MainMenu";
-import SidebarPanel from "@/components/common/sidebar-panel";
 import HeaderAuthLink from "@/components/auth/HeaderAuthLink";
+import AddPropertyLink from "@/components/auth/AddPropertyLink";
 import Image from "next/image";
 import Link from "next/link";
 import React, { useEffect, useState } from "react";
@@ -66,35 +66,7 @@ const DefaultHeader = () => {
               <div className="col-auto">
                 <div className="d-flex align-items-center">
                   <HeaderAuthLink className="login-info d-flex align-items-cente" />
-                  <Link
-                    className="ud-btn btn-white add-property bdrs60 mx-2 mx-xl-4"
-                    href="/dashboard-add-property"
-                  >
-                    Add Property
-                    <i className="fal fa-arrow-right-long" />
-                  </Link>
-                  <a
-                    className="sidemenu-btn filter-btn-right"
-                    href="#"
-                    data-bs-toggle="offcanvas"
-                    data-bs-target="#SidebarPanel"
-                    aria-controls="SidebarPanelLabel"
-                  >
-                    <Image
-                      width={25}
-                      height={9}
-                      className="img-1"
-                      src="/images/dark-nav-icon.svg"
-                      alt="humberger menu"
-                    />
-                    <Image
-                      width={25}
-                      height={9}
-                      className="img-2"
-                      src="/images/dark-nav-icon.svg"
-                      alt="humberger menu"
-                    />
-                  </a>
+                  <AddPropertyLink className="ud-btn btn-white add-property bdrs60 mx-2 mx-xl-4" />
                 </div>
               </div>
               {/* End .col-auto */}
@@ -104,17 +76,6 @@ const DefaultHeader = () => {
         </nav>
       </header>
       {/* End Header */}
-
-      {/* DesktopSidebarMenu */}
-      <div
-        className="offcanvas offcanvas-end"
-        tabIndex="-1"
-        id="SidebarPanel"
-        aria-labelledby="SidebarPanelLabel"
-      >
-        <SidebarPanel />
-      </div>
-      {/* Sidebar Panel End */}
     </>
   );
 };

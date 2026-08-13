@@ -101,7 +101,7 @@ router.get(
  *   get:
  *     operationId: getAgentBookings
  *     summary: List agent's bookings
- *     description: Returns paginated visit requests assigned to the authenticated agent.
+ *     description: Returns paginated visit requests assigned to the authenticated user (owner, agent, or admin when acting as listing contact).
  *     tags: [Bookings]
  *     security:
  *       - BearerAuth: []
@@ -126,7 +126,7 @@ router.get(
  */
 router.get(
   "/agent",
-  authorize(ROLES.AGENT),
+  authorize(ROLES.SELLER, ROLES.AGENT, ROLES.ADMIN),
   validate(listBookingsSchema, "query"),
   asyncHandler(bookingController.getAgent),
 );
@@ -137,7 +137,7 @@ router.get(
  *   patch:
  *     operationId: updateBookingStatus
  *     summary: Update booking status
- *     description: Agent or admin approves, rejects, or completes a booking. Notifies the buyer.
+ *     description: Assigned listing contact (owner or agent) or admin approves, rejects, or completes a booking. Notifies the buyer.
  *     tags: [Bookings]
  *     security:
  *       - BearerAuth: []
@@ -172,7 +172,7 @@ router.get(
  */
 router.patch(
   "/:id/status",
-  authorize(ROLES.AGENT, ROLES.ADMIN),
+  authorize(ROLES.SELLER, ROLES.AGENT, ROLES.ADMIN),
   validateMultiple({
     params: bookingIdSchema,
     body: updateBookingStatusSchema,

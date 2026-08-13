@@ -1,13 +1,13 @@
 "use client";
 
 import MainMenu from "@/components/common/MainMenu";
-import SidebarPanel from "@/components/common/sidebar-panel";
 import LogoutButton from "@/components/auth/LogoutButton";
+import { getDashboardNavSections } from "@/lib/dashboard/navSections";
 import { isExternalImageSrc } from "@/lib/images/isExternalImageSrc";
 import { useAuth } from "@/providers/AuthProvider";
 import Image from "next/image";
 import Link from "next/link";
-import React, { useEffect, useState } from "react";
+import React from "react";
 import { usePathname } from "next/navigation";
 
 const DashboardHeader = () => {
@@ -15,65 +15,7 @@ const DashboardHeader = () => {
   const { user } = useAuth();
   const avatarSrc = user?.avatar?.url || "/images/resource/user.png";
 
-  const menuItems = [
-    {
-      title: "MAIN",
-      items: [
-        {
-          icon: "flaticon-discovery",
-          text: "Dashboard",
-          href: "/dashboard-home",
-        },
-        {
-          icon: "flaticon-chat-1",
-          text: "Message",
-          href: "/dashboard-message",
-        },
-      ],
-    },
-    {
-      title: "MANAGE LISTINGS",
-      items: [
-        {
-          icon: "flaticon-new-tab",
-          text: "Add New Property",
-          href: "/dashboard-add-property",
-        },
-        {
-          icon: "flaticon-home",
-          text: "My Properties",
-          href: "/dashboard-my-properties",
-        },
-        {
-          icon: "flaticon-like",
-          text: "My Favorites",
-          href: "/dashboard-my-favourites",
-        },
-        {
-          icon: "flaticon-search-2",
-          text: "Saved Search",
-          href: "/dashboard-saved-search",
-        },
-        { icon: "flaticon-review", text: "Reviews", href: "/dashboard-review" },
-      ],
-    },
-    {
-      title: "MANAGE ACCOUNT",
-      items: [
-        {
-          icon: "flaticon-protection",
-          text: "My Package",
-          href: "/dashboard-my-package",
-        },
-        {
-          icon: "flaticon-user",
-          text: "My Profile",
-          href: "/dashboard-my-profile",
-        },
-        { icon: "flaticon-exit", text: "Logout", logout: true },
-      ],
-    },
-  ];
+  const menuItems = getDashboardNavSections(user?.role);
 
   return (
     <>
@@ -94,22 +36,6 @@ const DashboardHeader = () => {
                     </Link>
                   </div>
                   {/* End Logo */}
-
-                  <a
-                    className="dashboard_sidebar_toggle_icon text-thm1 vam"
-                    href="#"
-                    data-bs-toggle="offcanvas"
-                    data-bs-target="#SidebarPanel"
-                    aria-controls="SidebarPanelLabel"
-                  >
-                    <Image
-                      width={25}
-                      height={9}
-                      className="img-1"
-                      src="/images/dark-nav-icon.svg"
-                      alt="humberger menu"
-                    />
-                  </a>
                 </div>
               </div>
               {/* End .col-auto */}
@@ -204,17 +130,6 @@ const DashboardHeader = () => {
         </nav>
       </header>
       {/* End Header */}
-
-      {/* DesktopSidebarMenu */}
-      <div
-        className="offcanvas offcanvas-end"
-        tabIndex="-1"
-        id="SidebarPanel"
-        aria-labelledby="SidebarPanelLabel"
-      >
-        <SidebarPanel />
-      </div>
-      {/* Sidebar Panel End */}
     </>
   );
 };

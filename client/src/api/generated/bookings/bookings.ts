@@ -54,7 +54,7 @@ export const getBookings = () => {
     );
   };
   /**
-   * Returns paginated visit requests assigned to the authenticated agent.
+   * Returns paginated visit requests assigned to the authenticated user (owner, agent, or admin when acting as listing contact).
    * @summary List agent's bookings
    */
   const getAgentBookings = (
@@ -67,7 +67,7 @@ export const getBookings = () => {
     );
   };
   /**
-   * Agent or admin approves, rejects, or completes a booking. Notifies the buyer.
+   * Assigned listing contact (owner or agent) or admin approves, rejects, or completes a booking. Notifies the buyer.
    * @summary Update booking status
    */
   const updateBookingStatus = (

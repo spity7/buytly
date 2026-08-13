@@ -22,21 +22,6 @@ const contactInfo = {
 const SidebarStickyBar = () => {
   return (
     <div className="home8-sidebar-wrapper d-none d-xxl-block">
-      <a
-        className="sidemenu-btn filter-btn-right mt35 d-block text-center"
-        href="#"
-        data-bs-toggle="offcanvas"
-        data-bs-target="#SidebarPanel"
-        aria-controls="SidebarPanelLabel"
-      >
-        <Image
-          width={25}
-          height={9}
-          className="contain"
-          src="/images/dark-nav-icon.svg"
-          alt="nav icon"
-        />
-      </a>
       <div className="wrapper">
         <a className="tel" href={contactInfo.telephone.url}>
           {contactInfo.telephone.number}

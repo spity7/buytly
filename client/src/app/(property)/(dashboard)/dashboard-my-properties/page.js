@@ -2,6 +2,7 @@ import Pagination from "@/components/property/Pagination";
 import FilterHeader from "../../../../components/property/dashboard/dashboard-my-properties/FilterHeader";
 import PropertyDataTable from "@/components/property/dashboard/dashboard-my-properties/PropertyDataTable";
 import DboardMobileNavigation from "@/components/property/dashboard/DboardMobileNavigation";
+import RequireListingRole from "@/components/auth/RequireListingRole";
 
 export const metadata = {
   title: "Dashboard Properties",
@@ -9,7 +10,7 @@ export const metadata = {
 
 const DashboardMyProperties = () => {
   return (
-    <>
+    <RequireListingRole>
       <div className="row pb40">
         <div className="col-lg-12">
           <DboardMobileNavigation />
@@ -41,7 +42,7 @@ const DashboardMyProperties = () => {
           </div>
         </div>
       </div>
-    </>
+    </RequireListingRole>
   );
 };
 

@@ -1,9 +1,14 @@
-import listings from "@/data/listings";
+"use client";
+
+import { usePropertySingle } from "@/providers/PropertySingleProvider";
 import React from "react";
 
+const OverView = () => {
+  const { card, property } = usePropertySingle();
+  const data = card;
 
-const OverView = ({id}) => {
-  const data = listings.filter((elm) => elm.id == id)[0] || listings[0];
+  if (!data) return null;
+
   const overviewData = [
     {
       icon: "flaticon-bed",
@@ -16,17 +21,6 @@ const OverView = ({id}) => {
       value: data.bath,
     },
     {
-      icon: "flaticon-event",
-      label: "Year Built",
-      value: data.yearBuilding,
-    },
-    {
-      icon: "flaticon-garage",
-      label: "Garage",
-      value: "2",
-      xs: true,
-    },
-    {
       icon: "flaticon-expand",
       label: "Sqft",
       value: data.sqft,
@@ -35,11 +29,15 @@ const OverView = ({id}) => {
     {
       icon: "flaticon-home-1",
       label: "Property Type",
-      value: data.propertyType,
+      value: data.type,
+    },
+    {
+      icon: "flaticon-event",
+      label: "Status",
+      value: property?.status,
     },
   ];
-  
- 
+
   return (
     <>
       {overviewData.map((item, index) => (

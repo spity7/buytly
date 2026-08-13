@@ -6,6 +6,10 @@ import LoginSignupModal from "./index";
 import { AUTH_MODAL_ID, openAuthModal } from "./authModal";
 import { useAuth } from "@/providers/AuthProvider";
 import { AUTHENTICATED_HOME } from "@/lib/auth/constants";
+import {
+  parseAuthIntentFromSearchParams,
+  setAuthIntent,
+} from "@/lib/auth/authIntent";
 
 export function AuthModalFromQuery() {
   const searchParams = useSearchParams();
@@ -26,6 +30,11 @@ export function AuthModalFromQuery() {
     if (isAuthenticated) {
       router.replace(AUTHENTICATED_HOME);
       return;
+    }
+
+    const intent = parseAuthIntentFromSearchParams(searchParams);
+    if (intent) {
+      setAuthIntent(intent);
     }
 
     router.replace(pathname, { scroll: false });

@@ -5,7 +5,7 @@ import FormContact from "@/components/property/FormContact";
 
 import ProfessionalInfo from "@/components/property/ProfessionalInfo";
 import ReviewBoxForm from "@/components/property/ReviewBoxForm";
-import ListingItemsContainer from "@/components/property/agency-single/ListingItems";
+import ListingItemsContainer from "@/components/property/agent-single/ListingItems";
 
 import SingleAgentCta from "@/components/property/agent-single/SingleAgentCta";
 import AllReviews from "@/components/property/reviews";
@@ -17,7 +17,7 @@ export const metadata = {
   title: "Agent Single",
 };
 
-const AgentSingle = async props => {
+const AgentSingle = async (props) => {
   const params = await props.params;
   return (
     <>
@@ -35,7 +35,7 @@ const AgentSingle = async props => {
           <div className="container">
             <div className="row align-items-center">
               <div className="col-xl-7">
-                <SingleAgentCta id={params.id}/>
+                <SingleAgentCta id={params.id} />
                 <div className="img-box-11 position-relative d-none d-xl-block">
                   <Image
                     width={120}
@@ -131,7 +131,7 @@ const AgentSingle = async props => {
               </div>
               {/* End .row */}
 
-              <ListingItemsContainer/>
+              <ListingItemsContainer agentId={params.id} />
               <div className="row">
                 <div className="col-lg-12">
                   <AllReviews />

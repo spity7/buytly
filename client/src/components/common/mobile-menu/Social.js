@@ -2,21 +2,11 @@ const Social = () => {
   const socialLinks = [
     {
       id: 1,
-      iconClass: "fab fa-facebook-f",
-      href: "#",
-    },
-    {
-      id: 2,
-      iconClass: "fab fa-twitter",
-      href: "#",
-    },
-    {
-      id: 3,
       iconClass: "fab fa-instagram",
       href: "#",
     },
     {
-      id: 4,
+      id: 2,
       iconClass: "fab fa-linkedin-in",
       href: "#",
     },

@@ -16,8 +16,15 @@ export const propertyController = {
     ApiResponse.paginated(res, result.properties, result.pagination);
   },
 
+  listMine: async (req, res) => {
+    const result = await propertyService.listMine(req.user, req.query);
+    ApiResponse.paginated(res, result.properties, result.pagination);
+  },
+
   getById: async (req, res) => {
-    const property = await propertyService.getById(req.params.id);
+    const property = await propertyService.getById(req.params.id, {
+      user: req.user,
+    });
     ApiResponse.success(res, property);
   },
 

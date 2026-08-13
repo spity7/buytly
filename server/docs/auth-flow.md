@@ -164,7 +164,7 @@ sequenceDiagram
 | Manage own listings   | —     | Yes    | Yes   | Yes   |
 | Favorites             | Yes   | Yes    | Yes   | Yes   |
 | Request bookings      | Yes   | —      | —     | —     |
-| Approve bookings      | —     | —      | Yes   | Yes   |
+| Approve bookings      | —     | Yes\*  | Yes   | Yes   |
 | Initiate transactions | Yes   | —      | —     | —     |
 | Approve transactions  | —     | Yes    | Yes   | Yes   |
 | Agent profile         | —     | —      | Yes   | Yes   |
@@ -172,6 +172,14 @@ sequenceDiagram
 | User management       | —     | —      | —     | Yes   |
 | Listing moderation    | —     | —      | —     | Yes   |
 | Analytics             | —     | —      | —     | Yes   |
+
+\* Seller can approve bookings when they are the assigned listing contact (`agentId` on the booking, typically the owner when no agent is set on the property).
+
+## Property visibility and moderation
+
+- Public `GET /properties` returns **active** listings only.
+- Public `GET /properties/:id` returns **404** for non-active listings unless the requester is the owner, assigned agent, or admin (optional auth).
+- Non-admin create/update requests with `status: "active"` are stored as **`pending`** until an admin moderates the listing to active.
 
 ## Security Measures
 
