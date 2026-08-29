@@ -2,17 +2,31 @@ import { User } from "../users/user.model.js";
 import { Property } from "../properties/property.model.js";
 import { Booking } from "../bookings/booking.model.js";
 import { Transaction } from "../transactions/transaction.model.js";
+import { PropertyReview } from "../property-reviews/property-review.model.js";
+import { Favorite } from "../favorites/favorite.model.js";
 import { cacheService } from "../../services/cache.service.js";
 import { AppError } from "../../shared/AppError.js";
 import {
   parsePagination,
   buildPaginationMeta,
 } from "../../shared/pagination.js";
+import { notificationService } from "../notifications/notification.service.js";
+import { NOTIFICATION_TYPES } from "../../shared/constants.js";
+import {
+  buildArchiveUpdate,
+  buildUnarchiveUpdate,
+} from "../properties/property-status.js";
 
 export const adminService = {
   async listUsers(query) {
     const { page, limit, skip } = parsePagination(query);
-    const filter = { deletedAt: null };
+    const filter = {};
+
+    if (query.deleted === "true") {
+      filter.deletedAt = { $ne: null };
+    } else if (query.deleted !== "all") {
+      filter.deletedAt = null;
+    }
 
     if (query.role) filter.role = query.role;
     if (query.isActive !== undefined)
@@ -28,8 +42,54 @@ export const adminService = {
     ]);
 
     return {
-      users: users.map((u) => u.toPublicJSON()),
+      users: users.map((u) => u.toAdminJSON()),
       pagination: buildPaginationMeta(total, page, limit),
+    };
+  },
+
+  async getUserById(userId) {
+    const user = await User.findById(userId).select("-passwordHash");
+    if (!user) throw new AppError("User not found", 404);
+
+    const uid = user._id;
+    const [
+      properties,
+      activeListings,
+      bookingsAsBuyer,
+      bookingsAsAgent,
+      transactions,
+      reviews,
+      favorites,
+    ] = await Promise.all([
+      Property.countDocuments({
+        $or: [{ ownerId: uid }, { agentId: uid }],
+        deletedAt: null,
+      }),
+      Property.countDocuments({
+        $or: [{ ownerId: uid }, { agentId: uid }],
+        deletedAt: null,
+        status: "active",
+      }),
+      Booking.countDocuments({ buyerId: uid }),
+      Booking.countDocuments({ agentId: uid }),
+      Transaction.countDocuments({
+        $or: [{ buyerId: uid }, { sellerId: uid }, { agentId: uid }],
+      }),
+      PropertyReview.countDocuments({ userId: uid }),
+      Favorite.countDocuments({ userId: uid }),
+    ]);
+
+    return {
+      user: user.toAdminJSON(),
+      relatedCounts: {
+        properties,
+        activeListings,
+        bookingsAsBuyer,
+        bookingsAsAgent,
+        transactions,
+        reviews,
+        favorites,
+      },
     };
   },
 
@@ -57,8 +117,14 @@ export const adminService = {
 
   async listProperties(query) {
     const { page, limit, skip } = parsePagination(query);
-    const filter = { deletedAt: null };
-    if (query.status) filter.status = query.status;
+    const filter = {};
+
+    if (query.status === "archived") {
+      filter.status = "archived";
+    } else {
+      filter.deletedAt = null;
+      if (query.status) filter.status = query.status;
+    }
 
     const [properties, total] = await Promise.all([
       Property.find(filter)
@@ -74,14 +140,52 @@ export const adminService = {
   },
 
   async moderateProperty(propertyId, status) {
-    const property = await Property.findOneAndUpdate(
-      { _id: propertyId, deletedAt: null },
-      { status },
-      { new: true },
-    );
+    const existing = await Property.findById(propertyId);
+    if (!existing) throw new AppError("Property not found", 404);
+
+    const update =
+      status === "archived"
+        ? buildArchiveUpdate()
+        : buildUnarchiveUpdate(status);
+
+    const property = await Property.findByIdAndUpdate(propertyId, update, {
+      new: true,
+    }).populate("ownerId", "firstName lastName email");
 
     if (!property) throw new AppError("Property not found", 404);
     await cacheService.invalidateProperties();
+
+    const statusMessages = {
+      active: "Your listing has been approved and is now live.",
+      draft: "Your listing was returned for edits.",
+      archived: "Your listing has been archived.",
+      pending: "Your listing is still under review.",
+      sold: "Your listing was marked as sold.",
+      rented: "Your listing was marked as rented.",
+    };
+
+    notificationService
+      .notify({
+        userId: property.ownerId._id,
+        type: NOTIFICATION_TYPES.PROPERTY,
+        title: `Listing status: ${status}`,
+        message:
+          statusMessages[status] ||
+          `Your listing "${property.title}" is now ${status}.`,
+        data: { propertyId: property._id, status },
+        sendEmail: true,
+        emailTemplate: "generic",
+        emailData: {
+          title: `Listing status: ${status}`,
+          message:
+            statusMessages[status] ||
+            `Your listing "${property.title}" is now ${status}.`,
+        },
+      })
+      .catch((err) =>
+        console.error("Property moderation notification failed:", err.message),
+      );
+
     return property;
   },
 

@@ -4,9 +4,9 @@ import { buytlyApi } from "@/api/generated";
 import { UserPreferencesPropertyTypesItem } from "@/api/generated/buytly.schemas";
 import DashboardFormSubmit from "@/components/property/dashboard/dashboard-profile/DashboardFormSubmit";
 import ProfileFormSkeleton from "@/components/property/dashboard/dashboard-profile/ProfileFormSkeleton";
-import { getApiError } from "@/lib/auth/getApiError";
 import { hasFormChanges } from "@/lib/form/hasFormChanges";
-import { notifyError, notifySuccess } from "@/lib/toast";
+import { useAsyncAction } from "@/hooks/useAsyncAction";
+import { notifyError } from "@/lib/toast";
 import { useAuth } from "@/providers/AuthProvider";
 import { useEffect, useMemo, useState } from "react";
 
@@ -36,7 +36,7 @@ const PreferencesForm = () => {
   const { user, refreshUser, isLoading } = useAuth();
   const [form, setForm] = useState(emptyForm);
   const [baseline, setBaseline] = useState(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { run, isBusy } = useAsyncAction();
 
   useEffect(() => {
     if (!user) {
@@ -71,7 +71,6 @@ const PreferencesForm = () => {
 
   const handleSubmit = async (event) => {
     event.preventDefault();
-    setIsSubmitting(true);
 
     const budgetMin = form.budgetMin.trim();
     const budgetMax = form.budgetMax.trim();
@@ -82,23 +81,25 @@ const PreferencesForm = () => {
 
     if (budgetMin && budgetMax && Number(budgetMin) > Number(budgetMax)) {
       notifyError("Minimum budget cannot exceed maximum budget.");
-      setIsSubmitting(false);
       return;
     }
 
     try {
-      await buytlyApi.updateUserPreferences({
-        budgetMin: budgetMin ? Number(budgetMin) : undefined,
-        budgetMax: budgetMax ? Number(budgetMax) : undefined,
-        locations,
-        propertyTypes: form.propertyTypes,
+      await run({
+        message: "Saving preferences...",
+        successMessage: "Search preferences updated",
+        task: async () => {
+          await buytlyApi.updateUserPreferences({
+            budgetMin: budgetMin ? Number(budgetMin) : undefined,
+            budgetMax: budgetMax ? Number(budgetMax) : undefined,
+            locations,
+            propertyTypes: form.propertyTypes,
+          });
+          await refreshUser();
+        },
       });
-      await refreshUser();
-      notifySuccess("Search preferences updated.");
-    } catch (err) {
-      notifyError(getApiError(err));
-    } finally {
-      setIsSubmitting(false);
+    } catch {
+      // Toast handled by useAsyncAction
     }
   };
 
@@ -171,7 +172,7 @@ const PreferencesForm = () => {
                     type="checkbox"
                     checked={form.propertyTypes.includes(type)}
                     onChange={() => togglePropertyType(type)}
-                    disabled={isSubmitting}
+                    disabled={isBusy}
                   />
                   <span>{type.charAt(0).toUpperCase() + type.slice(1)}</span>
                 </label>
@@ -183,7 +184,7 @@ const PreferencesForm = () => {
         <div className="col-md-12">
           <DashboardFormSubmit
             isDirty={isDirty}
-            isSubmitting={isSubmitting}
+            isSubmitting={isBusy}
             idleLabel="Update preferences"
             submittingLabel="Saving..."
           />

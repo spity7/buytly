@@ -10,6 +10,7 @@ const ConfirmDialog = ({
   cancelLabel = "Cancel",
   confirmVariant = "default",
   isConfirming = false,
+  confirmingLabel = "Working...",
   onClose,
   onConfirm,
 }) => {
@@ -113,7 +114,7 @@ const ConfirmDialog = ({
               onClick={handleConfirm}
               disabled={isConfirming}
             >
-              {isConfirming ? "Removing..." : confirmLabel}
+              {isConfirming ? confirmingLabel : confirmLabel}
             </button>
           </div>
         </div>

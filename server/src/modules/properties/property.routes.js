@@ -16,6 +16,7 @@ import {
   propertyIdSchema,
   mediaIdSchema,
 } from "./property.validation.js";
+import propertyReviewRoutes from "../property-reviews/property-review.routes.js";
 
 const router = Router();
 
@@ -51,7 +52,9 @@ const router = Router();
  *       - in: query
  *         name: status
  *         schema:
- *           $ref: '#/components/schemas/PropertyStatus'
+ *           type: string
+ *           enum: [active, sold, rented]
+ *         description: Defaults to active. Draft, pending, and archived are not exposed on the public list.
  *       - in: query
  *         name: city
  *         schema:
@@ -138,6 +141,12 @@ router.get(
  *         schema:
  *           type: string
  *           enum: [asc, desc]
+ *       - in: query
+ *         name: trashed
+ *         schema:
+ *           type: string
+ *           enum: [true, false]
+ *         description: When true, returns soft-deleted listings in trash.
  *     responses:
  *       200:
  *         description: Paginated property list
@@ -157,6 +166,8 @@ router.get(
   validate(listMyPropertiesSchema, "query"),
   asyncHandler(propertyController.listMine),
 );
+
+router.use("/:id/reviews", propertyReviewRoutes);
 
 /**
  * @swagger
@@ -300,6 +311,40 @@ router.delete(
 
 /**
  * @swagger
+ * /properties/{id}/restore:
+ *   patch:
+ *     operationId: restoreProperty
+ *     summary: Restore a soft-deleted property
+ *     description: Clears deletedAt and sets status to draft. Owner, assigned agent, or admin only.
+ *     tags: [Properties]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - $ref: '#/components/parameters/ObjectIdParam'
+ *     responses:
+ *       200:
+ *         description: Property restored
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/PropertySuccessResponse'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ */
+router.patch(
+  "/:id/restore",
+  authenticate,
+  authorize(ROLES.SELLER, ROLES.AGENT, ROLES.ADMIN),
+  validateMultiple({ params: propertyIdSchema }),
+  asyncHandler(propertyController.restore),
+);
+
+/**
+ * @swagger
  * /properties/{id}/media:
  *   post:
  *     operationId: uploadPropertyMedia
@@ -388,6 +433,58 @@ router.delete(
   authorize(ROLES.SELLER, ROLES.AGENT, ROLES.ADMIN),
   validateMultiple({ params: mediaIdSchema }),
   asyncHandler(propertyController.removeMedia),
+);
+
+/**
+ * @swagger
+ * /properties/{id}/floor-plans/image:
+ *   post:
+ *     operationId: uploadFloorPlanImage
+ *     summary: Upload floor plan image
+ *     description: Uploads a floor plan image and returns a gcsKey for use in the floorPlans array.
+ *     tags: [Properties]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - $ref: '#/components/parameters/ObjectIdParam'
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             required: [image]
+ *             properties:
+ *               image:
+ *                 type: string
+ *                 format: binary
+ *     responses:
+ *       201:
+ *         description: Floor plan image uploaded
+ *         content:
+ *           application/json:
+ *             schema:
+ *               allOf:
+ *                 - $ref: '#/components/schemas/SuccessResponse'
+ *                 - type: object
+ *                   properties:
+ *                     data:
+ *                       $ref: '#/components/schemas/FloorPlanImageUpload'
+ *       400:
+ *         $ref: '#/components/responses/ValidationError'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ */
+router.post(
+  "/:id/floor-plans/image",
+  authenticate,
+  authorize(ROLES.SELLER, ROLES.AGENT, ROLES.ADMIN),
+  validateMultiple({ params: propertyIdSchema }),
+  ...propertyController.uploadFloorPlanImage,
 );
 
 export default router;

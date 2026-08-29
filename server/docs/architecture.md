@@ -78,7 +78,7 @@ Agent → PATCH /bookings/:id/status → Status update → Notification to buyer
 
 ```
 Buyer → POST /transactions → Property validation → Transaction created → Notify seller/agent
-Seller/Agent → PATCH status → On complete, property status updated to sold/rented
+Seller/Agent → PATCH status → On complete, property status updated to sold/rented; property list cache invalidated
 ```
 
 ## Scalability Considerations

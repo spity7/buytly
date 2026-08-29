@@ -1262,23 +1262,90 @@ section[aria-label^="Notifications"] {
     }
 }
 
-.google-auth-button__container {
-    display: flex;
-    justify-content: center;
-    width: 100%;
+.google-auth-button {
+    &__btn {
+        position: relative;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 12px;
+        width: 100%;
+        min-height: 48px;
+        padding-inline: 24px;
+        cursor: pointer;
+        user-select: none;
+        transition:
+            background-color 0.2s ease,
+            border-color 0.2s ease,
+            box-shadow 0.2s ease,
+            opacity 0.2s ease;
 
-    > div {
-        width: 100% !important;
+        &:focus-within {
+            box-shadow: 0 0 0 3px rgba(66, 133, 244, 0.25);
+        }
     }
 
-    [role="button"] {
-        width: 100% !important;
-        max-width: 100%;
+    &__icon {
+        width: 20px;
+        height: 20px;
+        flex-shrink: 0;
+    }
+
+    &__label {
+        font-size: 15px;
+        font-weight: 500;
+        line-height: 1.2;
+        color: #1f1f1f;
+        white-space: nowrap;
+    }
+
+    &__overlay {
+        position: absolute;
+        inset: 0;
+        z-index: 1;
+        overflow: hidden;
+        opacity: 0;
+        border-radius: inherit;
+
+        > div {
+            width: 100% !important;
+            height: 100% !important;
+        }
+
+        [role="button"] {
+            width: 100% !important;
+            height: 100% !important;
+            min-height: 100%;
+            cursor: pointer;
+        }
     }
 
     &.is-disabled {
-        opacity: 0.6;
-        pointer-events: none;
+        .google-auth-button__btn {
+            opacity: 0.72;
+            cursor: not-allowed;
+        }
+
+        .google-auth-button__overlay {
+            pointer-events: none;
+        }
+    }
+}
+
+.auth-divider {
+    margin-top: 4px;
+
+    .hr_top_text {
+        font-size: 13px;
+        font-weight: 600;
+        letter-spacing: 0.08em;
+        color: #6b7280;
+        width: 48px;
+    }
+
+    hr {
+        border-color: #e5e7eb;
+        opacity: 1;
     }
 }
 
@@ -1344,4 +1411,80 @@ section[aria-label^="Notifications"] {
     border-radius: 4px;
     background: currentColor;
     opacity: 0.2;
+}
+
+// Dashboard — floor plan editor cards
+.floor-plan-card {
+    background-color: #fafafa;
+    border-color: #e4e6eb !important;
+}
+
+.floor-plan-remove-btn {
+    border: 1px solid #f1416c;
+    background-color: #fff5f8;
+    color: #f1416c;
+    font-weight: 600;
+    transition:
+        background-color 0.2s ease,
+        color 0.2s ease,
+        border-color 0.2s ease;
+
+    &:hover {
+        background-color: #f1416c;
+        border-color: #f1416c;
+        color: #ffffff;
+    }
+}
+
+.pending-style.style4 {
+    background-color: #eefaf3;
+    color: #1a7f4b;
+}
+
+.pending-style.style5 {
+    background-color: #f3f4f6;
+    color: #6b7280;
+}
+
+.property-status-banner,
+.property-form-status-banner {
+    border-radius: 12px;
+    padding: 16px 20px;
+
+    p {
+        font-size: 14px;
+        opacity: 0.9;
+    }
+}
+
+.property-status-banner--pending,
+.property-status-banner--draft,
+.property-form-status-banner--pending,
+.property-form-status-banner--draft {
+    background: #fff8dd;
+    border: 1px solid #f0d48a;
+    color: #9a6200;
+}
+
+.property-status-banner--active,
+.property-form-status-banner--active {
+    background: #e5f0fd;
+    border: 1px solid #b8ccf5;
+    color: #3554d1;
+}
+
+.property-status-banner--sold,
+.property-status-banner--rented,
+.property-form-status-banner--sold,
+.property-form-status-banner--rented {
+    background: #eefaf3;
+    border: 1px solid #c6ebd4;
+    color: #1a7f4b;
+}
+
+.property-status-banner--archived,
+.property-form-status-banner--archived {
+    background: #f3f4f6;
+    border: 1px solid #d1d5db;
+    color: #6b7280;
 }

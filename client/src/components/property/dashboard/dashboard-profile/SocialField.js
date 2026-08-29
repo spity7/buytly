@@ -3,10 +3,9 @@
 import { buytlyApi } from "@/api/generated";
 import DashboardFormSubmit from "@/components/property/dashboard/dashboard-profile/DashboardFormSubmit";
 import ProfileFormSkeleton from "@/components/property/dashboard/dashboard-profile/ProfileFormSkeleton";
-import { getApiError } from "@/lib/auth/getApiError";
 import { hasFormChanges } from "@/lib/form/hasFormChanges";
 import { normalizeWebsiteUrl } from "@/lib/url/normalizeWebsite";
-import { notifyError, notifySuccess } from "@/lib/toast";
+import { useAsyncAction } from "@/hooks/useAsyncAction";
 import { useAuth } from "@/providers/AuthProvider";
 import { useEffect, useMemo, useState } from "react";
 
@@ -26,7 +25,7 @@ const SocialField = () => {
   const { user, refreshUser, isLoading } = useAuth();
   const [form, setForm] = useState(emptyForm);
   const [baseline, setBaseline] = useState(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { run, isBusy } = useAsyncAction();
 
   useEffect(() => {
     if (!user) {
@@ -49,20 +48,22 @@ const SocialField = () => {
 
   const handleSubmit = async (event) => {
     event.preventDefault();
-    setIsSubmitting(true);
 
     try {
-      await buytlyApi.updateUserSocialLinks({
-        instagram: form.instagram.trim(),
-        linkedin: form.linkedin.trim(),
-        website: normalizeWebsiteUrl(form.website),
+      await run({
+        message: "Saving social links...",
+        successMessage: "Social links updated",
+        task: async () => {
+          await buytlyApi.updateUserSocialLinks({
+            instagram: form.instagram.trim(),
+            linkedin: form.linkedin.trim(),
+            website: normalizeWebsiteUrl(form.website),
+          });
+          await refreshUser();
+        },
       });
-      await refreshUser();
-      notifySuccess("Social links updated.");
-    } catch (err) {
-      notifyError(getApiError(err));
-    } finally {
-      setIsSubmitting(false);
+    } catch {
+      // Toast handled by useAsyncAction
     }
   };
 
@@ -127,7 +128,7 @@ const SocialField = () => {
         <div className="col-md-12">
           <DashboardFormSubmit
             isDirty={isDirty}
-            isSubmitting={isSubmitting}
+            isSubmitting={isBusy}
             idleLabel="Update social links"
             submittingLabel="Saving..."
           />

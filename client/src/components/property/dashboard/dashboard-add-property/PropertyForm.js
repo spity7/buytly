@@ -2,10 +2,19 @@
 
 import { buytlyApi } from "@/api/generated";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
-import DashboardFormSubmit from "@/components/property/dashboard/dashboard-profile/DashboardFormSubmit";
+import AsyncActionOverlay from "@/components/common/AsyncActionOverlay";
 import { DashboardFormSkeleton } from "@/components/property/dashboard/skeletons/DashboardSkeletons";
+import { useConfirmAction } from "@/hooks/useConfirmAction";
 import { getApiError } from "@/lib/auth/getApiError";
-import { notifyError, notifySuccess } from "@/lib/toast";
+import {
+  propertyMediaDeleteConfirmation,
+  propertyPublishConfirmation,
+} from "@/lib/confirmations";
+import { notifyError } from "@/lib/toast";
+import {
+  getStatusLabel,
+  isPropertyTerminal,
+} from "@/lib/properties/mapProperty";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -35,6 +44,19 @@ const AMENITY_OPTIONS = [
   "WiFi",
 ];
 
+const emptyFloorPlan = () => ({
+  title: "",
+  area: "",
+  areaUnit: "sqm",
+  bedrooms: "",
+  bathrooms: "",
+  price: "",
+  gcsKey: "",
+  url: "",
+  imageFile: null,
+  imageName: "",
+});
+
 const emptyForm = {
   title: "",
   description: "",
@@ -52,6 +74,8 @@ const emptyForm = {
   area: "",
   status: "draft",
   amenities: [],
+  virtualTourUrl: "",
+  floorPlans: [],
 };
 
 function buildFormFromProperty(property) {
@@ -74,6 +98,19 @@ function buildFormFromProperty(property) {
     area: property.area?.toString() || "",
     status: property.status || "draft",
     amenities: property.amenities || [],
+    virtualTourUrl: property.virtualTourUrl || "",
+    floorPlans: (property.floorPlans || []).map((plan) => ({
+      title: plan.title || "",
+      area: plan.area?.toString() || "",
+      areaUnit: plan.areaUnit || "sqm",
+      bedrooms: plan.bedrooms?.toString() || "",
+      bathrooms: plan.bathrooms?.toString() || "",
+      price: plan.price?.toString() || "",
+      gcsKey: plan.gcsKey || "",
+      url: plan.url || "",
+      imageFile: null,
+      imageName: plan.title ? `${plan.title} plan` : "Floor plan image",
+    })),
   };
 }
 
@@ -86,12 +123,67 @@ function formsEqual(a, b) {
       const sortedB = [...b.amenities].sort().join("|");
       return sortedA === sortedB;
     }
+    if (key === "floorPlans") {
+      return JSON.stringify(a.floorPlans) === JSON.stringify(b.floorPlans);
+    }
     return a[key] === b[key];
   });
 }
 
+async function resolveFloorPlans(savedId, floorPlans) {
+  const resolved = [];
+
+  for (const plan of floorPlans) {
+    if (!plan.title?.trim()) continue;
+
+    const entry = {
+      title: plan.title.trim(),
+      area: plan.area ? Number(plan.area) : undefined,
+      areaUnit: plan.areaUnit || "sqm",
+      bedrooms: plan.bedrooms ? Number(plan.bedrooms) : undefined,
+      bathrooms: plan.bathrooms ? Number(plan.bathrooms) : undefined,
+      price: plan.price ? Number(plan.price) : undefined,
+      gcsKey: plan.gcsKey || undefined,
+    };
+
+    if (plan.imageFile) {
+      const upload = await buytlyApi.uploadFloorPlanImage(savedId, {
+        image: plan.imageFile,
+      });
+      entry.gcsKey = upload.data?.gcsKey;
+    }
+
+    resolved.push(entry);
+  }
+
+  return resolved;
+}
+
 function isVideoFile(file) {
   return file.type.startsWith("video/");
+}
+
+function getSubmitLoadingMessage(isEdit, submitMode) {
+  if (isEdit) {
+    if (submitMode === "save") return "Saving changes...";
+    if (submitMode === "draft") return "Saving draft...";
+    return "Submitting listing for review...";
+  }
+  if (submitMode === "draft") return "Saving draft...";
+  return "Publishing listing...";
+}
+
+function getSubmitSuccessMessage(isEdit, submitMode, status) {
+  if (isEdit) {
+    if (status === "pending" && submitMode === "review") {
+      return "Property submitted for review";
+    }
+    return "Property updated";
+  }
+  if (status === "pending") {
+    return "Property submitted for review";
+  }
+  return "Property saved as draft";
 }
 
 export default function PropertyForm({ propertyId }) {
@@ -102,17 +194,22 @@ export default function PropertyForm({ propertyId }) {
   const [existingMedia, setExistingMedia] = useState([]);
   const [mediaFiles, setMediaFiles] = useState([]);
   const [mediaPreviews, setMediaPreviews] = useState([]);
-  const [mediaPendingDelete, setMediaPendingDelete] = useState(null);
-  const [deletingMediaId, setDeletingMediaId] = useState(null);
   const [isLoading, setIsLoading] = useState(isEdit);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { requestConfirm, run, isLocked, overlayMessage, dialogProps } =
+    useConfirmAction({ overlay: true });
+  const submitModeRef = useRef("review");
+  const [propertyStatus, setPropertyStatus] = useState(null);
   const mediaPreviewsRef = useRef(mediaPreviews);
   mediaPreviewsRef.current = mediaPreviews;
 
   const hasChanges = useMemo(() => {
     const baseline = isEdit ? baselineForm : emptyForm;
     if (!baseline) return false;
-    return !formsEqual(form, baseline) || mediaFiles.length > 0;
+    return (
+      !formsEqual(form, baseline) ||
+      mediaFiles.length > 0 ||
+      form.floorPlans.some((plan) => plan.imageFile)
+    );
   }, [baselineForm, form, isEdit, mediaFiles.length]);
 
   useEffect(() => {
@@ -128,6 +225,7 @@ export default function PropertyForm({ propertyId }) {
           const loadedForm = buildFormFromProperty(response.data);
           setForm(loadedForm);
           setBaselineForm(loadedForm);
+          setPropertyStatus(response.data?.status || null);
           setExistingMedia(response.data?.media || []);
         }
       } catch (error) {
@@ -166,6 +264,71 @@ export default function PropertyForm({ propertyId }) {
     }));
   };
 
+  const addFloorPlan = () => {
+    setForm((prev) => ({
+      ...prev,
+      floorPlans: [...prev.floorPlans, emptyFloorPlan()],
+    }));
+  };
+
+  const updateFloorPlan = (index, field, value) => {
+    setForm((prev) => ({
+      ...prev,
+      floorPlans: prev.floorPlans.map((plan, planIndex) =>
+        planIndex === index ? { ...plan, [field]: value } : plan,
+      ),
+    }));
+  };
+
+  const removeFloorPlan = (index) => {
+    setForm((prev) => {
+      const plan = prev.floorPlans[index];
+      if (plan?.url?.startsWith("blob:")) {
+        URL.revokeObjectURL(plan.url);
+      }
+      return {
+        ...prev,
+        floorPlans: prev.floorPlans.filter(
+          (_, planIndex) => planIndex !== index,
+        ),
+      };
+    });
+  };
+
+  const clearFloorPlanImage = (index) => {
+    setForm((prev) => ({
+      ...prev,
+      floorPlans: prev.floorPlans.map((plan, planIndex) => {
+        if (planIndex !== index) return plan;
+        if (plan.url?.startsWith("blob:")) {
+          URL.revokeObjectURL(plan.url);
+        }
+        return { ...plan, url: "", imageFile: null, gcsKey: "", imageName: "" };
+      }),
+    }));
+  };
+
+  const handleFloorPlanImage = (index, fileList) => {
+    const file = fileList?.[0];
+    if (!file) return;
+
+    setForm((prev) => ({
+      ...prev,
+      floorPlans: prev.floorPlans.map((plan, planIndex) => {
+        if (planIndex !== index) return plan;
+        if (plan.url?.startsWith("blob:")) {
+          URL.revokeObjectURL(plan.url);
+        }
+        return {
+          ...plan,
+          imageFile: file,
+          imageName: file.name,
+          url: URL.createObjectURL(file),
+        };
+      }),
+    }));
+  };
+
   const handleMediaSelect = useCallback((fileList) => {
     const files = Array.from(fileList || []);
     if (!files.length) return;
@@ -193,491 +356,778 @@ export default function PropertyForm({ propertyId }) {
     setMediaFiles((prev) => prev.filter((_, itemIndex) => itemIndex !== index));
   }, []);
 
-  const handleDeleteExistingMedia = async () => {
-    if (!mediaPendingDelete?._id || !propertyId) return;
+  const promptDeleteMedia = (item) => {
+    if (!item?._id || !propertyId) return;
 
-    setDeletingMediaId(mediaPendingDelete._id);
-    try {
-      await buytlyApi.deletePropertyMedia(propertyId, mediaPendingDelete._id);
-      setExistingMedia((prev) =>
-        prev.filter((item) => item._id !== mediaPendingDelete._id),
-      );
-      notifySuccess("Media removed");
-      setMediaPendingDelete(null);
-    } catch (error) {
-      notifyError(getApiError(error));
-    } finally {
-      setDeletingMediaId(null);
-    }
+    requestConfirm({
+      ...propertyMediaDeleteConfirmation(),
+      action: {
+        message: "Removing media...",
+        successMessage: "Media removed",
+        task: async () => {
+          await buytlyApi.deletePropertyMedia(propertyId, item._id);
+          setExistingMedia((prev) =>
+            prev.filter((media) => media._id !== item._id),
+          );
+        },
+      },
+    });
   };
 
-  const buildPayload = () => ({
-    title: form.title.trim(),
-    description: form.description.trim(),
-    type: form.type,
-    listingType: form.listingType,
-    price: Number(form.price),
-    currency: form.currency,
-    location: {
-      coordinates: [Number(form.longitude), Number(form.latitude)],
-      address: form.address.trim(),
-      city: form.city.trim(),
-      country: form.country.trim(),
-    },
-    bedrooms: form.bedrooms ? Number(form.bedrooms) : undefined,
-    bathrooms: form.bathrooms ? Number(form.bathrooms) : undefined,
-    area: form.area ? Number(form.area) : undefined,
-    amenities: form.amenities,
-    status: form.status,
-  });
+  const executeSubmit = async (submitMode, { setProgress }) => {
+    const payload = buildPayload(submitMode);
+    let savedId = propertyId;
+    let savedStatus = propertyStatus;
+
+    if (isEdit) {
+      const response = await buytlyApi.updateProperty(propertyId, payload);
+      savedId = response.data?._id || propertyId;
+      savedStatus = response.data?.status || propertyStatus;
+      setPropertyStatus(savedStatus);
+    } else {
+      const response = await buytlyApi.createProperty(payload);
+      savedId = response.data?._id;
+      savedStatus = response.data?.status;
+    }
+
+    if (savedId) {
+      const hasFloorPlans = form.floorPlans.some((plan) => plan.title?.trim());
+      if (hasFloorPlans || isEdit) {
+        setProgress("Saving floor plans...");
+        const floorPlans = await resolveFloorPlans(savedId, form.floorPlans);
+        if (floorPlans.length || isEdit) {
+          await buytlyApi.updateProperty(savedId, { floorPlans });
+        }
+      }
+    }
+
+    if (mediaFiles.length && savedId) {
+      setProgress("Uploading photos and videos...");
+      for (const file of mediaFiles) {
+        await buytlyApi.uploadPropertyMedia(savedId, { media: file });
+      }
+    }
+
+    setBaselineForm(form);
+    router.push("/dashboard-my-properties");
+    return { savedStatus };
+  };
+
+  const buildPayload = (submitMode = "review") => {
+    const payload = {
+      title: form.title.trim(),
+      description: form.description.trim(),
+      type: form.type,
+      listingType: form.listingType,
+      price: Number(form.price),
+      currency: form.currency,
+      location: {
+        coordinates: [Number(form.longitude), Number(form.latitude)],
+        address: form.address.trim(),
+        city: form.city.trim(),
+        country: form.country.trim(),
+      },
+      bedrooms: form.bedrooms ? Number(form.bedrooms) : undefined,
+      bathrooms: form.bathrooms ? Number(form.bathrooms) : undefined,
+      area: form.area ? Number(form.area) : undefined,
+      amenities: form.amenities,
+      virtualTourUrl: form.virtualTourUrl.trim() || undefined,
+    };
+
+    if (submitMode === "draft") {
+      payload.status = "draft";
+    } else if (submitMode === "review") {
+      payload.status = "active";
+    }
+    // submitMode "save" omits status so active listings stay active
+
+    return payload;
+  };
 
   const handleSubmit = async (event) => {
     event.preventDefault();
-    setIsSubmitting(true);
+    const submitMode = submitModeRef.current;
+    const loadingMessage = getSubmitLoadingMessage(isEdit, submitMode);
+
+    if (submitMode === "review") {
+      requestConfirm({
+        ...propertyPublishConfirmation(isEdit),
+        action: {
+          message: loadingMessage,
+          successMessage: (result) =>
+            getSubmitSuccessMessage(isEdit, submitMode, result.savedStatus),
+          task: ({ setProgress }) => executeSubmit(submitMode, { setProgress }),
+        },
+      });
+      return;
+    }
 
     try {
-      const payload = buildPayload();
-      let savedId = propertyId;
-
-      if (isEdit) {
-        await buytlyApi.updateProperty(propertyId, payload);
-        notifySuccess("Property updated");
-        setBaselineForm(form);
-      } else {
-        const response = await buytlyApi.createProperty(payload);
-        savedId = response.data?._id;
-        notifySuccess("Property created");
-      }
-
-      if (mediaFiles.length && savedId) {
-        for (const file of mediaFiles) {
-          await buytlyApi.uploadPropertyMedia(savedId, { media: file });
-        }
-      }
-
-      router.push("/dashboard-my-properties");
-    } catch (error) {
-      notifyError(getApiError(error));
-    } finally {
-      setIsSubmitting(false);
+      await run({
+        message: loadingMessage,
+        successMessage: (result) =>
+          getSubmitSuccessMessage(isEdit, submitMode, result.savedStatus),
+        task: ({ setProgress }) => executeSubmit(submitMode, { setProgress }),
+      });
+    } catch {
+      // Toast handled by useConfirmAction
     }
   };
+
+  const formBusy = isLocked;
 
   if (isLoading) {
     return <DashboardFormSkeleton rows={10} />;
   }
 
+  const isTerminal = isPropertyTerminal(propertyStatus);
+  const statusLabel = propertyStatus ? getStatusLabel(propertyStatus) : null;
+
   return (
     <form className="form-style1 p30" onSubmit={handleSubmit}>
-      <div className="row">
-        <div className="col-sm-12">
-          <div className="mb20">
-            <label className="heading-color ff-heading fw600 mb10">Title</label>
-            <input
-              type="text"
-              className="form-control"
-              placeholder="e.g. Modern 3-bedroom apartment in downtown"
-              value={form.title}
-              onChange={(e) => updateField("title", e.target.value)}
-              required
-              minLength={3}
-            />
+      {isEdit && propertyStatus && (
+        <div
+          className={`property-form-status-banner property-form-status-banner--${propertyStatus} mb20`}
+        >
+          <strong>Current status:</strong> {statusLabel}
+          {propertyStatus === "pending" && (
+            <p className="mb0 mt5 text">
+              Your listing is awaiting admin approval before it appears
+              publicly.
+            </p>
+          )}
+          {propertyStatus === "active" && (
+            <p className="mb0 mt5 text">
+              Use &quot;Save changes&quot; for minor edits. Changing price,
+              description, location, or media on a live listing sends it back
+              for review. Use &quot;Submit for review&quot; to re-approve
+              explicitly.
+            </p>
+          )}
+          {isTerminal && (
+            <p className="mb0 mt5 text">
+              This listing is closed and can no longer be edited.
+            </p>
+          )}
+        </div>
+      )}
+
+      <fieldset
+        disabled={isTerminal || formBusy}
+        style={{ border: "none", padding: 0, margin: 0 }}
+      >
+        <div className="row">
+          <div className="col-sm-12">
+            <div className="mb20">
+              <label className="heading-color ff-heading fw600 mb10">
+                Title
+              </label>
+              <input
+                type="text"
+                className="form-control"
+                placeholder="e.g. Modern 3-bedroom apartment in downtown"
+                value={form.title}
+                onChange={(e) => updateField("title", e.target.value)}
+                required
+                minLength={3}
+              />
+            </div>
           </div>
-        </div>
 
-        <div className="col-sm-12">
-          <div className="mb20">
-            <label className="heading-color ff-heading fw600 mb10">
-              Description
-            </label>
-            <textarea
-              cols={30}
-              rows={5}
-              className="form-control"
-              placeholder="Describe the property, key features, neighborhood, and anything buyers should know."
-              value={form.description}
-              onChange={(e) => updateField("description", e.target.value)}
-              required
-              minLength={10}
-            />
+          <div className="col-sm-12">
+            <div className="mb20">
+              <label className="heading-color ff-heading fw600 mb10">
+                Description
+              </label>
+              <textarea
+                cols={30}
+                rows={5}
+                className="form-control"
+                placeholder="Describe the property, key features, neighborhood, and anything buyers should know."
+                value={form.description}
+                onChange={(e) => updateField("description", e.target.value)}
+                required
+                minLength={10}
+              />
+            </div>
           </div>
-        </div>
 
-        <div className="col-sm-6 col-xl-4">
-          <div className="mb20">
-            <label className="heading-color ff-heading fw600 mb10">Type</label>
-            <select
-              className="form-control"
-              value={form.type}
-              onChange={(e) => updateField("type", e.target.value)}
-              required
-            >
-              {PROPERTY_TYPES.map((type) => (
-                <option key={type} value={type}>
-                  {type}
-                </option>
-              ))}
-            </select>
+          <div className="col-sm-6 col-xl-4">
+            <div className="mb20">
+              <label className="heading-color ff-heading fw600 mb10">
+                Type
+              </label>
+              <select
+                className="form-control"
+                value={form.type}
+                onChange={(e) => updateField("type", e.target.value)}
+                required
+              >
+                {PROPERTY_TYPES.map((type) => (
+                  <option key={type} value={type}>
+                    {type}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
-        </div>
 
-        <div className="col-sm-6 col-xl-4">
-          <div className="mb20">
-            <label className="heading-color ff-heading fw600 mb10">
-              Listing Type
-            </label>
-            <select
-              className="form-control"
-              value={form.listingType}
-              onChange={(e) => updateField("listingType", e.target.value)}
-              required
-            >
-              <option value="sale">For Sale</option>
-              <option value="rent">For Rent</option>
-            </select>
+          <div className="col-sm-6 col-xl-4">
+            <div className="mb20">
+              <label className="heading-color ff-heading fw600 mb10">
+                Listing Type
+              </label>
+              <select
+                className="form-control"
+                value={form.listingType}
+                onChange={(e) => updateField("listingType", e.target.value)}
+                required
+              >
+                <option value="sale">For Sale</option>
+                <option value="rent">For Rent</option>
+              </select>
+            </div>
           </div>
-        </div>
 
-        <div className="col-sm-6 col-xl-4">
-          <div className="mb20">
-            <label className="heading-color ff-heading fw600 mb10">
-              Status
-            </label>
-            <select
-              className="form-control"
-              value={form.status}
-              onChange={(e) => updateField("status", e.target.value)}
-            >
-              <option value="draft">Draft</option>
-              <option value="active">Active</option>
-              <option value="pending">Pending</option>
-            </select>
+          <div className="col-sm-6 col-xl-4">
+            <div className="mb20">
+              <label className="heading-color ff-heading fw600 mb10">
+                Price
+              </label>
+              <input
+                type="number"
+                className="form-control"
+                placeholder="e.g. 450000"
+                value={form.price}
+                onChange={(e) => updateField("price", e.target.value)}
+                required
+                min={1}
+              />
+            </div>
           </div>
-        </div>
 
-        <div className="col-sm-6 col-xl-4">
-          <div className="mb20">
-            <label className="heading-color ff-heading fw600 mb10">Price</label>
-            <input
-              type="number"
-              className="form-control"
-              placeholder="e.g. 450000"
-              value={form.price}
-              onChange={(e) => updateField("price", e.target.value)}
-              required
-              min={1}
-            />
+          <div className="col-sm-6 col-xl-4">
+            <div className="mb20">
+              <label className="heading-color ff-heading fw600 mb10">
+                Currency
+              </label>
+              <input
+                type="text"
+                className="form-control"
+                placeholder="USD"
+                value={form.currency}
+                onChange={(e) =>
+                  updateField("currency", e.target.value.toUpperCase())
+                }
+                maxLength={3}
+                required
+              />
+            </div>
           </div>
-        </div>
 
-        <div className="col-sm-6 col-xl-4">
-          <div className="mb20">
-            <label className="heading-color ff-heading fw600 mb10">
-              Currency
-            </label>
-            <input
-              type="text"
-              className="form-control"
-              placeholder="USD"
-              value={form.currency}
-              onChange={(e) =>
-                updateField("currency", e.target.value.toUpperCase())
-              }
-              maxLength={3}
-              required
-            />
+          <div className="col-sm-6 col-xl-4">
+            <div className="mb20">
+              <label className="heading-color ff-heading fw600 mb10">
+                Bedrooms
+              </label>
+              <input
+                type="number"
+                className="form-control"
+                placeholder="e.g. 3"
+                value={form.bedrooms}
+                onChange={(e) => updateField("bedrooms", e.target.value)}
+                min={0}
+              />
+            </div>
           </div>
-        </div>
 
-        <div className="col-sm-6 col-xl-4">
-          <div className="mb20">
-            <label className="heading-color ff-heading fw600 mb10">
-              Bedrooms
-            </label>
-            <input
-              type="number"
-              className="form-control"
-              placeholder="e.g. 3"
-              value={form.bedrooms}
-              onChange={(e) => updateField("bedrooms", e.target.value)}
-              min={0}
-            />
+          <div className="col-sm-6 col-xl-4">
+            <div className="mb20">
+              <label className="heading-color ff-heading fw600 mb10">
+                Bathrooms
+              </label>
+              <input
+                type="number"
+                className="form-control"
+                placeholder="e.g. 2"
+                value={form.bathrooms}
+                onChange={(e) => updateField("bathrooms", e.target.value)}
+                min={0}
+                step="0.5"
+              />
+            </div>
           </div>
-        </div>
 
-        <div className="col-sm-6 col-xl-4">
-          <div className="mb20">
-            <label className="heading-color ff-heading fw600 mb10">
-              Bathrooms
-            </label>
-            <input
-              type="number"
-              className="form-control"
-              placeholder="e.g. 2"
-              value={form.bathrooms}
-              onChange={(e) => updateField("bathrooms", e.target.value)}
-              min={0}
-              step="0.5"
-            />
+          <div className="col-sm-6 col-xl-4">
+            <div className="mb20">
+              <label className="heading-color ff-heading fw600 mb10">
+                Area
+              </label>
+              <input
+                type="number"
+                className="form-control"
+                placeholder="e.g. 1200"
+                value={form.area}
+                onChange={(e) => updateField("area", e.target.value)}
+                min={1}
+              />
+            </div>
           </div>
-        </div>
 
-        <div className="col-sm-6 col-xl-4">
-          <div className="mb20">
-            <label className="heading-color ff-heading fw600 mb10">Area</label>
-            <input
-              type="number"
-              className="form-control"
-              placeholder="e.g. 1200"
-              value={form.area}
-              onChange={(e) => updateField("area", e.target.value)}
-              min={1}
-            />
+          <div className="col-sm-12">
+            <h4 className="fz17 mb20">Location</h4>
           </div>
-        </div>
 
-        <div className="col-sm-12">
-          <h4 className="fz17 mb20">Location</h4>
-        </div>
-
-        <div className="col-sm-12">
-          <div className="mb20">
-            <label className="heading-color ff-heading fw600 mb10">
-              Address
-            </label>
-            <input
-              type="text"
-              className="form-control"
-              placeholder="Street address, building, unit"
-              value={form.address}
-              onChange={(e) => updateField("address", e.target.value)}
-            />
+          <div className="col-sm-12">
+            <div className="mb20">
+              <label className="heading-color ff-heading fw600 mb10">
+                Address
+              </label>
+              <input
+                type="text"
+                className="form-control"
+                placeholder="Street address, building, unit"
+                value={form.address}
+                onChange={(e) => updateField("address", e.target.value)}
+              />
+            </div>
           </div>
-        </div>
 
-        <div className="col-sm-6 col-xl-4">
-          <div className="mb20">
-            <label className="heading-color ff-heading fw600 mb10">City</label>
-            <input
-              type="text"
-              className="form-control"
-              placeholder="e.g. Dubai"
-              value={form.city}
-              onChange={(e) => updateField("city", e.target.value)}
-            />
+          <div className="col-sm-6 col-xl-4">
+            <div className="mb20">
+              <label className="heading-color ff-heading fw600 mb10">
+                City
+              </label>
+              <input
+                type="text"
+                className="form-control"
+                placeholder="e.g. Dubai"
+                value={form.city}
+                onChange={(e) => updateField("city", e.target.value)}
+              />
+            </div>
           </div>
-        </div>
 
-        <div className="col-sm-6 col-xl-4">
-          <div className="mb20">
-            <label className="heading-color ff-heading fw600 mb10">
-              Country
-            </label>
-            <input
-              type="text"
-              className="form-control"
-              placeholder="e.g. United Arab Emirates"
-              value={form.country}
-              onChange={(e) => updateField("country", e.target.value)}
-            />
+          <div className="col-sm-6 col-xl-4">
+            <div className="mb20">
+              <label className="heading-color ff-heading fw600 mb10">
+                Country
+              </label>
+              <input
+                type="text"
+                className="form-control"
+                placeholder="e.g. United Arab Emirates"
+                value={form.country}
+                onChange={(e) => updateField("country", e.target.value)}
+              />
+            </div>
           </div>
-        </div>
 
-        <div className="col-sm-6 col-xl-4">
-          <div className="mb20">
-            <label className="heading-color ff-heading fw600 mb10">
-              Latitude
-            </label>
-            <input
-              type="number"
-              className="form-control"
-              placeholder="e.g. 25.2048"
-              value={form.latitude}
-              onChange={(e) => updateField("latitude", e.target.value)}
-              required
-              step="any"
-            />
+          <div className="col-sm-6 col-xl-4">
+            <div className="mb20">
+              <label className="heading-color ff-heading fw600 mb10">
+                Latitude
+              </label>
+              <input
+                type="number"
+                className="form-control"
+                placeholder="e.g. 25.2048"
+                value={form.latitude}
+                onChange={(e) => updateField("latitude", e.target.value)}
+                required
+                step="any"
+              />
+            </div>
           </div>
-        </div>
 
-        <div className="col-sm-6 col-xl-4">
-          <div className="mb20">
-            <label className="heading-color ff-heading fw600 mb10">
-              Longitude
-            </label>
-            <input
-              type="number"
-              className="form-control"
-              placeholder="e.g. 55.2708"
-              value={form.longitude}
-              onChange={(e) => updateField("longitude", e.target.value)}
-              required
-              step="any"
-            />
+          <div className="col-sm-6 col-xl-4">
+            <div className="mb20">
+              <label className="heading-color ff-heading fw600 mb10">
+                Longitude
+              </label>
+              <input
+                type="number"
+                className="form-control"
+                placeholder="e.g. 55.2708"
+                value={form.longitude}
+                onChange={(e) => updateField("longitude", e.target.value)}
+                required
+                step="any"
+              />
+            </div>
           </div>
-        </div>
 
-        <div className="col-sm-12">
-          <h4 className="fz17 mb20">Amenities</h4>
-          <div className="row">
-            {AMENITY_OPTIONS.map((amenity) => (
-              <div className="col-sm-6 col-md-4 col-lg-3" key={amenity}>
-                <label className="custom_checkbox d-block mb15">
-                  {amenity}
-                  <input
-                    type="checkbox"
-                    checked={form.amenities.includes(amenity)}
-                    onChange={() => toggleAmenity(amenity)}
-                  />
-                  <span className="checkmark" />
-                </label>
+          <div className="col-sm-12">
+            <div className="mb20">
+              <label className="heading-color ff-heading fw600 mb10">
+                360° Virtual Tour URL
+              </label>
+              <input
+                type="url"
+                className="form-control"
+                placeholder="https://my.matterport.com/show/?m=..."
+                value={form.virtualTourUrl}
+                onChange={(e) => updateField("virtualTourUrl", e.target.value)}
+              />
+            </div>
+          </div>
+
+          <div className="col-sm-12 mt20 mb20">
+            <div className="d-flex align-items-center justify-content-between mb10">
+              <h4 className="fz17 mb0">Floor Plans:</h4>
+              <button
+                type="button"
+                className="ud-btn btn-white2 btn-sm"
+                onClick={addFloorPlan}
+              >
+                Add floor plan
+              </button>
+            </div>
+
+            {form.floorPlans.map((plan, index) => (
+              <div
+                className="row floor-plan-card bdr1 bdrs12 p20 mb20"
+                key={index}
+              >
+                <div className="col-sm-6 col-xl-4">
+                  <div className="mb20">
+                    <label className="heading-color ff-heading fw600 mb10">
+                      Title
+                    </label>
+                    <input
+                      type="text"
+                      className="form-control"
+                      placeholder="e.g. First Floor, Ground Level"
+                      value={plan.title}
+                      onChange={(e) =>
+                        updateFloorPlan(index, "title", e.target.value)
+                      }
+                    />
+                  </div>
+                </div>
+                <div className="col-sm-6 col-xl-4">
+                  <div className="mb20">
+                    <label className="heading-color ff-heading fw600 mb10">
+                      Area
+                    </label>
+                    <input
+                      type="number"
+                      className="form-control"
+                      placeholder="e.g. 1200"
+                      value={plan.area}
+                      onChange={(e) =>
+                        updateFloorPlan(index, "area", e.target.value)
+                      }
+                      min={0}
+                    />
+                  </div>
+                </div>
+                <div className="col-sm-6 col-xl-4">
+                  <div className="mb20">
+                    <label className="heading-color ff-heading fw600 mb10">
+                      Bedrooms
+                    </label>
+                    <input
+                      type="number"
+                      className="form-control"
+                      placeholder="e.g. 3"
+                      value={plan.bedrooms}
+                      onChange={(e) =>
+                        updateFloorPlan(index, "bedrooms", e.target.value)
+                      }
+                      min={0}
+                    />
+                  </div>
+                </div>
+                <div className="col-sm-6 col-xl-4">
+                  <div className="mb20">
+                    <label className="heading-color ff-heading fw600 mb10">
+                      Bathrooms
+                    </label>
+                    <input
+                      type="number"
+                      className="form-control"
+                      placeholder="e.g. 2"
+                      value={plan.bathrooms}
+                      onChange={(e) =>
+                        updateFloorPlan(index, "bathrooms", e.target.value)
+                      }
+                      min={0}
+                      step="0.5"
+                    />
+                  </div>
+                </div>
+                <div className="col-sm-6 col-xl-4">
+                  <div className="mb20">
+                    <label className="heading-color ff-heading fw600 mb10">
+                      Price (optional)
+                    </label>
+                    <input
+                      type="number"
+                      className="form-control"
+                      placeholder="e.g. 350000"
+                      value={plan.price}
+                      onChange={(e) =>
+                        updateFloorPlan(index, "price", e.target.value)
+                      }
+                      min={0}
+                    />
+                  </div>
+                </div>
+                <div className="col-sm-6 col-xl-4">
+                  <div className="mb20">
+                    <label className="heading-color ff-heading fw600 mb10">
+                      Plan image
+                    </label>
+                    <input
+                      type="file"
+                      className="form-control"
+                      accept="image/*"
+                      onChange={(e) => {
+                        handleFloorPlanImage(index, e.target.files);
+                        e.target.value = "";
+                      }}
+                    />
+                  </div>
+                </div>
+                {plan.url && (
+                  <div className="col-12">
+                    <div className="row profile-box position-relative d-md-flex align-items-end mb0">
+                      <div className="col-6 col-md-4 col-lg-3">
+                        <div className="profile-img mb20 position-relative">
+                          <Image
+                            width={212}
+                            height={194}
+                            className="w-100 bdrs12 cover"
+                            src={plan.url}
+                            alt={plan.imageName || plan.title || "Floor plan"}
+                            unoptimized
+                          />
+                          <button
+                            type="button"
+                            style={{ border: "none" }}
+                            className="tag-del"
+                            title="Remove image"
+                            onClick={() => clearFloorPlanImage(index)}
+                            aria-label="Remove floor plan image"
+                          >
+                            <span className="fas fa-trash-can" />
+                          </button>
+                        </div>
+                        <p className="text fz13 mb0 text-truncate">
+                          {plan.imageName || plan.title || "Floor plan image"}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                <div className="col-12 d-flex justify-content-end pt10">
+                  <button
+                    type="button"
+                    className="ud-btn btn-sm floor-plan-remove-btn"
+                    onClick={() => removeFloorPlan(index)}
+                  >
+                    <span className="fas fa-trash-alt me-2" />
+                    Remove floor plan
+                  </button>
+                </div>
               </div>
             ))}
           </div>
-        </div>
 
-        <div className="col-sm-12">
-          <div className="mb20 mt20">
-            <label className="heading-color ff-heading fw600 mb10">
-              Upload Media
-            </label>
-            <input
-              type="file"
-              className="form-control"
-              accept="image/*,video/*"
-              multiple
-              onChange={(e) => {
-                handleMediaSelect(e.target.files);
-                e.target.value = "";
-              }}
-            />
-            <p className="text mt10 mb0">
-              Add photos or videos. New uploads will be attached when you save.
-            </p>
+          <div className="col-sm-12">
+            <h4 className="fz17 mb20">Amenities</h4>
+            <div className="row">
+              {AMENITY_OPTIONS.map((amenity) => (
+                <div className="col-sm-6 col-md-4 col-lg-3" key={amenity}>
+                  <label className="custom_checkbox d-block mb15">
+                    {amenity}
+                    <input
+                      type="checkbox"
+                      checked={form.amenities.includes(amenity)}
+                      onChange={() => toggleAmenity(amenity)}
+                    />
+                    <span className="checkmark" />
+                  </label>
+                </div>
+              ))}
+            </div>
           </div>
 
-          {existingMedia.length > 0 && (
-            <div className="mb20">
-              <p className="heading-color ff-heading fw600 mb15">
-                Current media
+          <div className="col-sm-12">
+            <div className="mb20 mt20">
+              <label className="heading-color ff-heading fw600 mb10">
+                Upload Media
+              </label>
+              <input
+                type="file"
+                className="form-control"
+                accept="image/*,video/*"
+                multiple
+                onChange={(e) => {
+                  handleMediaSelect(e.target.files);
+                  e.target.value = "";
+                }}
+              />
+              <p className="text mt10 mb0">
+                Add photos or videos. New uploads will be attached when you
+                save.
               </p>
-              <div className="row profile-box position-relative d-md-flex align-items-end mb20">
-                {existingMedia.map((item) => (
-                  <div className="col-6 col-md-4 col-lg-3" key={item._id}>
-                    <div className="profile-img mb20 position-relative">
-                      {item.type === "video" ? (
-                        <video
-                          className="w-100 bdrs12 cover"
-                          src={item.url}
-                          controls
-                          style={{ height: 194, objectFit: "cover" }}
-                        />
-                      ) : (
-                        <Image
-                          width={212}
-                          height={194}
-                          className="w-100 bdrs12 cover"
-                          src={item.url || "/images/listings/listing-1.jpg"}
-                          alt="Property media"
-                          unoptimized
-                        />
-                      )}
-                      <button
-                        type="button"
-                        style={{ border: "none" }}
-                        className="tag-del"
-                        title="Delete media"
-                        onClick={() => setMediaPendingDelete(item)}
-                        disabled={Boolean(deletingMediaId)}
-                        aria-label="Delete media"
-                      >
-                        <span className="fas fa-trash-can" />
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
             </div>
-          )}
 
-          {mediaPreviews.length > 0 && (
-            <div className="mb20">
-              <p className="heading-color ff-heading fw600 mb15">New uploads</p>
-              <div className="row profile-box position-relative d-md-flex align-items-end mb20">
-                {mediaPreviews.map((preview, index) => (
-                  <div className="col-6 col-md-4 col-lg-3" key={preview.id}>
-                    <div className="profile-img mb20 position-relative">
-                      {preview.isVideo ? (
-                        <video
-                          className="w-100 bdrs12 cover"
-                          src={preview.url}
-                          controls
-                          style={{ height: 194, objectFit: "cover" }}
-                        />
-                      ) : (
-                        <Image
-                          width={212}
-                          height={194}
-                          className="w-100 bdrs12 cover"
-                          src={preview.url}
-                          alt={preview.name}
-                          unoptimized
-                        />
-                      )}
-                      <button
-                        type="button"
-                        style={{ border: "none" }}
-                        className="tag-del"
-                        title="Remove file"
-                        onClick={() => removeMediaPreview(index)}
-                      >
-                        <span className="fas fa-trash-can" />
-                      </button>
+            {existingMedia.length > 0 && (
+              <div className="mb20">
+                <p className="heading-color ff-heading fw600 mb15">
+                  Current media
+                </p>
+                <div className="row profile-box position-relative d-md-flex align-items-end mb20">
+                  {existingMedia.map((item) => (
+                    <div className="col-6 col-md-4 col-lg-3" key={item._id}>
+                      <div className="profile-img mb20 position-relative">
+                        {item.type === "video" ? (
+                          <video
+                            className="w-100 bdrs12 cover"
+                            src={item.url}
+                            controls
+                            style={{ height: 194, objectFit: "cover" }}
+                          />
+                        ) : (
+                          <Image
+                            width={212}
+                            height={194}
+                            className="w-100 bdrs12 cover"
+                            src={item.url || "/images/listings/listing-1.jpg"}
+                            alt="Property media"
+                            unoptimized
+                          />
+                        )}
+                        <button
+                          type="button"
+                          style={{ border: "none" }}
+                          className="tag-del"
+                          title="Delete media"
+                          onClick={() => promptDeleteMedia(item)}
+                          disabled={formBusy}
+                          aria-label="Delete media"
+                        >
+                          <span className="fas fa-trash-can" />
+                        </button>
+                      </div>
                     </div>
-                    <p className="text fz13 mb0 text-truncate">
-                      {preview.name}
-                    </p>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
-            </div>
-          )}
-        </div>
+            )}
 
-        <div className="col-sm-12">
-          <div className="d-flex gap-3 flex-wrap align-items-center">
-            <button
-              type="button"
-              className="ud-btn btn-white"
-              onClick={() => router.push("/dashboard-my-properties")}
-            >
-              Cancel
-            </button>
-            <DashboardFormSubmit
-              isDirty={hasChanges}
-              isSubmitting={isSubmitting}
-              idleLabel={isEdit ? "Update Property" : "Create Property"}
-              submittingLabel="Saving..."
-            />
+            {mediaPreviews.length > 0 && (
+              <div className="mb20">
+                <p className="heading-color ff-heading fw600 mb15">
+                  New uploads
+                </p>
+                <div className="row profile-box position-relative d-md-flex align-items-end mb20">
+                  {mediaPreviews.map((preview, index) => (
+                    <div className="col-6 col-md-4 col-lg-3" key={preview.id}>
+                      <div className="profile-img mb20 position-relative">
+                        {preview.isVideo ? (
+                          <video
+                            className="w-100 bdrs12 cover"
+                            src={preview.url}
+                            controls
+                            style={{ height: 194, objectFit: "cover" }}
+                          />
+                        ) : (
+                          <Image
+                            width={212}
+                            height={194}
+                            className="w-100 bdrs12 cover"
+                            src={preview.url}
+                            alt={preview.name}
+                            unoptimized
+                          />
+                        )}
+                        <button
+                          type="button"
+                          style={{ border: "none" }}
+                          className="tag-del"
+                          title="Remove file"
+                          onClick={() => removeMediaPreview(index)}
+                        >
+                          <span className="fas fa-trash-can" />
+                        </button>
+                      </div>
+                      <p className="text fz13 mb0 text-truncate">
+                        {preview.name}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div className="col-sm-12">
+            <div className="d-flex gap-3 flex-wrap align-items-center">
+              <button
+                type="button"
+                className="ud-btn btn-white"
+                disabled={formBusy}
+                onClick={() => router.push("/dashboard-my-properties")}
+              >
+                Cancel
+              </button>
+              {!isTerminal && (
+                <>
+                  {isEdit && (
+                    <button
+                      type="submit"
+                      className="ud-btn btn-white"
+                      disabled={formBusy || !hasChanges}
+                      onClick={() => {
+                        submitModeRef.current = "save";
+                      }}
+                    >
+                      {formBusy && submitModeRef.current === "save"
+                        ? "Saving..."
+                        : "Save changes"}
+                    </button>
+                  )}
+                  <button
+                    type="submit"
+                    className="ud-btn btn-white"
+                    disabled={formBusy || !hasChanges}
+                    onClick={() => {
+                      submitModeRef.current = "draft";
+                    }}
+                  >
+                    {formBusy && submitModeRef.current === "draft"
+                      ? "Saving..."
+                      : "Save as draft"}
+                  </button>
+                  <button
+                    type="submit"
+                    className="ud-btn btn-dark"
+                    disabled={formBusy || !hasChanges}
+                    onClick={() => {
+                      submitModeRef.current = "review";
+                    }}
+                  >
+                    {formBusy && submitModeRef.current === "review"
+                      ? "Submitting..."
+                      : isEdit
+                        ? "Submit for review"
+                        : "Publish listing"}
+                    <i className="fal fa-arrow-right-long ms-2" />
+                  </button>
+                </>
+              )}
+            </div>
           </div>
         </div>
-      </div>
+      </fieldset>
 
-      <ConfirmDialog
-        open={Boolean(mediaPendingDelete)}
-        title="Delete media?"
-        message="This photo or video will be permanently removed from the property."
-        confirmLabel="Delete media"
-        cancelLabel="Cancel"
-        confirmVariant="danger"
-        isConfirming={Boolean(deletingMediaId)}
-        onClose={() => {
-          if (!deletingMediaId) {
-            setMediaPendingDelete(null);
-          }
-        }}
-        onConfirm={handleDeleteExistingMedia}
-      />
+      <ConfirmDialog {...dialogProps} />
+
+      <AsyncActionOverlay message={overlayMessage} />
     </form>
   );
 }

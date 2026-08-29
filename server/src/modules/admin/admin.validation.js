@@ -9,6 +9,7 @@ export const listUsersSchema = z.object({
     .enum([ROLES.BUYER, ROLES.SELLER, ROLES.AGENT, ROLES.ADMIN])
     .optional(),
   isActive: z.enum(["true", "false"]).optional(),
+  deleted: z.enum(["true", "false", "all"]).optional(),
 });
 
 export const userIdSchema = z.object({

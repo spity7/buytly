@@ -10,6 +10,7 @@ import { getFavorites } from "./favorites/favorites";
 import { getHealth } from "./health/health";
 import { getNotifications } from "./notifications/notifications";
 import { getProperties } from "./properties/properties";
+import { getPropertyReviews } from "./property-reviews/property-reviews";
 import { getTransactions } from "./transactions/transactions";
 import { getUsers } from "./users/users";
 
@@ -22,6 +23,7 @@ export const getBuytlyAPI = () => ({
   ...getHealth(),
   ...getNotifications(),
   ...getProperties(),
+  ...getPropertyReviews(),
   ...getTransactions(),
   ...getUsers(),
 });

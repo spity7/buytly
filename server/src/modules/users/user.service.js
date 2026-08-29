@@ -162,22 +162,33 @@ export const userService = {
       }
     }
 
+    const originalEmail = user.email;
+
     if (user.avatar?.gcsKey) {
       await gcsService.deleteFile(user.avatar.gcsKey).catch(() => {});
     }
 
-    user.deletedAt = new Date();
-    user.isActive = false;
-    user.email = `deleted_${user._id}@deleted.buytly.internal`;
-    user.passwordHash = await bcrypt.hash(
+    const passwordHash = await bcrypt.hash(
       crypto.randomBytes(32).toString("hex"),
       12,
     );
-    user.emailVerificationToken = undefined;
-    user.emailVerificationExpires = undefined;
-    user.passwordResetToken = undefined;
-    user.passwordResetExpires = undefined;
-    await user.save();
+
+    await User.findByIdAndUpdate(userId, {
+      $set: {
+        deletedAt: new Date(),
+        isActive: false,
+        email: `deleted_${user._id}@deleted.buytly.internal`,
+        deletedEmail: originalEmail,
+        passwordHash,
+      },
+      $unset: {
+        avatar: 1,
+        emailVerificationToken: 1,
+        emailVerificationExpires: 1,
+        passwordResetToken: 1,
+        passwordResetExpires: 1,
+      },
+    });
 
     await RefreshToken.updateMany(
       { userId: user._id },

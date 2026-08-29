@@ -16,6 +16,19 @@ const mediaSchema = new mongoose.Schema(
   { _id: true },
 );
 
+const floorPlanSchema = new mongoose.Schema(
+  {
+    title: { type: String, required: true, trim: true },
+    area: { type: Number, min: 0 },
+    areaUnit: { type: String, default: "sqm" },
+    bedrooms: { type: Number, min: 0 },
+    bathrooms: { type: Number, min: 0 },
+    price: { type: Number, min: 0 },
+    gcsKey: { type: String },
+  },
+  { _id: true },
+);
+
 const propertySchema = new mongoose.Schema(
   {
     title: { type: String, required: true, trim: true },
@@ -44,6 +57,8 @@ const propertySchema = new mongoose.Schema(
       index: true,
     },
     media: [mediaSchema],
+    floorPlans: [floorPlanSchema],
+    virtualTourUrl: { type: String, trim: true },
     agentId: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
     ownerId: {
       type: mongoose.Schema.Types.ObjectId,

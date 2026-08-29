@@ -275,12 +275,68 @@
  *           example: true
  *         authProvider:
  *           type: string
- *           enum: [local, google]
+ *           enum: [local, google, both]
+ *           description: local = password only, google = Google only, both = password and Google linked
  *           example: local
  *         createdAt:
  *           type: string
  *           format: date-time
  *           example: '2026-01-15T10:30:00.000Z'
+ *
+ *     AdminUser:
+ *       allOf:
+ *         - $ref: '#/components/schemas/User'
+ *         - type: object
+ *           properties:
+ *             deletedAt:
+ *               type: string
+ *               format: date-time
+ *               nullable: true
+ *             deletedEmail:
+ *               type: string
+ *               format: email
+ *               nullable: true
+ *               description: Original email retained for admin audit when account is soft-deleted
+ *             isDeleted:
+ *               type: boolean
+ *               example: false
+ *
+ *     AdminUserRelatedCounts:
+ *       type: object
+ *       properties:
+ *         properties:
+ *           type: integer
+ *           description: Non-trashed listings owned or assigned to the user
+ *         activeListings:
+ *           type: integer
+ *           description: Active public listings (unchanged by account deletion)
+ *         bookingsAsBuyer:
+ *           type: integer
+ *         bookingsAsAgent:
+ *           type: integer
+ *         transactions:
+ *           type: integer
+ *         reviews:
+ *           type: integer
+ *         favorites:
+ *           type: integer
+ *
+ *     AdminUserDetail:
+ *       type: object
+ *       required: [user, relatedCounts]
+ *       properties:
+ *         user:
+ *           $ref: '#/components/schemas/AdminUser'
+ *         relatedCounts:
+ *           $ref: '#/components/schemas/AdminUserRelatedCounts'
+ *
+ *     AdminUserDetailResponse:
+ *       allOf:
+ *         - $ref: '#/components/schemas/SuccessResponse'
+ *         - type: object
+ *           properties:
+ *             data:
+ *               $ref: '#/components/schemas/AdminUserDetail'
  *
  *     UserPublicProfile:
  *       type: object
@@ -555,6 +611,14 @@
  *         viewCount:
  *           type: integer
  *           example: 42
+ *         floorPlans:
+ *           type: array
+ *           items:
+ *             $ref: '#/components/schemas/FloorPlan'
+ *         virtualTourUrl:
+ *           type: string
+ *           format: uri
+ *           example: https://my.matterport.com/show/?m=example
  *         createdAt:
  *           type: string
  *           format: date-time
@@ -613,6 +677,74 @@
  *           $ref: '#/components/schemas/PropertyStatus'
  *         agentId:
  *           $ref: '#/components/schemas/ObjectId'
+ *         floorPlans:
+ *           type: array
+ *           items:
+ *             $ref: '#/components/schemas/FloorPlanInput'
+ *         virtualTourUrl:
+ *           type: string
+ *           format: uri
+ *           example: https://my.matterport.com/show/?m=example
+ *
+ *     FloorPlan:
+ *       type: object
+ *       properties:
+ *         _id:
+ *           $ref: '#/components/schemas/ObjectId'
+ *         title:
+ *           type: string
+ *           example: First Floor
+ *         area:
+ *           type: number
+ *           example: 1267
+ *         areaUnit:
+ *           type: string
+ *           example: sqft
+ *         bedrooms:
+ *           type: integer
+ *           example: 2
+ *         bathrooms:
+ *           type: number
+ *           example: 2
+ *         price:
+ *           type: number
+ *           example: 920000
+ *         gcsKey:
+ *           type: string
+ *         url:
+ *           type: string
+ *           format: uri
+ *           description: Signed GCS URL (present when resolved)
+ *
+ *     FloorPlanInput:
+ *       type: object
+ *       required: [title]
+ *       properties:
+ *         title:
+ *           type: string
+ *           minLength: 1
+ *           maxLength: 100
+ *         area:
+ *           type: number
+ *         areaUnit:
+ *           type: string
+ *         bedrooms:
+ *           type: integer
+ *         bathrooms:
+ *           type: number
+ *         price:
+ *           type: number
+ *         gcsKey:
+ *           type: string
+ *
+ *     FloorPlanImageUpload:
+ *       type: object
+ *       properties:
+ *         gcsKey:
+ *           type: string
+ *         url:
+ *           type: string
+ *           format: uri
  *
  *     AgentProfile:
  *       type: object
@@ -1065,6 +1197,22 @@
  *         pagination:
  *           $ref: '#/components/schemas/PaginationMeta'
  *
+ *     PaginatedAdminUsersResponse:
+ *       type: object
+ *       required: [success, message, data, pagination]
+ *       properties:
+ *         success:
+ *           type: boolean
+ *           example: true
+ *         message:
+ *           type: string
+ *         data:
+ *           type: array
+ *           items:
+ *             $ref: '#/components/schemas/AdminUser'
+ *         pagination:
+ *           $ref: '#/components/schemas/PaginationMeta'
+ *
  *     PaginatedAgentsResponse:
  *       type: object
  *       required: [success, message, data, pagination]
@@ -1128,6 +1276,92 @@
  *             $ref: '#/components/schemas/Notification'
  *         pagination:
  *           $ref: '#/components/schemas/PaginationMeta'
+ *
+ *         url:
+ *           type: string
+ *           format: uri
+ *
+ *     PropertyReview:
+ *       type: object
+ *       properties:
+ *         _id:
+ *           $ref: '#/components/schemas/ObjectId'
+ *         propertyId:
+ *           $ref: '#/components/schemas/ObjectId'
+ *         userId:
+ *           oneOf:
+ *             - $ref: '#/components/schemas/ObjectId'
+ *             - $ref: '#/components/schemas/User'
+ *         rating:
+ *           type: integer
+ *           minimum: 1
+ *           maximum: 5
+ *         title:
+ *           type: string
+ *         text:
+ *           type: string
+ *         createdAt:
+ *           type: string
+ *           format: date-time
+ *         updatedAt:
+ *           type: string
+ *           format: date-time
+ *
+ *     CreatePropertyReviewRequest:
+ *       type: object
+ *       required: [rating, title, text]
+ *       properties:
+ *         rating:
+ *           type: integer
+ *           minimum: 1
+ *           maximum: 5
+ *         title:
+ *           type: string
+ *           minLength: 1
+ *           maxLength: 200
+ *         text:
+ *           type: string
+ *           minLength: 1
+ *           maxLength: 2000
+ *
+ *     PropertyReviewStats:
+ *       type: object
+ *       properties:
+ *         averageRating:
+ *           type: number
+ *           example: 4.5
+ *         reviewCount:
+ *           type: integer
+ *           example: 12
+ *
+ *     PropertyReviewListData:
+ *       type: object
+ *       properties:
+ *         reviews:
+ *           type: array
+ *           items:
+ *             $ref: '#/components/schemas/PropertyReview'
+ *         stats:
+ *           $ref: '#/components/schemas/PropertyReviewStats'
+ *
+ *     PaginatedPropertyReviewsResponse:
+ *       type: object
+ *       required: [success, message, data, pagination]
+ *       properties:
+ *         success:
+ *           type: boolean
+ *         message:
+ *           type: string
+ *         data:
+ *           $ref: '#/components/schemas/PropertyReviewListData'
+ *         pagination:
+ *           $ref: '#/components/schemas/PaginationMeta'
+ *
+ *     PropertyReviewCheckData:
+ *       type: object
+ *       properties:
+ *         hasReviewed:
+ *           type: boolean
  *
  *     PaginatedFavoritesResponse:
  *       type: object

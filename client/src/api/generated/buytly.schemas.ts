@@ -87,6 +87,9 @@ export interface UserSocialLinks {
   website?: string;
 }
 
+/**
+ * local = password only, google = Google only, both = password and Google linked
+ */
 export type UserAuthProvider =
   (typeof UserAuthProvider)[keyof typeof UserAuthProvider];
 
@@ -94,6 +97,7 @@ export type UserAuthProvider =
 export const UserAuthProvider = {
   local: "local",
   google: "google",
+  both: "both",
 } as const;
 
 /**
@@ -114,9 +118,47 @@ export interface User {
   preferences?: UserPreferences;
   isActive?: boolean;
   isEmailVerified?: boolean;
+  /** local = password only, google = Google only, both = password and Google linked */
   authProvider?: UserAuthProvider;
   createdAt?: string;
 }
+
+export type AdminUserAllOf = {
+  /** @nullable */
+  deletedAt?: string | null;
+  /**
+   * Original email retained for admin audit when account is soft-deleted
+   * @nullable
+   */
+  deletedEmail?: string | null;
+  isDeleted?: boolean;
+};
+
+export type AdminUser = User & AdminUserAllOf;
+
+export interface AdminUserRelatedCounts {
+  /** Non-trashed listings owned or assigned to the user */
+  properties?: number;
+  /** Active public listings (unchanged by account deletion) */
+  activeListings?: number;
+  bookingsAsBuyer?: number;
+  bookingsAsAgent?: number;
+  transactions?: number;
+  reviews?: number;
+  favorites?: number;
+}
+
+export interface AdminUserDetail {
+  user: AdminUser;
+  relatedCounts: AdminUserRelatedCounts;
+}
+
+export type AdminUserDetailResponseAllOf = {
+  data?: AdminUserDetail;
+};
+
+export type AdminUserDetailResponse = SuccessResponse &
+  AdminUserDetailResponseAllOf;
 
 export type UserPublicProfileAvatar = {
   url?: string;
@@ -318,6 +360,8 @@ export interface Property {
   agentId?: PropertyAgentId;
   ownerId?: PropertyOwnerId;
   viewCount?: number;
+  floorPlans?: FloorPlan[];
+  virtualTourUrl?: string;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -352,6 +396,40 @@ export interface CreatePropertyRequest {
   amenities?: string[];
   status?: PropertyStatus;
   agentId?: ObjectId;
+  floorPlans?: FloorPlanInput[];
+  virtualTourUrl?: string;
+}
+
+export interface FloorPlan {
+  _id?: ObjectId;
+  title?: string;
+  area?: number;
+  areaUnit?: string;
+  bedrooms?: number;
+  bathrooms?: number;
+  price?: number;
+  gcsKey?: string;
+  /** Signed GCS URL (present when resolved) */
+  url?: string;
+}
+
+export interface FloorPlanInput {
+  /**
+   * @minLength 1
+   * @maxLength 100
+   */
+  title: string;
+  area?: number;
+  areaUnit?: string;
+  bedrooms?: number;
+  bathrooms?: number;
+  price?: number;
+  gcsKey?: string;
+}
+
+export interface FloorPlanImageUpload {
+  gcsKey?: string;
+  url?: string;
 }
 
 export type AgentProfileUserId = ObjectId | User;
@@ -693,6 +771,13 @@ export interface PaginatedUsersResponse {
   pagination: PaginationMeta;
 }
 
+export interface PaginatedAdminUsersResponse {
+  success: boolean;
+  message: string;
+  data: AdminUser[];
+  pagination: PaginationMeta;
+}
+
 export interface PaginatedAgentsResponse {
   success: boolean;
   message: string;
@@ -719,6 +804,63 @@ export interface PaginatedNotificationsResponse {
   message: string;
   data: Notification[];
   pagination: PaginationMeta;
+  url?: string;
+}
+
+export type PropertyReviewUserId = ObjectId | User;
+
+export interface PropertyReview {
+  _id?: ObjectId;
+  propertyId?: ObjectId;
+  userId?: PropertyReviewUserId;
+  /**
+   * @minimum 1
+   * @maximum 5
+   */
+  rating?: number;
+  title?: string;
+  text?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface CreatePropertyReviewRequest {
+  /**
+   * @minimum 1
+   * @maximum 5
+   */
+  rating: number;
+  /**
+   * @minLength 1
+   * @maxLength 200
+   */
+  title: string;
+  /**
+   * @minLength 1
+   * @maxLength 2000
+   */
+  text: string;
+}
+
+export interface PropertyReviewStats {
+  averageRating?: number;
+  reviewCount?: number;
+}
+
+export interface PropertyReviewListData {
+  reviews?: PropertyReview[];
+  stats?: PropertyReviewStats;
+}
+
+export interface PaginatedPropertyReviewsResponse {
+  success: boolean;
+  message: string;
+  data: PropertyReviewListData;
+  pagination: PaginationMeta;
+}
+
+export interface PropertyReviewCheckData {
+  hasReviewed?: boolean;
 }
 
 export interface PaginatedFavoritesResponse {
@@ -880,6 +1022,34 @@ export type UpdateTransactionStatus200AllOf = {
 export type UpdateTransactionStatus200 = SuccessResponse &
   UpdateTransactionStatus200AllOf;
 
+export type ListPropertyReviewsParams = {
+  /**
+   * Page number (1-based)
+   * @minimum 1
+   */
+  page?: PageParamParameter;
+  /**
+   * Items per page (max 100)
+   * @minimum 1
+   * @maximum 100
+   */
+  limit?: LimitParamParameter;
+};
+
+export type CreatePropertyReview201AllOf = {
+  data?: PropertyReview;
+};
+
+export type CreatePropertyReview201 = SuccessResponse &
+  CreatePropertyReview201AllOf;
+
+export type CheckPropertyReview200AllOf = {
+  data?: PropertyReviewCheckData;
+};
+
+export type CheckPropertyReview200 = SuccessResponse &
+  CheckPropertyReview200AllOf;
+
 export type ListPropertiesParams = {
   /**
    * Page number (1-based)
@@ -896,7 +1066,10 @@ export type ListPropertiesParams = {
   maxPrice?: number;
   type?: PropertyType;
   listingType?: ListingType;
-  status?: PropertyStatus;
+  /**
+   * Defaults to active. Draft, pending, and archived are not exposed on the public list.
+   */
+  status?: ListPropertiesStatus;
   city?: string;
   bedrooms?: number;
   /**
@@ -918,6 +1091,16 @@ export type ListPropertiesParams = {
   sortBy?: ListPropertiesSortBy;
   sortOrder?: ListPropertiesSortOrder;
 };
+
+export type ListPropertiesStatus =
+  (typeof ListPropertiesStatus)[keyof typeof ListPropertiesStatus];
+
+// eslint-disable-next-line @typescript-eslint/no-redeclare
+export const ListPropertiesStatus = {
+  active: "active",
+  sold: "sold",
+  rented: "rented",
+} as const;
 
 export type ListPropertiesSortBy =
   (typeof ListPropertiesSortBy)[keyof typeof ListPropertiesSortBy];
@@ -953,6 +1136,10 @@ export type ListMyPropertiesParams = {
   status?: PropertyStatus;
   sortBy?: ListMyPropertiesSortBy;
   sortOrder?: ListMyPropertiesSortOrder;
+  /**
+   * When true, returns soft-deleted listings in trash.
+   */
+  trashed?: ListMyPropertiesTrashed;
 };
 
 export type ListMyPropertiesSortBy =
@@ -974,6 +1161,15 @@ export const ListMyPropertiesSortOrder = {
   desc: "desc",
 } as const;
 
+export type ListMyPropertiesTrashed =
+  (typeof ListMyPropertiesTrashed)[keyof typeof ListMyPropertiesTrashed];
+
+// eslint-disable-next-line @typescript-eslint/no-redeclare
+export const ListMyPropertiesTrashed = {
+  true: true,
+  false: false,
+} as const;
+
 export type UploadPropertyMediaBody = {
   /** Image or video file */
   media: Blob;
@@ -985,6 +1181,17 @@ export type UploadPropertyMedia201AllOf = {
 
 export type UploadPropertyMedia201 = SuccessResponse &
   UploadPropertyMedia201AllOf;
+
+export type UploadFloorPlanImageBody = {
+  image: Blob;
+};
+
+export type UploadFloorPlanImage201AllOf = {
+  data?: FloorPlanImageUpload;
+};
+
+export type UploadFloorPlanImage201 = SuccessResponse &
+  UploadFloorPlanImage201AllOf;
 
 export type ListNotificationsParams = {
   /**
@@ -1256,6 +1463,10 @@ export type AdminListUsersParams = {
    * Filter by active status
    */
   isActive?: AdminListUsersIsActive;
+  /**
+   * Filter by deletion status (`false` = active users only, `true` = deleted only, `all` = include both)
+   */
+  deleted?: AdminListUsersDeleted;
 };
 
 export type AdminListUsersIsActive =
@@ -1265,6 +1476,16 @@ export type AdminListUsersIsActive =
 export const AdminListUsersIsActive = {
   true: "true",
   false: "false",
+} as const;
+
+export type AdminListUsersDeleted =
+  (typeof AdminListUsersDeleted)[keyof typeof AdminListUsersDeleted];
+
+// eslint-disable-next-line @typescript-eslint/no-redeclare
+export const AdminListUsersDeleted = {
+  true: "true",
+  false: "false",
+  all: "all",
 } as const;
 
 export type AdminUpdateUserStatusBody = {

@@ -7,6 +7,11 @@ export const adminController = {
     ApiResponse.paginated(res, result.users, result.pagination);
   },
 
+  getUserById: async (req, res) => {
+    const result = await adminService.getUserById(req.params.id);
+    ApiResponse.success(res, result);
+  },
+
   updateUserStatus: async (req, res) => {
     const user = await adminService.updateUserStatus(
       req.params.id,

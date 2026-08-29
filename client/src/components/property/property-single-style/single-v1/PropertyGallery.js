@@ -1,5 +1,6 @@
 "use client";
 
+import { remoteImageProps } from "@/lib/images/remoteImage";
 import { usePropertySingle } from "@/providers/PropertySingleProvider";
 import { Gallery, Item } from "react-photoswipe-gallery";
 import "photoswipe/dist/photoswipe.css";
@@ -39,6 +40,7 @@ const PropertyGallery = () => {
                   alt="property main"
                   role="button"
                   className="w-100 h-100 cover"
+                  {...remoteImageProps(mainImage.url)}
                 />
               )}
             </Item>
@@ -70,6 +72,7 @@ const PropertyGallery = () => {
                         role="button"
                         src={image.url}
                         alt={`property ${index + 2}`}
+                        {...remoteImageProps(image.url)}
                       />
                     )}
                   </Item>

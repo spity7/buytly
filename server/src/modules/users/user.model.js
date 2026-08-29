@@ -19,14 +19,14 @@ const userSchema = new mongoose.Schema(
     },
     authProvider: {
       type: String,
-      enum: ["local", "google"],
+      enum: ["local", "google", "both"],
       default: "local",
     },
     googleId: { type: String, select: false },
     passwordHash: {
       type: String,
       required: function requiredPasswordForLocal() {
-        return this.authProvider !== "google";
+        return this.authProvider === "local";
       },
       select: false,
     },
@@ -64,6 +64,7 @@ const userSchema = new mongoose.Schema(
     passwordResetToken: { type: String, select: false },
     passwordResetExpires: { type: Date, select: false },
     deletedAt: { type: Date, default: null },
+    deletedEmail: { type: String, lowercase: true, trim: true },
   },
   {
     timestamps: true,
@@ -119,6 +120,15 @@ userSchema.methods.toPublicJSON = function () {
     isActive: this.isActive,
     isEmailVerified: this.isEmailVerified,
     createdAt: this.createdAt,
+  };
+};
+
+userSchema.methods.toAdminJSON = function () {
+  return {
+    ...this.toPublicJSON(),
+    deletedAt: this.deletedAt ?? null,
+    deletedEmail: this.deletedEmail ?? null,
+    isDeleted: Boolean(this.deletedAt),
   };
 };
 

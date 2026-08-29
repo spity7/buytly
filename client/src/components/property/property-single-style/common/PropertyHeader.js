@@ -11,6 +11,7 @@ const PropertyHeader = () => {
   if (!data) return null;
 
   const forRent = data.forRent;
+  const areaUnit = property?.areaUnit || "sqm";
   const pricePerSqft =
     data.sqft && data.priceValue
       ? (Number(data.priceValue) / Number(data.sqft)).toFixed(2)
@@ -48,7 +49,7 @@ const PropertyHeader = () => {
             </a>
             <a className="text ml20 fz15" href="#">
               <i className="flaticon-expand pe-2 align-text-top" />
-              {data.sqft} sqft
+              {data.sqft} {areaUnit}
             </a>
           </div>
         </div>

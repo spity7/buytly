@@ -145,8 +145,6 @@ const PropertySingleSkeleton = () => (
                 <SkeletonBlock className="property-single-skeleton__line property-single-skeleton__line--xs" />
               </div>
             </div>
-            <SkeletonBlock className="property-single-skeleton__input mb15" />
-            <SkeletonBlock className="property-single-skeleton__input mb15" />
             <SkeletonBlock className="property-single-skeleton__button" />
           </div>
         </div>

@@ -1,19 +1,24 @@
-import Image from "next/image";
+"use client";
+
+import { usePropertySingle } from "@/providers/PropertySingleProvider";
 import React from "react";
 
 const VirtualTour360 = () => {
+  const { property } = usePropertySingle();
+  const tourUrl = property?.virtualTourUrl;
+
+  if (!tourUrl) return null;
+
   return (
-    <>
-      <div className="col-md-12">
-        <Image
-          width={736}
-          height={373}
-          src="/images/listings/listing-single-7.jpg"
-          alt="virtual image"
-          className="w-100 bdrs12 h-100 cover"
-        />
-      </div>
-    </>
+    <div className="col-md-12">
+      <iframe
+        src={tourUrl}
+        title="360 virtual tour"
+        className="w-100 bdrs12"
+        style={{ minHeight: 420, border: 0 }}
+        allowFullScreen
+      />
+    </div>
   );
 };
 

@@ -105,7 +105,7 @@ router.post(
  *   post:
  *     operationId: googleAuth
  *     summary: Sign in or register with Google
- *     description: Verifies a Google Identity Services ID token, creates a new account on first sign-in, or logs in an existing Google-linked user.
+ *     description: Verifies a Google Identity Services ID token. Creates a new account on first sign-in, logs in an existing Google-linked user, or links Google to an existing email/password account when the Google email matches. Unverified local accounts are auto-verified when Google confirms the email.
  *     tags: [Auth]
  *     requestBody:
  *       required: true

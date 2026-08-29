@@ -24,6 +24,17 @@ AXIOS_INSTANCE.interceptors.request.use((config) => {
       config.headers.Authorization = `Bearer ${token}`;
     }
   }
+
+  // Orval sets Content-Type to multipart/form-data without a boundary; let axios
+  // set the header when sending FormData so file uploads parse correctly.
+  if (config.data instanceof FormData && config.headers) {
+    if (typeof config.headers.delete === "function") {
+      config.headers.delete("Content-Type");
+    } else {
+      delete config.headers["Content-Type"];
+    }
+  }
+
   return config;
 });
 

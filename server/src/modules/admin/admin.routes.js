@@ -41,13 +41,20 @@ router.use(authenticate, authorize(ROLES.ADMIN));
  *           type: string
  *           enum: ['true', 'false']
  *         description: Filter by active status
+ *       - in: query
+ *         name: deleted
+ *         schema:
+ *           type: string
+ *           enum: ['true', 'false', 'all']
+ *           default: 'false'
+ *         description: Filter by deletion status (`false` = active users only, `true` = deleted only, `all` = include both)
  *     responses:
  *       200:
  *         description: User list
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/PaginatedUsersResponse'
+ *               $ref: '#/components/schemas/PaginatedAdminUsersResponse'
  *       401:
  *         $ref: '#/components/responses/Unauthorized'
  *       403:
@@ -57,6 +64,38 @@ router.get(
   "/users",
   validate(listUsersSchema, "query"),
   asyncHandler(adminController.listUsers),
+);
+
+/**
+ * @swagger
+ * /admin/users/{id}:
+ *   get:
+ *     operationId: adminGetUserById
+ *     summary: Get user details (admin)
+ *     description: Returns a user profile with related record counts. Includes soft-deleted users. Listings remain live after account deletion — activeListings reflects public listings still visible.
+ *     tags: [Admin]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - $ref: '#/components/parameters/ObjectIdParam'
+ *     responses:
+ *       200:
+ *         description: User detail with related counts
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/AdminUserDetailResponse'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ */
+router.get(
+  "/users/:id",
+  validate(userIdSchema, "params"),
+  asyncHandler(adminController.getUserById),
 );
 
 /**

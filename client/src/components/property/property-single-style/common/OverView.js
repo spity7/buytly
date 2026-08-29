@@ -1,5 +1,6 @@
 "use client";
 
+import { getStatusLabel } from "@/lib/properties/mapProperty";
 import { usePropertySingle } from "@/providers/PropertySingleProvider";
 import React from "react";
 
@@ -8,6 +9,8 @@ const OverView = () => {
   const data = card;
 
   if (!data) return null;
+
+  const areaUnit = property?.areaUnit || "sqm";
 
   const overviewData = [
     {
@@ -22,7 +25,7 @@ const OverView = () => {
     },
     {
       icon: "flaticon-expand",
-      label: "Sqft",
+      label: areaUnit,
       value: data.sqft,
       xs: true,
     },
@@ -34,7 +37,7 @@ const OverView = () => {
     {
       icon: "flaticon-event",
       label: "Status",
-      value: property?.status,
+      value: getStatusLabel(property?.status),
     },
   ];
 

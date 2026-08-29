@@ -91,6 +91,7 @@ Property list supports:
 - `sortBy` — `price`, `createdAt`, `viewCount`
 - `sortOrder` — `asc`, `desc`
 - `minPrice`, `maxPrice`, `type`, `listingType`, `status`, `city`, `bedrooms`
+- `status` on public `GET /properties` — only `active` (default), `sold`, or `rented`; other values return 400
 - `search` — Full-text search on title/description
 - `lat`, `lng`, `radiusKm` — Geo-radius search (all three required). When combined with `search`, radius filtering uses `$geoWithin` instead of distance sorting so MongoDB accepts the query.
 

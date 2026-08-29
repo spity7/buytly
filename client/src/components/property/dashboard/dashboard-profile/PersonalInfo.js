@@ -4,10 +4,10 @@ import PhoneFields from "@/components/common/PhoneFields";
 import DashboardFormSubmit from "@/components/property/dashboard/dashboard-profile/DashboardFormSubmit";
 import ProfileFormSkeleton from "@/components/property/dashboard/dashboard-profile/ProfileFormSkeleton";
 import { buytlyApi } from "@/api/generated";
-import { getApiError } from "@/lib/auth/getApiError";
+import { useAsyncAction } from "@/hooks/useAsyncAction";
 import { hasFormChanges } from "@/lib/form/hasFormChanges";
 import { parsePhoneFromUser } from "@/lib/phone/parsePhone";
-import { notifyError, notifySuccess } from "@/lib/toast";
+import { notifyError } from "@/lib/toast";
 import { useAuth } from "@/providers/AuthProvider";
 import { useEffect, useMemo, useState } from "react";
 
@@ -33,7 +33,7 @@ const PersonalInfo = () => {
   const { user, refreshUser, isLoading } = useAuth();
   const [form, setForm] = useState(emptyForm);
   const [baseline, setBaseline] = useState(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { run, isBusy } = useAsyncAction();
 
   useEffect(() => {
     if (!user) {
@@ -56,33 +56,34 @@ const PersonalInfo = () => {
 
   const handleSubmit = async (event) => {
     event.preventDefault();
-    setIsSubmitting(true);
 
     const trimmedPhone = form.phoneNumber.trim();
 
     if (trimmedPhone && !form.phoneCountryCode) {
       notifyError("Please select a country code for your phone number.");
-      setIsSubmitting(false);
       return;
     }
 
     try {
-      await buytlyApi.updateCurrentUser({
-        firstName: form.firstName.trim(),
-        lastName: form.lastName.trim(),
-        ...(trimmedPhone
-          ? {
-              phoneCountryCode: form.phoneCountryCode,
-              phoneNumber: trimmedPhone,
-            }
-          : { phoneNumber: "" }),
+      await run({
+        message: "Saving profile...",
+        successMessage: "Personal information updated",
+        task: async () => {
+          await buytlyApi.updateCurrentUser({
+            firstName: form.firstName.trim(),
+            lastName: form.lastName.trim(),
+            ...(trimmedPhone
+              ? {
+                  phoneCountryCode: form.phoneCountryCode,
+                  phoneNumber: trimmedPhone,
+                }
+              : { phoneNumber: "" }),
+          });
+          await refreshUser();
+        },
       });
-      await refreshUser();
-      notifySuccess("Personal information updated.");
-    } catch (err) {
-      notifyError(getApiError(err));
-    } finally {
-      setIsSubmitting(false);
+    } catch {
+      // Toast handled by useAsyncAction
     }
   };
 
@@ -143,7 +144,7 @@ const PersonalInfo = () => {
                   phoneCountryCode: value ? current.phoneCountryCode : "",
                 }));
               }}
-              disabled={isSubmitting}
+              disabled={isBusy}
             />
           </div>
         </div>
@@ -165,7 +166,7 @@ const PersonalInfo = () => {
         <div className="col-md-12">
           <DashboardFormSubmit
             isDirty={isDirty}
-            isSubmitting={isSubmitting}
+            isSubmitting={isBusy}
             idleLabel="Update profile"
             submittingLabel="Saving..."
           />

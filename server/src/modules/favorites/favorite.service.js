@@ -49,8 +49,10 @@ export const favoriteService = {
     const property = await Property.findOne({
       _id: propertyId,
       deletedAt: null,
+      status: "active",
     });
-    if (!property) throw new AppError("Property not found", 404);
+    if (!property)
+      throw new AppError("Property not found or not available", 404);
 
     const existing = await Favorite.findOne({ userId, propertyId });
     if (existing) throw new AppError("Property already in favorites", 409);

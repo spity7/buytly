@@ -115,13 +115,13 @@ const SignIn = ({ showGoogleAuth = true }) => {
         </button>
       </div>
 
-      <div className="hr_content mb20">
+      <div className="hr_content auth-divider mb15">
         <hr />
         <span className="hr_top_text">OR</span>
       </div>
 
       {showGoogleAuth ? (
-        <div className="d-grid mb20">
+        <div className="d-grid mb15">
           <GoogleAuthButton
             onCredential={handleGoogleCredential}
             disabled={isGoogleSubmitting || isSubmitting}

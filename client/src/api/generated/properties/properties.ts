@@ -12,6 +12,8 @@ import type {
   PaginatedPropertiesResponse,
   PropertySuccessResponse,
   SuccessResponse,
+  UploadFloorPlanImage201,
+  UploadFloorPlanImageBody,
   UploadPropertyMedia201,
   UploadPropertyMediaBody,
 } from "../buytly.schemas";
@@ -116,6 +118,19 @@ export const getProperties = () => {
     );
   };
   /**
+   * Clears deletedAt and sets status to draft. Owner, assigned agent, or admin only.
+   * @summary Restore a soft-deleted property
+   */
+  const restoreProperty = (
+    id: string,
+    options?: SecondParameter<typeof customInstance<PropertySuccessResponse>>,
+  ) => {
+    return customInstance<PropertySuccessResponse>(
+      { url: `/properties/${id}/restore`, method: "PATCH" },
+      options,
+    );
+  };
+  /**
    * Uploads an image or video for a property (multipart/form-data field `media`).
    * @summary Upload property media
    */
@@ -151,6 +166,28 @@ export const getProperties = () => {
       options,
     );
   };
+  /**
+   * Uploads a floor plan image and returns a gcsKey for use in the floorPlans array.
+   * @summary Upload floor plan image
+   */
+  const uploadFloorPlanImage = (
+    id: string,
+    uploadFloorPlanImageBody: BodyType<UploadFloorPlanImageBody>,
+    options?: SecondParameter<typeof customInstance<UploadFloorPlanImage201>>,
+  ) => {
+    const formData = new FormData();
+    formData.append(`image`, uploadFloorPlanImageBody.image);
+
+    return customInstance<UploadFloorPlanImage201>(
+      {
+        url: `/properties/${id}/floor-plans/image`,
+        method: "POST",
+        headers: { "Content-Type": "multipart/form-data" },
+        data: formData,
+      },
+      options,
+    );
+  };
   return {
     listProperties,
     createProperty,
@@ -158,8 +195,10 @@ export const getProperties = () => {
     getPropertyById,
     updateProperty,
     deleteProperty,
+    restoreProperty,
     uploadPropertyMedia,
     deletePropertyMedia,
+    uploadFloorPlanImage,
   };
 };
 
@@ -185,9 +224,15 @@ export type UpdatePropertyResult = NonNullable<
 export type DeletePropertyResult = NonNullable<
   Awaited<ReturnType<ReturnType<typeof getProperties>["deleteProperty"]>>
 >;
+export type RestorePropertyResult = NonNullable<
+  Awaited<ReturnType<ReturnType<typeof getProperties>["restoreProperty"]>>
+>;
 export type UploadPropertyMediaResult = NonNullable<
   Awaited<ReturnType<ReturnType<typeof getProperties>["uploadPropertyMedia"]>>
 >;
 export type DeletePropertyMediaResult = NonNullable<
   Awaited<ReturnType<ReturnType<typeof getProperties>["deletePropertyMedia"]>>
+>;
+export type UploadFloorPlanImageResult = NonNullable<
+  Awaited<ReturnType<ReturnType<typeof getProperties>["uploadFloorPlanImage"]>>
 >;

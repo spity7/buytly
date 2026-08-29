@@ -1,9 +1,7 @@
 "use client";
 
-import { formatPrice } from "@/lib/properties/formatPrice";
+import { getStatusLabel } from "@/lib/properties/mapProperty";
 import { usePropertySingle } from "@/providers/PropertySingleProvider";
-import React from "react";
-
 const PropertyDetails = () => {
   const { property, card } = usePropertySingle();
 
@@ -26,11 +24,7 @@ const PropertyDetails = () => {
       { label: "Property Type", value: property.type },
       {
         label: "Property Status",
-        value: property.status,
-      },
-      {
-        label: "Price (raw)",
-        value: formatPrice(property.price, property.currency),
+        value: getStatusLabel(property.status),
       },
     ],
   ];

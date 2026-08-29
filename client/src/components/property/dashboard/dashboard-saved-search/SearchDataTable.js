@@ -1,8 +1,11 @@
 "use client";
 
 import { buytlyApi } from "@/api/generated";
+import AsyncActionOverlay from "@/components/common/AsyncActionOverlay";
+import ConfirmDialog from "@/components/common/ConfirmDialog";
+import { useConfirmAction } from "@/hooks/useConfirmAction";
 import { getApiError } from "@/lib/auth/getApiError";
-import { notifyError, notifySuccess } from "@/lib/toast";
+import { savedSearchDeleteConfirmation } from "@/lib/confirmations";
 import { useCallback, useEffect, useState } from "react";
 import { Tooltip as ReactTooltip } from "react-tooltip";
 import { DashboardTableSkeleton } from "@/components/property/dashboard/skeletons/DashboardSkeletons";
@@ -23,7 +26,8 @@ const SearchDataTable = () => {
   const [searches, setSearches] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
-  const [deletingId, setDeletingId] = useState(null);
+  const { requestConfirm, isLocked, overlayMessage, dialogProps, pending } =
+    useConfirmAction({ overlay: true });
 
   const loadSearches = useCallback(async () => {
     setIsLoading(true);
@@ -44,19 +48,23 @@ const SearchDataTable = () => {
     loadSearches();
   }, [loadSearches]);
 
-  const handleDelete = async (searchId) => {
-    setDeletingId(searchId);
-
-    try {
-      const response = await buytlyApi.removeSavedSearch(searchId);
-      setSearches(response.data || []);
-      notifySuccess("Saved search removed.");
-    } catch (err) {
-      notifyError(getApiError(err));
-    } finally {
-      setDeletingId(null);
-    }
+  const promptDelete = (searchId, name) => {
+    requestConfirm({
+      ...savedSearchDeleteConfirmation(name),
+      targetId: searchId,
+      action: {
+        message: "Removing saved search...",
+        successMessage: "Saved search removed",
+        task: async () => {
+          const response = await buytlyApi.removeSavedSearch(searchId);
+          setSearches(response.data || []);
+        },
+      },
+    });
   };
+
+  const tableBusy = isLocked;
+  const deletingId = pending?.targetId ?? null;
 
   if (isLoading) {
     return (
@@ -91,48 +99,54 @@ const SearchDataTable = () => {
   }
 
   return (
-    <table className="table-style3 table at-savesearch">
-      <thead className="t-head">
-        <tr>
-          <th scope="col">Search name</th>
-          <th scope="col">Date created</th>
-          <th scope="col">Action</th>
-        </tr>
-      </thead>
-      <tbody className="t-body">
-        {searches.map((search) => {
-          const searchId = search._id || search.id;
+    <>
+      <table className="table-style3 table at-savesearch">
+        <thead className="t-head">
+          <tr>
+            <th scope="col">Search name</th>
+            <th scope="col">Date created</th>
+            <th scope="col">Action</th>
+          </tr>
+        </thead>
+        <tbody className="t-body">
+          {searches.map((search) => {
+            const searchId = search._id || search.id;
+            const rowBusy = deletingId === searchId;
 
-          return (
-            <tr key={searchId}>
-              <th scope="row">{search.name}</th>
-              <td>{formatSearchDate(search.createdAt)}</td>
-              <td>
-                <div className="d-flex">
-                  <button
-                    type="button"
-                    className="icon"
-                    style={{ border: "none" }}
-                    data-tooltip-id={`delete-${searchId}`}
-                    onClick={() => handleDelete(searchId)}
-                    disabled={deletingId === searchId}
-                    aria-label={`Delete saved search ${search.name}`}
-                  >
-                    <span className="flaticon-bin" />
-                  </button>
+            return (
+              <tr key={searchId}>
+                <th scope="row">{search.name}</th>
+                <td>{formatSearchDate(search.createdAt)}</td>
+                <td>
+                  <div className="d-flex">
+                    <button
+                      type="button"
+                      className="icon"
+                      style={{ border: "none" }}
+                      data-tooltip-id={`delete-${searchId}`}
+                      onClick={() => promptDelete(searchId, search.name)}
+                      disabled={rowBusy || tableBusy}
+                      aria-label={`Delete saved search ${search.name}`}
+                    >
+                      <span className="flaticon-bin" />
+                    </button>
 
-                  <ReactTooltip
-                    id={`delete-${searchId}`}
-                    place="top"
-                    content={deletingId === searchId ? "Deleting..." : "Delete"}
-                  />
-                </div>
-              </td>
-            </tr>
-          );
-        })}
-      </tbody>
-    </table>
+                    <ReactTooltip
+                      id={`delete-${searchId}`}
+                      place="top"
+                      content={rowBusy ? "Deleting..." : "Delete"}
+                    />
+                  </div>
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+
+      <ConfirmDialog {...dialogProps} />
+      <AsyncActionOverlay message={overlayMessage} />
+    </>
   );
 };
 

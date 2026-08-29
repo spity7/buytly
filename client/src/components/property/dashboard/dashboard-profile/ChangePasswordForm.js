@@ -3,8 +3,8 @@
 import PasswordInput from "@/components/common/PasswordInput";
 import DashboardFormSubmit from "@/components/property/dashboard/dashboard-profile/DashboardFormSubmit";
 import { buytlyApi } from "@/api/generated";
-import { getApiError } from "@/lib/auth/getApiError";
-import { notifyError, notifySuccess } from "@/lib/toast";
+import { useAsyncAction } from "@/hooks/useAsyncAction";
+import { notifyError } from "@/lib/toast";
 import { useAuth } from "@/providers/AuthProvider";
 import { useMemo, useState } from "react";
 
@@ -13,7 +13,7 @@ const ChangePasswordForm = () => {
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmNewPassword, setConfirmNewPassword] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { run, isBusy } = useAsyncAction();
 
   const isDirty = useMemo(
     () => Boolean(currentPassword || newPassword || confirmNewPassword),
@@ -33,22 +33,25 @@ const ChangePasswordForm = () => {
       return;
     }
 
-    setIsSubmitting(true);
-
     try {
-      const response = await buytlyApi.changePassword({
-        currentPassword,
-        newPassword,
-        confirmNewPassword,
+      await run({
+        message: "Updating password...",
+        successMessage: (response) =>
+          response?.message || "Password changed successfully",
+        task: async () => {
+          const response = await buytlyApi.changePassword({
+            currentPassword,
+            newPassword,
+            confirmNewPassword,
+          });
+          setCurrentPassword("");
+          setNewPassword("");
+          setConfirmNewPassword("");
+          return response;
+        },
       });
-      notifySuccess(response.message || "Password changed successfully.");
-      setCurrentPassword("");
-      setNewPassword("");
-      setConfirmNewPassword("");
-    } catch (err) {
-      notifyError(getApiError(err));
-    } finally {
-      setIsSubmitting(false);
+    } catch {
+      // Toast handled by useAsyncAction
     }
   };
 
@@ -116,7 +119,7 @@ const ChangePasswordForm = () => {
         <div className="col-md-12">
           <DashboardFormSubmit
             isDirty={isDirty}
-            isSubmitting={isSubmitting}
+            isSubmitting={isBusy}
             idleLabel="Change password"
             submittingLabel="Updating..."
           />

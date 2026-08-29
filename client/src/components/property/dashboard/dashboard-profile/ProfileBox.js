@@ -2,11 +2,11 @@
 
 import AccountSummary from "@/components/property/dashboard/dashboard-profile/AccountSummary";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
-import LoadingOverlay from "@/components/common/LoadingOverlay";
+import AsyncActionOverlay from "@/components/common/AsyncActionOverlay";
 import { buytlyApi } from "@/api/generated";
-import { getApiError } from "@/lib/auth/getApiError";
+import { useAsyncAction } from "@/hooks/useAsyncAction";
 import { isExternalImageSrc } from "@/lib/images/isExternalImageSrc";
-import { notifyError, notifySuccess } from "@/lib/toast";
+import { notifyError } from "@/lib/toast";
 import { useAuth } from "@/providers/AuthProvider";
 import Image from "next/image";
 import { useEffect, useState } from "react";
@@ -19,9 +19,8 @@ const MAX_FILE_SIZE = 10 * 1024 * 1024;
 const ProfileBox = () => {
   const { user, refreshUser, isLoading } = useAuth();
   const [previewUrl, setPreviewUrl] = useState(null);
-  const [isUploading, setIsUploading] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
   const [showRemoveConfirm, setShowRemoveConfirm] = useState(false);
+  const { run, isBusy, overlayMessage } = useAsyncAction({ overlay: true });
 
   const avatarUrl = previewUrl || user?.avatar?.url || DEFAULT_AVATAR;
   const hasCustomAvatar = Boolean(user?.avatar?.gcsKey || previewUrl);
@@ -57,41 +56,43 @@ const ProfileBox = () => {
 
     const localPreview = URL.createObjectURL(file);
     setPreviewUrl(localPreview);
-    setIsUploading(true);
 
     try {
-      const response = await buytlyApi.uploadUserAvatar({ avatar: file });
-      const uploadedUrl = response.data?.avatar?.url;
-      const updatedUser = await refreshUser();
-      const serverUrl = updatedUser?.avatar?.url || uploadedUrl;
+      await run({
+        message: "Uploading profile photo...",
+        successMessage: "Profile photo updated",
+        task: async () => {
+          const response = await buytlyApi.uploadUserAvatar({ avatar: file });
+          const uploadedUrl = response.data?.avatar?.url;
+          const updatedUser = await refreshUser();
+          const serverUrl = updatedUser?.avatar?.url || uploadedUrl;
 
-      if (serverUrl) {
-        setPreviewUrl(serverUrl);
-      }
-
-      notifySuccess("Profile photo updated.");
-    } catch (err) {
+          if (serverUrl) {
+            setPreviewUrl(serverUrl);
+          }
+        },
+      });
+    } catch {
       setPreviewUrl(null);
-      notifyError(getApiError(err));
     } finally {
       URL.revokeObjectURL(localPreview);
-      setIsUploading(false);
     }
   };
 
   const handleDelete = async () => {
-    setIsDeleting(true);
-
     try {
-      await buytlyApi.deleteUserAvatar();
-      setPreviewUrl(null);
-      await refreshUser();
-      setShowRemoveConfirm(false);
-      notifySuccess("Profile photo removed.");
-    } catch (err) {
-      notifyError(getApiError(err));
-    } finally {
-      setIsDeleting(false);
+      await run({
+        message: "Removing profile photo...",
+        successMessage: "Profile photo removed",
+        task: async () => {
+          await buytlyApi.deleteUserAvatar();
+          setPreviewUrl(null);
+          await refreshUser();
+          setShowRemoveConfirm(false);
+        },
+      });
+    } catch {
+      // Toast handled by useAsyncAction
     }
   };
 
@@ -126,7 +127,7 @@ const ProfileBox = () => {
             style={{ border: "none" }}
             data-tooltip-id="profile_del"
             onClick={() => setShowRemoveConfirm(true)}
-            disabled={isDeleting || isUploading}
+            disabled={isBusy}
             aria-label="Remove profile photo"
           >
             <span className="fas fa-trash-can" />
@@ -144,7 +145,7 @@ const ProfileBox = () => {
             accept={ACCEPTED_TYPES.join(",")}
             onChange={handleUpload}
             style={{ display: "none" }}
-            disabled={isUploading || isDeleting}
+            disabled={isBusy}
           />
           <div className="ud-btn btn-white2 mb15">
             {hasCustomAvatar ? "Change photo" : "Upload photo"}
@@ -161,16 +162,17 @@ const ProfileBox = () => {
         confirmLabel="Remove photo"
         cancelLabel="Cancel"
         confirmVariant="danger"
-        isConfirming={isDeleting}
+        isConfirming={isBusy}
+        confirmingLabel="Removing..."
         onClose={() => {
-          if (!isDeleting) {
+          if (!isBusy) {
             setShowRemoveConfirm(false);
           }
         }}
         onConfirm={handleDelete}
       />
 
-      <LoadingOverlay open={isUploading} message="Uploading profile photo..." />
+      <AsyncActionOverlay message={overlayMessage} />
     </div>
   );
 };

@@ -2,23 +2,24 @@
 
 ## Collections Overview
 
-| Collection    | Module        | Description                |
-| ------------- | ------------- | -------------------------- |
-| users         | Users         | User accounts and profiles |
-| refreshtokens | Auth          | JWT refresh token store    |
-| properties    | Properties    | Property listings          |
-| agentprofiles | Agents        | Agent profile extensions   |
-| favorites     | Favorites     | User saved properties      |
-| bookings      | Bookings      | Visit scheduling           |
-| transactions  | Transactions  | Buy/rent tracking          |
-| notifications | Notifications | In-app notifications       |
+| Collection      | Module           | Description                |
+| --------------- | ---------------- | -------------------------- |
+| users           | Users            | User accounts and profiles |
+| refreshtokens   | Auth             | JWT refresh token store    |
+| properties      | Properties       | Property listings          |
+| propertyreviews | Property Reviews | Property listing reviews   |
+| agentprofiles   | Agents           | Agent profile extensions   |
+| favorites       | Favorites        | User saved properties      |
+| bookings        | Bookings         | Visit scheduling           |
+| transactions    | Transactions     | Buy/rent tracking          |
+| notifications   | Notifications    | In-app notifications       |
 
 ## users
 
 ```javascript
 {
   email: String (unique among active users — partial index where deletedAt is null),
-  authProvider: enum [local, google] (default local),
+  authProvider: enum [local, google, both] (default local),
   googleId: String (partial unique where deletedAt is null and googleId is set),
   passwordHash: String (required when authProvider is local),
   role: enum [buyer, seller, agent, admin],
@@ -33,11 +34,14 @@
   emailVerificationToken, emailVerificationExpires: String/Date,
   passwordResetToken, passwordResetExpires: String/Date,
   deletedAt: Date (soft delete),
+  deletedEmail: String (original email retained for admin when soft-deleted),
   timestamps
 }
 ```
 
 **Indexes:** `email` (partial unique where `deletedAt` is null), `googleId` (partial unique where `deletedAt` is null), `role`, `deletedAt`
+
+**Account deletion:** Sets `deletedAt`, clears avatar from GCS and document, anonymizes `email`, stores prior address in `deletedEmail`. Does **not** cascade to properties, bookings, transactions, reviews, or favorites — listings remain at their current status (including active/public).
 
 ## refreshtokens
 
@@ -68,6 +72,8 @@
   amenities: [String],
   status: enum [draft, pending, active, sold, rented, archived],
   media: [{ gcsKey, type, order, mimeType, size }],
+  floorPlans: [{ title, area, areaUnit, bedrooms, bathrooms, price, gcsKey }],
+  virtualTourUrl: String,
   agentId: ObjectId → users,
   ownerId: ObjectId → users,
   viewCount: Number,
@@ -109,6 +115,21 @@
 ```
 
 **Indexes:** `{ userId, propertyId }` (unique), `{ userId, createdAt }`
+
+## propertyreviews
+
+```javascript
+{
+  propertyId: ObjectId → properties,
+  userId: ObjectId → users,
+  rating: Number (1-5),
+  title: String,
+  text: String,
+  timestamps
+}
+```
+
+**Indexes:** `{ propertyId, userId }` (unique), `{ propertyId, createdAt }`
 
 ## bookings
 

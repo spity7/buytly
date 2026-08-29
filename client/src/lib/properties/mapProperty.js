@@ -57,13 +57,21 @@ export function mapPropertiesToCards(properties = []) {
 export function getStatusLabel(status) {
   const labels = {
     draft: "Draft",
-    pending: "Pending",
+    pending: "Pending Review",
     active: "Published",
     sold: "Sold",
     rented: "Rented",
     archived: "Archived",
   };
   return labels[status] || status || "—";
+}
+
+export function isPropertyTerminal(status) {
+  return status === "sold" || status === "rented" || status === "archived";
+}
+
+export function isPropertyBookable(status) {
+  return status === "active";
 }
 
 export function getStatusClass(status) {
@@ -74,6 +82,11 @@ export function getStatusClass(status) {
       return "pending-style style2";
     case "draft":
       return "pending-style style3";
+    case "sold":
+    case "rented":
+      return "pending-style style4";
+    case "archived":
+      return "pending-style style5";
     default:
       return "pending-style style1";
   }

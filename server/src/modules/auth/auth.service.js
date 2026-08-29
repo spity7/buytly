@@ -57,6 +57,37 @@ const handleDuplicateEmailError = (err) => {
   throw err;
 };
 
+const verifyEmailFromGoogle = (user) => {
+  if (user.isEmailVerified) return false;
+
+  user.isEmailVerified = true;
+  user.emailVerificationToken = undefined;
+  user.emailVerificationExpires = undefined;
+  return true;
+};
+
+const applyGoogleProfileFields = (user, profile) => {
+  if (!user.firstName && profile.firstName) user.firstName = profile.firstName;
+  if (!user.lastName && profile.lastName) user.lastName = profile.lastName;
+};
+
+const resolveAuthProviderAfterGoogleLink = (user) =>
+  user.passwordHash ? "both" : "google";
+
+const linkGoogleToExistingUser = (user, profile) => {
+  if (user.googleId && user.googleId !== profile.googleId) {
+    throw new AppError(
+      "This account is linked to a different Google account",
+      409,
+    );
+  }
+
+  user.googleId = profile.googleId;
+  user.authProvider = resolveAuthProviderAfterGoogleLink(user);
+  applyGoogleProfileFields(user, profile);
+  verifyEmailFromGoogle(user);
+};
+
 export const authService = {
   async register(data) {
     const existing = await User.findOne({ email: data.email, deletedAt: null });
@@ -160,11 +191,17 @@ export const authService = {
     let user = await User.findOne({
       googleId: profile.googleId,
       deletedAt: null,
-    }).select("+googleId");
+    }).select(
+      "+googleId +emailVerificationToken +emailVerificationExpires +passwordHash",
+    );
 
     if (user) {
       if (!user.isActive) {
         throw new AppError("Account inactive", 401);
+      }
+
+      if (verifyEmailFromGoogle(user)) {
+        await user.save();
       }
 
       const tokens = await issueTokenPair(user);
@@ -177,13 +214,23 @@ export const authService = {
     const existingByEmail = await User.findOne({
       email: profile.email,
       deletedAt: null,
-    }).select("+googleId +passwordHash");
+    }).select(
+      "+googleId +passwordHash +emailVerificationToken +emailVerificationExpires",
+    );
 
     if (existingByEmail) {
-      throw new AppError(
-        "An account with this email already exists. Sign in with your password.",
-        409,
-      );
+      if (!existingByEmail.isActive) {
+        throw new AppError("Account inactive", 401);
+      }
+
+      linkGoogleToExistingUser(existingByEmail, profile);
+      await existingByEmail.save();
+
+      const tokens = await issueTokenPair(existingByEmail);
+      return {
+        user: existingByEmail.toPublicJSON(),
+        ...tokens,
+      };
     }
 
     try {
@@ -355,6 +402,9 @@ export const authService = {
     user.passwordHash = await bcrypt.hash(password, SALT_ROUNDS);
     user.passwordResetToken = undefined;
     user.passwordResetExpires = undefined;
+    if (user.authProvider === "google") {
+      user.authProvider = "both";
+    }
     await user.save();
 
     await RefreshToken.updateMany(

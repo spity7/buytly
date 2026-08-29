@@ -57,14 +57,18 @@ sequenceDiagram
 
   Client->>API: DELETE /users/me { password }
   API->>DB: Verify password, set deletedAt, isActive=false
+  API->>DB: Store deletedEmail, anonymize email, unset avatar
   API->>DB: Revoke all refresh tokens
   API-->>Client: { success: true }
 ```
 
-- Soft delete only — user record retained for audit/history
-- Email anonymized on deletion so the address can be re-registered
-- Password hash overwritten on deletion
-- Same email can register again after deletion
+- Soft delete only — user record and all related data (properties, bookings, transactions, reviews, favorites) are **retained** for admin audit
+- **Listings stay live** — account deletion does not change property status or archive listings
+- Avatar file removed from GCS and `avatar` field unset on the user document
+- Original email stored in `deletedEmail` for admin lookup; public `email` anonymized to `deleted_<id>@deleted.buytly.internal`
+- Password hash overwritten on deletion; verification/reset tokens cleared
+- Same email can register again after deletion (partial unique index on active users)
+- Admins can list deleted users via `GET /admin/users?deleted=true` and inspect detail via `GET /admin/users/:id`
 
 ## Login Flow
 
@@ -97,8 +101,9 @@ sequenceDiagram
   API->>Google: Verify ID token (audience = GOOGLE_CLIENT_ID)
   alt Existing googleId
     API->>DB: Find user by googleId
+  else Existing email (local/both account)
+    API->>DB: Link googleId, set authProvider=both, auto-verify email
   else New user
-    API->>DB: Reject if email exists (local account)
     API->>DB: Create user (authProvider=google, isEmailVerified=true)
   end
   API->>DB: Store refresh token hash
@@ -106,8 +111,10 @@ sequenceDiagram
 ```
 
 - `role` is optional and only applied on **first** Google sign-up (defaults to `buyer`; `agent` creates an `AgentProfile`)
-- Google users have no local password; change-password is unavailable; account deletion does not require a password
-- Email/password accounts with the same email are **not** auto-linked — user must sign in with password
+- Google users have no local password until they set one via password reset; `authProvider` is `google` or `both` when linked
+- Email/password accounts with the same verified Google email are **auto-linked** on Google sign-in — user can then sign in with either method
+- Google sign-in auto-verifies the account when Google confirms the email (`isEmailVerified=true`, verification tokens cleared)
+- Google-only accounts cannot change password until a password is set via reset; after reset, `authProvider` becomes `both` and password login/change-password are available
 
 **Env:** `GOOGLE_CLIENT_ID` (server) and `NEXT_PUBLIC_GOOGLE_CLIENT_ID` (client) must match the OAuth Web client ID. Add the app origin (e.g. `http://localhost:3000`) under **Authorized JavaScript origins** in Google Cloud Console.
 
@@ -177,9 +184,10 @@ sequenceDiagram
 
 ## Property visibility and moderation
 
-- Public `GET /properties` returns **active** listings only.
+- Public `GET /properties` returns **active** listings by default. Public list `status` filter accepts only `active`, `sold`, or `rented`.
 - Public `GET /properties/:id` returns **404** for non-active listings unless the requester is the owner, assigned agent, or admin (optional auth).
-- Non-admin create/update requests with `status: "active"` are stored as **`pending`** until an admin moderates the listing to active.
+- Non-admin create/update: `status: "active"` → **`pending`**. Omitting `status` on PATCH keeps the current status. Non-admins cannot set `sold`/`rented`/`archived` directly.
+- Pending submissions notify admins; admin moderation notifies the owner.
 
 ## Security Measures
 

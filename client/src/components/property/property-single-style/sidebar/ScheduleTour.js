@@ -1,128 +1,106 @@
-import React from "react";
+"use client";
+
+import { useState } from "react";
+import { openAuthModal } from "@/components/common/login-signup-modal/authModal";
+import { buytlyApi } from "@/api/generated";
+import { getApiError } from "@/lib/auth/getApiError";
+import { notifyError, notifySuccess } from "@/lib/toast";
+import { useAuthSafe } from "@/providers/AuthProvider";
+import PropertyStatusBanner from "@/components/property/property-single-style/common/PropertyStatusBanner";
+import { isPropertyBookable } from "@/lib/properties/mapProperty";
+import { usePropertySingle } from "@/providers/PropertySingleProvider";
 
 const ScheduleTour = () => {
-  const tabs = [
-    {
-      id: "inperson",
-      label: "In Person",
-    },
-    {
-      id: "videochat",
-      label: "Video Chat",
-    },
-  ];
+  const { id, property } = usePropertySingle();
+  const auth = useAuthSafe();
+  const isAuthenticated = Boolean(auth?.user);
+  const canBook = isPropertyBookable(property?.status);
+
+  const [scheduledAt, setScheduledAt] = useState("");
+  const [message, setMessage] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+
+    if (!isAuthenticated) {
+      openAuthModal("signin");
+      return;
+    }
+
+    if (!scheduledAt) {
+      notifyError("Please choose a date and time for your tour.");
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      await buytlyApi.createBooking({
+        propertyId: id,
+        scheduledAt: new Date(scheduledAt).toISOString(),
+        message: message.trim() || undefined,
+      });
+      notifySuccess("Tour request submitted");
+      setScheduledAt("");
+      setMessage("");
+    } catch (error) {
+      notifyError(getApiError(error));
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  if (!canBook) {
+    return (
+      <p className="text mb-0">
+        Tour scheduling is not available for this listing.
+      </p>
+    );
+  }
 
   return (
     <div className="ps-navtab">
-      <ul className="nav nav-pills mb-3" id="pills-tab" role="tablist">
-        {tabs.map((tab) => (
-          <li className="nav-item" key={tab.id} role="presentation">
-            <button
-              className={`nav-link${
-                tab.id === "inperson" ? " active mr15 mb5-lg" : ""
-              }`}
-              id={`pills-${tab.id}-tab`}
-              data-bs-toggle="pill"
-              data-bs-target={`#pills-${tab.id}`}
-              type="button"
-              role="tab"
-              aria-controls={`pills-${tab.id}`}
-              aria-selected={tab.id === "inperson" ? "true" : "false"}
-            >
-              {tab.label}
-            </button>
-          </li>
-        ))}
-      </ul>
-      {/* End nav-pills */}
-
-      <div className="tab-content" id="pills-tabContent">
-        {tabs.map((tab) => (
-          <div
-            className={`tab-pane fade${
-              tab.id === "inperson" ? " show active" : ""
-            }`}
-            id={`pills-${tab.id}`}
-            role="tabpanel"
-            aria-labelledby={`pills-${tab.id}-tab`}
-            key={tab.id}
-          >
-            <form className="form-style1">
-              <div className="row">
-                <div className="col-md-12">
-                  <div className="mb20">
-                    <input
-                      type="text"
-                      className="form-control"
-                      placeholder="Time"
-                      required
-                    />
-                  </div>
-                </div>
-                {/* End .col-12 */}
-
-                <div className="col-lg-12">
-                  <div className="mb20">
-                    <input
-                      type="text"
-                      className="form-control"
-                      placeholder="Name"
-                      required
-                    />
-                  </div>
-                </div>
-                {/* End .col-12 */}
-
-                <div className="col-lg-12">
-                  <div className="mb20">
-                    <input
-                      type="text"
-                      className="form-control"
-                      placeholder="Phone"
-                      required
-                    />
-                  </div>
-                </div>
-                {/* End .col-12 */}
-
-                <div className="col-md-12">
-                  <div className="mb20">
-                    <input
-                      type="email"
-                      className="form-control"
-                      placeholder="Email"
-                      required
-                    />
-                  </div>
-                </div>
-                {/* End .col-12 */}
-
-                <div className="col-md-12">
-                  <div className="mb10">
-                    <textarea
-                      cols={30}
-                      rows={4}
-                      placeholder="Enter Your Messages"
-                      defaultValue={""}
-                    />
-                  </div>
-                </div>
-                {/* End .col-12 */}
-
-                <div className="col-md-12">
-                  <div className="d-grid">
-                    <button type="submit" className="ud-btn btn-thm">
-                      Submit a Tour Request
-                      <i className="fal fa-arrow-right-long" />
-                    </button>
-                  </div>
-                </div>
-                {/* End .col-12 */}
-              </div>
-            </form>
+      <form className="form-style1" onSubmit={handleSubmit}>
+        <div className="row">
+          <div className="col-md-12">
+            <div className="mb20">
+              <input
+                type="datetime-local"
+                className="form-control"
+                value={scheduledAt}
+                onChange={(e) => setScheduledAt(e.target.value)}
+                required
+              />
+            </div>
           </div>
-        ))}
-      </div>
+
+          <div className="col-md-12">
+            <div className="mb10">
+              <textarea
+                cols={30}
+                rows={4}
+                className="form-control"
+                placeholder="Enter your message (optional)"
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
+              />
+            </div>
+          </div>
+
+          <div className="col-md-12">
+            <div className="d-grid">
+              <button
+                type="submit"
+                className="ud-btn btn-thm"
+                disabled={isSubmitting}
+              >
+                Submit a Tour Request
+                <i className="fal fa-arrow-right-long" />
+              </button>
+            </div>
+          </div>
+        </div>
+      </form>
     </div>
   );
 };

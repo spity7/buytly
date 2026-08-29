@@ -1,8 +1,37 @@
+"use client";
+
+import { remoteImageProps } from "@/lib/images/remoteImage";
+import { usePropertySingle } from "@/providers/PropertySingleProvider";
 import Image from "next/image";
 import Link from "next/link";
-import React from "react";
+
+const PLACEHOLDER_AVATAR = "/images/team/agent-3.png";
+
+function getListingContact(property) {
+  const contact = property?.agentId || property?.ownerId;
+  if (!contact || typeof contact === "string") return null;
+
+  const id = contact._id || contact.id;
+  const name =
+    [contact.firstName, contact.lastName].filter(Boolean).join(" ") ||
+    "Listing contact";
+
+  return {
+    id,
+    name,
+    phone: contact.phone,
+    avatarUrl: contact.avatar?.url || PLACEHOLDER_AVATAR,
+  };
+}
 
 const ContactWithAgent = () => {
+  const { property } = usePropertySingle();
+  const contact = getListingContact(property);
+
+  if (!contact) {
+    return <p className="text mb-0">No listing contact available.</p>;
+  }
+
   return (
     <>
       <div className="agent-single d-sm-flex align-items-center pb25">
@@ -11,30 +40,35 @@ const ContactWithAgent = () => {
             width={90}
             height={90}
             className="w90"
-            src="/images/team/agent-3.png"
-            alt="avatar"
+            src={contact.avatarUrl}
+            alt={contact.name}
+            {...remoteImageProps(contact.avatarUrl)}
           />
         </div>
         <div className="single-contant ml20 ml0-xs">
-          <h6 className="title mb-1">Arlene McCoy</h6>
-          <div className="agent-meta mb10 d-md-flex align-items-center">
-            <a className="text fz15" href="#">
-              <i className="flaticon-call pe-1" />
-              (920) 012-3421
-            </a>
-          </div>
+          <h6 className="title mb-1">{contact.name}</h6>
+          {contact.phone && (
+            <div className="agent-meta mb10 d-md-flex align-items-center">
+              <a className="text fz15" href={`tel:${contact.phone}`}>
+                <i className="flaticon-call pe-1" />
+                {contact.phone}
+              </a>
+            </div>
+          )}
           <Link
-            href="/agent-single/3"
+            href={`/agent-single/${contact.id}`}
             className="text-decoration-underline fw600"
           >
             View Listings
           </Link>
         </div>
       </div>
-      {/* End agent-single */}
 
       <div className="d-grid">
-        <Link href="/agent-single/3" className="ud-btn btn-white2">
+        <Link
+          href={`/agent-single/${contact.id}`}
+          className="ud-btn btn-white2"
+        >
           Contact Agent
           <i className="fal fa-arrow-right-long" />
         </Link>

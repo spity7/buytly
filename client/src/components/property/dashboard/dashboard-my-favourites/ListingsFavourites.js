@@ -4,19 +4,44 @@ import React from "react";
 import { Tooltip as ReactTooltip } from "react-tooltip";
 import Image from "next/image";
 import Link from "next/link";
+import { buytlyApi } from "@/api/generated";
+import AsyncActionOverlay from "@/components/common/AsyncActionOverlay";
+import ConfirmDialog from "@/components/common/ConfirmDialog";
 import { DashboardGridSkeleton } from "@/components/property/dashboard/skeletons/DashboardSkeletons";
-import { useFavorites, useToggleFavorite } from "@/hooks/useFavorites";
+import { useFavorites } from "@/hooks/useFavorites";
+import { useConfirmAction } from "@/hooks/useConfirmAction";
+import { favoriteRemoveConfirmation } from "@/lib/confirmations";
+import { useQueryClient } from "@tanstack/react-query";
 
 const PLACEHOLDER = "/images/listings/list-1.jpg";
 
 const ListingsFavourites = () => {
+  const queryClient = useQueryClient();
   const { data, isLoading, isError } = useFavorites({ limit: 50 });
-  const toggleFavorite = useToggleFavorite();
+  const { requestConfirm, isLocked, overlayMessage, dialogProps, pending } =
+    useConfirmAction({ overlay: true });
   const cards = data?.cards || [];
 
-  const handleDeleteListing = async (propertyId) => {
-    toggleFavorite.mutate({ propertyId, isFavorite: true });
+  const promptRemove = (propertyId, title) => {
+    requestConfirm({
+      ...favoriteRemoveConfirmation(title),
+      targetId: propertyId,
+      action: {
+        message: "Removing from favorites...",
+        successMessage: "Removed from favorites",
+        task: () => buytlyApi.removeFavorite(propertyId),
+        onSuccess: () => {
+          queryClient.invalidateQueries({ queryKey: ["favorites"] });
+          queryClient.invalidateQueries({
+            queryKey: ["favorite-status", propertyId],
+          });
+        },
+      },
+    });
   };
+
+  const tableBusy = isLocked;
+  const actingId = pending?.targetId ?? null;
 
   if (isLoading) {
     return <DashboardGridSkeleton count={4} />;
@@ -34,6 +59,7 @@ const ListingsFavourites = () => {
         cards.map((listing) => {
           const id = listing.id || listing._id;
           const forRent = listing.forRent ?? listing.listingType === "rent";
+          const rowBusy = actingId === id;
 
           return (
             <div className="col-md-6 col-lg-4 col-xl-3" key={id}>
@@ -50,10 +76,10 @@ const ListingsFavourites = () => {
                   <button
                     className="tag-del"
                     title="Delete Item"
-                    onClick={() => handleDeleteListing(id)}
+                    onClick={() => promptRemove(id, listing.title || "Listing")}
                     style={{ border: "none" }}
                     data-tooltip-id={`delete-${id}`}
-                    disabled={toggleFavorite.isPending}
+                    disabled={rowBusy || tableBusy}
                   >
                     <span className="fas fa-trash-can"></span>
                   </button>
@@ -97,6 +123,9 @@ const ListingsFavourites = () => {
           );
         })
       )}
+
+      <ConfirmDialog {...dialogProps} />
+      <AsyncActionOverlay message={overlayMessage} />
     </>
   );
 };

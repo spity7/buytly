@@ -11,9 +11,10 @@ import type {
   AdminModeratePropertyBody,
   AdminUpdateUserRoleBody,
   AdminUpdateUserStatusBody,
+  AdminUserDetailResponse,
   GetAnalytics200,
+  PaginatedAdminUsersResponse,
   PaginatedPropertiesResponse,
-  PaginatedUsersResponse,
   PropertySuccessResponse,
   UserSuccessResponse,
 } from "../buytly.schemas";
@@ -30,10 +31,25 @@ export const getAdmin = () => {
    */
   const adminListUsers = (
     params?: AdminListUsersParams,
-    options?: SecondParameter<typeof customInstance<PaginatedUsersResponse>>,
+    options?: SecondParameter<
+      typeof customInstance<PaginatedAdminUsersResponse>
+    >,
   ) => {
-    return customInstance<PaginatedUsersResponse>(
+    return customInstance<PaginatedAdminUsersResponse>(
       { url: `/admin/users`, method: "GET", params },
+      options,
+    );
+  };
+  /**
+   * Returns a user profile with related record counts. Includes soft-deleted users. Listings remain live after account deletion — activeListings reflects public listings still visible.
+   * @summary Get user details (admin)
+   */
+  const adminGetUserById = (
+    id: string,
+    options?: SecondParameter<typeof customInstance<AdminUserDetailResponse>>,
+  ) => {
+    return customInstance<AdminUserDetailResponse>(
+      { url: `/admin/users/${id}`, method: "GET" },
       options,
     );
   };
@@ -123,6 +139,7 @@ export const getAdmin = () => {
   };
   return {
     adminListUsers,
+    adminGetUserById,
     adminUpdateUserStatus,
     adminUpdateUserRole,
     adminListProperties,
@@ -137,6 +154,9 @@ type Awaited<O> = O extends AwaitedInput<infer T> ? T : never;
 
 export type AdminListUsersResult = NonNullable<
   Awaited<ReturnType<ReturnType<typeof getAdmin>["adminListUsers"]>>
+>;
+export type AdminGetUserByIdResult = NonNullable<
+  Awaited<ReturnType<ReturnType<typeof getAdmin>["adminGetUserById"]>>
 >;
 export type AdminUpdateUserStatusResult = NonNullable<
   Awaited<ReturnType<ReturnType<typeof getAdmin>["adminUpdateUserStatus"]>>

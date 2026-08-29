@@ -3,6 +3,7 @@ import { mongoAvailable } from "./setup.js";
 import { AppError } from "../src/shared/AppError.js";
 import { User } from "../src/modules/users/user.model.js";
 import { AgentProfile } from "../src/modules/agents/agent.model.js";
+import { generatePasswordResetToken } from "../src/services/token.service.js";
 
 vi.mock("../src/services/google.service.js", () => ({
   googleService: {
@@ -86,11 +87,35 @@ describe.skipIf(!mongoAvailable)("authService.googleAuth", () => {
     expect(await User.countDocuments({ email: googleProfile.email })).toBe(1);
   });
 
-  it("rejects Google sign-in when email belongs to a password account", async () => {
+  it("links Google to an existing password account and auto-verifies email", async () => {
     await User.create({
       email: googleProfile.email,
       passwordHash: "hashed-password",
       authProvider: "local",
+      isEmailVerified: false,
+    });
+
+    const result = await authService.googleAuth({ idToken: "valid-id-token" });
+
+    expect(result.user.email).toBe(googleProfile.email);
+    expect(result.user.authProvider).toBe("both");
+    expect(result.user.isEmailVerified).toBe(true);
+    expect(await User.countDocuments({ email: googleProfile.email })).toBe(1);
+
+    const stored = await User.findOne({ email: googleProfile.email }).select(
+      "+googleId +emailVerificationToken",
+    );
+    expect(stored?.googleId).toBe(googleProfile.googleId);
+    expect(stored?.emailVerificationToken).toBeUndefined();
+  });
+
+  it("rejects Google sign-in when email is linked to a different Google account", async () => {
+    await User.create({
+      email: googleProfile.email,
+      passwordHash: "hashed-password",
+      googleId: "other-google-sub",
+      authProvider: "both",
+      isEmailVerified: true,
     });
 
     await expect(
@@ -109,5 +134,27 @@ describe.skipIf(!mongoAvailable)("authService.googleAuth", () => {
     await expect(
       authService.googleAuth({ idToken: "valid-id-token" }),
     ).rejects.toBeInstanceOf(AppError);
+  });
+
+  it("sets authProvider to both when a Google-only user resets password", async () => {
+    const { token, hashed, expires } = generatePasswordResetToken();
+
+    await User.create({
+      email: googleProfile.email,
+      googleId: googleProfile.googleId,
+      authProvider: "google",
+      isEmailVerified: true,
+      passwordResetToken: hashed,
+      passwordResetExpires: expires,
+    });
+
+    await authService.resetPassword(token, "newpassword123");
+
+    const stored = await User.findOne({ email: googleProfile.email }).select(
+      "+passwordHash +googleId",
+    );
+    expect(stored?.authProvider).toBe("both");
+    expect(stored?.googleId).toBe(googleProfile.googleId);
+    expect(stored?.passwordHash).toBeTypeOf("string");
   });
 });

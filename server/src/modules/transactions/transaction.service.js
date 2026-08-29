@@ -1,6 +1,7 @@
 import { Transaction } from "./transaction.model.js";
 import { Property } from "../properties/property.model.js";
 import { notificationService } from "../notifications/notification.service.js";
+import { cacheService } from "../../services/cache.service.js";
 import { AppError } from "../../shared/AppError.js";
 import {
   parsePagination,
@@ -139,6 +140,7 @@ export const transactionService = {
       await Property.findByIdAndUpdate(transaction.propertyId._id, {
         status: transaction.type === "rent" ? "rented" : "sold",
       });
+      await cacheService.invalidateProperties();
     }
 
     notificationService

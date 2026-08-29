@@ -2,6 +2,7 @@ import { canManageListings } from "@/lib/auth/roles";
 
 export function getDashboardNavSections(role) {
   const canManageListingsNav = canManageListings(role);
+  const isAdmin = role === "admin";
 
   return [
     {
@@ -16,6 +17,16 @@ export function getDashboardNavSections(role) {
           href: "/dashboard-message",
           icon: "flaticon-chat-1",
           text: "Message",
+        },
+        {
+          href: "/dashboard-bookings",
+          icon: "flaticon-calendar",
+          text: "Bookings",
+        },
+        {
+          href: "/dashboard-transactions",
+          icon: "flaticon-contract",
+          text: "Transactions",
         },
       ],
     },
@@ -33,6 +44,20 @@ export function getDashboardNavSections(role) {
                 href: "/dashboard-my-properties",
                 icon: "flaticon-home",
                 text: "My Properties",
+              },
+            ],
+          },
+        ]
+      : []),
+    ...(isAdmin
+      ? [
+          {
+            title: "ADMIN",
+            items: [
+              {
+                href: "/dashboard-admin-properties",
+                icon: "flaticon-settings",
+                text: "Moderate Listings",
               },
             ],
           },

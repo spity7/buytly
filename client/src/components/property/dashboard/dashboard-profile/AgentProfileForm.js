@@ -5,7 +5,7 @@ import DashboardFormSubmit from "@/components/property/dashboard/dashboard-profi
 import ProfileFormSkeleton from "@/components/property/dashboard/dashboard-profile/ProfileFormSkeleton";
 import { getApiError } from "@/lib/auth/getApiError";
 import { hasFormChanges } from "@/lib/form/hasFormChanges";
-import { notifyError, notifySuccess } from "@/lib/toast";
+import { useAsyncAction } from "@/hooks/useAsyncAction";
 import { useAuth } from "@/providers/AuthProvider";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
@@ -31,7 +31,7 @@ const AgentProfileForm = () => {
   const [baseline, setBaseline] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { run, isBusy } = useAsyncAction();
 
   const loadAgentProfile = useCallback(async () => {
     if (!user || user.role !== "agent") {
@@ -76,7 +76,6 @@ const AgentProfileForm = () => {
 
   const handleSubmit = async (event) => {
     event.preventDefault();
-    setIsSubmitting(true);
 
     const specialties = form.specialties
       .split(",")
@@ -84,24 +83,27 @@ const AgentProfileForm = () => {
       .filter(Boolean);
 
     try {
-      await buytlyApi.updateMyAgentProfile({
-        licenseNumber: form.licenseNumber.trim(),
-        agency: form.agency.trim(),
-        city: form.city.trim(),
-        bio: form.bio.trim(),
-        specialties,
-      });
+      await run({
+        message: "Saving agent profile...",
+        successMessage: "Agent profile updated",
+        task: async () => {
+          await buytlyApi.updateMyAgentProfile({
+            licenseNumber: form.licenseNumber.trim(),
+            agency: form.agency.trim(),
+            city: form.city.trim(),
+            bio: form.bio.trim(),
+            specialties,
+          });
 
-      const response = await buytlyApi.getMyAgentProfile();
-      const profile = response.data?.profile;
-      const snapshot = buildAgentSnapshot(profile);
-      setForm(snapshot);
-      setBaseline(snapshot);
-      notifySuccess("Agent profile updated.");
-    } catch (err) {
-      notifyError(getApiError(err));
-    } finally {
-      setIsSubmitting(false);
+          const response = await buytlyApi.getMyAgentProfile();
+          const profile = response.data?.profile;
+          const snapshot = buildAgentSnapshot(profile);
+          setForm(snapshot);
+          setBaseline(snapshot);
+        },
+      });
+    } catch {
+      // Toast handled by useAsyncAction
     }
   };
 
@@ -211,7 +213,7 @@ const AgentProfileForm = () => {
             <div className="col-md-12">
               <DashboardFormSubmit
                 isDirty={isDirty}
-                isSubmitting={isSubmitting}
+                isSubmitting={isBusy}
                 idleLabel="Update agent profile"
                 submittingLabel="Saving..."
               />

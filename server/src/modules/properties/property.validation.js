@@ -12,6 +12,16 @@ const locationSchema = z.object({
   country: z.string().optional(),
 });
 
+const floorPlanSchema = z.object({
+  title: z.string().min(1).max(100),
+  area: z.number().positive().optional(),
+  areaUnit: z.string().optional(),
+  bedrooms: z.number().int().min(0).optional(),
+  bathrooms: z.number().min(0).optional(),
+  price: z.number().min(0).optional(),
+  gcsKey: z.string().optional(),
+});
+
 export const createPropertySchema = z.object({
   title: z.string().min(3).max(200),
   description: z.string().min(10),
@@ -25,6 +35,8 @@ export const createPropertySchema = z.object({
   area: z.number().positive().optional(),
   areaUnit: z.string().optional(),
   amenities: z.array(z.string()).optional(),
+  floorPlans: z.array(floorPlanSchema).optional(),
+  virtualTourUrl: z.string().url().max(2000).optional().or(z.literal("")),
   status: z.enum(PROPERTY_STATUSES).optional(),
   agentId: z
     .string()
@@ -40,6 +52,7 @@ export const listMyPropertiesSchema = z.object({
   status: z.enum(PROPERTY_STATUSES).optional(),
   sortBy: z.enum(["price", "createdAt", "viewCount"]).optional(),
   sortOrder: z.enum(["asc", "desc"]).optional(),
+  trashed: z.enum(["true", "false"]).optional(),
 });
 
 export const listPropertiesSchema = z.object({
@@ -49,7 +62,7 @@ export const listPropertiesSchema = z.object({
   maxPrice: z.coerce.number().optional(),
   type: z.enum(PROPERTY_TYPES).optional(),
   listingType: z.enum(LISTING_TYPES).optional(),
-  status: z.enum(PROPERTY_STATUSES).optional(),
+  status: z.enum(["active", "sold", "rented"]).optional(),
   city: z.string().optional(),
   bedrooms: z.coerce.number().int().optional(),
   search: z.string().optional(),

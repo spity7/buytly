@@ -1,3 +1,6 @@
+"use client";
+
+import { usePropertySingle } from "@/providers/PropertySingleProvider";
 import React from "react";
 
 const resultItems = [
@@ -16,6 +19,9 @@ const resultItems = [
 ];
 
 const MortgageCalculator = () => {
+  const { property } = usePropertySingle();
+  const defaultHomePrice = property?.price ? String(property.price) : "";
+
   return (
     <>
       <div className="col-md-12">
@@ -45,6 +51,7 @@ const MortgageCalculator = () => {
                   type="text"
                   className="form-control"
                   placeholder="$250"
+                  defaultValue={defaultHomePrice}
                   required
                 />
               </div>

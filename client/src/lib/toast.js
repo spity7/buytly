@@ -13,3 +13,40 @@ export function notifyError(message) {
   }
   toast.error(message);
 }
+
+/** Shows a persistent loading toast. Returns an id to pass to notifyLoadingSuccess/Error. */
+export function notifyLoading(message) {
+  if (!message) {
+    return undefined;
+  }
+  return toast.loading(message);
+}
+
+export function notifyLoadingSuccess(loadingId, message) {
+  if (loadingId) {
+    toast.success(message, { id: loadingId });
+    return;
+  }
+  notifySuccess(message);
+}
+
+export function notifyLoadingError(loadingId, message) {
+  if (loadingId) {
+    toast.error(message, { id: loadingId });
+    return;
+  }
+  notifyError(message);
+}
+
+export function updateLoadingToast(loadingId, message) {
+  if (!loadingId || !message) {
+    return;
+  }
+  toast.loading(message, { id: loadingId });
+}
+
+export function dismissToast(loadingId) {
+  if (loadingId) {
+    toast.dismiss(loadingId);
+  }
+}

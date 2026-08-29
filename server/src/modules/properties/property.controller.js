@@ -42,6 +42,11 @@ export const propertyController = {
     ApiResponse.success(res, null, "Property deleted");
   },
 
+  restore: async (req, res) => {
+    const property = await propertyService.restore(req.params.id, req.user);
+    ApiResponse.success(res, property, "Property restored");
+  },
+
   uploadMedia: [
     upload.single("media"),
     async (req, res, next) => {
@@ -71,4 +76,25 @@ export const propertyController = {
     );
     ApiResponse.success(res, null, "Media removed");
   },
+
+  uploadFloorPlanImage: [
+    upload.single("image"),
+    async (req, res, next) => {
+      try {
+        if (!req.file) {
+          return res
+            .status(400)
+            .json({ success: false, message: "No file uploaded" });
+        }
+        const result = await propertyService.uploadFloorPlanImage(
+          req.params.id,
+          req.file,
+          req.user,
+        );
+        ApiResponse.created(res, result, "Floor plan image uploaded");
+      } catch (error) {
+        next(error);
+      }
+    },
+  ],
 };
