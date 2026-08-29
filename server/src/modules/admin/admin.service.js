@@ -10,8 +10,8 @@ import {
   parsePagination,
   buildPaginationMeta,
 } from "../../shared/pagination.js";
+import { buildPropertyTextFilter } from "../../shared/search.js";
 import { notificationService } from "../notifications/notification.service.js";
-import { NOTIFICATION_TYPES } from "../../shared/constants.js";
 import {
   buildArchiveUpdate,
   buildUnarchiveUpdate,
@@ -117,20 +117,28 @@ export const adminService = {
 
   async listProperties(query) {
     const { page, limit, skip } = parsePagination(query);
-    const filter = {};
+    const conditions = [];
 
-    if (query.status === "archived") {
-      filter.status = "archived";
-    } else {
-      filter.deletedAt = null;
-      if (query.status) filter.status = query.status;
-    }
+    if (query.status) conditions.push({ status: query.status });
+
+    if (query.type) conditions.push({ type: query.type });
+    if (query.listingType) conditions.push({ listingType: query.listingType });
+
+    const textFilter = buildPropertyTextFilter(query.search);
+    if (textFilter) conditions.push(textFilter);
+
+    const filter =
+      conditions.length === 1 ? conditions[0] : { $and: conditions };
+
+    const sortField = query.sortBy || "createdAt";
+    const sortOrder = query.sortOrder === "asc" ? 1 : -1;
+    const sort = { [sortField]: sortOrder };
 
     const [properties, total] = await Promise.all([
       Property.find(filter)
         .populate("ownerId", "firstName lastName email")
         .populate("agentId", "firstName lastName email")
-        .sort({ createdAt: -1 })
+        .sort(sort)
         .skip(skip)
         .limit(limit),
       Property.countDocuments(filter),
@@ -165,21 +173,16 @@ export const adminService = {
     };
 
     notificationService
-      .notify({
+      .notifyFromEvent("property.status_changed", {
         userId: property.ownerId._id,
-        type: NOTIFICATION_TYPES.PROPERTY,
-        title: `Listing status: ${status}`,
-        message:
-          statusMessages[status] ||
-          `Your listing "${property.title}" is now ${status}.`,
-        data: { propertyId: property._id, status },
-        sendEmail: true,
-        emailTemplate: "generic",
-        emailData: {
-          title: `Listing status: ${status}`,
+        context: {
+          propertyId: property._id,
+          propertyTitle: property.title,
+          status,
           message:
             statusMessages[status] ||
             `Your listing "${property.title}" is now ${status}.`,
+          name: property.ownerId.firstName || property.ownerId.email,
         },
       })
       .catch((err) =>

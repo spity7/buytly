@@ -1,6 +1,7 @@
 import mongoose from "mongoose";
 import { PropertyReview } from "./property-review.model.js";
 import { Property } from "../properties/property.model.js";
+import { notificationService } from "../notifications/notification.service.js";
 import { gcsService } from "../../services/gcs.service.js";
 import { AppError } from "../../shared/AppError.js";
 import {
@@ -96,7 +97,9 @@ export const propertyReviewService = {
   },
 
   async create(propertyId, userId, data) {
-    await getViewableProperty(propertyId, null, { requireActive: true });
+    const property = await getViewableProperty(propertyId, null, {
+      requireActive: true,
+    });
 
     const existing = await PropertyReview.findOne({ propertyId, userId });
     if (existing) {
@@ -108,6 +111,16 @@ export const propertyReviewService = {
         propertyId,
         userId,
         ...data,
+      });
+
+      const recipientIds = [property.ownerId, property.agentId]
+        .filter(Boolean)
+        .filter((id) => !id.equals(userId));
+
+      await notificationService.notifyMany("review.received", recipientIds, {
+        propertyId: property._id,
+        propertyTitle: property.title,
+        rating: data.rating,
       });
 
       const populated = await review.populate(

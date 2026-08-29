@@ -69,7 +69,7 @@ const router = Router();
  *         name: search
  *         schema:
  *           type: string
- *         description: Full-text search on title and description. Can be combined with geo-radius filters.
+ *         description: Case-insensitive partial match on title and description. Can be combined with geo-radius filters.
  *         example: downtown apartment
  *       - in: query
  *         name: lat
@@ -131,6 +131,19 @@ router.get(
  *         name: status
  *         schema:
  *           $ref: '#/components/schemas/PropertyStatus'
+ *       - in: query
+ *         name: type
+ *         schema:
+ *           $ref: '#/components/schemas/PropertyType'
+ *       - in: query
+ *         name: listingType
+ *         schema:
+ *           $ref: '#/components/schemas/ListingType'
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *         description: Case-insensitive partial match on title and description
  *       - in: query
  *         name: sortBy
  *         schema:

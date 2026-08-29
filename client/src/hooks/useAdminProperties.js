@@ -1,7 +1,7 @@
 "use client";
 
 import { buytlyApi } from "@/api/generated";
-import { useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 
 export function useAdminProperties(params = {}, options = {}) {
   return useQuery({
@@ -13,6 +13,7 @@ export function useAdminProperties(params = {}, options = {}) {
         pagination: response.pagination,
       };
     },
+    placeholderData: keepPreviousData,
     ...options,
   });
 }

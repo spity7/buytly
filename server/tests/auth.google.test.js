@@ -21,6 +21,7 @@ vi.mock("../src/services/email.service.js", () => ({
 vi.mock("../src/modules/notifications/notification.service.js", () => ({
   notificationService: {
     notify: vi.fn().mockResolvedValue(undefined),
+    notifyFromEvent: vi.fn().mockResolvedValue(undefined),
   },
 }));
 

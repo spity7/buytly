@@ -269,6 +269,131 @@ describe.skipIf(!mongoAvailable)("property status rules", () => {
     expect(trashRes.body.data.some((p) => p._id === id)).toBe(true);
   });
 
+  it("includes archived listings in admin list (all statuses and archived filter)", async () => {
+    const app = await getApp();
+    const sellerToken = await registerAndGetToken(app, {
+      email: "admin-list-seller@example.com",
+    });
+    const id = await createActiveProperty(app, sellerToken, {
+      title: "Admin Archived Listing",
+    });
+
+    const adminRegister = await request(app)
+      .post("/api/v1/auth/register")
+      .send(
+        registerPayload({
+          email: "admin-list-admin@example.com",
+          role: "seller",
+        }),
+      );
+
+    await User.findByIdAndUpdate(adminRegister.body.data.user.id, {
+      role: "admin",
+    });
+
+    const adminLogin = await request(app)
+      .post("/api/v1/auth/login")
+      .send({ email: "admin-list-admin@example.com", password: "password123" });
+
+    const adminToken = adminLogin.body.data.accessToken;
+
+    const archiveRes = await request(app)
+      .patch(`/api/v1/admin/properties/${id}/moderate`)
+      .set("Authorization", `Bearer ${adminToken}`)
+      .send({ status: "archived" });
+
+    expect(archiveRes.status).toBe(200);
+    expect(archiveRes.body.data.status).toBe("archived");
+
+    const allRes = await request(app)
+      .get("/api/v1/admin/properties")
+      .set("Authorization", `Bearer ${adminToken}`);
+
+    expect(allRes.status).toBe(200);
+    expect(allRes.body.data.some((p) => p._id === id)).toBe(true);
+
+    const archivedRes = await request(app)
+      .get("/api/v1/admin/properties?status=archived")
+      .set("Authorization", `Bearer ${adminToken}`);
+
+    expect(archivedRes.status).toBe(200);
+    expect(archivedRes.body.data.some((p) => p._id === id)).toBe(true);
+
+    const activeRes = await request(app)
+      .get("/api/v1/admin/properties?status=active")
+      .set("Authorization", `Bearer ${adminToken}`);
+
+    expect(activeRes.status).toBe(200);
+    expect(activeRes.body.data.some((p) => p._id === id)).toBe(false);
+  });
+
+  it("lets admin view and restore archived listing via property endpoints", async () => {
+    const app = await getApp();
+    const sellerToken = await registerAndGetToken(app, {
+      email: "admin-archived-edit-seller@example.com",
+    });
+    const id = await createActiveProperty(app, sellerToken, {
+      title: "Admin Archived Edit Listing",
+    });
+
+    const adminRegister = await request(app)
+      .post("/api/v1/auth/register")
+      .send(
+        registerPayload({
+          email: "admin-archived-edit-admin@example.com",
+          role: "seller",
+        }),
+      );
+
+    await User.findByIdAndUpdate(adminRegister.body.data.user.id, {
+      role: "admin",
+    });
+
+    const adminLogin = await request(app)
+      .post("/api/v1/auth/login")
+      .send({
+        email: "admin-archived-edit-admin@example.com",
+        password: "password123",
+      });
+
+    const adminToken = adminLogin.body.data.accessToken;
+
+    await request(app)
+      .patch(`/api/v1/admin/properties/${id}/moderate`)
+      .set("Authorization", `Bearer ${adminToken}`)
+      .send({ status: "archived" });
+
+    const archivedProperty = await Property.findById(id);
+    expect(archivedProperty.status).toBe("archived");
+    expect(archivedProperty.deletedAt).toBeTruthy();
+
+    const getRes = await request(app)
+      .get(`/api/v1/properties/${id}`)
+      .set("Authorization", `Bearer ${adminToken}`);
+
+    expect(getRes.status).toBe(200);
+    expect(getRes.body.data.status).toBe("archived");
+
+    const sellerGetRes = await request(app)
+      .get(`/api/v1/properties/${id}`)
+      .set("Authorization", `Bearer ${sellerToken}`);
+
+    expect(sellerGetRes.status).toBe(404);
+
+    const restoreRes = await request(app)
+      .patch(`/api/v1/properties/${id}`)
+      .set("Authorization", `Bearer ${adminToken}`)
+      .send({ status: "active" });
+
+    expect(restoreRes.status).toBe(200);
+    expect(restoreRes.body.data.status).toBe("active");
+    expect(restoreRes.body.data.deletedAt).toBeNull();
+
+    const restored = await Property.findById(id);
+    expect(restored.status).toBe("active");
+    expect(restored.deletedAt).toBeNull();
+  });
+
   it("restores soft-deleted property to draft", async () => {
     const app = await getApp();
     const token = await registerAndGetToken(app, {

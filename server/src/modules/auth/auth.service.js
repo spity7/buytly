@@ -14,7 +14,7 @@ import {
 import { applyPhoneFields } from "../../shared/phone.js";
 import { emailService } from "../../services/email.service.js";
 import { notificationService } from "../notifications/notification.service.js";
-import { NOTIFICATION_TYPES, ROLES } from "../../shared/constants.js";
+import { ROLES } from "../../shared/constants.js";
 import { env } from "../../config/env.js";
 import { googleService } from "../../services/google.service.js";
 
@@ -132,14 +132,9 @@ export const authService = {
     const tokens = await issueTokenPair(user);
 
     notificationService
-      .notify({
+      .notifyFromEvent("auth.welcome", {
         userId: user._id,
-        type: NOTIFICATION_TYPES.AUTH,
-        title: "Welcome to Buytly",
-        message: "Your account has been created successfully.",
-        sendEmail: true,
-        emailTemplate: "welcome",
-        emailData: { name: user.firstName || user.email },
+        context: { name: user.firstName || user.email },
       })
       .catch((err) =>
         console.error("Registration notification failed:", err.message),
@@ -255,14 +250,9 @@ export const authService = {
     const tokens = await issueTokenPair(user);
 
     notificationService
-      .notify({
+      .notifyFromEvent("auth.welcome", {
         userId: user._id,
-        type: NOTIFICATION_TYPES.AUTH,
-        title: "Welcome to Buytly",
-        message: "Your account has been created successfully.",
-        sendEmail: true,
-        emailTemplate: "welcome",
-        emailData: { name: user.firstName || user.email },
+        context: { name: user.firstName || user.email },
       })
       .catch((err) =>
         console.error("Registration notification failed:", err.message),
@@ -291,6 +281,15 @@ export const authService = {
     user.emailVerificationToken = undefined;
     user.emailVerificationExpires = undefined;
     await user.save();
+
+    notificationService
+      .notifyFromEvent("auth.email_verified", {
+        userId: user._id,
+        context: { name: user.firstName || user.email },
+      })
+      .catch((err) =>
+        console.error("Email verified notification failed:", err.message),
+      );
 
     return {
       message: "Email verified successfully",
@@ -435,6 +434,15 @@ export const authService = {
 
     user.passwordHash = await bcrypt.hash(newPassword, SALT_ROUNDS);
     await user.save();
+
+    notificationService
+      .notifyFromEvent("auth.password_changed", {
+        userId: user._id,
+        context: { name: user.firstName || user.email },
+      })
+      .catch((err) =>
+        console.error("Password changed notification failed:", err.message),
+      );
 
     return { message: "Password changed successfully" };
   },

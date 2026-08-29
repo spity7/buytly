@@ -204,6 +204,29 @@ router.patch(
  *         name: status
  *         schema:
  *           $ref: '#/components/schemas/PropertyStatus'
+ *       - in: query
+ *         name: type
+ *         schema:
+ *           $ref: '#/components/schemas/PropertyType'
+ *       - in: query
+ *         name: listingType
+ *         schema:
+ *           $ref: '#/components/schemas/ListingType'
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *         description: Case-insensitive partial match on title and description
+ *       - in: query
+ *         name: sortBy
+ *         schema:
+ *           type: string
+ *           enum: [price, createdAt, viewCount]
+ *       - in: query
+ *         name: sortOrder
+ *         schema:
+ *           type: string
+ *           enum: [asc, desc]
  *     responses:
  *       200:
  *         description: Property list

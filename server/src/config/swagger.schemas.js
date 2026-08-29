@@ -217,6 +217,33 @@
  *             enum: [apartment, villa, townhouse, land, commercial, duplex, studio]
  *           example: [apartment, villa]
  *
+ *     NotificationChannelPreferences:
+ *       type: object
+ *       properties:
+ *         booking:
+ *           type: boolean
+ *           example: true
+ *         transaction:
+ *           type: boolean
+ *           example: true
+ *         property:
+ *           type: boolean
+ *           example: true
+ *         auth:
+ *           type: boolean
+ *           example: true
+ *         system:
+ *           type: boolean
+ *           example: true
+ *
+ *     NotificationPreferences:
+ *       type: object
+ *       properties:
+ *         email:
+ *           $ref: '#/components/schemas/NotificationChannelPreferences'
+ *         inApp:
+ *           $ref: '#/components/schemas/NotificationChannelPreferences'
+ *
  *     UserSocialLinks:
  *       type: object
  *       properties:
@@ -267,6 +294,8 @@
  *           $ref: '#/components/schemas/UserSocialLinks'
  *         preferences:
  *           $ref: '#/components/schemas/UserPreferences'
+ *         notificationPreferences:
+ *           $ref: '#/components/schemas/NotificationPreferences'
  *         isActive:
  *           type: boolean
  *           example: true

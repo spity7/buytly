@@ -146,6 +146,35 @@ export function propertyPublishConfirmation(isEdit) {
   };
 }
 
+export function propertyAdminPublishConfirmation(status) {
+  if (status === "pending") {
+    return {
+      title: "Approve and publish?",
+      message:
+        "This listing will go live on the marketplace immediately without further review.",
+      confirmLabel: "Approve & publish",
+      confirmingLabel: "Approving...",
+    };
+  }
+
+  if (status === "archived") {
+    return {
+      title: "Restore and publish?",
+      message:
+        "This listing will be restored from archive and published immediately.",
+      confirmLabel: "Restore & publish",
+      confirmingLabel: "Publishing...",
+    };
+  }
+
+  return {
+    title: "Publish listing?",
+    message: "This listing will go live on the marketplace immediately.",
+    confirmLabel: "Publish listing",
+    confirmingLabel: "Publishing...",
+  };
+}
+
 export function propertyMediaDeleteConfirmation() {
   return {
     title: "Delete media?",

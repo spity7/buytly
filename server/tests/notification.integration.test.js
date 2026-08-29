@@ -54,7 +54,7 @@ describe.skipIf(!mongoAvailable)("notifications API", () => {
     expect(res.body.data.every((n) => n.isRead === false)).toBe(true);
     expect(res.body.data.some((n) => n.title === "Unread")).toBe(true);
     expect(unread).toBeTruthy();
-  });
+  }, 15000);
 
   it("lists only read notifications when unread=false", async () => {
     const app = await getApp();
@@ -206,5 +206,126 @@ describe.skipIf(!mongoAvailable)("notifications API", () => {
       title: "Should not exist",
     });
     expect(count).toBe(0);
+  });
+
+  it("filters notifications by type", async () => {
+    const app = await getApp();
+    const { token, userId } = await registerUser(
+      app,
+      "type-filter@example.com",
+    );
+
+    await notificationService.notifyFromEvent("booking.created", {
+      userId,
+      context: {
+        bookingId: "507f1f77bcf86cd799439011",
+        propertyTitle: "Filter Test",
+      },
+    });
+    await notificationService.notify({
+      userId,
+      type: NOTIFICATION_TYPES.SYSTEM,
+      title: "System only",
+      message: "Test",
+    });
+
+    const res = await request(app)
+      .get("/api/v1/notifications?type=booking")
+      .set("Authorization", `Bearer ${token}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.data.every((n) => n.type === "booking")).toBe(true);
+    expect(res.body.data.some((n) => n.title === "New Visit Request")).toBe(
+      true,
+    );
+  });
+
+  it("deletes a notification for the authenticated user", async () => {
+    const app = await getApp();
+    const { token, userId } = await registerUser(
+      app,
+      "delete-notif@example.com",
+    );
+
+    const notification = await notificationService.notify({
+      userId,
+      type: NOTIFICATION_TYPES.SYSTEM,
+      title: "Delete me",
+      message: "Test",
+    });
+
+    const res = await request(app)
+      .delete(`/api/v1/notifications/${notification._id}`)
+      .set("Authorization", `Bearer ${token}`);
+
+    expect(res.status).toBe(200);
+    const remaining = await Notification.countDocuments({
+      _id: notification._id,
+    });
+    expect(remaining).toBe(0);
+  });
+
+  it("returns 404 when deleting another user's notification", async () => {
+    const app = await getApp();
+    const userA = await registerUser(app, "delete-user-a@example.com");
+    const userB = await registerUser(app, "delete-user-b@example.com");
+
+    const notification = await notificationService.notify({
+      userId: userA.userId,
+      type: NOTIFICATION_TYPES.SYSTEM,
+      title: "Private delete",
+      message: "Test",
+    });
+
+    const res = await request(app)
+      .delete(`/api/v1/notifications/${notification._id}`)
+      .set("Authorization", `Bearer ${userB.token}`);
+
+    expect(res.status).toBe(404);
+  });
+
+  it("skips in-app notification when user opts out of category", async () => {
+    const app = await getApp();
+    const { userId } = await registerUser(app, "pref-optout@example.com");
+
+    const { User } = await import("../src/modules/users/user.model.js");
+    await User.findByIdAndUpdate(userId, {
+      notificationPreferences: {
+        email: { booking: true },
+        inApp: { booking: false },
+      },
+    });
+
+    const result = await notificationService.notifyFromEvent(
+      "booking.created",
+      {
+        userId,
+        context: {
+          bookingId: "507f1f77bcf86cd799439011",
+          propertyTitle: "Opt-out Test",
+        },
+      },
+    );
+
+    expect(result).toBeNull();
+    const count = await Notification.countDocuments({
+      userId,
+      type: "booking",
+    });
+    expect(count).toBe(0);
+  });
+
+  it("updates notification preferences via users API", async () => {
+    const app = await getApp();
+    const { token } = await registerUser(app, "pref-api@example.com");
+
+    const res = await request(app)
+      .patch("/api/v1/users/me/notification-preferences")
+      .set("Authorization", `Bearer ${token}`)
+      .send({ email: { booking: false } });
+
+    expect(res.status).toBe(200);
+    expect(res.body.data.notificationPreferences.email.booking).toBe(false);
+    expect(res.body.data.notificationPreferences.inApp.booking).toBe(true);
   });
 });

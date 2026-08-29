@@ -13,6 +13,7 @@ import type {
   GetPublicUserProfile200,
   GetSavedSearches200,
   MessageResponse,
+  NotificationPreferences,
   RemoveSavedSearch200,
   UpdateCurrentUserBody,
   UploadUserAvatar200,
@@ -113,6 +114,24 @@ export const getUsers = () => {
     );
   };
   /**
+   * Updates email and in-app notification preferences per category.
+   * @summary Update notification preferences
+   */
+  const updateUserNotificationPreferences = (
+    notificationPreferences: BodyType<NotificationPreferences>,
+    options?: SecondParameter<typeof customInstance<UserSuccessResponse>>,
+  ) => {
+    return customInstance<UserSuccessResponse>(
+      {
+        url: `/users/me/notification-preferences`,
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        data: notificationPreferences,
+      },
+      options,
+    );
+  };
+  /**
    * Adds a named saved search with arbitrary filter criteria.
    * @summary Save a search filter
    */
@@ -207,6 +226,7 @@ export const getUsers = () => {
     deleteCurrentUser,
     updateUserSocialLinks,
     updateUserPreferences,
+    updateUserNotificationPreferences,
     addSavedSearch,
     getSavedSearches,
     removeSavedSearch,
@@ -234,6 +254,11 @@ export type UpdateUserSocialLinksResult = NonNullable<
 >;
 export type UpdateUserPreferencesResult = NonNullable<
   Awaited<ReturnType<ReturnType<typeof getUsers>["updateUserPreferences"]>>
+>;
+export type UpdateUserNotificationPreferencesResult = NonNullable<
+  Awaited<
+    ReturnType<ReturnType<typeof getUsers>["updateUserNotificationPreferences"]>
+  >
 >;
 export type AddSavedSearchResult = NonNullable<
   Awaited<ReturnType<ReturnType<typeof getUsers>["addSavedSearch"]>>

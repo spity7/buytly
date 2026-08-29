@@ -28,6 +28,10 @@
   avatar: { gcsKey, mimeType, size } — stored in GCS; API responses add a signed `url` at read time (not persisted).
   socialLinks: { instagram, linkedin, website },
   preferences: { budgetMin, budgetMax, locations[], propertyTypes[] },
+  notificationPreferences: {
+    email: { booking, transaction, property, auth, system } (default true),
+    inApp: { booking, transaction, property, auth, system } (default true)
+  },
   savedSearches: [{ name, filters, createdAt }],
   isActive: Boolean,
   isEmailVerified: Boolean,
@@ -168,7 +172,7 @@
   userId: ObjectId → users,
   type: enum [booking, transaction, property, system, auth],
   title, message: String,
-  data: Mixed,
+  data: Mixed ({ event, entityType, entityId, propertyId, status, href }),
   isRead: Boolean,
   readAt: Date,
   channels: { inApp, email },

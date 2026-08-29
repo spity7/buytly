@@ -78,6 +78,19 @@ export interface UserPreferences {
   propertyTypes?: UserPreferencesPropertyTypesItem[];
 }
 
+export interface NotificationChannelPreferences {
+  booking?: boolean;
+  transaction?: boolean;
+  property?: boolean;
+  auth?: boolean;
+  system?: boolean;
+}
+
+export interface NotificationPreferences {
+  email?: NotificationChannelPreferences;
+  inApp?: NotificationChannelPreferences;
+}
+
 export interface UserSocialLinks {
   /** @maxLength 500 */
   instagram?: string;
@@ -116,6 +129,7 @@ export interface User {
   avatar?: Avatar;
   socialLinks?: UserSocialLinks;
   preferences?: UserPreferences;
+  notificationPreferences?: NotificationPreferences;
   isActive?: boolean;
   isEmailVerified?: boolean;
   /** local = password only, google = Google only, both = password and Google linked */
@@ -1006,6 +1020,7 @@ export type GetMyTransactionsParams = {
    */
   limit?: LimitParamParameter;
   status?: TransactionStatus;
+  type?: TransactionType;
 };
 
 export type GetTransactionById200AllOf = {
@@ -1073,7 +1088,7 @@ export type ListPropertiesParams = {
   city?: string;
   bedrooms?: number;
   /**
-   * Full-text search on title and description. Can be combined with geo-radius filters.
+   * Case-insensitive partial match on title and description. Can be combined with geo-radius filters.
    */
   search?: string;
   /**
@@ -1134,6 +1149,12 @@ export type ListMyPropertiesParams = {
    */
   limit?: LimitParamParameter;
   status?: PropertyStatus;
+  type?: PropertyType;
+  listingType?: ListingType;
+  /**
+   * Case-insensitive partial match on title and description
+   */
+  search?: string;
   sortBy?: ListMyPropertiesSortBy;
   sortOrder?: ListMyPropertiesSortOrder;
   /**
@@ -1209,6 +1230,10 @@ export type ListNotificationsParams = {
    * Filter by read status. Omit for all notifications.
    */
   unread?: ListNotificationsUnread;
+  /**
+   * Filter by notification type.
+   */
+  type?: NotificationType;
 };
 
 export type ListNotificationsUnread =
@@ -1509,7 +1534,34 @@ export type AdminListPropertiesParams = {
    */
   limit?: LimitParamParameter;
   status?: PropertyStatus;
+  type?: PropertyType;
+  listingType?: ListingType;
+  /**
+   * Case-insensitive partial match on title and description
+   */
+  search?: string;
+  sortBy?: AdminListPropertiesSortBy;
+  sortOrder?: AdminListPropertiesSortOrder;
 };
+
+export type AdminListPropertiesSortBy =
+  (typeof AdminListPropertiesSortBy)[keyof typeof AdminListPropertiesSortBy];
+
+// eslint-disable-next-line @typescript-eslint/no-redeclare
+export const AdminListPropertiesSortBy = {
+  price: "price",
+  createdAt: "createdAt",
+  viewCount: "viewCount",
+} as const;
+
+export type AdminListPropertiesSortOrder =
+  (typeof AdminListPropertiesSortOrder)[keyof typeof AdminListPropertiesSortOrder];
+
+// eslint-disable-next-line @typescript-eslint/no-redeclare
+export const AdminListPropertiesSortOrder = {
+  asc: "asc",
+  desc: "desc",
+} as const;
 
 export type AdminModeratePropertyBody = {
   status: PropertyStatus;

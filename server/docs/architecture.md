@@ -42,8 +42,12 @@ flowchart LR
   Transactions --> Notifications
   Admin --> Users
   Admin --> Properties
-  Admin --> Cache
+  Properties --> Notifications
+  PropertyReviews --> Notifications
+  Auth --> Notifications
+  Admin --> Notifications
   Notifications --> Email
+  Notifications --> Users
 ```
 
 ## Request Lifecycle
@@ -70,15 +74,20 @@ Images above 800 KB are resized and compressed to WebP (max 800 KB) before uploa
 ### Booking Flow
 
 ```
-Buyer → POST /bookings → Property validation → Booking created → Notification (in-app + email) → Agent
-Agent → PATCH /bookings/:id/status → Status update → Notification to buyer
+Buyer → POST /bookings → Property validation → Booking created → notificationService.notifyFromEvent("booking.created") → Agent (in-app + email per preferences)
+Agent → PATCH /bookings/:id/status → Status update → notifyFromEvent("booking.status_updated") → Buyer
+Buyer cancel → notifyFromEvent("booking.cancelled") → Agent
 ```
 
 ### Transaction Flow
 
 ```
-Buyer → POST /transactions → Property validation → Transaction created → Notify seller/agent
-Seller/Agent → PATCH status → On complete, property status updated to sold/rented; property list cache invalidated
+Buyer → POST /transactions → Property validation → Transaction created → notifyMany("transaction.created") → seller/agent
+Seller/Agent → PATCH status → notifyMany("transaction.status_updated") → buyer, seller, agent; on complete, property status updated to sold/rented; property list cache invalidated
+Property review → notifyMany("review.received") → owner/agent (excluding reviewer)
+Listing submit/resubmit → notifyMany("property.pending_review") → admins
+Admin moderate → notifyFromEvent("property.status_changed") → owner
+Auth register → notifyFromEvent("auth.welcome"); verify email → auth.email_verified; change password → auth.password_changed
 ```
 
 ## Scalability Considerations

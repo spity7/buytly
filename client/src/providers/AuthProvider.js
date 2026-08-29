@@ -24,11 +24,13 @@ import {
   useMemo,
   useState,
 } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const [user, setUser] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -136,8 +138,9 @@ export function AuthProvider({ children }) {
     } finally {
       clearTokens();
       setUser(null);
+      queryClient.removeQueries({ queryKey: ["notifications"] });
     }
-  }, []);
+  }, [queryClient]);
 
   const value = useMemo(
     () => ({

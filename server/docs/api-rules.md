@@ -106,9 +106,18 @@ Current version: `v1`. All routes are prefixed with `/api/v1`.
 
 ## Notifications
 
-`GET /api/v1/notifications` supports `unread=true` (unread only) or `unread=false` (read only). Omit for all.
+`GET /api/v1/notifications` supports:
+
+- `unread=true` (unread only) or `unread=false` (read only). Omit for all.
+- `type=booking|transaction|property|system|auth` — filter by notification category.
 
 `PATCH /api/v1/notifications/:id/read` is idempotent — re-marking an already-read notification does not change `readAt`.
+
+`DELETE /api/v1/notifications/:id` removes a notification for the authenticated user only.
+
+Each notification includes a `data` object with optional `href` for client deep linking (e.g. `/dashboard-bookings?highlight=<id>`). Dashboard tables resolve `?highlight=` across pages and filters, scroll to the matching row, then remove the query param from the URL while the row highlight animation plays. Review notifications link to `/single-v1/<propertyId>#property-reviews`.
+
+**Client polling:** Dashboard bell polls `GET /notifications/unread-count` every 30 seconds while the tab is focused. Mark-read, mark-all-read, and delete mutations optimistically update the React Query notification cache (badge count, unread dropdown, and notifications panel) before revalidating from the server. Clicking a notification refetches the related dashboard list queries (properties, bookings, transactions) so deep-linked rows show current server state without a manual refresh; tables with `?highlight=` also bypass stale placeholder data until the row is shown.
 
 ## Documentation
 

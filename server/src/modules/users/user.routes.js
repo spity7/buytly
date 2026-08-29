@@ -7,6 +7,7 @@ import {
   updateProfileSchema,
   updateSocialLinksSchema,
   updatePreferencesSchema,
+  updateNotificationPreferencesSchema,
   savedSearchSchema,
   userIdParamSchema,
   savedSearchIdParamSchema,
@@ -199,6 +200,40 @@ router.patch(
   authenticate,
   validate(updatePreferencesSchema),
   asyncHandler(userController.updatePreferences),
+);
+
+/**
+ * @swagger
+ * /users/me/notification-preferences:
+ *   patch:
+ *     operationId: updateUserNotificationPreferences
+ *     summary: Update notification preferences
+ *     description: Updates email and in-app notification preferences per category.
+ *     tags: [Users]
+ *     security:
+ *       - BearerAuth: []
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/NotificationPreferences'
+ *     responses:
+ *       200:
+ *         description: Notification preferences updated
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/UserSuccessResponse'
+ *       400:
+ *         $ref: '#/components/responses/ValidationError'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ */
+router.patch(
+  "/me/notification-preferences",
+  authenticate,
+  validate(updateNotificationPreferencesSchema),
+  asyncHandler(userController.updateNotificationPreferences),
 );
 
 /**

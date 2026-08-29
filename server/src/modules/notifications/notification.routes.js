@@ -31,6 +31,11 @@ router.use(authenticate);
  *           type: string
  *           enum: ['true', 'false']
  *         description: Filter by read status. Omit for all notifications.
+ *       - in: query
+ *         name: type
+ *         schema:
+ *           $ref: '#/components/schemas/NotificationType'
+ *         description: Filter by notification type.
  *     responses:
  *       200:
  *         description: Notifications list
@@ -133,6 +138,40 @@ router.patch(
   "/:id/read",
   validateMultiple({ params: notificationIdSchema }),
   asyncHandler(notificationController.markRead),
+);
+
+/**
+ * @swagger
+ * /notifications/{id}:
+ *   delete:
+ *     operationId: deleteNotification
+ *     summary: Delete a notification
+ *     description: Permanently removes a notification for the authenticated user.
+ *     tags: [Notifications]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - $ref: '#/components/parameters/ObjectIdParam'
+ *     responses:
+ *       200:
+ *         description: Notification deleted
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/SuccessResponse'
+ *             example:
+ *               success: true
+ *               message: Notification deleted
+ *               data: null
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ */
+router.delete(
+  "/:id",
+  validateMultiple({ params: notificationIdSchema }),
+  asyncHandler(notificationController.remove),
 );
 
 export default router;

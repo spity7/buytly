@@ -30,7 +30,8 @@
 | /users/me                    | GET      | User   | —                                                                                     | full profile           |
 | /users/me                    | PATCH    | User   | firstName, lastName, phoneCountryCode, phoneNumber (empty `phoneNumber` clears phone) | updated profile        |
 | /users/me                    | DELETE   | User   | password (local accounts)                                                             | success                |
-| /users/me/preferences        | PATCH    | User   | budget, locations, types                                                              | preferences            |
+| /users/me/preferences                 | PATCH    | User   | budget, locations, types                                                              | preferences            |
+| /users/me/notification-preferences    | PATCH    | User   | email/inApp toggles per category                                                      | notification prefs     |
 | /users/me/saved-searches     | POST/GET | User   | name, filters                                                                         | searches               |
 | /users/me/saved-searches/:id | DELETE   | User   | —                                                                                     | success                |
 | /users/me/social-links       | PATCH    | User   | social URLs                                                                           | updated profile        |
@@ -46,21 +47,21 @@
 
 **Responsibility:** CRUD listings, geo search, filtering, media management.
 
-| Endpoint                          | Method       | Auth                   | Input                       | Output                                   |
-| --------------------------------- | ------------ | ---------------------- | --------------------------- | ---------------------------------------- |
-| /properties                       | GET          | Public                 | filters, pagination         | property list                            |
-| /properties/mine                  | GET          | Seller/Agent           | pagination, status, trashed | user's listings (trashed=true for trash) |
-| /properties/:id/restore           | PATCH        | Owner/Agent/Admin      | —                           | restored draft listing                   |
-| /properties/:id                   | GET          | Public                 | —                           | property detail                          |
-| /properties                       | POST         | Seller/Agent           | property data               | created property                         |
-| /properties/:id                   | PATCH/DELETE | Owner/Agent            | updates                     | updated/deleted                          |
-| /properties/:id/media             | POST         | Owner/Agent            | file                        | media item                               |
-| /properties/:id/media/:mediaId    | DELETE       | Owner/Agent            | —                           | success                                  |
-| /properties/:id/floor-plans/image | POST         | Owner/Agent            | image file                  | gcsKey + url                             |
-| /properties/:id/reviews           | GET          | Public (optional auth) | pagination                  | reviews + stats                          |
-| /properties/:id/reviews/check     | GET          | Optional auth          | —                           | hasReviewed                              |
-| /properties/:id/reviews           | POST         | User                   | rating, title, text         | review                                   |
-| /properties/:id/reviews/:reviewId | DELETE       | Author/Admin           | —                           | success                                  |
+| Endpoint                          | Method       | Auth                   | Input                                                                                                 | Output                                   |
+| --------------------------------- | ------------ | ---------------------- | ----------------------------------------------------------------------------------------------------- | ---------------------------------------- |
+| /properties                       | GET          | Public                 | filters, pagination                                                                                   | property list                            |
+| /properties/mine                  | GET          | Seller/Agent           | pagination, status, type, listingType, search (partial title/description), sortBy, sortOrder, trashed | user's listings (trashed=true for trash) |
+| /properties/:id/restore           | PATCH        | Owner/Agent/Admin      | —                                                                                                     | restored draft listing                   |
+| /properties/:id                   | GET          | Public                 | —                                                                                                     | property detail                          |
+| /properties                       | POST         | Seller/Agent           | property data                                                                                         | created property                         |
+| /properties/:id                   | PATCH/DELETE | Owner/Agent            | updates                                                                                               | updated/deleted                          |
+| /properties/:id/media             | POST         | Owner/Agent            | file                                                                                                  | media item                               |
+| /properties/:id/media/:mediaId    | DELETE       | Owner/Agent            | —                                                                                                     | success                                  |
+| /properties/:id/floor-plans/image | POST         | Owner/Agent            | image file                                                                                            | gcsKey + url                             |
+| /properties/:id/reviews           | GET          | Public (optional auth) | pagination                                                                                            | reviews + stats                          |
+| /properties/:id/reviews/check     | GET          | Optional auth          | —                                                                                                     | hasReviewed                              |
+| /properties/:id/reviews           | POST         | User                   | rating, title, text                                                                                   | review                                   |
+| /properties/:id/reviews/:reviewId | DELETE       | Author/Admin           | —                                                                                                     | success                                  |
 
 Create/update payloads accept optional `floorPlans[]` and `virtualTourUrl`. Floor plan images are uploaded via `/floor-plans/image` and referenced by `gcsKey` in the array.
 
@@ -68,7 +69,7 @@ Non-admin create/update cannot publish directly: `status: "active"` is stored as
 
 **Soft delete / trash:** `DELETE /properties/:id` sets `deletedAt` and `status: archived`. Trashed listings appear in `GET /properties/mine?trashed=true`. `PATCH /properties/:id/restore` clears `deletedAt` and sets `status: draft`. Admin archive via moderate uses the same soft-delete semantics.
 
-Public `GET /properties` defaults to `status=active`. The public list accepts only `active`, `sold`, or `rented` as a status filter (draft/pending/archived return 400). Public `GET /properties/:id` returns non-active listings only to the owner, assigned agent, or admin (optional auth).
+Public `GET /properties` defaults to `status=active`. The public list accepts only `active`, `sold`, or `rented` as a status filter (draft/pending/archived return 400). Public `GET /properties/:id` returns non-active listings only to the owner, assigned agent, or admin (optional auth). **Admins** may also `GET`/`PATCH` soft-deleted (`archived`) listings through the property endpoints; restoring via `PATCH` with a non-archived status clears `deletedAt`.
 
 Pending submissions notify all active admins. Admin moderation notifies the listing owner.
 
@@ -131,7 +132,7 @@ POST returns 404 if the property is not active.
 | Endpoint                 | Method | Auth         | Input                    | Output              |
 | ------------------------ | ------ | ------------ | ------------------------ | ------------------- |
 | /transactions            | POST   | Buyer        | propertyId, type, amount | transaction         |
-| /transactions/my         | GET    | User         | filters                  | user transactions   |
+| /transactions/my         | GET    | User         | pagination, status, type | user transactions   |
 | /transactions/:id        | GET    | User         | —                        | transaction detail  |
 | /transactions/:id/status | PATCH  | Seller/Agent | status                   | updated transaction |
 
@@ -145,15 +146,15 @@ Completing a transaction sets the property to `sold` or `rented` and invalidates
 
 **Responsibility:** User management, listing moderation, platform analytics.
 
-| Endpoint                       | Method | Auth  | Input    | Output            |
-| ------------------------------ | ------ | ----- | -------- | ----------------- |
-| /admin/users                   | GET    | Admin | role, isActive, deleted (`true`/`false`/`all`) | user list (includes deletedEmail for soft-deleted) |
-| /admin/users/:id               | GET    | Admin | —                                              | user detail + related counts                       |
-| /admin/users/:id/status        | PATCH  | Admin | isActive                                       | updated user (active users only)                   |
-| /admin/users/:id/role          | PATCH  | Admin | role     | updated user      |
-| /admin/properties              | GET    | Admin | filters  | all listings      |
-| /admin/properties/:id/moderate | PATCH  | Admin | status   | moderated listing |
-| /admin/analytics               | GET    | Admin | —        | KPI analytics     |
+| Endpoint                       | Method | Auth  | Input                                                                                        | Output                                             |
+| ------------------------------ | ------ | ----- | -------------------------------------------------------------------------------------------- | -------------------------------------------------- |
+| /admin/users                   | GET    | Admin | role, isActive, deleted (`true`/`false`/`all`)                                               | user list (includes deletedEmail for soft-deleted) |
+| /admin/users/:id               | GET    | Admin | —                                                                                            | user detail + related counts                       |
+| /admin/users/:id/status        | PATCH  | Admin | isActive                                                                                     | updated user (active users only)                   |
+| /admin/users/:id/role          | PATCH  | Admin | role                                                                                         | updated user                                       |
+| /admin/properties              | GET    | Admin | pagination, status, type, listingType, search (partial title/description), sortBy, sortOrder | all listings (includes archived / soft-deleted)    |
+| /admin/properties/:id/moderate | PATCH  | Admin | status                                                                                       | moderated listing                                  |
+| /admin/analytics               | GET    | Admin | —                                                                                            | KPI analytics                                      |
 
 Moderation notifies the listing owner (in-app + email).
 
@@ -165,13 +166,16 @@ Moderation notifies the listing owner (in-app + email).
 
 **Responsibility:** In-app notifications and email triggers.
 
-| Endpoint                    | Method | Auth | Input                                                     | Output            |
-| --------------------------- | ------ | ---- | --------------------------------------------------------- | ----------------- |
-| /notifications              | GET    | User | `unread=true` (unread only) or `unread=false` (read only) | notification list |
-| /notifications/:id/read     | PATCH  | User | —                                                         | marked read       |
-| /notifications/read-all     | PATCH  | User | —                                                         | all marked read   |
-| /notifications/unread-count | GET    | User | —                                                         | count             |
+| Endpoint                              | Method | Auth | Input                                                                 | Output            |
+| ------------------------------------- | ------ | ---- | --------------------------------------------------------------------- | ----------------- |
+| /notifications                        | GET    | User | `unread`, `type`, pagination                                          | notification list |
+| /notifications/:id                    | DELETE | User | —                                                                     | deleted           |
+| /notifications/:id/read               | PATCH  | User | —                                                                     | marked read       |
+| /notifications/read-all               | PATCH  | User | —                                                                     | all marked read   |
+| /notifications/unread-count           | GET    | User | —                                                                     | count             |
 
 **Dependencies:** email.service
 
-**Internal API:** Other modules call `notificationService.notify()` — never call email directly from controllers. `notify()` skips deleted/inactive users. `unread` query: `true` = unread only, `false` = read only, omit = all.
+**Internal API:** Domain modules call `notificationService.notifyFromEvent(eventKey, { userId, context })` or `notifyMany()`. Lower-level `notify()` remains available. Events are defined in `notification.catalog.js` (booking, transaction, property, auth). `notify()` skips deleted/inactive users and respects `users.notificationPreferences` for in-app/email delivery. Security token emails (verify/reset) bypass preferences and are sent directly via `email.service`.
+
+**Notification `data` shape:** `{ event, entityType, entityId?, propertyId?, status?, href }` — client uses `href` for deep links when present.

@@ -26,6 +26,14 @@ export const userController = {
     ApiResponse.success(res, profile, "Preferences updated");
   },
 
+  updateNotificationPreferences: async (req, res) => {
+    const profile = await userService.updateNotificationPreferences(
+      req.user._id,
+      req.body,
+    );
+    ApiResponse.success(res, profile, "Notification preferences updated");
+  },
+
   addSavedSearch: async (req, res) => {
     const searches = await userService.addSavedSearch(req.user._id, req.body);
     ApiResponse.created(res, searches, "Search saved");

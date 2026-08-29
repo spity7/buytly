@@ -4,6 +4,7 @@ import ChangePasswordForm from "@/components/property/dashboard/dashboard-profil
 import DeleteAccountForm from "@/components/property/dashboard/dashboard-profile/DeleteAccountForm";
 import EmailVerificationBadge from "@/components/property/dashboard/dashboard-profile/EmailVerificationBadge";
 import PersonalInfo from "@/components/property/dashboard/dashboard-profile/PersonalInfo";
+import NotificationPreferencesForm from "@/components/notifications/NotificationPreferencesForm";
 import PreferencesForm from "@/components/property/dashboard/dashboard-profile/PreferencesForm";
 import ProfileBox from "@/components/property/dashboard/dashboard-profile/ProfileBox";
 import SocialField from "@/components/property/dashboard/dashboard-profile/SocialField";
@@ -53,6 +54,11 @@ const DashboardMyProfile = () => {
           <div className="ps-widget bgc-white bdrs12 default-box-shadow2 p30 mb30 overflow-hidden position-relative">
             <h4 className="title fz17 mb30">Search preferences</h4>
             <PreferencesForm />
+          </div>
+
+          <div className="ps-widget bgc-white bdrs12 default-box-shadow2 p30 mb30 overflow-hidden position-relative">
+            <h4 className="title fz17 mb30">Notification preferences</h4>
+            <NotificationPreferencesForm />
           </div>
 
           <div className="ps-widget bgc-white bdrs12 default-box-shadow2 p30 mb30 overflow-hidden position-relative">

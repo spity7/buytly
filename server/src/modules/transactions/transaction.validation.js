@@ -21,6 +21,7 @@ export const listTransactionsSchema = z.object({
   page: z.coerce.number().int().positive().optional(),
   limit: z.coerce.number().int().positive().max(100).optional(),
   status: z.enum(TRANSACTION_STATUSES).optional(),
+  type: z.enum(TRANSACTION_TYPES).optional(),
 });
 
 export const transactionIdSchema = z.object({

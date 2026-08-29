@@ -1,5 +1,14 @@
 import mongoose from "mongoose";
 import { ROLES } from "../../shared/constants.js";
+import { normalizeNotificationPreferences } from "../notifications/notification.preferences.js";
+
+const channelPreferenceSchema = {
+  booking: { type: Boolean, default: true },
+  transaction: { type: Boolean, default: true },
+  property: { type: Boolean, default: true },
+  auth: { type: Boolean, default: true },
+  system: { type: Boolean, default: true },
+};
 
 const savedSearchSchema = new mongoose.Schema(
   {
@@ -55,6 +64,10 @@ const userSchema = new mongoose.Schema(
       budgetMax: Number,
       locations: [{ type: String, trim: true }],
       propertyTypes: [{ type: String }],
+    },
+    notificationPreferences: {
+      email: channelPreferenceSchema,
+      inApp: channelPreferenceSchema,
     },
     savedSearches: [savedSearchSchema],
     isActive: { type: Boolean, default: true },
@@ -116,6 +129,9 @@ userSchema.methods.toPublicJSON = function () {
       : undefined,
     socialLinks: this.socialLinks,
     preferences: this.preferences,
+    notificationPreferences: normalizeNotificationPreferences(
+      this.notificationPreferences,
+    ),
     authProvider: this.authProvider,
     isActive: this.isActive,
     isEmailVerified: this.isEmailVerified,

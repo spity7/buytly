@@ -2,16 +2,23 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import React, { useState } from "react";
+import React from "react";
 import { Tooltip as ReactTooltip } from "react-tooltip";
 import { buytlyApi } from "@/api/generated";
 import AsyncActionOverlay from "@/components/common/AsyncActionOverlay";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
+import ApiPagination from "@/components/property/ApiPagination";
 import { useMyProperties } from "@/hooks/useMyProperties";
 import { useConfirmAction } from "@/hooks/useConfirmAction";
 import { propertyTrashConfirmation } from "@/lib/confirmations";
 import { getStatusClass, getStatusLabel } from "@/lib/properties/mapProperty";
 import { DashboardTableSkeleton } from "@/components/property/dashboard/skeletons/DashboardSkeletons";
+import {
+  useDashboardRowHighlight,
+  useHighlightQueryParam,
+} from "@/hooks/useDashboardRowHighlight";
+import { getFreshQueryOptions } from "@/lib/dashboard/freshHighlightQueryOptions";
+import { invalidateNotificationQueries } from "@/lib/notifications/invalidateNotificationQueries";
 import { useQueryClient } from "@tanstack/react-query";
 
 const PLACEHOLDER = "/images/listings/list-1.jpg";
@@ -25,25 +32,49 @@ const formatDate = (value) => {
   }).format(new Date(value));
 };
 
-const PropertyDataTable = () => {
+const PropertyDataTable = ({
+  queryParams,
+  isTrash,
+  page,
+  pageSize,
+  onPageChange,
+  highlightResolving = false,
+  hasActiveFilters = false,
+}) => {
   const queryClient = useQueryClient();
-  const [tab, setTab] = useState("active");
-  const { requestConfirm, run, isLocked, overlayMessage, dialogProps, pending } =
-    useConfirmAction({ overlay: true });
+  const {
+    requestConfirm,
+    run,
+    isLocked,
+    overlayMessage,
+    dialogProps,
+    pending,
+  } = useConfirmAction({ overlay: true });
 
-  const isTrash = tab === "trash";
-
-  const { data, isLoading, isError } = useMyProperties({
-    sortBy: "createdAt",
-    sortOrder: "desc",
-    trashed: isTrash ? "true" : "false",
-  });
+  const highlightId = useHighlightQueryParam();
+  const { data, isFetching, isError } = useMyProperties(
+    queryParams,
+    getFreshQueryOptions(highlightId),
+  );
 
   const properties = data?.properties || [];
   const cards = data?.cards || [];
+  const pagination = data?.pagination;
+  const showTableSkeleton = isFetching || highlightResolving;
+  const highlightReady =
+    !showTableSkeleton &&
+    (!highlightId ||
+      properties.some(
+        (property) => String(property._id) === String(highlightId),
+      ));
+  const { getRowProps } = useDashboardRowHighlight({
+    highlightId,
+    ready: highlightReady,
+  });
 
   const invalidate = () => {
     queryClient.invalidateQueries({ queryKey: ["my-properties"] });
+    invalidateNotificationQueries(queryClient);
   };
 
   const promptDelete = (propertyId, title) => {
@@ -75,45 +106,26 @@ const PropertyDataTable = () => {
   const tableBusy = isLocked;
   const actingId = pending?.targetId ?? null;
 
-  if (isLoading) {
-    return (
-      <div className="packages_table table-responsive">
-        <DashboardTableSkeleton rows={5} columns={5} withThumbnail />
-      </div>
-    );
-  }
-
   if (isError) {
     return <p className="p-4 text-danger">Failed to load your properties.</p>;
   }
 
   return (
     <>
-      <div className="mb20 d-flex gap-2">
-        <button
-          type="button"
-          className={`ud-btn btn-sm ${tab === "active" ? "btn-thm" : "btn-white"}`}
-          disabled={tableBusy}
-          onClick={() => setTab("active")}
-        >
-          My listings
-        </button>
-        <button
-          type="button"
-          className={`ud-btn btn-sm ${tab === "trash" ? "btn-thm" : "btn-white"}`}
-          disabled={tableBusy}
-          onClick={() => setTab("trash")}
-        >
-          Trash
-        </button>
-      </div>
-
-      {!properties.length ? (
+      {showTableSkeleton ? (
+        <div className="packages_table table-responsive">
+          <DashboardTableSkeleton rows={5} columns={5} withThumbnail />
+        </div>
+      ) : !properties.length ? (
         <div className="p-4">
           <p>
-            {isTrash ? "Your trash is empty." : "You have no listings yet."}
+            {isTrash
+              ? "Your trash is empty."
+              : hasActiveFilters
+                ? "No listings match your filters."
+                : "You have no listings yet."}
           </p>
-          {!isTrash && (
+          {!isTrash && !hasActiveFilters && (
             <Link href="/dashboard-add-property" className="ud-btn btn-thm">
               Add your first property
             </Link>
@@ -137,7 +149,7 @@ const PropertyDataTable = () => {
               const rowBusy = actingId === propertyId;
 
               return (
-                <tr key={propertyId}>
+                <tr key={propertyId} {...getRowProps(propertyId)}>
                   <th scope="row">
                     <div className="listing-style1 dashboard-style d-xxl-flex align-items-center mb-0">
                       <div className="list-thumb">
@@ -205,7 +217,9 @@ const PropertyDataTable = () => {
                             className="icon"
                             style={{ border: "none" }}
                             data-tooltip-id={`delete-${propertyId}`}
-                            onClick={() => promptDelete(propertyId, property.title)}
+                            onClick={() =>
+                              promptDelete(propertyId, property.title)
+                            }
                             disabled={rowBusy || tableBusy}
                           >
                             <span className="flaticon-bin" />
@@ -230,6 +244,18 @@ const PropertyDataTable = () => {
             })}
           </tbody>
         </table>
+      )}
+
+      {!showTableSkeleton && (
+        <div className="mt30">
+          <ApiPagination
+            page={page}
+            totalPages={pagination?.totalPages || 1}
+            total={pagination?.total || 0}
+            limit={pageSize}
+            onPageChange={onPageChange}
+          />
+        </div>
       )}
 
       <ConfirmDialog {...dialogProps} />

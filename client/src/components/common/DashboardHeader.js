@@ -1,5 +1,6 @@
 "use client";
 
+import NotificationBell from "@/components/notifications/NotificationBell";
 import MainMenu from "@/components/common/MainMenu";
 import LogoutButton from "@/components/auth/LogoutButton";
 import { getDashboardNavSections } from "@/lib/dashboard/navSections";
@@ -59,11 +60,7 @@ const DashboardHeader = () => {
                     </li>
                     {/* End email box */}
 
-                    <li className="d-none d-sm-block">
-                      <a className="text-center mr20 notif" href="#">
-                        <span className="flaticon-bell" />
-                      </a>
-                    </li>
+                    <NotificationBell />
                     {/* End notification icon */}
 
                     <li className=" user_setting">

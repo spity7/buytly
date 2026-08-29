@@ -6,7 +6,7 @@ import {
   parsePagination,
   buildPaginationMeta,
 } from "../../shared/pagination.js";
-import { NOTIFICATION_TYPES, ROLES } from "../../shared/constants.js";
+import { ROLES } from "../../shared/constants.js";
 
 export const bookingService = {
   async create(buyerId, data) {
@@ -35,17 +35,12 @@ export const bookingService = {
     ]);
 
     notificationService
-      .notify({
+      .notifyFromEvent("booking.created", {
         userId: agentId,
-        type: NOTIFICATION_TYPES.BOOKING,
-        title: "New Visit Request",
-        message: `A buyer requested a visit for "${property.title}"`,
-        data: { bookingId: booking._id, propertyId: property._id },
-        sendEmail: true,
-        emailTemplate: "generic",
-        emailData: {
-          title: "New Visit Request",
-          message: `Visit requested for ${property.title}`,
+        context: {
+          bookingId: booking._id,
+          propertyId: property._id,
+          propertyTitle: property.title,
         },
       })
       .catch((err) =>
@@ -92,10 +87,10 @@ export const bookingService = {
   },
 
   async updateStatus(bookingId, data, user) {
-    const booking = await Booking.findById(bookingId).populate(
-      "propertyId",
-      "title",
-    );
+    const booking = await Booking.findById(bookingId).populate([
+      { path: "propertyId", select: "title" },
+      { path: "buyerId", select: "firstName lastName email" },
+    ]);
     if (!booking) throw new AppError("Booking not found", 404);
 
     const canUpdate =
@@ -112,17 +107,13 @@ export const bookingService = {
     await booking.save();
 
     notificationService
-      .notify({
-        userId: booking.buyerId,
-        type: NOTIFICATION_TYPES.BOOKING,
-        title: `Booking ${data.status}`,
-        message: `Your visit request for "${booking.propertyId.title}" has been ${data.status}`,
-        data: { bookingId: booking._id },
-        sendEmail: true,
-        emailTemplate: "bookingStatus",
-        emailData: {
-          status: data.status,
+      .notifyFromEvent("booking.status_updated", {
+        userId: booking.buyerId._id,
+        context: {
+          bookingId: booking._id,
           propertyTitle: booking.propertyId.title,
+          status: data.status,
+          name: booking.buyerId.firstName || booking.buyerId.email,
         },
       })
       .catch((err) =>
@@ -133,7 +124,10 @@ export const bookingService = {
   },
 
   async cancel(bookingId, buyerId) {
-    const booking = await Booking.findOne({ _id: bookingId, buyerId });
+    const booking = await Booking.findOne({ _id: bookingId, buyerId }).populate(
+      "propertyId",
+      "title",
+    );
     if (!booking) throw new AppError("Booking not found", 404);
 
     if (booking.status !== "pending") {
@@ -144,12 +138,12 @@ export const bookingService = {
     await booking.save();
 
     notificationService
-      .notify({
+      .notifyFromEvent("booking.cancelled", {
         userId: booking.agentId,
-        type: NOTIFICATION_TYPES.BOOKING,
-        title: "Booking Cancelled",
-        message: "A buyer cancelled their visit request",
-        data: { bookingId: booking._id },
+        context: {
+          bookingId: booking._id,
+          propertyTitle: booking.propertyId?.title,
+        },
       })
       .catch((err) =>
         console.error("Booking notification failed:", err.message),

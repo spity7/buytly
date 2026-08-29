@@ -2,7 +2,7 @@
 
 import { buytlyApi } from "@/api/generated";
 import { mapPropertiesToCards } from "@/lib/properties/mapProperty";
-import { useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 
 export function useMyProperties(params = {}, options = {}) {
   return useQuery({
@@ -15,6 +15,7 @@ export function useMyProperties(params = {}, options = {}) {
         pagination: response.pagination,
       };
     },
+    placeholderData: keepPreviousData,
     ...options,
   });
 }

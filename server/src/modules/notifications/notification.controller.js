@@ -23,6 +23,11 @@ export const notificationController = {
     ApiResponse.success(res, null, "All notifications marked as read");
   },
 
+  remove: async (req, res) => {
+    await notificationService.deleteNotification(req.user._id, req.params.id);
+    ApiResponse.success(res, null, "Notification deleted");
+  },
+
   unreadCount: async (req, res) => {
     const count = await notificationService.getUnreadCount(req.user._id);
     ApiResponse.success(res, { count });

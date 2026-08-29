@@ -3,6 +3,7 @@ import { RefreshToken } from "../auth/refreshToken.model.js";
 import { gcsService } from "../../services/gcs.service.js";
 import { AppError } from "../../shared/AppError.js";
 import { applyPhoneFields } from "../../shared/phone.js";
+import { normalizeNotificationPreferences } from "../notifications/notification.preferences.js";
 import bcrypt from "bcrypt";
 import crypto from "crypto";
 
@@ -54,6 +55,27 @@ export const userService = {
     };
     await user.save();
 
+    return user.toPublicJSON();
+  },
+
+  async updateNotificationPreferences(userId, preferences) {
+    const user = await User.findById(userId);
+    if (!user) throw new AppError("User not found", 404);
+
+    const current = normalizeNotificationPreferences(user.notificationPreferences);
+
+    user.notificationPreferences = {
+      email: {
+        ...current.email,
+        ...(preferences.email || {}),
+      },
+      inApp: {
+        ...current.inApp,
+        ...(preferences.inApp || {}),
+      },
+    };
+
+    await user.save();
     return user.toPublicJSON();
   },
 

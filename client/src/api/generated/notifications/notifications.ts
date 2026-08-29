@@ -72,11 +72,25 @@ export const getNotifications = () => {
       options,
     );
   };
+  /**
+   * Permanently removes a notification for the authenticated user.
+   * @summary Delete a notification
+   */
+  const deleteNotification = (
+    id: string,
+    options?: SecondParameter<typeof customInstance<SuccessResponse>>,
+  ) => {
+    return customInstance<SuccessResponse>(
+      { url: `/notifications/${id}`, method: "DELETE" },
+      options,
+    );
+  };
   return {
     listNotifications,
     getUnreadNotificationCount,
     markAllNotificationsRead,
     markNotificationRead,
+    deleteNotification,
   };
 };
 
@@ -103,4 +117,7 @@ export type MarkNotificationReadResult = NonNullable<
   Awaited<
     ReturnType<ReturnType<typeof getNotifications>["markNotificationRead"]>
   >
+>;
+export type DeleteNotificationResult = NonNullable<
+  Awaited<ReturnType<ReturnType<typeof getNotifications>["deleteNotification"]>>
 >;

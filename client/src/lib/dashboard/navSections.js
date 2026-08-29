@@ -19,6 +19,11 @@ export function getDashboardNavSections(role) {
           text: "Message",
         },
         {
+          href: "/dashboard-notifications",
+          icon: "flaticon-bell",
+          text: "Notifications",
+        },
+        {
           href: "/dashboard-bookings",
           icon: "flaticon-calendar",
           text: "Bookings",

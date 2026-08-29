@@ -189,6 +189,41 @@ describe.skipIf(!mongoAvailable)("properties API", () => {
     expect(res.body.pagination.total).toBe(2);
   });
 
+  it("filters mine listings by partial title search", async () => {
+    const app = await getApp();
+    const token = await registerAndGetToken(app, {
+      email: "mine-search-seller@example.com",
+    });
+
+    await request(app)
+      .post("/api/v1/properties")
+      .set("Authorization", `Bearer ${token}`)
+      .send(
+        propertyPayload({
+          title: "Luxury Downtown Apartment",
+          status: "draft",
+        }),
+      );
+
+    await request(app)
+      .post("/api/v1/properties")
+      .set("Authorization", `Bearer ${token}`)
+      .send(
+        propertyPayload({
+          title: "Budget Studio Flat",
+          status: "active",
+        }),
+      );
+
+    const res = await request(app)
+      .get("/api/v1/properties/mine?search=luxury")
+      .set("Authorization", `Bearer ${token}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.data.length).toBe(1);
+    expect(res.body.data[0].title).toContain("Luxury");
+  });
+
   it("rejects mine listings without auth", async () => {
     const app = await getApp();
     const res = await request(app).get("/api/v1/properties/mine");

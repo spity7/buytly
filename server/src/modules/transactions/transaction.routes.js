@@ -76,6 +76,10 @@ router.post(
  *         name: status
  *         schema:
  *           $ref: '#/components/schemas/TransactionStatus'
+ *       - in: query
+ *         name: type
+ *         schema:
+ *           $ref: '#/components/schemas/TransactionType'
  *     responses:
  *       200:
  *         description: User transactions

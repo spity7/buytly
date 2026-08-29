@@ -8,16 +8,20 @@ import { useConfirmAction } from "@/hooks/useConfirmAction";
 import { getApiError } from "@/lib/auth/getApiError";
 import {
   propertyMediaDeleteConfirmation,
+  propertyAdminPublishConfirmation,
   propertyPublishConfirmation,
 } from "@/lib/confirmations";
 import { notifyError } from "@/lib/toast";
-import {
-  getStatusLabel,
-  isPropertyTerminal,
-} from "@/lib/properties/mapProperty";
+import { isPropertyTerminal } from "@/lib/properties/mapProperty";
+import PropertyFormStatusBanner from "@/components/property/dashboard/dashboard-add-property/PropertyFormStatusBanner";
+import PropertyFormActions from "@/components/property/dashboard/dashboard-add-property/PropertyFormActions";
+import { getPropertyFormCancelHref } from "@/lib/properties/propertyFormActions";
+import { invalidatePropertyQueries } from "@/lib/properties/invalidatePropertyQueries";
+import { useAuth } from "@/providers/AuthProvider";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 
 const PROPERTY_TYPES = [
   "apartment",
@@ -173,7 +177,12 @@ function getSubmitLoadingMessage(isEdit, submitMode) {
   return "Publishing listing...";
 }
 
-function getSubmitSuccessMessage(isEdit, submitMode, status) {
+function getSubmitSuccessMessage(isEdit, submitMode, status, isAdmin = false) {
+  if (isAdmin && submitMode === "review") {
+    return status === "pending"
+      ? "Listing approved and published"
+      : "Listing published";
+  }
   if (isEdit) {
     if (status === "pending" && submitMode === "review") {
       return "Property submitted for review";
@@ -188,6 +197,9 @@ function getSubmitSuccessMessage(isEdit, submitMode, status) {
 
 export default function PropertyForm({ propertyId }) {
   const router = useRouter();
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
+  const isAdmin = user?.role === "admin";
   const isEdit = Boolean(propertyId);
   const [form, setForm] = useState(emptyForm);
   const [baselineForm, setBaselineForm] = useState(isEdit ? null : emptyForm);
@@ -198,7 +210,9 @@ export default function PropertyForm({ propertyId }) {
   const { requestConfirm, run, isLocked, overlayMessage, dialogProps } =
     useConfirmAction({ overlay: true });
   const submitModeRef = useRef("review");
+  const [activeSubmitMode, setActiveSubmitMode] = useState("review");
   const [propertyStatus, setPropertyStatus] = useState(null);
+  const [propertyMeta, setPropertyMeta] = useState(null);
   const mediaPreviewsRef = useRef(mediaPreviews);
   mediaPreviewsRef.current = mediaPreviews;
 
@@ -226,6 +240,13 @@ export default function PropertyForm({ propertyId }) {
           setForm(loadedForm);
           setBaselineForm(loadedForm);
           setPropertyStatus(response.data?.status || null);
+          setPropertyMeta({
+            createdAt: response.data?.createdAt,
+            updatedAt: response.data?.updatedAt,
+            viewCount: response.data?.viewCount ?? 0,
+            listingType: response.data?.listingType,
+            type: response.data?.type,
+          });
           setExistingMedia(response.data?.media || []);
         }
       } catch (error) {
@@ -369,6 +390,7 @@ export default function PropertyForm({ propertyId }) {
           setExistingMedia((prev) =>
             prev.filter((media) => media._id !== item._id),
           );
+          await invalidatePropertyQueries(queryClient, { propertyId });
         },
       },
     });
@@ -384,6 +406,13 @@ export default function PropertyForm({ propertyId }) {
       savedId = response.data?._id || propertyId;
       savedStatus = response.data?.status || propertyStatus;
       setPropertyStatus(savedStatus);
+      setPropertyMeta((prev) => ({
+        ...prev,
+        updatedAt: response.data?.updatedAt || new Date().toISOString(),
+        viewCount: response.data?.viewCount ?? prev?.viewCount ?? 0,
+        listingType: response.data?.listingType ?? prev?.listingType,
+        type: response.data?.type ?? prev?.type,
+      }));
     } else {
       const response = await buytlyApi.createProperty(payload);
       savedId = response.data?._id;
@@ -409,7 +438,17 @@ export default function PropertyForm({ propertyId }) {
     }
 
     setBaselineForm(form);
-    router.push("/dashboard-my-properties");
+    setMediaFiles([]);
+    setMediaPreviews((prev) => {
+      prev.forEach((preview) => {
+        if (preview.url.startsWith("blob:")) {
+          URL.revokeObjectURL(preview.url);
+        }
+      });
+      return [];
+    });
+    await invalidatePropertyQueries(queryClient, { propertyId: savedId });
+    router.push(getPropertyFormCancelHref(isAdmin));
     return { savedStatus };
   };
 
@@ -447,15 +486,23 @@ export default function PropertyForm({ propertyId }) {
   const handleSubmit = async (event) => {
     event.preventDefault();
     const submitMode = submitModeRef.current;
+    setActiveSubmitMode(submitMode);
     const loadingMessage = getSubmitLoadingMessage(isEdit, submitMode);
 
     if (submitMode === "review") {
       requestConfirm({
-        ...propertyPublishConfirmation(isEdit),
+        ...(isAdmin
+          ? propertyAdminPublishConfirmation(propertyStatus)
+          : propertyPublishConfirmation(isEdit)),
         action: {
           message: loadingMessage,
           successMessage: (result) =>
-            getSubmitSuccessMessage(isEdit, submitMode, result.savedStatus),
+            getSubmitSuccessMessage(
+              isEdit,
+              submitMode,
+              result.savedStatus,
+              isAdmin,
+            ),
           task: ({ setProgress }) => executeSubmit(submitMode, { setProgress }),
         },
       });
@@ -466,7 +513,12 @@ export default function PropertyForm({ propertyId }) {
       await run({
         message: loadingMessage,
         successMessage: (result) =>
-          getSubmitSuccessMessage(isEdit, submitMode, result.savedStatus),
+          getSubmitSuccessMessage(
+            isEdit,
+            submitMode,
+            result.savedStatus,
+            isAdmin,
+          ),
         task: ({ setProgress }) => executeSubmit(submitMode, { setProgress }),
       });
     } catch {
@@ -481,39 +533,25 @@ export default function PropertyForm({ propertyId }) {
   }
 
   const isTerminal = isPropertyTerminal(propertyStatus);
-  const statusLabel = propertyStatus ? getStatusLabel(propertyStatus) : null;
+  const mediaCount = existingMedia.length + mediaFiles.length;
 
   return (
     <form className="form-style1 p30" onSubmit={handleSubmit}>
       {isEdit && propertyStatus && (
-        <div
-          className={`property-form-status-banner property-form-status-banner--${propertyStatus} mb20`}
-        >
-          <strong>Current status:</strong> {statusLabel}
-          {propertyStatus === "pending" && (
-            <p className="mb0 mt5 text">
-              Your listing is awaiting admin approval before it appears
-              publicly.
-            </p>
-          )}
-          {propertyStatus === "active" && (
-            <p className="mb0 mt5 text">
-              Use &quot;Save changes&quot; for minor edits. Changing price,
-              description, location, or media on a live listing sends it back
-              for review. Use &quot;Submit for review&quot; to re-approve
-              explicitly.
-            </p>
-          )}
-          {isTerminal && (
-            <p className="mb0 mt5 text">
-              This listing is closed and can no longer be edited.
-            </p>
-          )}
-        </div>
+        <PropertyFormStatusBanner
+          status={propertyStatus}
+          createdAt={propertyMeta?.createdAt}
+          updatedAt={propertyMeta?.updatedAt}
+          viewCount={propertyMeta?.viewCount}
+          listingType={form.listingType || propertyMeta?.listingType}
+          type={form.type || propertyMeta?.type}
+          mediaCount={mediaCount}
+          isAdmin={isAdmin}
+        />
       )}
 
       <fieldset
-        disabled={isTerminal || formBusy}
+        disabled={(isTerminal && !isAdmin) || formBusy}
         style={{ border: "none", padding: 0, margin: 0 }}
       >
         <div className="row">
@@ -1066,61 +1104,18 @@ export default function PropertyForm({ propertyId }) {
           </div>
 
           <div className="col-sm-12">
-            <div className="d-flex gap-3 flex-wrap align-items-center">
-              <button
-                type="button"
-                className="ud-btn btn-white"
-                disabled={formBusy}
-                onClick={() => router.push("/dashboard-my-properties")}
-              >
-                Cancel
-              </button>
-              {!isTerminal && (
-                <>
-                  {isEdit && (
-                    <button
-                      type="submit"
-                      className="ud-btn btn-white"
-                      disabled={formBusy || !hasChanges}
-                      onClick={() => {
-                        submitModeRef.current = "save";
-                      }}
-                    >
-                      {formBusy && submitModeRef.current === "save"
-                        ? "Saving..."
-                        : "Save changes"}
-                    </button>
-                  )}
-                  <button
-                    type="submit"
-                    className="ud-btn btn-white"
-                    disabled={formBusy || !hasChanges}
-                    onClick={() => {
-                      submitModeRef.current = "draft";
-                    }}
-                  >
-                    {formBusy && submitModeRef.current === "draft"
-                      ? "Saving..."
-                      : "Save as draft"}
-                  </button>
-                  <button
-                    type="submit"
-                    className="ud-btn btn-dark"
-                    disabled={formBusy || !hasChanges}
-                    onClick={() => {
-                      submitModeRef.current = "review";
-                    }}
-                  >
-                    {formBusy && submitModeRef.current === "review"
-                      ? "Submitting..."
-                      : isEdit
-                        ? "Submit for review"
-                        : "Publish listing"}
-                    <i className="fal fa-arrow-right-long ms-2" />
-                  </button>
-                </>
-              )}
-            </div>
+            <PropertyFormActions
+              isEdit={isEdit}
+              propertyStatus={propertyStatus}
+              hasChanges={hasChanges}
+              formBusy={formBusy}
+              activeSubmitMode={activeSubmitMode}
+              isAdmin={isAdmin}
+              onSubmitMode={(mode) => {
+                submitModeRef.current = mode;
+                setActiveSubmitMode(mode);
+              }}
+            />
           </div>
         </div>
       </fieldset>

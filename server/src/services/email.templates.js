@@ -90,6 +90,9 @@ const buildBrandedEmail = ({
   };
 };
 
+const optionalCta = (ctaUrl, ctaLabel) =>
+  ctaUrl && ctaLabel ? { label: ctaLabel, url: ctaUrl } : undefined;
+
 export const emailTemplates = {
   welcome: ({ name }) =>
     buildBrandedEmail({
@@ -139,7 +142,21 @@ export const emailTemplates = {
         "You received this email because a password reset was requested for your Buytly account.",
     }),
 
-  bookingStatus: ({ name, status, propertyTitle }) =>
+  passwordChanged: ({ name, ctaUrl, ctaLabel }) =>
+    buildBrandedEmail({
+      subject: "Your Buytly password was changed",
+      preheader: "Your account password was updated successfully.",
+      greeting: `Hi ${name},`,
+      paragraphs: [
+        "This is a confirmation that the password for your Buytly account was changed.",
+        "If you did not make this change, contact support immediately.",
+      ],
+      cta: optionalCta(ctaUrl, ctaLabel),
+      footer:
+        "You received this email because your Buytly account password was changed.",
+    }),
+
+  bookingStatus: ({ name, status, propertyTitle, ctaUrl, ctaLabel }) =>
     buildBrandedEmail({
       subject: `Booking update: ${status}`,
       preheader: `Your booking for ${propertyTitle} is now ${status}.`,
@@ -148,11 +165,12 @@ export const emailTemplates = {
         `Your booking for "${propertyTitle}" has been updated to ${status}.`,
         "Sign in to Buytly to view the full details.",
       ],
+      cta: optionalCta(ctaUrl, ctaLabel),
       footer:
         "You received this email because you have an active booking on Buytly.",
     }),
 
-  transactionUpdate: ({ name, status, propertyTitle }) =>
+  transactionUpdate: ({ name, status, propertyTitle, ctaUrl, ctaLabel }) =>
     buildBrandedEmail({
       subject: `Transaction update: ${status}`,
       preheader: `Your transaction for ${propertyTitle} is now ${status}.`,
@@ -161,16 +179,53 @@ export const emailTemplates = {
         `Your transaction for "${propertyTitle}" is now ${status}.`,
         "Sign in to Buytly to view the full details.",
       ],
+      cta: optionalCta(ctaUrl, ctaLabel),
       footer:
         "You received this email because you have an active transaction on Buytly.",
     }),
 
-  generic: ({ title, message }) =>
+  propertyStatus: ({
+    name,
+    status,
+    propertyTitle,
+    message,
+    ctaUrl,
+    ctaLabel,
+  }) =>
+    buildBrandedEmail({
+      subject: `Listing update: ${status}`,
+      preheader: message || `Your listing "${propertyTitle}" is now ${status}.`,
+      greeting: `Hi ${name || "there"},`,
+      paragraphs: [
+        message || `Your listing "${propertyTitle}" is now ${status}.`,
+        "Sign in to Buytly to view the full details.",
+      ],
+      cta: optionalCta(ctaUrl, ctaLabel),
+      footer:
+        "You received this email because you have a listing on Buytly.",
+    }),
+
+  newReview: ({ name, propertyTitle, rating, ctaUrl, ctaLabel }) =>
+    buildBrandedEmail({
+      subject: `New review for ${propertyTitle}`,
+      preheader: `Your listing received a ${rating}-star review.`,
+      greeting: `Hi ${name || "there"},`,
+      paragraphs: [
+        `Your listing "${propertyTitle}" received a ${rating}-star review.`,
+        "Sign in to Buytly to read the full feedback.",
+      ],
+      cta: optionalCta(ctaUrl, ctaLabel),
+      footer:
+        "You received this email because you manage a listing on Buytly.",
+    }),
+
+  generic: ({ title, message, ctaUrl, ctaLabel }) =>
     buildBrandedEmail({
       subject: title,
       preheader: message,
       greeting: "Hello,",
       paragraphs: [message],
+      cta: optionalCta(ctaUrl, ctaLabel),
       footer: `You received this notification from ${APP_NAME}.`,
     }),
 };

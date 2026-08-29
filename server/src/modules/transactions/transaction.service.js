@@ -7,7 +7,7 @@ import {
   parsePagination,
   buildPaginationMeta,
 } from "../../shared/pagination.js";
-import { NOTIFICATION_TYPES, ROLES } from "../../shared/constants.js";
+import { ROLES } from "../../shared/constants.js";
 
 export const transactionService = {
   async create(buyerId, data) {
@@ -44,26 +44,14 @@ export const transactionService = {
       ),
     ];
 
-    await Promise.all(
-      notifyIds.map((userId) =>
-        notificationService
-          .notify({
-            userId,
-            type: NOTIFICATION_TYPES.TRANSACTION,
-            title: "New Transaction Request",
-            message: `A ${data.type} transaction was initiated for "${property.title}"`,
-            data: { transactionId: transaction._id },
-            sendEmail: true,
-            emailTemplate: "generic",
-            emailData: {
-              title: "New Transaction",
-              message: `Transaction initiated for ${property.title}`,
-            },
-          })
-          .catch((err) =>
-            console.error("Transaction notification failed:", err.message),
-          ),
-      ),
+    await notificationService.notifyMany(
+      "transaction.created",
+      notifyIds,
+      {
+        transactionId: transaction._id,
+        propertyTitle: property.title,
+        transactionType: data.type,
+      },
     );
 
     return populated;
@@ -75,6 +63,7 @@ export const transactionService = {
       $or: [{ buyerId: userId }, { sellerId: userId }, { agentId: userId }],
     };
     if (query.status) filter.status = query.status;
+    if (query.type) filter.type = query.type;
 
     const [transactions, total] = await Promise.all([
       Transaction.find(filter)
@@ -114,16 +103,18 @@ export const transactionService = {
   },
 
   async updateStatus(id, data, user) {
-    const transaction = await Transaction.findById(id).populate(
-      "propertyId",
-      "title",
-    );
+    const transaction = await Transaction.findById(id).populate([
+      { path: "propertyId", select: "title" },
+      { path: "buyerId", select: "firstName lastName email" },
+      { path: "sellerId", select: "firstName lastName email" },
+      { path: "agentId", select: "firstName lastName email" },
+    ]);
     if (!transaction) throw new AppError("Transaction not found", 404);
 
     const canUpdate =
       user.role === ROLES.ADMIN ||
-      transaction.sellerId.equals(user._id) ||
-      (transaction.agentId && transaction.agentId.equals(user._id));
+      transaction.sellerId._id.equals(user._id) ||
+      (transaction.agentId && transaction.agentId._id.equals(user._id));
 
     if (!canUpdate) throw new AppError("Not authorized", 403);
 
@@ -143,23 +134,40 @@ export const transactionService = {
       await cacheService.invalidateProperties();
     }
 
-    notificationService
-      .notify({
-        userId: transaction.buyerId,
-        type: NOTIFICATION_TYPES.TRANSACTION,
-        title: `Transaction ${data.status}`,
-        message: `Your transaction for "${transaction.propertyId.title}" is now ${data.status}`,
-        data: { transactionId: transaction._id },
-        sendEmail: true,
-        emailTemplate: "transactionUpdate",
-        emailData: {
-          status: data.status,
-          propertyTitle: transaction.propertyId.title,
-        },
-      })
-      .catch((err) =>
-        console.error("Transaction notification failed:", err.message),
-      );
+    const recipientIds = [
+      transaction.buyerId._id,
+      transaction.sellerId._id,
+      transaction.agentId?._id,
+    ].filter(Boolean);
+
+    const context = {
+      transactionId: transaction._id,
+      propertyTitle: transaction.propertyId.title,
+      status: data.status,
+    };
+
+    await Promise.all(
+      recipientIds.map((userId) => {
+        const recipient =
+          userId.equals(transaction.buyerId._id)
+            ? transaction.buyerId
+            : userId.equals(transaction.sellerId._id)
+              ? transaction.sellerId
+              : transaction.agentId;
+
+        return notificationService
+          .notifyFromEvent("transaction.status_updated", {
+            userId,
+            context: {
+              ...context,
+              name: recipient?.firstName || recipient?.email,
+            },
+          })
+          .catch((err) =>
+            console.error("Transaction notification failed:", err.message),
+          );
+      }),
+    );
 
     return transaction;
   },

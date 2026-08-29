@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { PROPERTY_TYPES } from "../../shared/constants.js";
 import { PHONE_COUNTRY_CODES } from "../../shared/phone.js";
+import { NOTIFICATION_PREFERENCE_KEYS } from "../notifications/notification.preferences.js";
 
 const optionalUrl = z
   .string()
@@ -56,6 +57,19 @@ export const updatePreferencesSchema = z.object({
   budgetMax: z.number().min(0).optional(),
   locations: z.array(z.string()).optional(),
   propertyTypes: z.array(z.enum(PROPERTY_TYPES)).optional(),
+});
+
+const notificationChannelSchema = z
+  .object(
+    Object.fromEntries(
+      NOTIFICATION_PREFERENCE_KEYS.map((key) => [key, z.boolean().optional()]),
+    ),
+  )
+  .optional();
+
+export const updateNotificationPreferencesSchema = z.object({
+  email: notificationChannelSchema,
+  inApp: notificationChannelSchema,
 });
 
 export const savedSearchSchema = z.object({

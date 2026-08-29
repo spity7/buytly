@@ -161,7 +161,10 @@ function SingleV1Content() {
                   </div>
                 </div>
 
-                <div className="ps-widget bgc-white bdrs12 default-box-shadow2 p30 mb30 overflow-hidden position-relative">
+                <div
+                  id="property-reviews"
+                  className="ps-widget bgc-white bdrs12 default-box-shadow2 p30 mb30 overflow-hidden position-relative"
+                >
                   <div className="row">
                     <AllReviews />
                   </div>

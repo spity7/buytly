@@ -6,8 +6,9 @@ import {
   parsePagination,
   buildPaginationMeta,
 } from "../../shared/pagination.js";
+import { buildPropertyTextFilter } from "../../shared/search.js";
 import { slugify } from "../../utils/slugify.js";
-import { ROLES, NOTIFICATION_TYPES } from "../../shared/constants.js";
+import { ROLES } from "../../shared/constants.js";
 import { User } from "../users/user.model.js";
 import { notificationService } from "../notifications/notification.service.js";
 import {
@@ -39,29 +40,13 @@ const notifyAdminsOfPendingListing = async (property) => {
     isActive: true,
   }).select("_id");
 
-  await Promise.all(
-    admins.map((admin) =>
-      notificationService
-        .notify({
-          userId: admin._id,
-          type: NOTIFICATION_TYPES.PROPERTY,
-          title: "Listing pending review",
-          message: `"${property.title}" was submitted and awaits approval.`,
-          data: { propertyId: property._id },
-          sendEmail: true,
-          emailTemplate: "generic",
-          emailData: {
-            title: "Listing pending review",
-            message: `"${property.title}" was submitted and awaits approval.`,
-          },
-        })
-        .catch((err) =>
-          console.error(
-            "Admin pending-listing notification failed:",
-            err.message,
-          ),
-        ),
-    ),
+  await notificationService.notifyMany(
+    "property.pending_review",
+    admins.map((admin) => admin._id),
+    {
+      propertyId: property._id,
+      propertyTitle: property.title,
+    },
   );
 };
 
@@ -117,6 +102,29 @@ const maybeRependActiveListing = async (
   await property.save();
   if (notify) await notifyAdminsOfPendingListing(property);
   return true;
+};
+
+const buildPropertyIdFilter = (id, user) => {
+  const filter = { _id: id };
+  if (user?.role !== ROLES.ADMIN) {
+    filter.deletedAt = null;
+  }
+  return filter;
+};
+
+const findPropertyById = (id, user) =>
+  Property.findOne(buildPropertyIdFilter(id, user))
+    .populate("agentId", "firstName lastName email phone avatar")
+    .populate("ownerId", "firstName lastName email phone");
+
+const applyAdminStatusTransition = (property, normalizedStatus) => {
+  if (normalizedStatus === "archived") {
+    Object.assign(property, buildArchiveUpdate());
+    return;
+  }
+
+  property.deletedAt = null;
+  property.status = normalizedStatus;
 };
 
 export const propertyService = {
@@ -223,9 +231,7 @@ export const propertyService = {
   },
 
   async getById(id, { incrementView = true, user } = {}) {
-    const property = await Property.findOne({ _id: id, deletedAt: null })
-      .populate("agentId", "firstName lastName email phone avatar")
-      .populate("ownerId", "firstName lastName email phone");
+    const property = await findPropertyById(id, user);
 
     if (!property) throw new AppError("Property not found", 404);
 
@@ -245,7 +251,7 @@ export const propertyService = {
   },
 
   async update(id, data, user) {
-    const property = await Property.findOne({ _id: id, deletedAt: null });
+    const property = await findPropertyById(id, user);
     if (!property) throw new AppError("Property not found", 404);
 
     const canEdit = canManageProperty(property, user);
@@ -292,6 +298,10 @@ export const propertyService = {
 
     if (materialChanges) {
       property.status = "pending";
+    }
+
+    if (isAdmin && normalizedStatus !== undefined) {
+      applyAdminStatusTransition(property, normalizedStatus);
     }
 
     await property.save();
@@ -343,7 +353,7 @@ export const propertyService = {
   },
 
   async uploadMedia(id, file, user) {
-    const property = await Property.findOne({ _id: id, deletedAt: null });
+    const property = await findPropertyById(id, user);
     if (!property) throw new AppError("Property not found", 404);
 
     const canEdit = canManageProperty(property, user);
@@ -378,7 +388,7 @@ export const propertyService = {
   },
 
   async uploadFloorPlanImage(id, file, user) {
-    const property = await Property.findOne({ _id: id, deletedAt: null });
+    const property = await findPropertyById(id, user);
     if (!property) throw new AppError("Property not found", 404);
 
     const canEdit = canManageProperty(property, user);
@@ -401,7 +411,7 @@ export const propertyService = {
   },
 
   async removeMedia(id, mediaId, user) {
-    const property = await Property.findOne({ _id: id, deletedAt: null });
+    const property = await findPropertyById(id, user);
     if (!property) throw new AppError("Property not found", 404);
 
     const canEdit = canManageProperty(property, user);
@@ -424,17 +434,22 @@ export const propertyService = {
 
   async listMine(user, query) {
     const { page, limit, skip } = parsePagination(query);
-    const filter = {
-      $or: [{ ownerId: user._id }, { agentId: user._id }],
-    };
+    const conditions = [
+      { $or: [{ ownerId: user._id }, { agentId: user._id }] },
+      query.trashed === "true"
+        ? { deletedAt: { $ne: null } }
+        : { deletedAt: null },
+    ];
 
-    if (query.trashed === "true") {
-      filter.deletedAt = { $ne: null };
-    } else {
-      filter.deletedAt = null;
-    }
+    if (query.status) conditions.push({ status: query.status });
+    if (query.type) conditions.push({ type: query.type });
+    if (query.listingType) conditions.push({ listingType: query.listingType });
 
-    if (query.status) filter.status = query.status;
+    const textFilter = buildPropertyTextFilter(query.search);
+    if (textFilter) conditions.push(textFilter);
+
+    const filter =
+      conditions.length === 1 ? conditions[0] : { $and: conditions };
 
     const sortField = query.sortBy || "createdAt";
     const sortOrder = query.sortOrder === "asc" ? 1 : -1;
