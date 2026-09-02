@@ -29,6 +29,12 @@ const PropertyVideo = () => {
     [property?.media],
   );
 
+  const posterImage = useMemo(
+    () =>
+      property?.media?.find((item) => item.type === "image" && item.url)?.url,
+    [property?.media],
+  );
+
   if (!videoMedia?.url) return null;
 
   const youtubeId = extractYouTubeId(videoMedia.url);
@@ -40,12 +46,22 @@ const PropertyVideo = () => {
       )}
       <div className="col-md-12">
         {youtubeId ? (
-          <div className="property_video bdrs12 w-100">
+          <div
+            className="property_video bdrs12 w-100"
+            style={
+              posterImage
+                ? {
+                    backgroundImage: `url(${posterImage})`,
+                  }
+                : undefined
+            }
+          >
             <button
               className="video_popup_btn mx-auto popup-img"
               onClick={() => setOpen(true)}
               style={{ border: "none", background: "transparent" }}
               type="button"
+              aria-label="Play property video"
             >
               <span className="flaticon-play" />
             </button>
@@ -55,6 +71,7 @@ const PropertyVideo = () => {
             className="w-100 bdrs12"
             src={videoMedia.url}
             controls
+            poster={posterImage}
             style={{ maxHeight: 480 }}
           />
         )}

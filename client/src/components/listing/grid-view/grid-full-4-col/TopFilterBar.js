@@ -1,5 +1,4 @@
-
-'use client'
+"use client";
 
 import React from "react";
 import ListingStatus from "../../sidebar/ListingStatus";
@@ -8,10 +7,25 @@ import PriceRange from "../../sidebar/PriceRange";
 import Bedroom from "../../sidebar/Bedroom";
 import Bathroom from "../../sidebar/Bathroom";
 
-const TopFilterBar = ({filterFunctions,setCurrentSortingOption,colstyle,setColstyle}) => {
-  
+const TopFilterBar = ({
+  filterFunctions,
+  setCurrentSortingOption,
+  colstyle,
+  setColstyle,
+  pageContentTrac = [0, 0, 0],
+}) => {
+  const [from, to, total] = pageContentTrac;
+
   return (
     <>
+      <div className="col-12 mb15">
+        <p className="pagination_page_count mb-0">
+          {total > 0
+            ? `Showing ${from}–${to} of ${total} properties`
+            : "No properties to show"}
+        </p>
+      </div>
+
       <div className="col-xl-9 d-none d-lg-block">
         <div className="dropdown-lists">
           <ul className="p-0 text-center text-xl-start">
@@ -41,7 +55,6 @@ const TopFilterBar = ({filterFunctions,setCurrentSortingOption,colstyle,setColst
                 </div>
               </div>
             </li>
-            {/* End li Listing Status */}
 
             <li className="list-inline-item position-relative">
               <button
@@ -69,7 +82,6 @@ const TopFilterBar = ({filterFunctions,setCurrentSortingOption,colstyle,setColst
                 </div>
               </div>
             </li>
-            {/* End li Property Type */}
 
             <li className="list-inline-item position-relative">
               <button
@@ -84,7 +96,6 @@ const TopFilterBar = ({filterFunctions,setCurrentSortingOption,colstyle,setColst
               <div className="dropdown-menu dd3">
                 <div className="widget-wrapper bdrb1 pb25 mb0 pl20 pr20">
                   <h6 className="list-title">Price Range</h6>
-                  {/* Range Slider Desktop Version */}
                   <div className="range-slider-style1">
                     <PriceRange filterFunctions={filterFunctions} />
                   </div>
@@ -99,7 +110,6 @@ const TopFilterBar = ({filterFunctions,setCurrentSortingOption,colstyle,setColst
                 </div>
               </div>
             </li>
-            {/* End li Price */}
 
             <li className="list-inline-item position-relative">
               <button
@@ -114,14 +124,14 @@ const TopFilterBar = ({filterFunctions,setCurrentSortingOption,colstyle,setColst
                 <div className="widget-wrapper pl20 pr20">
                   <h6 className="list-title">Bedrooms</h6>
                   <div className="d-flex">
-                    <Bedroom filterFunctions={filterFunctions}/>
+                    <Bedroom filterFunctions={filterFunctions} />
                   </div>
                 </div>
 
                 <div className="widget-wrapper bdrb1 pb25 mb0 pl20 pr20">
                   <h6 className="list-title">Bathrooms</h6>
                   <div className="d-flex">
-                    <Bathroom filterFunctions={filterFunctions}/>
+                    <Bathroom filterFunctions={filterFunctions} />
                   </div>
                 </div>
                 <div className="text-end mt10 pr10">
@@ -134,10 +144,8 @@ const TopFilterBar = ({filterFunctions,setCurrentSortingOption,colstyle,setColst
                 </div>
               </div>
             </li>
-            {/* End bed and bathroom check */}
 
             <li className="list-inline-item">
-              {/* Advance Features modal trigger */}
               <button
                 type="button"
                 className="open-btn mb15"
@@ -150,13 +158,18 @@ const TopFilterBar = ({filterFunctions,setCurrentSortingOption,colstyle,setColst
           </ul>
         </div>
       </div>
-      {/* End .col-9 */}
 
       <div className="col-xl-3">
         <div className="page_control_shorting d-flex align-items-center justify-content-center justify-content-sm-end">
           <div className="pcs_dropdown pr10 d-flex align-items-center">
             <span style={{ minWidth: "60px" }}>Sort by</span>
-            <select className="form-select" onChange={(e)=>setCurrentSortingOption && setCurrentSortingOption(e.target.value)}>
+            <select
+              className="form-select"
+              defaultValue="Newest"
+              onChange={(event) =>
+                setCurrentSortingOption?.(event.target.value)
+              }
+            >
               <option>Newest</option>
               <option>Best Seller</option>
               <option>Best Match</option>
@@ -164,15 +177,24 @@ const TopFilterBar = ({filterFunctions,setCurrentSortingOption,colstyle,setColst
               <option>Price High</option>
             </select>
           </div>
-          <div className={`pl15 pr15 bdrl1 bdrr1 d-none d-md-block cursor  ${!colstyle? 'menuActive':'#' } `}    onClick={()=>setColstyle(false)}>
-            Grid
-          </div>
-          <div className={`pl15 d-none d-md-block cursor  ${colstyle? 'menuActive':'#' }`}   onClick={()=>setColstyle(true)}>
-            List
-          </div>
+          {setColstyle && (
+            <>
+              <div
+                className={`pl15 pr15 bdrl1 bdrr1 d-none d-md-block cursor ${!colstyle ? "menuActive" : "#"}`}
+                onClick={() => setColstyle(false)}
+              >
+                Grid
+              </div>
+              <div
+                className={`pl15 d-none d-md-block cursor ${colstyle ? "menuActive" : "#"}`}
+                onClick={() => setColstyle(true)}
+              >
+                List
+              </div>
+            </>
+          )}
         </div>
       </div>
-      {/* End .col-3 */}
     </>
   );
 };

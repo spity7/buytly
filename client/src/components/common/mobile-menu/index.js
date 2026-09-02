@@ -1,4 +1,10 @@
 "use client";
+import {
+  BRAND_LOGO_DARK,
+  BRAND_LOGO_HEIGHT,
+  BRAND_LOGO_WIDTH,
+  BRAND_NAME,
+} from "@/data/brandAssets";
 import Link from "next/link";
 import Image from "next/image";
 import MobileAuthIcon from "@/components/auth/MobileAuthIcon";
@@ -29,10 +35,10 @@ const MobileMenu = () => {
               </a>
               <Link className="mobile_logo" href="/">
                 <Image
-                  width={138}
-                  height={44}
-                  src="/images/header-logo2.svg"
-                  alt="logo"
+                  width={BRAND_LOGO_WIDTH}
+                  height={BRAND_LOGO_HEIGHT}
+                  src={BRAND_LOGO_DARK}
+                  alt={BRAND_NAME}
                 />
               </Link>
               <MobileAuthIcon />

@@ -13,6 +13,7 @@ import {
 } from "@/lib/confirmations";
 import { notifyError } from "@/lib/toast";
 import { isPropertyTerminal } from "@/lib/properties/mapProperty";
+import PropertyFormNearbyPreview from "@/components/property/dashboard/dashboard-add-property/PropertyFormNearbyPreview";
 import PropertyFormStatusBanner from "@/components/property/dashboard/dashboard-add-property/PropertyFormStatusBanner";
 import PropertyFormActions from "@/components/property/dashboard/dashboard-add-property/PropertyFormActions";
 import { getPropertyFormCancelHref } from "@/lib/properties/propertyFormActions";
@@ -163,6 +164,21 @@ async function resolveFloorPlans(savedId, floorPlans) {
   return resolved;
 }
 
+function splitMedia(media = []) {
+  const images = [];
+  let video = null;
+
+  for (const item of media) {
+    if (item.type === "video" && !video) {
+      video = item;
+    } else if (item.type !== "video") {
+      images.push(item);
+    }
+  }
+
+  return { images, video };
+}
+
 function isVideoFile(file) {
   return file.type.startsWith("video/");
 }
@@ -203,9 +219,12 @@ export default function PropertyForm({ propertyId }) {
   const isEdit = Boolean(propertyId);
   const [form, setForm] = useState(emptyForm);
   const [baselineForm, setBaselineForm] = useState(isEdit ? null : emptyForm);
-  const [existingMedia, setExistingMedia] = useState([]);
-  const [mediaFiles, setMediaFiles] = useState([]);
-  const [mediaPreviews, setMediaPreviews] = useState([]);
+  const [existingImages, setExistingImages] = useState([]);
+  const [existingVideo, setExistingVideo] = useState(null);
+  const [imageFiles, setImageFiles] = useState([]);
+  const [imagePreviews, setImagePreviews] = useState([]);
+  const [videoFile, setVideoFile] = useState(null);
+  const [videoPreview, setVideoPreview] = useState(null);
   const [isLoading, setIsLoading] = useState(isEdit);
   const { requestConfirm, run, isLocked, overlayMessage, dialogProps } =
     useConfirmAction({ overlay: true });
@@ -213,18 +232,21 @@ export default function PropertyForm({ propertyId }) {
   const [activeSubmitMode, setActiveSubmitMode] = useState("review");
   const [propertyStatus, setPropertyStatus] = useState(null);
   const [propertyMeta, setPropertyMeta] = useState(null);
-  const mediaPreviewsRef = useRef(mediaPreviews);
-  mediaPreviewsRef.current = mediaPreviews;
+  const imagePreviewsRef = useRef(imagePreviews);
+  imagePreviewsRef.current = imagePreviews;
+  const videoPreviewRef = useRef(videoPreview);
+  videoPreviewRef.current = videoPreview;
 
   const hasChanges = useMemo(() => {
     const baseline = isEdit ? baselineForm : emptyForm;
     if (!baseline) return false;
     return (
       !formsEqual(form, baseline) ||
-      mediaFiles.length > 0 ||
+      imageFiles.length > 0 ||
+      Boolean(videoFile) ||
       form.floorPlans.some((plan) => plan.imageFile)
     );
-  }, [baselineForm, form, isEdit, mediaFiles.length]);
+  }, [baselineForm, form, isEdit, imageFiles.length, videoFile]);
 
   useEffect(() => {
     if (!isEdit) return;
@@ -247,7 +269,9 @@ export default function PropertyForm({ propertyId }) {
             listingType: response.data?.listingType,
             type: response.data?.type,
           });
-          setExistingMedia(response.data?.media || []);
+          const { images, video } = splitMedia(response.data?.media || []);
+          setExistingImages(images);
+          setExistingVideo(video);
         }
       } catch (error) {
         notifyError(getApiError(error));
@@ -264,11 +288,15 @@ export default function PropertyForm({ propertyId }) {
 
   useEffect(() => {
     return () => {
-      mediaPreviewsRef.current.forEach((preview) => {
+      imagePreviewsRef.current.forEach((preview) => {
         if (preview.url.startsWith("blob:")) {
           URL.revokeObjectURL(preview.url);
         }
       });
+      const preview = videoPreviewRef.current;
+      if (preview?.url?.startsWith("blob:")) {
+        URL.revokeObjectURL(preview.url);
+      }
     };
   }, []);
 
@@ -350,34 +378,77 @@ export default function PropertyForm({ propertyId }) {
     }));
   };
 
-  const handleMediaSelect = useCallback((fileList) => {
-    const files = Array.from(fileList || []);
-    if (!files.length) return;
+  const handleImageSelect = useCallback((fileList) => {
+    const files = Array.from(fileList || []).filter(
+      (file) => !isVideoFile(file),
+    );
+
+    if (!files.length) {
+      notifyError("Only image files can be uploaded in the photos section.");
+      return;
+    }
 
     const previews = files.map((file) => ({
       id: `${file.name}-${file.size}-${file.lastModified}`,
       file,
       url: URL.createObjectURL(file),
-      isVideo: isVideoFile(file),
       name: file.name,
     }));
 
-    setMediaFiles((prev) => [...prev, ...files]);
-    setMediaPreviews((prev) => [...prev, ...previews]);
+    setImageFiles((prev) => [...prev, ...files]);
+    setImagePreviews((prev) => [...prev, ...previews]);
   }, []);
 
-  const removeMediaPreview = useCallback((index) => {
-    setMediaPreviews((prev) => {
+  const handleVideoSelect = useCallback(
+    (fileList) => {
+      const file = fileList?.[0];
+      if (!file) return;
+
+      if (!isVideoFile(file)) {
+        notifyError("Please choose a video file.");
+        return;
+      }
+
+      if (existingVideo || videoFile) {
+        notifyError(
+          "This listing already has a video. Remove the current video before uploading a new one.",
+        );
+        return;
+      }
+
+      if (videoPreview?.url?.startsWith("blob:")) {
+        URL.revokeObjectURL(videoPreview.url);
+      }
+
+      setVideoFile(file);
+      setVideoPreview({
+        url: URL.createObjectURL(file),
+        name: file.name,
+      });
+    },
+    [existingVideo, videoFile, videoPreview],
+  );
+
+  const removeImagePreview = useCallback((index) => {
+    setImagePreviews((prev) => {
       const preview = prev[index];
       if (preview?.url.startsWith("blob:")) {
         URL.revokeObjectURL(preview.url);
       }
       return prev.filter((_, itemIndex) => itemIndex !== index);
     });
-    setMediaFiles((prev) => prev.filter((_, itemIndex) => itemIndex !== index));
+    setImageFiles((prev) => prev.filter((_, itemIndex) => itemIndex !== index));
   }, []);
 
-  const promptDeleteMedia = (item) => {
+  const clearVideoPreview = useCallback(() => {
+    if (videoPreview?.url?.startsWith("blob:")) {
+      URL.revokeObjectURL(videoPreview.url);
+    }
+    setVideoFile(null);
+    setVideoPreview(null);
+  }, [videoPreview]);
+
+  const promptDeleteMedia = (item, { onRemoved } = {}) => {
     if (!item?._id || !propertyId) return;
 
     requestConfirm({
@@ -387,9 +458,7 @@ export default function PropertyForm({ propertyId }) {
         successMessage: "Media removed",
         task: async () => {
           await buytlyApi.deletePropertyMedia(propertyId, item._id);
-          setExistingMedia((prev) =>
-            prev.filter((media) => media._id !== item._id),
-          );
+          onRemoved?.(item._id);
           await invalidatePropertyQueries(queryClient, { propertyId });
         },
       },
@@ -430,16 +499,21 @@ export default function PropertyForm({ propertyId }) {
       }
     }
 
-    if (mediaFiles.length && savedId) {
-      setProgress("Uploading photos and videos...");
-      for (const file of mediaFiles) {
+    if (imageFiles.length && savedId) {
+      setProgress("Uploading photos...");
+      for (const file of imageFiles) {
         await buytlyApi.uploadPropertyMedia(savedId, { media: file });
       }
     }
 
+    if (videoFile && savedId) {
+      setProgress("Uploading video...");
+      await buytlyApi.uploadPropertyMedia(savedId, { media: videoFile });
+    }
+
     setBaselineForm(form);
-    setMediaFiles([]);
-    setMediaPreviews((prev) => {
+    setImageFiles([]);
+    setImagePreviews((prev) => {
       prev.forEach((preview) => {
         if (preview.url.startsWith("blob:")) {
           URL.revokeObjectURL(preview.url);
@@ -447,6 +521,7 @@ export default function PropertyForm({ propertyId }) {
       });
       return [];
     });
+    clearVideoPreview();
     await invalidatePropertyQueries(queryClient, { propertyId: savedId });
     router.push(getPropertyFormCancelHref(isAdmin));
     return { savedStatus };
@@ -533,7 +608,12 @@ export default function PropertyForm({ propertyId }) {
   }
 
   const isTerminal = isPropertyTerminal(propertyStatus);
-  const mediaCount = existingMedia.length + mediaFiles.length;
+  const mediaCount =
+    existingImages.length +
+    (existingVideo ? 1 : 0) +
+    imageFiles.length +
+    (videoFile ? 1 : 0);
+  const hasVideo = Boolean(existingVideo || videoFile);
 
   return (
     <form className="form-style1 p30" onSubmit={handleSubmit}>
@@ -796,6 +876,14 @@ export default function PropertyForm({ propertyId }) {
           </div>
 
           <div className="col-sm-12">
+            <PropertyFormNearbyPreview
+              propertyId={propertyId}
+              latitude={form.latitude}
+              longitude={form.longitude}
+            />
+          </div>
+
+          <div className="col-sm-12">
             <div className="mb20">
               <label className="heading-color ff-heading fw600 mb10">
                 360° Virtual Tour URL
@@ -993,60 +1081,59 @@ export default function PropertyForm({ propertyId }) {
           </div>
 
           <div className="col-sm-12">
-            <div className="mb20 mt20">
+            <h4 className="fz17 mb20 mt20">Photos</h4>
+            <div className="mb20">
               <label className="heading-color ff-heading fw600 mb10">
-                Upload Media
+                Upload photos
               </label>
               <input
                 type="file"
                 className="form-control"
-                accept="image/*,video/*"
+                accept="image/*"
                 multiple
                 onChange={(e) => {
-                  handleMediaSelect(e.target.files);
+                  handleImageSelect(e.target.files);
                   e.target.value = "";
                 }}
               />
               <p className="text mt10 mb0">
-                Add photos or videos. New uploads will be attached when you
-                save.
+                Add listing photos only. Images appear in the gallery on the
+                property page.
               </p>
             </div>
 
-            {existingMedia.length > 0 && (
+            {existingImages.length > 0 && (
               <div className="mb20">
                 <p className="heading-color ff-heading fw600 mb15">
-                  Current media
+                  Current photos
                 </p>
                 <div className="row profile-box position-relative d-md-flex align-items-end mb20">
-                  {existingMedia.map((item) => (
+                  {existingImages.map((item) => (
                     <div className="col-6 col-md-4 col-lg-3" key={item._id}>
                       <div className="profile-img mb20 position-relative">
-                        {item.type === "video" ? (
-                          <video
-                            className="w-100 bdrs12 cover"
-                            src={item.url}
-                            controls
-                            style={{ height: 194, objectFit: "cover" }}
-                          />
-                        ) : (
-                          <Image
-                            width={212}
-                            height={194}
-                            className="w-100 bdrs12 cover"
-                            src={item.url || "/images/listings/listing-1.jpg"}
-                            alt="Property media"
-                            unoptimized
-                          />
-                        )}
+                        <Image
+                          width={212}
+                          height={194}
+                          className="w-100 bdrs12 cover"
+                          src={item.url || "/images/listings/listing-1.jpg"}
+                          alt="Property photo"
+                          unoptimized
+                        />
                         <button
                           type="button"
                           style={{ border: "none" }}
                           className="tag-del"
-                          title="Delete media"
-                          onClick={() => promptDeleteMedia(item)}
+                          title="Delete photo"
+                          onClick={() =>
+                            promptDeleteMedia(item, {
+                              onRemoved: () =>
+                                setExistingImages((prev) =>
+                                  prev.filter((media) => media._id !== item._id),
+                                ),
+                            })
+                          }
                           disabled={formBusy}
-                          aria-label="Delete media"
+                          aria-label="Delete photo"
                         >
                           <span className="fas fa-trash-can" />
                         </button>
@@ -1057,38 +1144,29 @@ export default function PropertyForm({ propertyId }) {
               </div>
             )}
 
-            {mediaPreviews.length > 0 && (
+            {imagePreviews.length > 0 && (
               <div className="mb20">
                 <p className="heading-color ff-heading fw600 mb15">
-                  New uploads
+                  New photos
                 </p>
                 <div className="row profile-box position-relative d-md-flex align-items-end mb20">
-                  {mediaPreviews.map((preview, index) => (
+                  {imagePreviews.map((preview, index) => (
                     <div className="col-6 col-md-4 col-lg-3" key={preview.id}>
                       <div className="profile-img mb20 position-relative">
-                        {preview.isVideo ? (
-                          <video
-                            className="w-100 bdrs12 cover"
-                            src={preview.url}
-                            controls
-                            style={{ height: 194, objectFit: "cover" }}
-                          />
-                        ) : (
-                          <Image
-                            width={212}
-                            height={194}
-                            className="w-100 bdrs12 cover"
-                            src={preview.url}
-                            alt={preview.name}
-                            unoptimized
-                          />
-                        )}
+                        <Image
+                          width={212}
+                          height={194}
+                          className="w-100 bdrs12 cover"
+                          src={preview.url}
+                          alt={preview.name}
+                          unoptimized
+                        />
                         <button
                           type="button"
                           style={{ border: "none" }}
                           className="tag-del"
-                          title="Remove file"
-                          onClick={() => removeMediaPreview(index)}
+                          title="Remove photo"
+                          onClick={() => removeImagePreview(index)}
                         >
                           <span className="fas fa-trash-can" />
                         </button>
@@ -1098,6 +1176,94 @@ export default function PropertyForm({ propertyId }) {
                       </p>
                     </div>
                   ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div className="col-sm-12">
+            <h4 className="fz17 mb20">Video</h4>
+            <div className="mb20">
+              <label className="heading-color ff-heading fw600 mb10">
+                Upload property video
+              </label>
+              <input
+                type="file"
+                className="form-control"
+                accept="video/*"
+                onChange={(e) => {
+                  handleVideoSelect(e.target.files);
+                  e.target.value = "";
+                }}
+                disabled={hasVideo}
+              />
+              <p className="text mt10 mb0">
+                One video per listing. It appears in the Video section on the
+                property page, separate from photos.
+              </p>
+            </div>
+
+            {existingVideo && (
+              <div className="mb20">
+                <p className="heading-color ff-heading fw600 mb15">
+                  Current video
+                </p>
+                <div className="row profile-box position-relative d-md-flex align-items-end mb20">
+                  <div className="col-12 col-md-8 col-lg-6">
+                    <div className="profile-img mb20 position-relative">
+                      <video
+                        className="w-100 bdrs12 cover"
+                        src={existingVideo.url}
+                        controls
+                        style={{ maxHeight: 280, objectFit: "cover" }}
+                      />
+                      <button
+                        type="button"
+                        style={{ border: "none" }}
+                        className="tag-del"
+                        title="Delete video"
+                        onClick={() =>
+                          promptDeleteMedia(existingVideo, {
+                            onRemoved: () => setExistingVideo(null),
+                          })
+                        }
+                        disabled={formBusy}
+                        aria-label="Delete video"
+                      >
+                        <span className="fas fa-trash-can" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {videoPreview && (
+              <div className="mb20">
+                <p className="heading-color ff-heading fw600 mb15">New video</p>
+                <div className="row profile-box position-relative d-md-flex align-items-end mb20">
+                  <div className="col-12 col-md-8 col-lg-6">
+                    <div className="profile-img mb20 position-relative">
+                      <video
+                        className="w-100 bdrs12 cover"
+                        src={videoPreview.url}
+                        controls
+                        style={{ maxHeight: 280, objectFit: "cover" }}
+                      />
+                      <button
+                        type="button"
+                        style={{ border: "none" }}
+                        className="tag-del"
+                        title="Remove video"
+                        onClick={clearVideoPreview}
+                      >
+                        <span className="fas fa-trash-can" />
+                      </button>
+                    </div>
+                    <p className="text fz13 mb0 text-truncate">
+                      {videoPreview.name}
+                    </p>
+                  </div>
                 </div>
               </div>
             )}

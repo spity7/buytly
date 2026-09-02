@@ -11,6 +11,7 @@ import { slugify } from "../../utils/slugify.js";
 import { ROLES } from "../../shared/constants.js";
 import { User } from "../users/user.model.js";
 import { notificationService } from "../notifications/notification.service.js";
+import { nearbyService } from "../../services/nearby.service.js";
 import {
   isPropertyTerminal,
   normalizeSellerStatus,
@@ -250,6 +251,47 @@ export const propertyService = {
     return attachMediaUrls(property);
   },
 
+  async getNearby(id, { user } = {}) {
+    const property = await findPropertyById(id, user);
+
+    if (!property) throw new AppError("Property not found", 404);
+
+    if (
+      property.status !== "active" &&
+      !canViewNonActiveProperty(property, user)
+    ) {
+      throw new AppError("Property not found", 404);
+    }
+
+    const [lng, lat] = property.location?.coordinates || [];
+    if (lng == null || lat == null) {
+      return { categories: [], source: null };
+    }
+
+    const cacheKey = cacheService.buildKey("nearby", {
+      lat: Number(lat).toFixed(3),
+      lng: Number(lng).toFixed(3),
+    });
+    const cached = await cacheService.get(cacheKey);
+    if (cached) return cached;
+
+    try {
+      const result = await nearbyService.fetchNearbyPlaces(lat, lng);
+      await cacheService.set(cacheKey, result, 86400);
+      return result;
+    } catch {
+      return {
+        categories: [
+          { title: "Education", places: [] },
+          { title: "Health & Medical", places: [] },
+          { title: "Transportation", places: [] },
+        ],
+        source: null,
+        unavailable: true,
+      };
+    }
+  },
+
   async update(id, data, user) {
     const property = await findPropertyById(id, user);
     if (!property) throw new AppError("Property not found", 404);
@@ -361,6 +403,14 @@ export const propertyService = {
     if (!canEdit) throw new AppError("Not authorized", 403);
 
     const isVideo = file.mimetype.startsWith("video/");
+
+    if (isVideo && property.media.some((item) => item.type === "video")) {
+      throw new AppError(
+        "Property already has a video. Remove the existing video before uploading a new one.",
+        400,
+      );
+    }
+
     const uploaded = await gcsService.uploadFile(file.buffer, {
       folder: "properties",
       mimeType: file.mimetype,

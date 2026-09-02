@@ -184,6 +184,33 @@ router.use("/:id/reviews", propertyReviewRoutes);
 
 /**
  * @swagger
+ * /properties/{id}/nearby:
+ *   get:
+ *     operationId: getPropertyNearby
+ *     summary: Get nearby points of interest
+ *     description: Returns schools, medical facilities, and transit stops within 5 km of the property using OpenStreetMap data. Cached for 24 hours per location. Same visibility rules as GET /properties/{id}.
+ *     tags: [Properties]
+ *     parameters:
+ *       - $ref: '#/components/parameters/ObjectIdParam'
+ *     responses:
+ *       200:
+ *         description: Nearby places grouped by category
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/PropertyNearbySuccessResponse'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ */
+router.get(
+  "/:id/nearby",
+  optionalAuth,
+  validateMultiple({ params: propertyIdSchema }),
+  asyncHandler(propertyController.getNearby),
+);
+
+/**
+ * @swagger
  * /properties/{id}:
  *   get:
  *     operationId: getPropertyById
@@ -362,7 +389,7 @@ router.patch(
  *   post:
  *     operationId: uploadPropertyMedia
  *     summary: Upload property media
- *     description: Uploads an image or video for a property (multipart/form-data field `media`).
+ *     description: Uploads an image or a single listing video for a property (multipart/form-data field `media`). Each property may have many images but at most one video; uploading a second video returns 400.
  *     tags: [Properties]
  *     security:
  *       - BearerAuth: []

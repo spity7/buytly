@@ -16,6 +16,7 @@ const VirtualTour360 = () => {
         title="360 virtual tour"
         className="w-100 bdrs12"
         style={{ minHeight: 420, border: 0 }}
+        loading="lazy"
         allowFullScreen
       />
     </div>

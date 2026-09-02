@@ -3,6 +3,12 @@
 import NotificationBell from "@/components/notifications/NotificationBell";
 import MainMenu from "@/components/common/MainMenu";
 import LogoutButton from "@/components/auth/LogoutButton";
+import {
+  BRAND_LOGO_DARK,
+  BRAND_LOGO_HEIGHT,
+  BRAND_LOGO_WIDTH,
+  BRAND_NAME,
+} from "@/data/brandAssets";
 import { getDashboardNavSections } from "@/lib/dashboard/navSections";
 import { isExternalImageSrc } from "@/lib/images/isExternalImageSrc";
 import { useAuth } from "@/providers/AuthProvider";
@@ -29,10 +35,10 @@ const DashboardHeader = () => {
                   <div className="dashboard_header_logo position-relative me-2 me-xl-5">
                     <Link className="logo" href="/">
                       <Image
-                        width={138}
-                        height={44}
-                        src="/images/header-logo2.svg"
-                        alt="Header Logo"
+                        width={BRAND_LOGO_WIDTH}
+                        height={BRAND_LOGO_HEIGHT}
+                        src={BRAND_LOGO_DARK}
+                        alt={BRAND_NAME}
                       />
                     </Link>
                   </div>

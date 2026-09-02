@@ -28,6 +28,13 @@ export const propertyController = {
     ApiResponse.success(res, property);
   },
 
+  getNearby: async (req, res) => {
+    const nearby = await propertyService.getNearby(req.params.id, {
+      user: req.user,
+    });
+    ApiResponse.success(res, nearby);
+  },
+
   update: async (req, res) => {
     const property = await propertyService.update(
       req.params.id,

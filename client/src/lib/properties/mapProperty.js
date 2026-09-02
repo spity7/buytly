@@ -6,9 +6,11 @@ export function mapPropertyToCard(property) {
   if (!property) return null;
 
   const id = property._id || property.id;
+  const firstImage = property.media?.find((item) => item.type === "image");
   const firstMedia = property.media?.[0];
   const image =
-    firstMedia?.url ||
+    firstImage?.url ||
+    (firstMedia?.type !== "video" ? firstMedia?.url : undefined) ||
     property.thumbnail ||
     property.image ||
     PLACEHOLDER_IMAGE;

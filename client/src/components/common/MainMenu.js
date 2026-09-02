@@ -20,6 +20,9 @@ const MainMenu = () => {
         }
       }),
     );
+    if (pathname.split("/")[1] === "listings") {
+      setTopMenu("listing");
+    }
     if (pathname.split("/")[1] === "contact") {
       setTopMenu("contact");
     }
@@ -37,7 +40,7 @@ const MainMenu = () => {
       {/* End homeItems */}
 
       <li className="visible_list">
-        <Link className="list-item" href="/grid-full-4-col">
+        <Link className="list-item" href="/listings">
           <span className={topMenu == "listing" ? "title menuActive" : "title"}>
             Listing
           </span>

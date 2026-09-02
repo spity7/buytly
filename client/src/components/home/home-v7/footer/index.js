@@ -1,4 +1,10 @@
 import Image from "next/image";
+import {
+  BRAND_LOGO_DARK,
+  BRAND_LOGO_HEIGHT,
+  BRAND_LOGO_WIDTH,
+  BRAND_NAME,
+} from "@/data/brandAssets";
 import Link from "next/link";
 import ContactMeta from "./ContactMeta";
 import AppWidget from "./AppWidget";
@@ -14,12 +20,12 @@ const Footer = () => {
           <div className="col-sm-6 col-lg-3">
             <div className="footer-widget light-style mb-4 mb-lg-5">
               <Link className="footer-logo" href="/">
-                <Image
-                  width={138}
-                  height={44}
+                                <Image
+                  width={BRAND_LOGO_WIDTH}
+                  height={BRAND_LOGO_HEIGHT}
                   className="mb40"
-                  src="/images/header-logo2.svg"
-                  alt=""
+                  src={BRAND_LOGO_DARK}
+                  alt={BRAND_NAME}
                 />
               </Link>
 

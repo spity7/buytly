@@ -1,16 +1,16 @@
 "use client";
 import React, { useState } from "react";
-import Slider, { Range } from "rc-slider";
+import Slider from "rc-slider";
+import { LISTING_MAX_PRICE } from "@/lib/listings/listingFilters";
 
 const PriceRange = ({ filterFunctions }) => {
-  const [price, setPrice] = useState([20, 70987]);
+  const [price, setPrice] = useState([
+    filterFunctions?.priceRange?.[0] ?? 0,
+    filterFunctions?.priceRange?.[1] ?? LISTING_MAX_PRICE,
+  ]);
 
-  // price range handler
-
-  // price range handler
   const handleOnChange = (value) => {
     setPrice(value);
-
     filterFunctions?.handlepriceRange([value[0] || 0, value[1]]);
   };
 
@@ -20,12 +20,9 @@ const PriceRange = ({ filterFunctions }) => {
         <Slider
           range
           formatLabel={() => ``}
-          max={100000}
+          max={LISTING_MAX_PRICE}
           min={0}
-          defaultValue={[
-            filterFunctions?.priceRange[0],
-            filterFunctions?.priceRange[1],
-          ]}
+          value={price}
           onChange={(value) => handleOnChange(value)}
           id="slider"
         />

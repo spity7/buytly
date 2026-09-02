@@ -5,7 +5,7 @@ module.exports = [
   },
   {
     label: "Listing",
-    path: "/grid-full-4-col",
+    path: "/listings",
   },
 
   {

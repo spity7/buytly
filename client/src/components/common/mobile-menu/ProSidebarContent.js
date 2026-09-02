@@ -14,8 +14,10 @@ const isTopLevelLinkActive = (item, currentPath) => {
   if (item.path === "/") {
     return currentPath === "/" || currentPath.startsWith("/home-v");
   }
-  if (item.path === "/grid-full-4-col") {
-    return isParentActive(listingPaths, currentPath);
+  if (item.path === "/listings") {
+    return (
+      isParentActive(listingPaths, currentPath) || currentPath === "/listings"
+    );
   }
   return item.path === currentPath;
 };

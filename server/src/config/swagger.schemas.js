@@ -1185,6 +1185,59 @@
  *             data:
  *               $ref: '#/components/schemas/User'
  *
+ *     NearbyPlace:
+ *       type: object
+ *       required: [name, distanceLabel, distanceKm]
+ *       properties:
+ *         name:
+ *           type: string
+ *           example: Central High School
+ *         subtitle:
+ *           type: string
+ *           example: School
+ *         distanceKm:
+ *           type: number
+ *           example: 1.2
+ *         distanceLabel:
+ *           type: string
+ *           example: 1.2 km
+ *
+ *     NearbyCategory:
+ *       type: object
+ *       required: [title, places]
+ *       properties:
+ *         title:
+ *           type: string
+ *           example: Education
+ *         places:
+ *           type: array
+ *           items:
+ *             $ref: '#/components/schemas/NearbyPlace'
+ *
+ *     PropertyNearbyData:
+ *       type: object
+ *       required: [categories]
+ *       properties:
+ *         categories:
+ *           type: array
+ *           items:
+ *             $ref: '#/components/schemas/NearbyCategory'
+ *         source:
+ *           type: string
+ *           nullable: true
+ *           example: openstreetmap
+ *         unavailable:
+ *           type: boolean
+ *           description: True when the external lookup failed and empty categories were returned
+ *
+ *     PropertyNearbySuccessResponse:
+ *       allOf:
+ *         - $ref: '#/components/schemas/SuccessResponse'
+ *         - type: object
+ *           properties:
+ *             data:
+ *               $ref: '#/components/schemas/PropertyNearbyData'
+ *
  *     PropertySuccessResponse:
  *       allOf:
  *         - $ref: '#/components/schemas/SuccessResponse'

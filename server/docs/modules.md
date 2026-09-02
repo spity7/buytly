@@ -25,19 +25,19 @@
 
 **Responsibility:** Profile management, preferences, saved searches, avatar upload.
 
-| Endpoint                     | Method   | Auth   | Input                                                                                 | Output                 |
-| ---------------------------- | -------- | ------ | ------------------------------------------------------------------------------------- | ---------------------- |
-| /users/me                    | GET      | User   | —                                                                                     | full profile           |
-| /users/me                    | PATCH    | User   | firstName, lastName, phoneCountryCode, phoneNumber (empty `phoneNumber` clears phone) | updated profile        |
-| /users/me                    | DELETE   | User   | password (local accounts)                                                             | success                |
-| /users/me/preferences                 | PATCH    | User   | budget, locations, types                                                              | preferences            |
-| /users/me/notification-preferences    | PATCH    | User   | email/inApp toggles per category                                                      | notification prefs     |
-| /users/me/saved-searches     | POST/GET | User   | name, filters                                                                         | searches               |
-| /users/me/saved-searches/:id | DELETE   | User   | —                                                                                     | success                |
-| /users/me/social-links       | PATCH    | User   | social URLs                                                                           | updated profile        |
-| /users/me/avatar             | POST     | User   | multipart file                                                                        | avatar + signed URL    |
-| /users/me/avatar             | DELETE   | User   | —                                                                                     | success                |
-| /users/:id                   | GET      | Public | —                                                                                     | limited public profile |
+| Endpoint                           | Method   | Auth   | Input                                                                                 | Output                 |
+| ---------------------------------- | -------- | ------ | ------------------------------------------------------------------------------------- | ---------------------- |
+| /users/me                          | GET      | User   | —                                                                                     | full profile           |
+| /users/me                          | PATCH    | User   | firstName, lastName, phoneCountryCode, phoneNumber (empty `phoneNumber` clears phone) | updated profile        |
+| /users/me                          | DELETE   | User   | password (local accounts)                                                             | success                |
+| /users/me/preferences              | PATCH    | User   | budget, locations, types                                                              | preferences            |
+| /users/me/notification-preferences | PATCH    | User   | email/inApp toggles per category                                                      | notification prefs     |
+| /users/me/saved-searches           | POST/GET | User   | name, filters                                                                         | searches               |
+| /users/me/saved-searches/:id       | DELETE   | User   | —                                                                                     | success                |
+| /users/me/social-links             | PATCH    | User   | social URLs                                                                           | updated profile        |
+| /users/me/avatar                   | POST     | User   | multipart file                                                                        | avatar + signed URL    |
+| /users/me/avatar                   | DELETE   | User   | —                                                                                     | success                |
+| /users/:id                         | GET      | Public | —                                                                                     | limited public profile |
 
 **Dependencies:** gcs.service, image.service (via gcs upload)
 
@@ -53,9 +53,10 @@
 | /properties/mine                  | GET          | Seller/Agent           | pagination, status, type, listingType, search (partial title/description), sortBy, sortOrder, trashed | user's listings (trashed=true for trash) |
 | /properties/:id/restore           | PATCH        | Owner/Agent/Admin      | —                                                                                                     | restored draft listing                   |
 | /properties/:id                   | GET          | Public                 | —                                                                                                     | property detail                          |
+| /properties/:id/nearby            | GET          | Public (optional auth) | —                                                                                                     | nearby POIs (OpenStreetMap, 5 km radius) |
 | /properties                       | POST         | Seller/Agent           | property data                                                                                         | created property                         |
 | /properties/:id                   | PATCH/DELETE | Owner/Agent            | updates                                                                                               | updated/deleted                          |
-| /properties/:id/media             | POST         | Owner/Agent            | file                                                                                                  | media item                               |
+| /properties/:id/media             | POST         | Owner/Agent            | file (image or one video)                                                                             | media item                               |
 | /properties/:id/media/:mediaId    | DELETE       | Owner/Agent            | —                                                                                                     | success                                  |
 | /properties/:id/floor-plans/image | POST         | Owner/Agent            | image file                                                                                            | gcsKey + url                             |
 | /properties/:id/reviews           | GET          | Public (optional auth) | pagination                                                                                            | reviews + stats                          |
@@ -63,7 +64,7 @@
 | /properties/:id/reviews           | POST         | User                   | rating, title, text                                                                                   | review                                   |
 | /properties/:id/reviews/:reviewId | DELETE       | Author/Admin           | —                                                                                                     | success                                  |
 
-Create/update payloads accept optional `floorPlans[]` and `virtualTourUrl`. Floor plan images are uploaded via `/floor-plans/image` and referenced by `gcsKey` in the array.
+Create/update payloads accept optional `floorPlans[]` and `virtualTourUrl`. Floor plan images are uploaded via `/floor-plans/image` and referenced by `gcsKey` in the array. Listing media supports multiple images plus **one** optional video (`POST /properties/:id/media` returns 400 when a second video is uploaded). The public property page shows photos in the gallery and the video in a separate Video section. **What's Nearby** is not stored on the listing — it is generated from latitude/longitude via `GET /properties/:id/nearby`.
 
 Non-admin create/update cannot publish directly: `status: "active"` is stored as `pending`. Omitting `status` on PATCH keeps the current status unless **material fields** change on an active listing (title, description, price, location, amenities, floor plans, etc.) — then status becomes `pending` again. Media add/remove on an active listing also triggers re-review. Non-admins cannot set `sold`, `rented`, or `archived` via create/update.
 
@@ -166,13 +167,13 @@ Moderation notifies the listing owner (in-app + email).
 
 **Responsibility:** In-app notifications and email triggers.
 
-| Endpoint                              | Method | Auth | Input                                                                 | Output            |
-| ------------------------------------- | ------ | ---- | --------------------------------------------------------------------- | ----------------- |
-| /notifications                        | GET    | User | `unread`, `type`, pagination                                          | notification list |
-| /notifications/:id                    | DELETE | User | —                                                                     | deleted           |
-| /notifications/:id/read               | PATCH  | User | —                                                                     | marked read       |
-| /notifications/read-all               | PATCH  | User | —                                                                     | all marked read   |
-| /notifications/unread-count           | GET    | User | —                                                                     | count             |
+| Endpoint                    | Method | Auth | Input                        | Output            |
+| --------------------------- | ------ | ---- | ---------------------------- | ----------------- |
+| /notifications              | GET    | User | `unread`, `type`, pagination | notification list |
+| /notifications/:id          | DELETE | User | —                            | deleted           |
+| /notifications/:id/read     | PATCH  | User | —                            | marked read       |
+| /notifications/read-all     | PATCH  | User | —                            | all marked read   |
+| /notifications/unread-count | GET    | User | —                            | count             |
 
 **Dependencies:** email.service
 

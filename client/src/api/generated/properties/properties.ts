@@ -10,6 +10,7 @@ import type {
   ListMyPropertiesParams,
   ListPropertiesParams,
   PaginatedPropertiesResponse,
+  PropertyNearbySuccessResponse,
   PropertySuccessResponse,
   SuccessResponse,
   UploadFloorPlanImage201,
@@ -73,6 +74,21 @@ export const getProperties = () => {
     );
   };
   /**
+   * Returns schools, medical facilities, and transit stops within 5 km of the property using OpenStreetMap data. Cached for 24 hours per location. Same visibility rules as GET /properties/{id}.
+   * @summary Get nearby points of interest
+   */
+  const getPropertyNearby = (
+    id: string,
+    options?: SecondParameter<
+      typeof customInstance<PropertyNearbySuccessResponse>
+    >,
+  ) => {
+    return customInstance<PropertyNearbySuccessResponse>(
+      { url: `/properties/${id}/nearby`, method: "GET" },
+      options,
+    );
+  };
+  /**
    * Returns full property details with media signed URLs. Increments view count for active listings. Non-active listings are only visible to the owner, assigned agent, or admin.
    * @summary Get property by ID
    */
@@ -131,7 +147,7 @@ export const getProperties = () => {
     );
   };
   /**
-   * Uploads an image or video for a property (multipart/form-data field `media`).
+   * Uploads an image or a single listing video for a property (multipart/form-data field `media`). Each property may have many images but at most one video; uploading a second video returns 400.
    * @summary Upload property media
    */
   const uploadPropertyMedia = (
@@ -192,6 +208,7 @@ export const getProperties = () => {
     listProperties,
     createProperty,
     listMyProperties,
+    getPropertyNearby,
     getPropertyById,
     updateProperty,
     deleteProperty,
@@ -214,6 +231,9 @@ export type CreatePropertyResult = NonNullable<
 >;
 export type ListMyPropertiesResult = NonNullable<
   Awaited<ReturnType<ReturnType<typeof getProperties>["listMyProperties"]>>
+>;
+export type GetPropertyNearbyResult = NonNullable<
+  Awaited<ReturnType<ReturnType<typeof getProperties>["getPropertyNearby"]>>
 >;
 export type GetPropertyByIdResult = NonNullable<
   Awaited<ReturnType<ReturnType<typeof getProperties>["getPropertyById"]>>

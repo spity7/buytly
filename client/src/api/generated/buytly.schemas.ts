@@ -764,6 +764,33 @@ export type UserSuccessResponseAllOf = {
 
 export type UserSuccessResponse = SuccessResponse & UserSuccessResponseAllOf;
 
+export interface NearbyPlace {
+  name: string;
+  subtitle?: string;
+  distanceKm: number;
+  distanceLabel: string;
+}
+
+export interface NearbyCategory {
+  title: string;
+  places: NearbyPlace[];
+}
+
+export interface PropertyNearbyData {
+  categories: NearbyCategory[];
+  /** @nullable */
+  source?: string | null;
+  /** True when the external lookup failed and empty categories were returned */
+  unavailable?: boolean;
+}
+
+export type PropertyNearbySuccessResponseAllOf = {
+  data?: PropertyNearbyData;
+};
+
+export type PropertyNearbySuccessResponse = SuccessResponse &
+  PropertyNearbySuccessResponseAllOf;
+
 export type PropertySuccessResponseAllOf = {
   data?: Property;
 };

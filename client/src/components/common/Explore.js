@@ -43,7 +43,7 @@ const Explore = () => {
             <div className="iconbox-content">
               <h4 className="title">{item.title}</h4>
               <p className="text">{item.text}</p>
-              <Link href="/grid-default" className="ud-btn btn-white2">
+              <Link href="/listings" className="ud-btn btn-white2">
                 {item.linkText}
                 <i className="fal fa-arrow-right-long" />
               </Link>

@@ -3,6 +3,12 @@ import InvoiceTable from "@/components/pages/invoice/InvoiceTable";
 import InvoiceTopData from "@/components/pages/invoice/InvoiceTopData";
 import PrintInvoice from "@/components/pages/invoice/PrintInvoice";
 import Image from "next/image";
+import {
+  BRAND_LOGO_DARK,
+  BRAND_LOGO_HEIGHT,
+  BRAND_LOGO_WIDTH,
+  BRAND_NAME,
+} from "@/data/brandAssets";
 import Link from "next/link";
 import React from "react";
 
@@ -30,10 +36,10 @@ const Invoice = () => {
                       <div className="main_logo mb30-md">
                         <Link href="/">
                           <Image
-                            width={138}
-                            height={44}
-                            src="/images/header-logo2.svg"
-                            alt="header-logo2"
+                            width={BRAND_LOGO_WIDTH}
+                            height={BRAND_LOGO_HEIGHT}
+                            src={BRAND_LOGO_DARK}
+                            alt={BRAND_NAME}
                           />
                         </Link>
                       </div>

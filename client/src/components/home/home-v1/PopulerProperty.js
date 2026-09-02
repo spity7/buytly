@@ -67,7 +67,7 @@ export default function PopulerProperty() {
               <PopularListings data={cards} />
             )}
             <div className="d-grid d-md-block text-center mt30 mt0-md">
-              <Link href="/grid-default" className="ud-btn btn-thm">
+              <Link href="/listings" className="ud-btn btn-thm">
                 See All Properties
                 <i className="fal fa-arrow-right-long"></i>
               </Link>

@@ -86,7 +86,7 @@ export default function ListingItemsContainer({ agentId }) {
 
         {total > 0 && (
           <div className="d-grid pb30 bdrb1">
-            <Link href="/grid-default" className="ud-btn btn-white2">
+            <Link href="/listings" className="ud-btn btn-white2">
               Show all {total} properties
               <i className="fal fa-arrow-right-long" />
             </Link>
