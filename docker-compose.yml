@@ -7,6 +7,9 @@ services:
       args:
         NEXT_PUBLIC_API_URL: https://api.buytly.com/api/v1
         NEXT_PUBLIC_GOOGLE_CLIENT_ID: 974512491943-cn69krek1s1ektd5q4qeg2g4ao3ssvbr.apps.googleusercontent.com
+    environment:
+      NEXT_PUBLIC_API_URL: https://api.buytly.com/api/v1
+      NEXT_PUBLIC_GOOGLE_CLIENT_ID: 974512491943-cn69krek1s1ektd5q4qeg2g4ao3ssvbr.apps.googleusercontent.com
     ports:
       - "3025:3000"
     restart: always

@@ -218,7 +218,7 @@ Same layout as handiz-dashboard:
 | `client/Dockerfile`  | Build Next.js → run `npm start`          |
 | `server/Dockerfile`  | `npm ci --omit=dev` → `npm start`        |
 
-Client build args are set in `docker-compose.yml`. Server runtime env comes from `server/.env`.
+Client env is set in `docker-compose.yml`: **build args** bake values into the bundle; **environment** supplies them at runtime for `next start` / `next.config.js`. Server runtime env comes from `server/.env`.
 
 ## Health Check
 
