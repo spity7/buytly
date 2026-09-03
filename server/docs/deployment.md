@@ -9,12 +9,12 @@
 
 ## Domain layout (buytly.com)
 
-| Host                            | Purpose                                      |
-| ------------------------------- | -------------------------------------------- |
-| `buytly.com` / `www.buytly.com` | Frontend (future) — `APP_URL`, `CORS_ORIGIN` |
-| `api.buytly.com`                | Backend API — `API_URL`, nginx + SSL         |
+| Host                            | Purpose                                 |
+| ------------------------------- | --------------------------------------- |
+| `buytly.com` / `www.buytly.com` | Next.js frontend — Docker port **3025** |
+| `api.buytly.com`                | Express API — Docker port **5025**      |
 
-The repo is API-only today. Point `api.buytly.com` at your VPS; reserve apex/`www` for the Next.js app when it ships.
+Both services run on the same Hostinger VPS via Docker Compose (same pattern as handiz-dashboard).
 
 ## Local Development Setup
 
@@ -100,63 +100,55 @@ In **Hostinger hPanel → Domains → buytly.com → DNS / Nameservers**:
 | A    | `www` | `<VPS IPv4>` | 3600 |
 | A    | `api` | `<VPS IPv4>` | 3600 |
 
-Use the same VPS IP for all three if you run API + future frontend on one machine, or point `api` at a dedicated API server.
+Use the same VPS IP for all three when running frontend + API on one machine.
 
 Propagation can take up to 24–48 hours (often minutes).
 
-## Hostinger VPS — API deployment
+## Hostinger VPS — deployment
 
-Requires a **VPS** plan (shared hosting does not run Node.js well). KVM VPS recommended.
+Same flow as handiz-dashboard: Docker Compose on the VPS, host nginx + certbot for SSL.
 
-### 1. Server bootstrap
+| Service | Host port | Domain           |
+| ------- | --------- | ---------------- |
+| client  | 3025      | buytly.com / www |
+| server  | 5025      | api.buytly.com   |
 
-```bash
-# On Ubuntu 22.04+ VPS
-sudo apt update && sudo apt upgrade -y
-curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
-sudo apt install -y nodejs nginx certbot python3-certbot-nginx
-sudo npm install -g pm2
-```
-
-### 2. Deploy application
+(handiz-dashboard uses 3016 / 5016 on the same VPS — no conflict)
 
 ```bash
 git clone <your-repo-url> /var/www/buytly
-cd /var/www/buytly/server
-cp .env.example .env
-npm run generate-secrets   # paste output into .env
-# Edit .env: comment local lines, uncomment prod line below each pair
-npm ci --omit=dev
-mkdir -p logs
-pm2 start src/server.js --name buytly-api
-pm2 save
-pm2 startup   # run the command it prints
+cd /var/www/buytly
+cp server/.env.example server/.env
+# Edit server/.env — comment local lines, uncomment prod below each pair
+# Edit docker-compose.yml — set NEXT_PUBLIC_GOOGLE_CLIENT_ID (same as GOOGLE_CLIENT_ID)
+# Upload gcs-service-account.json to server/
+docker compose up -d --build
 ```
 
-Upload `gcs-service-account.json` to `server/` (never commit it).
-
-### 3. Nginx + SSL
-
-Configure nginx as a reverse proxy to `127.0.0.1:5000` for `api.buytly.com`, then obtain SSL:
+Point host nginx at `127.0.0.1:3025` (frontend) and `127.0.0.1:5025` (API), then:
 
 ```bash
+sudo certbot --nginx -d buytly.com -d www.buytly.com
 sudo certbot --nginx -d api.buytly.com
 ```
 
-Set `TRUST_PROXY=true` in `.env` so rate limits and HTTPS headers work behind nginx.
-
 Verify: `curl https://api.buytly.com/api/v1/health`
 
-### 4. Production `.env` checklist
+### Production `.env` checklist
 
 ```env
 NODE_ENV=production
+PORT=5000
 TRUST_PROXY=true
 APP_URL=https://buytly.com
 API_URL=https://api.buytly.com/api/v1
 CORS_ORIGIN=https://buytly.com,https://www.buytly.com
 SWAGGER_ENABLED=false
+GCS_KEY_FILE=./gcs-service-account.json
+GOOGLE_CLIENT_ID=<your-google-oauth-client-id>
 ```
+
+Add Google OAuth authorized JavaScript origins: `https://buytly.com`, `https://www.buytly.com`.
 
 ## MongoDB Atlas Setup
 
@@ -204,20 +196,29 @@ If unset, caching is disabled — the app works without Redis.
 - [ ] `APP_URL=https://buytly.com` for password-reset links
 - [ ] `API_URL=https://api.buytly.com/api/v1`
 - [ ] DNS A records for `@`, `www`, `api` → VPS IP
-- [ ] HTTPS via Let's Encrypt (`certbot`)
-- [ ] PM2 or systemd for process management
-- [ ] Health check monitored: `GET https://api.buytly.com/api/v1/health`
+- [ ] `docker compose up -d --build` running on VPS
+- [ ] Host nginx + HTTPS via certbot
+- [ ] Health check: `GET https://api.buytly.com/api/v1/health`
 - [ ] `SWAGGER_ENABLED=false` in production (unless you need public docs)
 - [ ] Gmail SMTP configured (`smtp.gmail.com:587`, app password)
+- [ ] `GOOGLE_CLIENT_ID` / `NEXT_PUBLIC_GOOGLE_CLIENT_ID` match; OAuth origins include production domains
 - [ ] `.env` never committed — use server-only secrets
 - [ ] MongoDB indexes created (auto-created on first run via Mongoose)
 - [ ] Graceful shutdown tested (SIGTERM handling)
 - [ ] Backup strategy for MongoDB
 - [ ] GCS lifecycle rules for orphaned media cleanup
 
-## Docker (Optional)
+## Docker
 
-Add a `Dockerfile` under `server/` when you are ready to containerize. Run with `--env-file .env` and expose port `5000`.
+Same layout as handiz-dashboard:
+
+| File                 | Purpose                                  |
+| -------------------- | ---------------------------------------- |
+| `docker-compose.yml` | Client + server services, ports, volumes |
+| `client/Dockerfile`  | Build Next.js → run `npm start`          |
+| `server/Dockerfile`  | `npm ci --omit=dev` → `npm start`        |
+
+Client build args are set in `docker-compose.yml`. Server runtime env comes from `server/.env`.
 
 ## Health Check
 
