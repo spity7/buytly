@@ -90,6 +90,18 @@ Admin moderate → notifyFromEvent("property.status_changed") → owner
 Auth register → notifyFromEvent("auth.welcome"); verify email → auth.email_verified; change password → auth.password_changed
 ```
 
+## Caching
+
+When Redis is configured (`REDIS_URL`):
+
+| Key pattern | TTL | Invalidation |
+| ----------- | --- | ------------ |
+| `properties:{hash}` | 5 min | Property create/update/delete/restore/media; admin moderation; completed transactions |
+| `nearby:{hash}` | 24 h | Not invalidated on listing changes (geo POIs are external) |
+| `admin:analytics` | 10 min | User register/delete; admin user role/status; property listing changes; booking create/status/cancel; transaction create/status |
+
+`cacheService.delPattern()` uses Redis `SCAN` (not `KEYS`) for safe prefix deletes.
+
 ## Scalability Considerations
 
 - **Stateless API** — JWT access tokens enable horizontal scaling

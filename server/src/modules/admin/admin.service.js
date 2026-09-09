@@ -4,7 +4,10 @@ import { Booking } from "../bookings/booking.model.js";
 import { Transaction } from "../transactions/transaction.model.js";
 import { PropertyReview } from "../property-reviews/property-review.model.js";
 import { Favorite } from "../favorites/favorite.model.js";
-import { cacheService } from "../../services/cache.service.js";
+import {
+  ANALYTICS_CACHE_KEY,
+  cacheService,
+} from "../../services/cache.service.js";
 import { AppError } from "../../shared/AppError.js";
 import {
   parsePagination,
@@ -101,6 +104,7 @@ export const adminService = {
     );
 
     if (!user) throw new AppError("User not found", 404);
+    await cacheService.invalidateAnalytics();
     return user.toPublicJSON();
   },
 
@@ -112,6 +116,7 @@ export const adminService = {
     );
 
     if (!user) throw new AppError("User not found", 404);
+    await cacheService.invalidateAnalytics();
     return user.toPublicJSON();
   },
 
@@ -161,7 +166,7 @@ export const adminService = {
     }).populate("ownerId", "firstName lastName email");
 
     if (!property) throw new AppError("Property not found", 404);
-    await cacheService.invalidateProperties();
+    await cacheService.invalidateListingCaches();
 
     const statusMessages = {
       active: "Your listing has been approved and is now live.",
@@ -193,7 +198,7 @@ export const adminService = {
   },
 
   async getAnalytics() {
-    const cacheKey = "admin:analytics";
+    const cacheKey = ANALYTICS_CACHE_KEY;
     const cached = await cacheService.get(cacheKey);
     if (cached) return cached;
 

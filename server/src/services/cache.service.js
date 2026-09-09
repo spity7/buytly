@@ -2,6 +2,7 @@ import crypto from "crypto";
 import { getRedis } from "../config/redis.js";
 
 const DEFAULT_TTL = 300;
+export const ANALYTICS_CACHE_KEY = "admin:analytics";
 
 export const cacheService = {
   isEnabled() {
@@ -32,14 +33,33 @@ export const cacheService = {
     await redis.setex(key, ttl, JSON.stringify(value));
   },
 
+  async del(key) {
+    const redis = getRedis();
+    if (!redis || redis.status !== "ready") return;
+
+    await redis.del(key);
+  },
+
   async delPattern(pattern) {
     const redis = getRedis();
     if (!redis || redis.status !== "ready") return;
 
-    const keys = await redis.keys(pattern);
-    if (keys.length > 0) {
-      await redis.del(...keys);
-    }
+    let cursor = "0";
+
+    do {
+      const [nextCursor, keys] = await redis.scan(
+        cursor,
+        "MATCH",
+        pattern,
+        "COUNT",
+        100,
+      );
+      cursor = nextCursor;
+
+      if (keys.length > 0) {
+        await redis.del(...keys);
+      }
+    } while (cursor !== "0");
   },
 
   async invalidateProperties() {
@@ -47,6 +67,13 @@ export const cacheService = {
   },
 
   async invalidateAnalytics() {
-    await this.delPattern("analytics:*");
+    await this.del(ANALYTICS_CACHE_KEY);
+  },
+
+  async invalidateListingCaches() {
+    await Promise.all([
+      this.invalidateProperties(),
+      this.invalidateAnalytics(),
+    ]);
   },
 };

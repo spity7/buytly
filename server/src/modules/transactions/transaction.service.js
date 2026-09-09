@@ -44,6 +44,8 @@ export const transactionService = {
       ),
     ];
 
+    await cacheService.invalidateAnalytics();
+
     await notificationService.notifyMany(
       "transaction.created",
       notifyIds,
@@ -131,7 +133,9 @@ export const transactionService = {
       await Property.findByIdAndUpdate(transaction.propertyId._id, {
         status: transaction.type === "rent" ? "rented" : "sold",
       });
-      await cacheService.invalidateProperties();
+      await cacheService.invalidateListingCaches();
+    } else {
+      await cacheService.invalidateAnalytics();
     }
 
     const recipientIds = [

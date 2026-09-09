@@ -63,5 +63,22 @@ describe("nearby.service", () => {
       expect(result.categories[0].places[0].name).toBe("Test School");
       expect(result.categories[1].places[0].name).toBe("Test Hospital");
     });
+
+    it("passes an abort timeout to Overpass fetch", async () => {
+      const fetchMock = vi.fn(async (_url, options) => ({
+        ok: true,
+        json: async () => ({ elements: [] }),
+      }));
+      vi.stubGlobal("fetch", fetchMock);
+
+      await nearbyService.fetchNearbyPlaces(25.2048, 55.2708);
+
+      expect(fetchMock).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.objectContaining({
+          signal: expect.any(AbortSignal),
+        }),
+      );
+    });
   });
 });

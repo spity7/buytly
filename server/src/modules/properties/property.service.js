@@ -152,7 +152,7 @@ export const propertyService = {
       await notifyAdminsOfPendingListing(property);
     }
 
-    await cacheService.invalidateProperties();
+    await cacheService.invalidateListingCaches();
 
     return attachMediaUrls(property);
   },
@@ -356,7 +356,7 @@ export const propertyService = {
       await notifyAdminsOfPendingListing(property);
     }
 
-    await cacheService.invalidateProperties();
+    await cacheService.invalidateListingCaches();
 
     return attachMediaUrls(property);
   },
@@ -372,7 +372,7 @@ export const propertyService = {
 
     Object.assign(property, buildArchiveUpdate());
     await property.save();
-    await cacheService.invalidateProperties();
+    await cacheService.invalidateListingCaches();
   },
 
   async restore(id, user) {
@@ -389,7 +389,7 @@ export const propertyService = {
 
     Object.assign(property, buildRestoreUpdate());
     await property.save();
-    await cacheService.invalidateProperties();
+    await cacheService.invalidateListingCaches();
 
     return attachMediaUrls(property);
   },
@@ -428,7 +428,7 @@ export const propertyService = {
     await property.save();
 
     await maybeRependActiveListing(property, { isAdmin, previousStatus });
-    await cacheService.invalidateProperties();
+    await cacheService.invalidateListingCaches();
 
     const media = property.media[property.media.length - 1];
     return {
@@ -479,7 +479,7 @@ export const propertyService = {
     await property.save();
 
     await maybeRependActiveListing(property, { isAdmin, previousStatus });
-    await cacheService.invalidateProperties();
+    await cacheService.invalidateListingCaches();
   },
 
   async listMine(user, query) {

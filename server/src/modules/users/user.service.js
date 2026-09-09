@@ -6,6 +6,7 @@ import { applyPhoneFields } from "../../shared/phone.js";
 import { normalizeNotificationPreferences } from "../notifications/notification.preferences.js";
 import bcrypt from "bcrypt";
 import crypto from "crypto";
+import { cacheService } from "../../services/cache.service.js";
 
 export const userService = {
   async getMe(userId) {
@@ -216,6 +217,8 @@ export const userService = {
       { userId: user._id },
       { revokedAt: new Date() },
     );
+
+    await cacheService.invalidateAnalytics();
 
     return { message: "Account deleted successfully" };
   },

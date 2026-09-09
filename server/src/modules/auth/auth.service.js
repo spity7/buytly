@@ -17,6 +17,7 @@ import { notificationService } from "../notifications/notification.service.js";
 import { ROLES } from "../../shared/constants.js";
 import { env } from "../../config/env.js";
 import { googleService } from "../../services/google.service.js";
+import { cacheService } from "../../services/cache.service.js";
 
 const SALT_ROUNDS = 12;
 
@@ -144,6 +145,8 @@ export const authService = {
       console.error("Verification email failed:", err.message),
     );
 
+    await cacheService.invalidateAnalytics();
+
     return {
       user: user.toPublicJSON(),
       ...tokens,
@@ -257,6 +260,8 @@ export const authService = {
       .catch((err) =>
         console.error("Registration notification failed:", err.message),
       );
+
+    await cacheService.invalidateAnalytics();
 
     return {
       user: user.toPublicJSON(),

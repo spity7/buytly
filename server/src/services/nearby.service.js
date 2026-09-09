@@ -1,6 +1,7 @@
 const OVERPASS_URL = "https://overpass-api.de/api/interpreter";
 const RADIUS_METERS = 5000;
 const MAX_PER_CATEGORY = 5;
+const OVERPASS_TIMEOUT_MS = 25_000;
 
 const CATEGORIES = [
   {
@@ -152,6 +153,7 @@ export const nearbyService = {
       method: "POST",
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
       body: `data=${encodeURIComponent(query)}`,
+      signal: AbortSignal.timeout(OVERPASS_TIMEOUT_MS),
     });
 
     if (!response.ok) {
