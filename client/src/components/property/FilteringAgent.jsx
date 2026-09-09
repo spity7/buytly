@@ -1,130 +1,109 @@
+"use client";
 
-'use client'
+import { useMemo, useState } from "react";
+import TopFilter from "./TopFilter";
+import AllAgents from "./agents/AllAgents";
+import ApiPagination from "./ApiPagination";
+import { useAgents } from "@/hooks/useAgents";
+import { mapAgentToCard } from "@/lib/agents/mapAgent";
 
+const PAGE_SIZE = 15;
 
-import React, { useEffect, useState } from 'react'
-import TopFilter from './TopFilter'
-
-
-
-
-import AllAgents from './agents/AllAgents';
-import agents from '@/data/agents';
-import PaginationTwo from '../listing/PaginationTwo';
 export default function FilteringAgent() {
-    const [filteredData, setFilteredData] = useState([]);
-    const [currentSortingOption, setCurrentSortingOption] = useState('Newest')
-    const [sortedFilteredData, setSortedFilteredData] = useState([]);
-        const [pageNumber, setPageNumber] = useState(1)
-    const [pageItems, setPageItems] = useState([])
-    const [pageContentTrac, setPageContentTrac] = useState([])
-    const [searchQuery, setSearchQuery] = useState('')
-    useEffect(() => {
-      setPageItems(sortedFilteredData
-        .slice((pageNumber - 1) * 15, pageNumber * 15))
-        setPageContentTrac([((pageNumber - 1) * 15) + 1 ,pageNumber * 15,sortedFilteredData.length])
-    }, [pageNumber,sortedFilteredData])
-    const [propertyTypes, setPropertyTypes] = useState([])
-    const [location, setLocation] = useState('All Cities')
-    const resetFilter = ()=>{
+  const [page, setPage] = useState(1);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [propertyTypes, setPropertyTypes] = useState([]);
+  const [location, setLocation] = useState("All Cities");
 
-      setPropertyTypes([])
-      setLocation('All Cities')
-      setCurrentSortingOption('Newest')
-     document.querySelectorAll(".filterInput").forEach(function(element) {
-      element.value = null;
+  const specialty = propertyTypes.length === 1 ? propertyTypes[0] : undefined;
+  const city = location !== "All Cities" ? location : undefined;
+
+  const { data, isLoading, isError } = useAgents({
+    page,
+    limit: PAGE_SIZE,
+    city,
+    specialty,
   });
 
-    }
-    const handlepropertyTypes =(elm)=>{
+  const agents = useMemo(() => {
+    const cards = (data?.agents || []).map(mapAgentToCard);
+    if (!searchQuery.trim()) return cards;
 
-      if (elm == 'All') {
-        setPropertyTypes([])
-        
-      } else {
-        setPropertyTypes(pre=>pre.includes(elm) ? [...pre.filter((el)=>el!=elm)] : [...pre,elm])
+    const query = searchQuery.trim().toLowerCase();
+    return cards.filter((agent) => agent.name.toLowerCase().includes(query));
+  }, [data?.agents, searchQuery]);
+
+  const resetFilter = () => {
+    setPropertyTypes([]);
+    setLocation("All Cities");
+    setSearchQuery("");
+    setPage(1);
+  };
+
+  const filterFunctions = {
+    handlepropertyTypes: (value) => {
+      setPage(1);
+      if (value === "All") {
+        setPropertyTypes([]);
+        return;
       }
-    }
-  
-    const handlelocation =(elm)=>{
-      console.log(elm)
-      setLocation(elm)
-    }
-
-
-    
-   const filterFunctions={
-    handlepropertyTypes,
-    
-    handlelocation,
-    setSearchQuery,
-    
+      setPropertyTypes((current) =>
+        current.includes(value)
+          ? current.filter((item) => item !== value)
+          : [value],
+      );
+    },
+    handlelocation: (value) => {
+      setPage(1);
+      setLocation(value);
+    },
+    setSearchQuery: (value) => {
+      setPage(1);
+      setSearchQuery(value);
+    },
     propertyTypes,
     resetFilter,
     location,
     setPropertyTypes,
-  }
+  };
 
-
-
-    useEffect(() => {
-      
-        const refItems = agents.filter((elm) => {
-         return  elm
-          });
-      
-          let filteredArrays = [];
-      
-          if (propertyTypes.length > 0) {
-            const filtered = refItems.filter((elm) =>
-            propertyTypes.includes(elm.category)
-            );
-            filteredArrays = [...filteredArrays, filtered];
-          }
-          filteredArrays = [...filteredArrays,refItems.filter((el=>el.name.toLocaleLowerCase().includes(searchQuery.toLocaleLowerCase()) )) ];
-         
-          if (location != 'All Cities') {
-            filteredArrays = [...filteredArrays,refItems.filter((el=>el.city == location)) ];
-          }
-
-          const commonItems = refItems.filter((item) =>
-            filteredArrays.every((array) => array.includes(item))
-          );
-          setFilteredData(commonItems);
-    }, [
-       
-        propertyTypes,
-        location,
-        searchQuery
-    ])
-
-    useEffect(() => {
-      setPageNumber(1)
-      setSortedFilteredData(filteredData)
-    }, [filteredData,currentSortingOption,])
-    
-    
   return (
     <section className="our-agents pt-0">
-        <div className="container">
-          <div className="row align-items-center mb20">
-            <TopFilter  filterFunctions={filterFunctions} />
-          </div>
-          {/* End .row */}
+      <div className="container">
+        <div className="row align-items-center mb20">
+          <TopFilter filterFunctions={filterFunctions} />
+        </div>
 
+        {isError && (
+          <div className="alert alert-danger mb20">
+            Failed to load agents. Please try again.
+          </div>
+        )}
+
+        {isLoading ? (
+          <p className="text mb30">Loading agents...</p>
+        ) : agents.length ? (
           <div
             className="row row-cols-2 row-cols-md-3 row-cols-lg-4 row-cols-xl-5"
             data-aos="fade-up"
             data-aos-delay="100"
           >
-            <AllAgents data={pageItems}/>
+            <AllAgents data={agents} />
           </div>
-          {/* End .row */}
+        ) : (
+          <p className="text mb30">No agents match your filters.</p>
+        )}
 
-          <div className="row justify-content-center mt20">
-            <PaginationTwo pageNumber={pageNumber} setPageNumber={setPageNumber} data={sortedFilteredData} pageCapacity={15}/>
-          </div>
+        <div className="row">
+          <ApiPagination
+            page={page}
+            totalPages={data?.pagination?.totalPages || 1}
+            total={data?.pagination?.total || 0}
+            limit={PAGE_SIZE}
+            onPageChange={setPage}
+          />
         </div>
-      </section>
-  )
+      </div>
+    </section>
+  );
 }

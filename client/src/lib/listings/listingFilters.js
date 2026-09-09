@@ -44,6 +44,7 @@ export function buildListingQueryParams({
 
   if (listingStatus === "Buy") params.listingType = "sale";
   if (listingStatus === "Rent") params.listingType = "rent";
+  if (listingStatus === "Sold") params.status = "sold";
   if (propertyTypes.length === 1) params.type = propertyTypes[0];
   if (priceRange[0] > 0) params.minPrice = priceRange[0];
   if (priceRange[1] < LISTING_MAX_PRICE) params.maxPrice = priceRange[1];

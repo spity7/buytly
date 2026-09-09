@@ -29,7 +29,16 @@ export default function ListingBrowsePanel({
     isError,
     listingStatus,
     location,
+    searchQuery,
+    queryParams,
   } = useListingFilters({ pageSize });
+
+  const saveSearchContext = {
+    queryParams,
+    listingStatus,
+    location,
+    searchQuery,
+  };
 
   return (
     <>
@@ -55,7 +64,10 @@ export default function ListingBrowsePanel({
               ></button>
             </div>
             <div className="offcanvas-body p-0">
-              <ListingSidebar filterFunctions={filterFunctions} />
+              <ListingSidebar
+                filterFunctions={filterFunctions}
+                saveSearchContext={saveSearchContext}
+              />
             </div>
           </div>
 

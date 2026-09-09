@@ -1,6 +1,8 @@
 "use client";
 
 import { buytlyApi } from "@/api/generated";
+import { buildListingsHrefFromSavedFilters } from "@/lib/listings/listingSearchParams";
+import Link from "next/link";
 import AsyncActionOverlay from "@/components/common/AsyncActionOverlay";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
 import { useConfirmAction } from "@/hooks/useConfirmAction";
@@ -105,7 +107,7 @@ const SearchDataTable = () => {
           <tr>
             <th scope="col">Search name</th>
             <th scope="col">Date created</th>
-            <th scope="col">Action</th>
+            <th scope="col">Actions</th>
           </tr>
         </thead>
         <tbody className="t-body">
@@ -118,7 +120,13 @@ const SearchDataTable = () => {
                 <th scope="row">{search.name}</th>
                 <td>{formatSearchDate(search.createdAt)}</td>
                 <td>
-                  <div className="d-flex">
+                  <div className="d-flex align-items-center gap-2">
+                    <Link
+                      href={buildListingsHrefFromSavedFilters(search.filters)}
+                      className="ud-btn btn-white2 btn-sm"
+                    >
+                      Run search
+                    </Link>
                     <button
                       type="button"
                       className="icon"

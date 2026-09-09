@@ -1,22 +1,5 @@
-import DefaultHeader from "@/components/common/DefaultHeader";
-import Footer from "@/components/common/default-footer";
-import MobileMenu from "@/components/common/mobile-menu";
-import PropertyFiltering from "@/components/listing/grid-view/grid-default/PropertyFiltering";
-
-export const metadata = {
-  title: "Property Listings | Buytly",
-  description: "Browse active property listings with sidebar filters.",
-};
+import { redirect } from "next/navigation";
 
 export default function GridDefaultPage() {
-  return (
-    <>
-      <DefaultHeader />
-      <MobileMenu />
-      <PropertyFiltering />
-      <section className="footer-style1 pt60 pb-0">
-        <Footer />
-      </section>
-    </>
-  );
+  redirect("/listings");
 }

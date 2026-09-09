@@ -14,11 +14,6 @@ export function getDashboardNavSections(role) {
           text: "Dashboard",
         },
         {
-          href: "/dashboard-message",
-          icon: "flaticon-chat-1",
-          text: "Message",
-        },
-        {
           href: "/dashboard-notifications",
           icon: "flaticon-bell",
           text: "Notifications",
@@ -60,6 +55,16 @@ export function getDashboardNavSections(role) {
             title: "ADMIN",
             items: [
               {
+                href: "/dashboard-admin-analytics",
+                icon: "flaticon-search-chart",
+                text: "Analytics",
+              },
+              {
+                href: "/dashboard-admin-users",
+                icon: "flaticon-user",
+                text: "Users",
+              },
+              {
                 href: "/dashboard-admin-properties",
                 icon: "flaticon-settings",
                 text: "Moderate Listings",
@@ -81,25 +86,11 @@ export function getDashboardNavSections(role) {
           icon: "flaticon-search-2",
           text: "Saved Search",
         },
-        ...(canManageListingsNav
-          ? [
-              {
-                href: "/dashboard-reviews",
-                icon: "flaticon-review",
-                text: "Reviews",
-              },
-            ]
-          : []),
       ],
     },
     {
       title: "MANAGE ACCOUNT",
       items: [
-        {
-          href: "/dashboard-my-package",
-          icon: "flaticon-protection",
-          text: "My Package",
-        },
         {
           href: "/dashboard-my-profile",
           icon: "flaticon-user",

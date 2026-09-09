@@ -1,24 +1,53 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   LISTING_MAX_PRICE,
   LISTING_PAGE_SIZE,
   buildListingQueryParams,
   getListingPageRange,
 } from "@/lib/listings/listingFilters";
+import {
+  buildListingSearchParams,
+  parseListingSearchParams,
+} from "@/lib/listings/listingSearchParams";
 import { useDebouncedSearch } from "@/hooks/useDebouncedSearch";
 import { useProperties } from "@/hooks/useProperties";
 
+function applyParsedFilters(parsed, setters) {
+  setters.setPageNumber(parsed.pageNumber);
+  setters.setCurrentSortingOption(parsed.currentSortingOption);
+  setters.setListingStatus(parsed.listingStatus);
+  setters.setPropertyTypes(parsed.propertyTypes);
+  setters.setPriceRange(parsed.priceRange);
+  setters.setBedrooms(parsed.bedrooms);
+  setters.setLocation(parsed.location);
+  setters.setSearchInput(parsed.searchQuery);
+}
+
 export function useListingFilters({ pageSize = LISTING_PAGE_SIZE } = {}) {
-  const [pageNumber, setPageNumber] = useState(1);
-  const [currentSortingOption, setCurrentSortingOption] = useState("Newest");
-  const [listingStatus, setListingStatus] = useState("All");
-  const [propertyTypes, setPropertyTypes] = useState([]);
-  const [priceRange, setPriceRange] = useState([0, LISTING_MAX_PRICE]);
-  const [bedrooms, setBedrooms] = useState(0);
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const urlKey = searchParams.toString();
+  const isApplyingUrl = useRef(false);
+
+  const initial = useMemo(
+    () => parseListingSearchParams(searchParams),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [],
+  );
+
+  const [pageNumber, setPageNumber] = useState(initial.pageNumber);
+  const [currentSortingOption, setCurrentSortingOption] = useState(
+    initial.currentSortingOption,
+  );
+  const [listingStatus, setListingStatus] = useState(initial.listingStatus);
+  const [propertyTypes, setPropertyTypes] = useState(initial.propertyTypes);
+  const [priceRange, setPriceRange] = useState(initial.priceRange);
+  const [bedrooms, setBedrooms] = useState(initial.bedrooms);
   const [bathrooms, setBathrooms] = useState(0);
-  const [location, setLocation] = useState("All Cities");
+  const [location, setLocation] = useState(initial.location);
   const [squareFeet, setSquareFeet] = useState([]);
   const [yearBuild, setYearBuild] = useState([]);
   const [categories, setCategories] = useState([]);
@@ -26,10 +55,26 @@ export function useListingFilters({ pageSize = LISTING_PAGE_SIZE } = {}) {
   const resetPage = useCallback(() => setPageNumber(1), []);
 
   const [searchInput, setSearchInput, searchQuery] = useDebouncedSearch(
-    "",
+    initial.searchQuery,
     300,
     resetPage,
   );
+
+  useEffect(() => {
+    isApplyingUrl.current = true;
+    const parsed = parseListingSearchParams(searchParams);
+    applyParsedFilters(parsed, {
+      setPageNumber,
+      setCurrentSortingOption,
+      setListingStatus,
+      setPropertyTypes,
+      setPriceRange,
+      setBedrooms,
+      setLocation,
+      setSearchInput,
+    });
+    isApplyingUrl.current = false;
+  }, [urlKey, searchParams, setSearchInput]);
 
   const queryParams = useMemo(
     () =>
@@ -56,6 +101,37 @@ export function useListingFilters({ pageSize = LISTING_PAGE_SIZE } = {}) {
       searchQuery,
     ],
   );
+
+  useEffect(() => {
+    if (isApplyingUrl.current) return;
+
+    const params = buildListingSearchParams({
+      page: pageNumber,
+      currentSortingOption,
+      listingStatus,
+      propertyTypes,
+      priceRange,
+      bedrooms,
+      location,
+      searchQuery,
+    });
+    const nextKey = params.toString();
+    if (nextKey === urlKey) return;
+
+    const nextUrl = nextKey ? `/listings?${nextKey}` : "/listings";
+    router.replace(nextUrl, { scroll: false });
+  }, [
+    router,
+    urlKey,
+    pageNumber,
+    currentSortingOption,
+    listingStatus,
+    propertyTypes,
+    priceRange,
+    bedrooms,
+    location,
+    searchQuery,
+  ]);
 
   const { data, isLoading, isError, isFetching } = useProperties(queryParams);
 
@@ -219,6 +295,7 @@ export function useListingFilters({ pageSize = LISTING_PAGE_SIZE } = {}) {
     currentSortingOption,
     setCurrentSortingOption: handleSortingOption,
     filterFunctions,
+    queryParams,
     cards,
     pagination,
     pageContentTrac,
@@ -227,6 +304,7 @@ export function useListingFilters({ pageSize = LISTING_PAGE_SIZE } = {}) {
     isFetching,
     listingStatus,
     location,
+    searchQuery,
     pageSize,
   };
 }

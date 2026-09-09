@@ -1,70 +1,85 @@
-import agents from "@/data/agents";
+"use client";
+
 import Image from "next/image";
-import React from "react";
+import { useAgent } from "@/hooks/useAgents";
+import { mapAgentDetail } from "@/lib/agents/mapAgent";
+import { isExternalImageSrc } from "@/lib/images/isExternalImageSrc";
 
+const SOCIAL_ICONS = {
+  facebook: "fab fa-facebook-f",
+  twitter: "fab fa-twitter",
+  instagram: "fab fa-instagram",
+  linkedin: "fab fa-linkedin-in",
+};
 
+const SingleAgentCta = ({ id }) => {
+  const { data, isLoading, isError } = useAgent(id);
+  const agent = mapAgentDetail(data);
 
-const SingleAgentCta = ({id}) => {
+  if (isLoading) {
+    return <p className="text mb0">Loading agent profile...</p>;
+  }
 
-  const data = agents.filter((elm) => elm.id == id)[0] || agents[0];
+  if (isError || !agent) {
+    return <p className="text-danger mb0">Agent not found.</p>;
+  }
 
+  const socialEntries = Object.entries(agent.social || {}).filter(
+    ([, url]) => url,
+  );
 
-
-  const agentData = {
-    name: data.name,
-    company: "Modern House Real Estate",
-    reviews: "5.0 • 49 Reviews",
-    phone1: "+848 032 03 01",
-    phone2: "+848 032 03 01",
-    social: [
-      { icon: "fab fa-facebook-f", link: "#" },
-      { icon: "fab fa-twitter", link: "#" },
-      { icon: "fab fa-instagram", link: "#" },
-      { icon: "fab fa-linkedin-in", link: "#" },
-    ],
-  };
   return (
-    <>
-      <div className="agent-single d-sm-flex align-items-center">
-        <div className="single-img mb30-sm">
-          <Image
-            width={172}
-            height={172}
-            style={{borderRadius:'50%',objectFit:'cover'}}
-            src={data.image}
-            alt="agents"
-          />
-        </div>
-        {/* End single image */}
-        <div className="single-contant ml30 ml0-xs">
-          <h2 className="title mb-0">{agentData.name}</h2>
-          <p className="fz15">
-            Company Agent at <b>{agentData.company}</b>
-          </p>
-          <div className="agent-meta mb15 d-md-flex align-items-center">
-            <a className="text fz15 pe-2 bdrr1" href="#">
-              <i className="fas fa-star fz10 review-color2 pr10" />
-              {agentData.reviews}
-            </a>
-            <a className="text fz15 pe-2 ps-2 bdrr1" href="#">
+    <div className="agent-single d-sm-flex align-items-center">
+      <div className="single-img mb30-sm">
+        <Image
+          width={172}
+          height={172}
+          style={{ borderRadius: "50%", objectFit: "cover" }}
+          src={agent.avatarUrl}
+          alt={agent.name}
+          unoptimized={isExternalImageSrc(agent.avatarUrl)}
+        />
+      </div>
+      <div className="single-contant ml30 ml0-xs">
+        <h2 className="title mb-0">{agent.name}</h2>
+        <p className="fz15">
+          {agent.agency}
+          {agent.city ? ` · ${agent.city}` : ""}
+        </p>
+        <div className="agent-meta mb15 d-md-flex align-items-center">
+          <span className="text fz15 pe-2 bdrr1">
+            <i className="fas fa-star fz10 review-color2 pr10" />
+            {agent.rating.toFixed(1)} · {agent.reviewCount} reviews
+          </span>
+          <span className="text fz15 pe-2 ps-2 bdrr1">
+            <i className="flaticon-home pe-1" />
+            {agent.listingsCount} listings
+          </span>
+          {agent.phone ? (
+            <span className="text fz15 ps-2">
               <i className="flaticon-call pe-1" />
-              {agentData.phone1}
-            </a>
-            <a className="text fz15 ps-2" href="#">
-              <i className="flaticon-smartphone pe-1" />
-              {agentData.phone2}
-            </a>
-          </div>
+              {agent.phone}
+            </span>
+          ) : null}
+        </div>
+        {agent.bio ? <p className="text mb15">{agent.bio}</p> : null}
+        {socialEntries.length ? (
           <div className="agent-social">
-            {agentData.social.map((socialItem, index) => (
-              <a key={index} className="mr20" href={socialItem.link}>
-                <i className={socialItem.icon} />
+            {socialEntries.map(([network, url]) => (
+              <a
+                key={network}
+                className="mr20"
+                href={url}
+                target="_blank"
+                rel="noreferrer"
+              >
+                <i className={SOCIAL_ICONS[network] || "fas fa-link"} />
               </a>
             ))}
           </div>
-        </div>
+        ) : null}
       </div>
-    </>
+    </div>
   );
 };
 

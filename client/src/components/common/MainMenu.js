@@ -49,6 +49,21 @@ const MainMenu = () => {
       {/* End listings */}
 
       <li className="visible_list">
+        <Link className="list-item" href="/agents">
+          <span
+            className={
+              pathname.split("/")[1] === "agents" ||
+              pathname.split("/")[1] === "agent-single"
+                ? "title menuActive"
+                : "title"
+            }
+          >
+            Agents
+          </span>
+        </Link>
+      </li>
+
+      <li className="visible_list">
         <Link className="list-item" href="/contact">
           <span className={topMenu == "contact" ? "title menuActive" : "title"}>
             Contact
