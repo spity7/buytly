@@ -1,0 +1,5 @@
+# Root env for Docker Compose variable substitution
+.env
+
+# OS / editor
+.DS_Store

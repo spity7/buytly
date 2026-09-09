@@ -191,15 +191,31 @@ const containerStyle = {
   width: "100%",
   height: "100%",
 };
+const googleMapsApiKey =
+  process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY?.trim() ?? "";
+
 export default function ListingMap1() {
+  if (!googleMapsApiKey) {
+    return (
+      <p className="text-center text-muted py-4 mb-0">
+        Map is not configured. Set <code>NEXT_PUBLIC_GOOGLE_MAPS_API_KEY</code>{" "}
+        in your environment.
+      </p>
+    );
+  }
+
+  return <ListingMapContent googleMapsApiKey={googleMapsApiKey} />;
+}
+
+function ListingMapContent({ googleMapsApiKey }) {
   const [getLocation, setLocation] = useState(null);
 
   const { isLoaded } = useLoadScript({
-    googleMapsApiKey: "AIzaSyAAz77U5XQuEME6TpftaMdX0bBelQxXRlM",
+    googleMapsApiKey,
   });
   const center = useMemo(
     () => ({ lat: 27.411201277163975, lng: -96.12394824867293 }),
-    []
+    [],
   );
 
   // add long & lat

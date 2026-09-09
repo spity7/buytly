@@ -45,11 +45,13 @@ npm run dev
 
 Deploy on Hostinger VPS with Docker Compose (same flow as handiz-dashboard):
 
-1. Copy `server/.env.example` → `server/.env` and fill production values
-2. Set `NEXT_PUBLIC_GOOGLE_CLIENT_ID` in `docker-compose.yml`
+1. Copy `server/.env.example` → `server/.env` and fill production values (`TRUST_PROXY=true` in production)
+2. Copy `.env.example` → `.env` at the repo root and set `NEXT_PUBLIC_API_URL`, `NEXT_PUBLIC_GOOGLE_CLIENT_ID`, and optional `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`
 3. Upload `server/gcs-service-account.json`
 4. Run `docker compose up -d --build`
 5. Point host nginx + certbot at ports 3025 (frontend) and 5025 (API)
+
+CI runs on every push and pull request via [`.github/workflows/ci.yml`](.github/workflows/ci.yml) (server lint + test with MongoDB, client production build).
 
 Full guide: [server/docs/deployment.md](server/docs/deployment.md)
 
@@ -77,11 +79,14 @@ Full guide: [server/docs/deployment.md](server/docs/deployment.md)
 
 **Client** (`client/`):
 
-| Command         | Description                        |
-| --------------- | ---------------------------------- |
-| `npm run dev`   | Orval codegen + Next.js dev server |
-| `npm run build` | Production build                   |
-| `npm start`     | Start production server            |
+| Command           | Description                                  |
+| ----------------- | -------------------------------------------- |
+| `npm run dev`     | Orval codegen + Next.js dev server           |
+| `npm run gen:api` | Regenerate `src/api/generated/` from OpenAPI |
+| `npm run build`   | Production build                             |
+| `npm start`       | Start production server                      |
+
+Commit `client/src/api/generated/` after API changes so CI and Docker builds do not require a running API for codegen.
 
 ## Keeping docs in sync
 

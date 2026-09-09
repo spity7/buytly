@@ -6,7 +6,6 @@ import { validate, validateMultiple } from "../../middleware/validate.js";
 import {
   createPropertyReviewSchema,
   listPropertyReviewsSchema,
-  propertyReviewParamsSchema,
   propertyReviewIdParamsSchema,
 } from "./property-review.validation.js";
 

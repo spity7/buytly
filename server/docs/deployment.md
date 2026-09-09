@@ -64,6 +64,14 @@ The Next.js client fetches the live OpenAPI spec from `/api/docs.json` for Orval
 | REDIS_URL              | No       | Redis connection URL (optional)                                                   |
 | GOOGLE_CLIENT_ID       | Yes      | Google OAuth Web client ID (same as client `NEXT_PUBLIC_GOOGLE_CLIENT_ID`)        |
 
+**Docker Compose (repo root `.env`):** copy `.env.example` → `.env` at the repo root. Never commit `.env`. Required for client build/runtime:
+
+| Variable                          | Required                 | Description                                       |
+| --------------------------------- | ------------------------ | ------------------------------------------------- |
+| `NEXT_PUBLIC_API_URL`             | Yes                      | Public API base baked into the Next.js bundle     |
+| `NEXT_PUBLIC_GOOGLE_CLIENT_ID`    | Yes (for Google sign-in) | Same value as `GOOGLE_CLIENT_ID` in `server/.env` |
+| `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` | No                       | Google Maps JavaScript API key for map demo pages |
+
 Production setup: copy `server/.env.example` → `.env` on the server, then comment local lines and uncomment the prod line below each pair. **SMTP** stays on Gmail — same values in dev and production.
 
 ## SMTP Configuration (Gmail)
@@ -119,8 +127,9 @@ Same flow as handiz-dashboard: Docker Compose on the VPS, host nginx + certbot f
 git clone <your-repo-url> /var/www/buytly
 cd /var/www/buytly
 cp server/.env.example server/.env
-# Edit server/.env — comment local lines, uncomment prod below each pair
-# Edit docker-compose.yml — set NEXT_PUBLIC_GOOGLE_CLIENT_ID (same as GOOGLE_CLIENT_ID)
+cp .env.example .env
+# Edit server/.env — comment local lines, uncomment prod below each pair (include TRUST_PROXY=true)
+# Edit .env — set NEXT_PUBLIC_API_URL, NEXT_PUBLIC_GOOGLE_CLIENT_ID (same as GOOGLE_CLIENT_ID), optional NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
 # Upload gcs-service-account.json to server/
 docker compose up -d --build
 ```
@@ -202,7 +211,9 @@ If unset, caching is disabled — the app works without Redis.
 - [ ] `SWAGGER_ENABLED=false` in production (unless you need public docs)
 - [ ] Gmail SMTP configured (`smtp.gmail.com:587`, app password)
 - [ ] `GOOGLE_CLIENT_ID` / `NEXT_PUBLIC_GOOGLE_CLIENT_ID` match; OAuth origins include production domains
-- [ ] `.env` never committed — use server-only secrets
+- [ ] Repo root `.env` for Docker Compose (client build args) — never committed
+- [ ] `server/.env` never committed — use server-only secrets
+- [ ] GitHub Actions CI passing (`.github/workflows/ci.yml`)
 - [ ] MongoDB indexes created (auto-created on first run via Mongoose)
 - [ ] Graceful shutdown tested (SIGTERM handling)
 - [ ] Backup strategy for MongoDB
@@ -218,7 +229,25 @@ Same layout as handiz-dashboard:
 | `client/Dockerfile`  | Build Next.js → run `npm start`          |
 | `server/Dockerfile`  | `npm ci --omit=dev` → `npm start`        |
 
-Client env is set in `docker-compose.yml`: **build args** bake values into the bundle; **environment** supplies them at runtime for `next start` / `next.config.js`. Server runtime env comes from `server/.env`.
+Client env comes from the repo root `.env` (see `.env.example`): **build args** bake `NEXT_PUBLIC_*` values into the bundle; **environment** supplies them at runtime for `next start` / `next.config.js`. Server runtime env comes from `server/.env`.
+
+Both services define **healthchecks** in `docker-compose.yml` and in their Dockerfiles:
+
+| Service | Check                                                             |
+| ------- | ----------------------------------------------------------------- |
+| server  | `GET http://127.0.0.1:5000/api/v1/health` (503 when MongoDB down) |
+| client  | `GET http://127.0.0.1:3000`                                       |
+
+## CI/CD
+
+GitHub Actions workflow [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml) runs on every push and pull request (and can be re-run manually via **workflow_dispatch**):
+
+| Job        | Steps                                                              |
+| ---------- | ------------------------------------------------------------------ |
+| **server** | `npm ci`, `npm run lint`, `npm test` (MongoDB 7 service container) |
+| **client** | `npm ci`, `npm run build` (uses committed `src/api/generated/`)    |
+
+Regenerate and commit `client/src/api/generated/` after OpenAPI changes (`npm run gen:api` with the API running locally).
 
 ## Health Check
 

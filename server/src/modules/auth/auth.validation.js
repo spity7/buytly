@@ -3,7 +3,6 @@ import { ROLES } from "../../shared/constants.js";
 import {
   DEFAULT_PHONE_COUNTRY_CODE,
   PHONE_COUNTRY_CODES,
-  applyPhoneFields,
   normalizePhoneNumber,
 } from "../../shared/phone.js";
 

@@ -1,5 +1,4 @@
 import { AppError } from "../../shared/AppError.js";
-import { ROLES } from "../../shared/constants.js";
 
 /** Statuses visible on the public property list endpoint. */
 export const PUBLIC_LIST_STATUSES = new Set(["active", "sold", "rented"]);
