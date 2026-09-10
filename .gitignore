@@ -1,5 +1,12 @@
-# Root env for Docker Compose variable substitution
+# Environment (keep .env.example tracked)
 .env
+.env.*
+!.env.example
 
 # OS / editor
 .DS_Store
+.vscode/
+.idea/
+
+# Logs
+*.log

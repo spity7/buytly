@@ -1,25 +1,28 @@
-version: "3.8"
+# Prerequisites:
+#   1. cp server/.env.example server/.env  (fill secrets, keep active lines uncommented)
+#   2. cp .env.example .env
+#   3. docker compose up --build
+#
+# For production: swap commented/uncommented lines in .env files
 
 services:
   client:
     build:
       context: ./client
       args:
-        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:?Set NEXT_PUBLIC_API_URL in repo root .env — see .env.example}
-        NEXT_PUBLIC_GOOGLE_CLIENT_ID: ${NEXT_PUBLIC_GOOGLE_CLIENT_ID:-}
-        NEXT_PUBLIC_GOOGLE_MAPS_API_KEY: ${NEXT_PUBLIC_GOOGLE_MAPS_API_KEY:-}
-    environment:
-      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
-      NEXT_PUBLIC_GOOGLE_CLIENT_ID: ${NEXT_PUBLIC_GOOGLE_CLIENT_ID:-}
-      NEXT_PUBLIC_GOOGLE_MAPS_API_KEY: ${NEXT_PUBLIC_GOOGLE_MAPS_API_KEY:-}
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
+        NEXT_PUBLIC_GOOGLE_CLIENT_ID: ${NEXT_PUBLIC_GOOGLE_CLIENT_ID}
+        NEXT_PUBLIC_GOOGLE_MAPS_API_KEY: ${NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}
     ports:
-      - "3025:3000"
-    restart: always
+      - "127.0.0.1:3025:3025"
+    depends_on:
+      - server
+    restart: unless-stopped
     healthcheck:
       test:
         [
           "CMD-SHELL",
-          'node -e "fetch(''http://127.0.0.1:3000'').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"',
+          'node -e "fetch(''http://127.0.0.1:3025'').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"',
         ]
       interval: 30s
       timeout: 10s
@@ -30,17 +33,19 @@ services:
     build:
       context: ./server
     ports:
-      - "5025:5000"
+      - "127.0.0.1:5025:5025"
     env_file:
       - ./server/.env
     volumes:
       - ./server/gcs-service-account.json:/app/gcs-service-account.json:ro
-    restart: always
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
     healthcheck:
       test:
         [
           "CMD-SHELL",
-          'node -e "fetch(''http://127.0.0.1:5000/api/v1/health'').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"',
+          'node -e "fetch(''http://127.0.0.1:5025/api/v1/health'').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"',
         ]
       interval: 30s
       timeout: 10s

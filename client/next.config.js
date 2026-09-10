@@ -55,6 +55,7 @@ const singleStyleRedirects = [2, 3, 4, 5, 6, 7, 8, 9, 10].map((version) => ({
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  output: "standalone",
   async redirects() {
     return [
       {

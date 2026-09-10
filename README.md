@@ -22,8 +22,8 @@ npm install
 npm run dev
 ```
 
-- API: `http://localhost:5000/api/v1`
-- Swagger: `http://localhost:5000/api/docs`
+- API: `http://localhost:5025/api/v1`
+- Swagger: `http://localhost:5025/api/docs`
 
 **Frontend** (requires API running for Orval codegen):
 
