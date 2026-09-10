@@ -165,6 +165,34 @@ describe.skipIf(!mongoAvailable)("property reviews API", () => {
     await PropertyReview.deleteMany({ propertyId });
   });
 
+  it("rejects mine/reviews for buyers", async () => {
+    const app = await getApp();
+    const buyerToken = await registerAndGetToken(app, { role: "buyer" });
+
+    const res = await request(app)
+      .get("/api/v1/properties/mine/reviews")
+      .set("Authorization", `Bearer ${buyerToken}`);
+
+    expect(res.status).toBe(403);
+  });
+
+  it("returns empty mine/reviews for seller with no reviews yet", async () => {
+    const app = await getApp();
+    const sellerToken = await registerAndGetToken(app, { role: "seller" });
+
+    await createActiveProperty(app, sellerToken, {
+      title: "No Reviews Yet Property",
+    });
+
+    const res = await request(app)
+      .get("/api/v1/properties/mine/reviews")
+      .set("Authorization", `Bearer ${sellerToken}`)
+      .expect(200);
+
+    expect(res.body.data.reviews).toEqual([]);
+    expect(res.body.data.stats.reviewCount).toBe(0);
+  });
+
   it("lists reviews received on seller managed properties", async () => {
     const app = await getApp();
     const sellerToken = await registerAndGetToken(app, { role: "seller" });
@@ -192,6 +220,77 @@ describe.skipIf(!mongoAvailable)("property reviews API", () => {
     expect(res.body.data.stats.reviewCount).toBe(1);
     expect(res.body.data.reviews[0].propertyId.title).toBe(
       "Review Test Apartment",
+    );
+  });
+
+  it("lets review author delete their review", async () => {
+    const app = await getApp();
+    const sellerToken = await registerAndGetToken(app, { role: "seller" });
+    const buyerToken = await registerAndGetToken(app, { role: "buyer" });
+
+    const propertyId = await createActiveProperty(app, sellerToken);
+
+    const created = await request(app)
+      .post(`/api/v1/properties/${propertyId}/reviews`)
+      .set("Authorization", `Bearer ${buyerToken}`)
+      .send({
+        rating: 3,
+        title: "Average",
+        text: "Decent but noisy street.",
+      })
+      .expect(201);
+
+    const reviewId = created.body.data._id;
+
+    await request(app)
+      .delete(`/api/v1/properties/${propertyId}/reviews/${reviewId}`)
+      .set("Authorization", `Bearer ${buyerToken}`)
+      .expect(200);
+
+    const list = await request(app)
+      .get(`/api/v1/properties/${propertyId}/reviews`)
+      .expect(200);
+
+    expect(list.body.data.reviews).toHaveLength(0);
+    expect(list.body.data.stats.reviewCount).toBe(0);
+  });
+
+  it("includes reviews on agent-assigned listings in mine/reviews", async () => {
+    const app = await getApp();
+    const sellerToken = await registerAndGetToken(app, { role: "seller" });
+    const agentToken = await registerAndGetToken(app, { role: "agent" });
+    const buyerToken = await registerAndGetToken(app, { role: "buyer" });
+
+    const agentProfile = await request(app)
+      .get("/api/v1/users/me")
+      .set("Authorization", `Bearer ${agentToken}`)
+      .expect(200);
+
+    const agentId = agentProfile.body.data.id;
+    const propertyId = await createActiveProperty(app, sellerToken, {
+      title: "Agent Assigned Review Property",
+    });
+
+    await Property.findByIdAndUpdate(propertyId, { agentId });
+
+    await request(app)
+      .post(`/api/v1/properties/${propertyId}/reviews`)
+      .set("Authorization", `Bearer ${buyerToken}`)
+      .send({
+        rating: 5,
+        title: "Great agent support",
+        text: "Smooth viewing and quick responses.",
+      })
+      .expect(201);
+
+    const res = await request(app)
+      .get("/api/v1/properties/mine/reviews")
+      .set("Authorization", `Bearer ${agentToken}`)
+      .expect(200);
+
+    expect(res.body.data.reviews).toHaveLength(1);
+    expect(res.body.data.reviews[0].propertyId.title).toBe(
+      "Agent Assigned Review Property",
     );
   });
 

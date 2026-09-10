@@ -5,6 +5,7 @@ import Bedroom from "./Bedroom";
 import Bathroom from "./Bathroom";
 import Amenities from "./Amenities";
 import { useEffect, useState } from "react";
+import { LISTING_CITY_OPTIONS } from "@/lib/listings/listingCities";
 
 const AdvanceFilterModal = ({ filterFunctions }) => {
   const [showSelect, setShowSelect] = useState(false);
@@ -18,16 +19,7 @@ const AdvanceFilterModal = ({ filterFunctions }) => {
     { value: "Villa", label: "Villa" },
   ];
 
-  const locationOptions = [
-    { value: "All Cities", label: "All Cities" },
-    { value: "California", label: "California" },
-    { value: "Los Angeles", label: "Los Angeles" },
-    { value: "New Jersey", label: "New Jersey" },
-    { value: "New York", label: "New York" },
-    { value: "San Diego", label: "San Diego" },
-    { value: "San Francisco", label: "San Francisco" },
-    { value: "Texas", label: "Texas" },
-  ];
+  const locationOptions = LISTING_CITY_OPTIONS;
 
   const customStyles = {
     option: (styles, { isFocused, isSelected, isHovered }) => {

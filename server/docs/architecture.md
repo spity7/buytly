@@ -111,6 +111,10 @@ When Redis is configured (`REDIS_URL`):
 
 Test env skips network send entirely.
 
+## Database seeding
+
+`scripts/seed.js` (`npm run seed`, `npm run seed:reset`) loads demo users, agent profiles, 18 properties across Dubai/Abu Dhabi/Sharjah (including land, archived, sold/rented/pending/draft statuses and map coordinates), 8 reviews, favorites, bookings, transactions, saved searches, and notifications. Invalidates listing caches when Redis is ready. Catalog and expected counts live in `scripts/seed/catalog.js`; smoke test in `tests/seed.test.js`.
+
 ## GCS orphan cleanup
 
 Media keys live in MongoDB (`users.avatar`, `properties.media`, `properties.floorPlans`). Orphaned bucket objects are removed by `scripts/gcs-orphan-cleanup.js` (`npm run cleanup:gcs`, `--dry-run` supported). Objects under `avatars/` and `properties/` that are not referenced and older than `GCS_ORPHAN_GRACE_HOURS` (default 48) are deleted.

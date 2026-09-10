@@ -9,9 +9,7 @@ import type {
   CreatePropertyRequest,
   ListMyPropertiesParams,
   ListPropertiesParams,
-  ListPropertyReviewsParams,
   PaginatedPropertiesResponse,
-  PaginatedPropertyReviewsResponse,
   PropertyNearbySuccessResponse,
   PropertySuccessResponse,
   SuccessResponse,
@@ -72,21 +70,6 @@ export const getProperties = () => {
   ) => {
     return customInstance<PaginatedPropertiesResponse>(
       { url: `/properties/mine`, method: "GET", params },
-      options,
-    );
-  };
-  /**
-   * Returns paginated reviews left on listings owned by or assigned to the authenticated seller, agent, or admin.
-   * @summary List reviews on current user's properties
-   */
-  const listMyPropertyReviews = (
-    params?: ListPropertyReviewsParams,
-    options?: SecondParameter<
-      typeof customInstance<PaginatedPropertyReviewsResponse>
-    >,
-  ) => {
-    return customInstance<PaginatedPropertyReviewsResponse>(
-      { url: `/properties/mine/reviews`, method: "GET", params },
       options,
     );
   };
@@ -225,7 +208,6 @@ export const getProperties = () => {
     listProperties,
     createProperty,
     listMyProperties,
-    listMyPropertyReviews,
     getPropertyNearby,
     getPropertyById,
     updateProperty,

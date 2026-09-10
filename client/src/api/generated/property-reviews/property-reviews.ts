@@ -9,6 +9,7 @@ import type {
   CheckPropertyReview200,
   CreatePropertyReview201,
   CreatePropertyReviewRequest,
+  ListMyPropertyReviewsParams,
   ListPropertyReviewsParams,
   ObjectId,
   PaginatedPropertyReviewsResponse,
@@ -83,11 +84,27 @@ export const getPropertyReviews = () => {
       options,
     );
   };
+  /**
+   * Returns paginated reviews left on listings owned by or assigned to the authenticated seller, agent, or admin.
+   * @summary List reviews on current user's properties
+   */
+  const listMyPropertyReviews = (
+    params?: ListMyPropertyReviewsParams,
+    options?: SecondParameter<
+      typeof customInstance<PaginatedPropertyReviewsResponse>
+    >,
+  ) => {
+    return customInstance<PaginatedPropertyReviewsResponse>(
+      { url: `/properties/mine/reviews`, method: "GET", params },
+      options,
+    );
+  };
   return {
     listPropertyReviews,
     createPropertyReview,
     checkPropertyReview,
     deletePropertyReview,
+    listMyPropertyReviews,
   };
 };
 
@@ -113,5 +130,10 @@ export type CheckPropertyReviewResult = NonNullable<
 export type DeletePropertyReviewResult = NonNullable<
   Awaited<
     ReturnType<ReturnType<typeof getPropertyReviews>["deletePropertyReview"]>
+  >
+>;
+export type ListMyPropertyReviewsResult = NonNullable<
+  Awaited<
+    ReturnType<ReturnType<typeof getPropertyReviews>["listMyPropertyReviews"]>
   >
 >;

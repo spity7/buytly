@@ -29,6 +29,23 @@ npm run dev
 Server starts at `http://localhost:5000`  
 Swagger docs at `http://localhost:5000/api/docs` (enabled automatically in development)
 
+### Demo database seed
+
+Populate MongoDB with realistic UAE listings, users, reviews, bookings, and dashboard data:
+
+```bash
+cd server
+npm run seed          # append (fails on duplicate emails if users already exist)
+npm run seed:reset    # wipe collections first, then seed
+```
+
+| Variable        | Default           | Description                                     |
+| --------------- | ----------------- | ----------------------------------------------- |
+| `SEED_PASSWORD` | `BuytlyDemo2026!` | Shared password for all `@buytly.demo` accounts |
+| `SEED_FORCE`    | —                 | Required to run when `NODE_ENV=production`      |
+
+Demo logins: `admin@buytly.demo`, `seller@buytly.demo`, `agent@buytly.demo`, `buyer@buytly.demo` (see seed output for full list). Includes land and archived listings, seller2 reviews, and cache invalidation when Redis is connected. **Development only** — never seed production without intent.
+
 Generate JWT secrets:
 
 ```bash

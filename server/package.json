@@ -7,6 +7,8 @@
   "scripts": {
     "start": "node src/server.js",
     "generate-secrets": "node scripts/generate-secrets.js",
+    "seed": "node scripts/seed.js",
+    "seed:reset": "node scripts/seed.js --reset",
     "dev": "nodemon src/server.js",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",

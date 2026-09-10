@@ -10,14 +10,9 @@ import {
   buildListingsHref,
 } from "@/lib/listings/listingSearchParams";
 import { LISTING_MAX_PRICE } from "@/lib/listings/listingFilters";
+import { LISTING_CITY_OPTIONS } from "@/lib/listings/listingCities";
 
-const LOCATION_OPTIONS = [
-  { value: "All Cities", label: "All Cities" },
-  { value: "Dubai", label: "Dubai" },
-  { value: "Abu Dhabi", label: "Abu Dhabi" },
-  { value: "New York", label: "New York" },
-  { value: "Los Angeles", label: "Los Angeles" },
-];
+const LOCATION_OPTIONS = LISTING_CITY_OPTIONS;
 
 const PROPERTY_TYPE_OPTIONS = [
   { value: "", label: "Any type" },
