@@ -65,7 +65,7 @@ describe("nearby.service", () => {
     });
 
     it("passes an abort timeout to Overpass fetch", async () => {
-      const fetchMock = vi.fn(async (_url, options) => ({
+      const fetchMock = vi.fn(async (_url, _options) => ({
         ok: true,
         json: async () => ({ elements: [] }),
       }));
