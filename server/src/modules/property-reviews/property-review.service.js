@@ -32,6 +32,12 @@ const attachUserAvatarUrl = async (review) => {
   return doc;
 };
 
+const getManagedPropertyIds = async (userId) =>
+  Property.find({
+    deletedAt: null,
+    $or: [{ ownerId: userId }, { agentId: userId }],
+  }).distinct("_id");
+
 const getViewableProperty = async (
   propertyId,
   user,
@@ -159,5 +165,52 @@ export const propertyReviewService = {
       "_id",
     );
     return Boolean(review);
+  },
+
+  async listForMyProperties(user, query) {
+    const { page, limit, skip } = parsePagination(query);
+    const propertyIds = await getManagedPropertyIds(user._id);
+
+    if (propertyIds.length === 0) {
+      return {
+        reviews: [],
+        stats: { averageRating: 0, reviewCount: 0 },
+        pagination: buildPaginationMeta(0, page, limit),
+      };
+    }
+
+    const matchStage = { propertyId: { $in: propertyIds } };
+
+    const [statsResult, reviews, total] = await Promise.all([
+      PropertyReview.aggregate([
+        { $match: matchStage },
+        {
+          $group: {
+            _id: null,
+            averageRating: { $avg: "$rating" },
+            reviewCount: { $sum: 1 },
+          },
+        },
+      ]),
+      PropertyReview.find(matchStage)
+        .populate("userId", "firstName lastName avatar")
+        .populate("propertyId", "title location status")
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit),
+      PropertyReview.countDocuments(matchStage),
+    ]);
+
+    const stats = statsResult[0] || { averageRating: 0, reviewCount: 0 };
+    const data = await Promise.all(reviews.map(attachUserAvatarUrl));
+
+    return {
+      reviews: data,
+      stats: {
+        averageRating: Number((stats.averageRating || 0).toFixed(1)),
+        reviewCount: stats.reviewCount || 0,
+      },
+      pagination: buildPaginationMeta(total, page, limit),
+    };
   },
 };

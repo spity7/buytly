@@ -42,7 +42,11 @@ export default function ListingBrowsePanel({
 
   return (
     <>
-      <ListingBrowseHeader listingStatus={listingStatus} location={location} />
+      <ListingBrowseHeader
+        listingStatus={listingStatus}
+        location={location}
+        viewMode="grid"
+      />
 
       <section className="pt0 pb90 bgc-f7">
         <div className="container">

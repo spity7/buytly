@@ -165,6 +165,36 @@ describe.skipIf(!mongoAvailable)("property reviews API", () => {
     await PropertyReview.deleteMany({ propertyId });
   });
 
+  it("lists reviews received on seller managed properties", async () => {
+    const app = await getApp();
+    const sellerToken = await registerAndGetToken(app, { role: "seller" });
+    const buyerToken = await registerAndGetToken(app, { role: "buyer" });
+
+    const propertyId = await createActiveProperty(app, sellerToken);
+
+    await request(app)
+      .post(`/api/v1/properties/${propertyId}/reviews`)
+      .set("Authorization", `Bearer ${buyerToken}`)
+      .send({
+        rating: 4,
+        title: "Solid listing",
+        text: "Good value for the area.",
+      })
+      .expect(201);
+
+    const res = await request(app)
+      .get("/api/v1/properties/mine/reviews")
+      .set("Authorization", `Bearer ${sellerToken}`)
+      .expect(200);
+
+    expect(res.body.success).toBe(true);
+    expect(res.body.data.reviews).toHaveLength(1);
+    expect(res.body.data.stats.reviewCount).toBe(1);
+    expect(res.body.data.reviews[0].propertyId.title).toBe(
+      "Review Test Apartment",
+    );
+  });
+
   it("lists empty reviews for a pending property when requested by owner", async () => {
     const app = await getApp();
     const sellerToken = await registerAndGetToken(app, { role: "seller" });

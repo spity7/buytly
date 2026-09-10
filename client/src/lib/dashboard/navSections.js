@@ -45,6 +45,11 @@ export function getDashboardNavSections(role) {
                 icon: "flaticon-home",
                 text: "My Properties",
               },
+              {
+                href: "/dashboard-reviews",
+                icon: "flaticon-review",
+                text: "Reviews",
+              },
             ],
           },
         ]

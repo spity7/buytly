@@ -15,6 +15,9 @@ export function mapPropertyToCard(property) {
     property.image ||
     PLACEHOLDER_IMAGE;
   const locationObj = property.location;
+  const coordinates = locationObj?.coordinates;
+  const lng = Array.isArray(coordinates) ? coordinates[0] : undefined;
+  const lat = Array.isArray(coordinates) ? coordinates[1] : undefined;
   const location =
     property.locationLabel ||
     locationObj?.address ||
@@ -37,6 +40,9 @@ export function mapPropertyToCard(property) {
     forRent: property.listingType === "rent",
     listingType: property.listingType,
     location,
+    lat,
+    lng,
+    long: lng,
     city: locationObj?.city || property.city,
     type: property.type,
     propertyType: property.type,

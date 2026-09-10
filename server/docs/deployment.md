@@ -56,11 +56,14 @@ The Next.js client fetches the live OpenAPI spec from `/api/docs.json` for Orval
 | API_URL                | Yes      | Public API base for Swagger and logs (e.g. `https://api.buytly.com/api/v1`)       |
 | CORS_ORIGIN            | Yes      | Allowed origins (comma-separated)                                                 |
 | SWAGGER_ENABLED        | No       | Expose `/api/docs` (default: on in dev, off in production)                        |
-| SMTP_HOST              | Yes      | SMTP server host                                                                  |
-| SMTP_PORT              | Yes      | SMTP port (587 or 465)                                                            |
-| SMTP_USER              | Yes      | SMTP username                                                                     |
-| SMTP_PASS              | Yes      | SMTP password                                                                     |
-| SMTP_FROM              | Yes      | From email address                                                                |
+| EMAIL_PROVIDER         | No       | `smtp` (default) or `sendgrid`                                                    |
+| SENDGRID_API_KEY       | Cond.    | Required when `EMAIL_PROVIDER=sendgrid`                                           |
+| SMTP_HOST              | Cond.    | Required when `EMAIL_PROVIDER=smtp`                                               |
+| SMTP_PORT              | No       | SMTP port (587 or 465; default 587)                                               |
+| SMTP_USER              | Cond.    | Required when `EMAIL_PROVIDER=smtp`                                               |
+| SMTP_PASS              | Cond.    | Required when `EMAIL_PROVIDER=smtp`                                               |
+| SMTP_FROM              | Yes      | From email address (verified sender for SendGrid)                                 |
+| GCS_ORPHAN_GRACE_HOURS | No       | Grace period for `npm run cleanup:gcs` (default 48)                               |
 | REDIS_URL              | No       | Redis connection URL (optional)                                                   |
 | GOOGLE_CLIENT_ID       | Yes      | Google OAuth Web client ID (same as client `NEXT_PUBLIC_GOOGLE_CLIENT_ID`)        |
 
@@ -72,11 +75,15 @@ The Next.js client fetches the live OpenAPI spec from `/api/docs.json` for Orval
 | `NEXT_PUBLIC_GOOGLE_CLIENT_ID`    | Yes (for Google sign-in) | Same value as `GOOGLE_CLIENT_ID` in `server/.env` |
 | `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` | No                       | Google Maps JavaScript API key for map demo pages |
 
-Production setup: copy `server/.env.example` → `.env` on the server, then comment local lines and uncomment the prod line below each pair. **SMTP** stays on Gmail — same values in dev and production.
+Production setup: copy `server/.env.example` → `.env` on the server, then comment local lines and uncomment the prod line below each pair. Default email is **SMTP** (Gmail); switch to **SendGrid** for higher volume.
 
-## SMTP Configuration (Gmail)
+## Email configuration
 
-The app uses Nodemailer (`email.service.js`) with branded HTML + plain-text templates (`email.templates.js`). Use port **587** (STARTTLS). `SMTP_USER` and `SMTP_FROM` must be the same Gmail address.
+`email.service.js` sends branded HTML + plain-text templates (`email.templates.js`). Set `EMAIL_PROVIDER=smtp` (default) or `EMAIL_PROVIDER=sendgrid`.
+
+### SMTP (Gmail)
+
+Use port **587** (STARTTLS). `SMTP_USER` and `SMTP_FROM` must be the same Gmail address.
 
 1. Enable 2FA on your Google account
 2. Create an [App Password](https://myaccount.google.com/apppasswords)
@@ -94,9 +101,35 @@ The app uses Nodemailer (`email.service.js`) with branded HTML + plain-text temp
 
 **Deliverability:** Set `APP_URL` to your real frontend domain in production (not `localhost`) so verification and password-reset links use a trusted domain. Action emails include a plain-text body and a visible URL fallback in addition to the button link.
 
-**Gmail limits:** ~500 emails/day for free accounts. For higher volume later, consider SendGrid or Google Workspace.
+**Gmail limits:** ~500 emails/day for free accounts. For higher volume, use SendGrid below.
 
 **Optional:** To send from `@buytly.com`, set up Google Workspace or a Hostinger mailbox — not required for the current setup.
+
+### SendGrid (production)
+
+1. Create a SendGrid account and verify your sender domain or single sender.
+2. Create an API key with **Mail Send** permission.
+3. Set in `server/.env`:
+
+| Variable         | Value                                       |
+| ---------------- | ------------------------------------------- |
+| EMAIL_PROVIDER   | `sendgrid`                                  |
+| SENDGRID_API_KEY | your API key                                |
+| SMTP_FROM        | verified sender (e.g. `noreply@buytly.com`) |
+
+Alternatively, SendGrid SMTP relay works with `EMAIL_PROVIDER=smtp`, `SMTP_HOST=smtp.sendgrid.net`, `SMTP_USER=apikey`, `SMTP_PASS=<SENDGRID_API_KEY>`.
+
+## GCS orphan cleanup
+
+Uploaded media keys are stored in MongoDB; orphaned objects can remain when uploads fail or floor plans are replaced. Run periodically on the VPS:
+
+```bash
+cd server
+npm run cleanup:gcs:dry-run   # preview orphans older than grace period
+npm run cleanup:gcs           # delete orphans
+```
+
+Set `GCS_ORPHAN_GRACE_HOURS` (default 48) to avoid deleting in-flight uploads. Schedule via cron, e.g. weekly: `0 3 * * 0 cd /path/to/buytly/server && npm run cleanup:gcs`.
 
 ## Hostinger (buytly.com) — DNS
 
@@ -217,7 +250,7 @@ If unset, caching is disabled — the app works without Redis.
 - [ ] MongoDB indexes created (auto-created on first run via Mongoose)
 - [ ] Graceful shutdown tested (SIGTERM handling)
 - [ ] Backup strategy for MongoDB
-- [ ] GCS lifecycle rules for orphaned media cleanup
+- [ ] GCS orphan cleanup scheduled (`npm run cleanup:gcs` — see above)
 
 ## Docker
 

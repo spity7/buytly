@@ -11,6 +11,8 @@
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
     "test:watch": "vitest",
+    "cleanup:gcs": "node scripts/gcs-orphan-cleanup.js",
+    "cleanup:gcs:dry-run": "node scripts/gcs-orphan-cleanup.js --dry-run",
     "lint": "eslint src tests"
   },
   "keywords": [
@@ -37,6 +39,7 @@
     "mongoose": "^8.16.0",
     "morgan": "^1.10.0",
     "multer": "^2.0.1",
+    "@sendgrid/mail": "^8.1.5",
     "nodemailer": "^7.0.3",
     "sharp": "^0.35.3",
     "swagger-jsdoc": "^6.2.8",

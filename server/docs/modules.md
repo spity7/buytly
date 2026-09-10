@@ -59,6 +59,7 @@
 | /properties/:id/media             | POST         | Owner/Agent            | file (image or one video)                                                                             | media item                               |
 | /properties/:id/media/:mediaId    | DELETE       | Owner/Agent            | —                                                                                                     | success                                  |
 | /properties/:id/floor-plans/image | POST         | Owner/Agent            | image file                                                                                            | gcsKey + url                             |
+| /properties/mine/reviews          | GET          | Seller/Agent/Admin     | pagination                                                                                            | reviews + stats on managed listings      |
 | /properties/:id/reviews           | GET          | Public (optional auth) | pagination                                                                                            | reviews + stats                          |
 | /properties/:id/reviews/check     | GET          | Optional auth          | —                                                                                                     | hasReviewed                              |
 | /properties/:id/reviews           | POST         | User                   | rating, title, text                                                                                   | review                                   |

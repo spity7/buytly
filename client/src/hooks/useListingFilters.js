@@ -26,7 +26,10 @@ function applyParsedFilters(parsed, setters) {
   setters.setSearchInput(parsed.searchQuery);
 }
 
-export function useListingFilters({ pageSize = LISTING_PAGE_SIZE } = {}) {
+export function useListingFilters({
+  pageSize = LISTING_PAGE_SIZE,
+  basePath = "/listings",
+} = {}) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const urlKey = searchParams.toString();
@@ -118,10 +121,11 @@ export function useListingFilters({ pageSize = LISTING_PAGE_SIZE } = {}) {
     const nextKey = params.toString();
     if (nextKey === urlKey) return;
 
-    const nextUrl = nextKey ? `/listings?${nextKey}` : "/listings";
+    const nextUrl = nextKey ? `${basePath}?${nextKey}` : basePath;
     router.replace(nextUrl, { scroll: false });
   }, [
     router,
+    basePath,
     urlKey,
     pageNumber,
     currentSortingOption,

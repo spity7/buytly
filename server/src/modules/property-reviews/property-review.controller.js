@@ -44,4 +44,19 @@ export const propertyReviewController = {
     );
     ApiResponse.success(res, { hasReviewed });
   },
+
+  listMine: async (req, res) => {
+    const result = await propertyReviewService.listForMyProperties(
+      req.user,
+      req.query,
+    );
+    ApiResponse.paginated(
+      res,
+      {
+        reviews: result.reviews,
+        stats: result.stats,
+      },
+      result.pagination,
+    );
+  },
 };

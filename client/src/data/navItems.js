@@ -3,7 +3,10 @@ export const homeItems = [{ href: "/", label: "Home" }];
 export const listingItems = [
   {
     title: "Listings",
-    submenu: [{ label: "Browse Listings", href: "/listings" }],
+    submenu: [
+      { label: "Browse Listings", href: "/listings" },
+      { label: "Map View", href: "/listings/map" },
+    ],
   },
 ];
 
@@ -18,6 +21,7 @@ export const propertyItems = [
       { label: "Dashboard Home", href: "/dashboard-home" },
       { label: "New Property", href: "/dashboard-add-property" },
       { label: "My Properties", href: "/dashboard-my-properties" },
+      { label: "Reviews", href: "/dashboard-reviews" },
       { label: "My Favorites", href: "/dashboard-my-favourites" },
       { label: "Saved Search", href: "/dashboard-saved-search" },
       { label: "My Profile", href: "/dashboard-my-profile" },

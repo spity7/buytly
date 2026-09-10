@@ -20,6 +20,7 @@ process.env.JWT_REFRESH_EXPIRES_IN = "7d";
 process.env.GCS_PROJECT_ID = "test-project";
 process.env.GCS_BUCKET = "test-bucket";
 
+process.env.EMAIL_PROVIDER = "smtp";
 process.env.SMTP_HOST = "smtp.test.com";
 process.env.SMTP_PORT = "587";
 process.env.SMTP_USER = "test@test.com";

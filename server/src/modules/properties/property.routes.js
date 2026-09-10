@@ -17,6 +17,8 @@ import {
   mediaIdSchema,
 } from "./property.validation.js";
 import propertyReviewRoutes from "../property-reviews/property-review.routes.js";
+import { propertyReviewController } from "../property-reviews/property-review.controller.js";
+import { listPropertyReviewsSchema } from "../property-reviews/property-review.validation.js";
 
 const router = Router();
 
@@ -178,6 +180,39 @@ router.get(
   authorize(ROLES.SELLER, ROLES.AGENT, ROLES.ADMIN),
   validate(listMyPropertiesSchema, "query"),
   asyncHandler(propertyController.listMine),
+);
+
+/**
+ * @swagger
+ * /properties/mine/reviews:
+ *   get:
+ *     operationId: listMyPropertyReviews
+ *     summary: List reviews on current user's properties
+ *     description: Returns paginated reviews left on listings owned by or assigned to the authenticated seller, agent, or admin.
+ *     tags: [Property Reviews]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - $ref: '#/components/parameters/PageParam'
+ *       - $ref: '#/components/parameters/LimitParam'
+ *     responses:
+ *       200:
+ *         description: Reviews received on managed listings
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/PaginatedPropertyReviewsResponse'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ */
+router.get(
+  "/mine/reviews",
+  authenticate,
+  authorize(ROLES.SELLER, ROLES.AGENT, ROLES.ADMIN),
+  validate(listPropertyReviewsSchema, "query"),
+  asyncHandler(propertyReviewController.listMine),
 );
 
 router.use("/:id/reviews", propertyReviewRoutes);

@@ -1,8 +1,10 @@
 import nodemailer from "nodemailer";
+import sgMail from "@sendgrid/mail";
 import { env } from "../config/env.js";
 import { emailTemplates } from "./email.templates.js";
 
 let transporter = null;
+let sendgridReady = false;
 
 const getTransporter = () => {
   if (!transporter) {
@@ -19,8 +21,38 @@ const getTransporter = () => {
   return transporter;
 };
 
+const ensureSendgrid = () => {
+  if (!sendgridReady) {
+    sgMail.setApiKey(env.SENDGRID_API_KEY);
+    sendgridReady = true;
+  }
+};
+
 const renderTemplate = (template, data) =>
   emailTemplates[template]?.(data) || emailTemplates.generic(data);
+
+const deliver = async (to, tpl) => {
+  if (env.EMAIL_PROVIDER === "sendgrid") {
+    ensureSendgrid();
+    await sgMail.send({
+      to,
+      from: env.SMTP_FROM,
+      subject: tpl.subject,
+      text: tpl.text,
+      html: tpl.html,
+    });
+    return;
+  }
+
+  const transport = getTransporter();
+  await transport.sendMail({
+    from: env.SMTP_FROM,
+    to,
+    subject: tpl.subject,
+    text: tpl.text,
+    html: tpl.html,
+  });
+};
 
 export const emailService = {
   async send(to, template, data) {
@@ -30,19 +62,11 @@ export const emailService = {
       return;
     }
 
-    const transport = getTransporter();
-
     if (env.NODE_ENV === "development") {
       console.log(`[Email] To: ${to} | Subject: ${tpl.subject}`);
     }
 
-    await transport.sendMail({
-      from: env.SMTP_FROM,
-      to,
-      subject: tpl.subject,
-      text: tpl.text,
-      html: tpl.html,
-    });
+    await deliver(to, tpl);
   },
 
   async sendPasswordReset(to, data) {

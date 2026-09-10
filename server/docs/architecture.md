@@ -94,13 +94,26 @@ Auth register → notifyFromEvent("auth.welcome"); verify email → auth.email_v
 
 When Redis is configured (`REDIS_URL`):
 
-| Key pattern | TTL | Invalidation |
-| ----------- | --- | ------------ |
-| `properties:{hash}` | 5 min | Property create/update/delete/restore/media; admin moderation; completed transactions |
-| `nearby:{hash}` | 24 h | Not invalidated on listing changes (geo POIs are external) |
-| `admin:analytics` | 10 min | User register/delete; admin user role/status; property listing changes; booking create/status/cancel; transaction create/status |
+| Key pattern         | TTL    | Invalidation                                                                                                                    |
+| ------------------- | ------ | ------------------------------------------------------------------------------------------------------------------------------- |
+| `properties:{hash}` | 5 min  | Property create/update/delete/restore/media; admin moderation; completed transactions                                           |
+| `nearby:{hash}`     | 24 h   | Not invalidated on listing changes (geo POIs are external)                                                                      |
+| `admin:analytics`   | 10 min | User register/delete; admin user role/status; property listing changes; booking create/status/cancel; transaction create/status |
 
 `cacheService.delPattern()` uses Redis `SCAN` (not `KEYS`) for safe prefix deletes.
+
+## Email delivery
+
+`email.service.js` renders templates from `email.templates.js` and sends via:
+
+- **`EMAIL_PROVIDER=smtp`** (default) — Nodemailer + Gmail or any SMTP relay
+- **`EMAIL_PROVIDER=sendgrid`** — `@sendgrid/mail` API using `SENDGRID_API_KEY` and `SMTP_FROM` as the verified sender
+
+Test env skips network send entirely.
+
+## GCS orphan cleanup
+
+Media keys live in MongoDB (`users.avatar`, `properties.media`, `properties.floorPlans`). Orphaned bucket objects are removed by `scripts/gcs-orphan-cleanup.js` (`npm run cleanup:gcs`, `--dry-run` supported). Objects under `avatars/` and `properties/` that are not referenced and older than `GCS_ORPHAN_GRACE_HOURS` (default 48) are deleted.
 
 ## Scalability Considerations
 

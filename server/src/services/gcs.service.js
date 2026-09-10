@@ -55,6 +55,15 @@ export const gcsService = {
     await gcsBucket.file(gcsKey).delete({ ignoreNotFound: true });
   },
 
+  async listObjects(prefix = "") {
+    const gcsBucket = initGCS();
+    const [files] = await gcsBucket.getFiles({ prefix });
+    return files.map((file) => ({
+      name: file.name,
+      timeCreated: file.metadata?.timeCreated,
+    }));
+  },
+
   async getSignedUrl(gcsKey, expiresInSeconds = 3600) {
     if (!gcsKey) return null;
     const gcsBucket = initGCS();
