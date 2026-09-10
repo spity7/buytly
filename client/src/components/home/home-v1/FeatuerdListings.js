@@ -7,7 +7,7 @@ import { Swiper, SwiperSlide } from "swiper/react";
 
 const HomeFeaturedListings = () => {
   const { data, isLoading } = useProperties({
-    limit: 4,
+    limit: 8,
     sortBy: "viewCount",
     sortOrder: "desc",
     status: "active",
@@ -40,14 +40,14 @@ const HomeFeaturedListings = () => {
         breakpoints={{
           300: { slidesPerView: 1 },
           768: { slidesPerView: 2 },
-          1024: { slidesPerView: 2 },
-          1200: { slidesPerView: 3 },
+          1024: { slidesPerView: 3 },
+          1400: { slidesPerView: 4 },
         }}
       >
         {cards.map((listing) => (
           <SwiperSlide key={listing.id}>
             <div className="item">
-              <FeaturedListings data={[listing]} />
+              <FeaturedListings data={[listing]} slider />
             </div>
           </SwiperSlide>
         ))}

@@ -1997,3 +1997,21 @@ tr.dashboard-row-highlight {
         cursor: pointer;
     }
 }
+
+.feature-listing-slider {
+    overflow: hidden;
+
+    .swiper-slide {
+        height: auto;
+        box-sizing: border-box;
+    }
+
+    .swiper-slide .item {
+        height: 100%;
+    }
+
+    .listing-style1 {
+        margin-bottom: 30px;
+        height: 100%;
+    }
+}

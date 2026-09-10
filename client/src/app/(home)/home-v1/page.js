@@ -118,7 +118,7 @@ const Home_V1 = () => {
       {/* End Explore Apartment */}
 
       {/* Featured Listings */}
-      <section className="bgc-f7">
+      <section className="bgc-f7 pb90 pb30-md">
         <div className="container">
           <div className="row align-items-center" data-aos="fade-up">
             <div className="col-lg-9">
