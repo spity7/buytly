@@ -23,6 +23,14 @@ export default function NotificationItem({
       <span className="notification-item__content">
         <span className="notification-item__title">{notification.title}</span>
         <span className="notification-item__message">{notification.message}</span>
+        {compact && notification.createdAt ? (
+          <time
+            className="notification-item__time"
+            dateTime={notification.createdAt}
+          >
+            {formatNotificationTime(notification.createdAt)}
+          </time>
+        ) : null}
         {!compact && (
           <span className="notification-item__meta">
             <span>{meta.label}</span>

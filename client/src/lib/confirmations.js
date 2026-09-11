@@ -18,6 +18,17 @@ export function savedSearchDeleteConfirmation(name) {
   };
 }
 
+export function notificationDeleteConfirmation(title) {
+  const label = title?.trim() || "This notification";
+  return {
+    title: "Delete notification?",
+    message: `${label} will be removed permanently. This cannot be undone.`,
+    confirmLabel: "Delete",
+    confirmVariant: "danger",
+    confirmingLabel: "Deleting...",
+  };
+}
+
 export function favoriteRemoveConfirmation(title) {
   return {
     title: "Remove from favorites?",

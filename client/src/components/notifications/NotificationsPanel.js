@@ -1,12 +1,17 @@
 "use client";
 
+import AsyncActionOverlay from "@/components/common/AsyncActionOverlay";
+import ConfirmDialog from "@/components/common/ConfirmDialog";
 import NotificationItem from "@/components/notifications/NotificationItem";
+import { useConfirmAction } from "@/hooks/useConfirmAction";
 import { useNotificationNavigation } from "@/hooks/useNotificationNavigation";
 import {
   useDeleteNotification,
   useMarkAllNotificationsRead,
   useNotifications,
+  useUnreadNotificationCount,
 } from "@/hooks/useNotifications";
+import { notificationDeleteConfirmation } from "@/lib/confirmations";
 import { useMemo, useState } from "react";
 
 const TABS = [
@@ -30,8 +35,13 @@ export default function NotificationsPanel() {
   );
 
   const { data, isLoading, isError, isFetching } = useNotifications(params);
+  const { data: unreadCount = 0, isLoading: isUnreadCountLoading } =
+    useUnreadNotificationCount();
   const markAllMutation = useMarkAllNotificationsRead();
+  const hasUnread = unreadCount > 0;
   const deleteMutation = useDeleteNotification();
+  const { requestConfirm, isLocked, overlayMessage, dialogProps, pending } =
+    useConfirmAction({ overlay: true });
 
   const notifications = data?.notifications || [];
   const pagination = data?.pagination;
@@ -41,50 +51,55 @@ export default function NotificationsPanel() {
     navigateToNotification(notification);
   };
 
-  const handleDelete = async (event, notificationId) => {
+  const deletingId = pending?.targetId ?? null;
+
+  const promptDelete = (event, notification) => {
     event.stopPropagation();
-    await deleteMutation.mutateAsync(notificationId);
+    requestConfirm({
+      ...notificationDeleteConfirmation(notification.title),
+      targetId: notification._id,
+      action: {
+        message: "Deleting notification...",
+        successMessage: "Notification deleted",
+        task: () => deleteMutation.mutateAsync(notification._id),
+      },
+    });
   };
 
   return (
     <div className="notifications-panel ps-widget bgc-white bdrs12 default-box-shadow2 p30 mb30 overflow-hidden position-relative">
-      <div className="notifications-panel__header">
-        <div>
-          <h2 className="title mb-0">Notifications</h2>
-          <p className="text mb0">
-            Stay updated on bookings, listings, and account activity.
-          </p>
+      <div className="notifications-panel__toolbar">
+        <div
+          className="notifications-panel__tabs"
+          role="tablist"
+          aria-label="Notification filters"
+        >
+          {TABS.map((item) => (
+            <button
+              key={item.id}
+              type="button"
+              role="tab"
+              aria-selected={tab === item.id}
+              className={`notifications-panel__tab${tab === item.id ? " notifications-panel__tab--active" : ""}`}
+              onClick={() => {
+                setTab(item.id);
+                setPage(1);
+              }}
+            >
+              {item.label}
+            </button>
+          ))}
         </div>
         <button
           type="button"
-          className="ud-btn btn-thm-border btn-sm"
-          disabled={markAllMutation.isPending}
+          className="ud-btn btn-thm-border btn-sm notifications-panel__mark-all"
+          disabled={
+            !hasUnread || isUnreadCountLoading || markAllMutation.isPending
+          }
           onClick={() => markAllMutation.mutate()}
         >
           Mark all read
         </button>
-      </div>
-
-      <div
-        className="notifications-panel__tabs"
-        role="tablist"
-        aria-label="Notification filters"
-      >
-        {TABS.map((item) => (
-          <button
-            key={item.id}
-            type="button"
-            role="tab"
-            aria-selected={tab === item.id}
-            className={`notifications-panel__tab${tab === item.id ? " notifications-panel__tab--active" : ""}`}
-            onClick={() => {
-              setTab(item.id);
-              setPage(1);
-            }}
-          >
-            {item.label}
-          </button>
-        ))}
       </div>
 
       <div className="notifications-panel__list">
@@ -110,8 +125,8 @@ export default function NotificationsPanel() {
                   type="button"
                   className="notifications-panel__delete"
                   aria-label="Delete notification"
-                  disabled={deleteMutation.isPending}
-                  onClick={(event) => handleDelete(event, notification._id)}
+                  disabled={isLocked && deletingId === notification._id}
+                  onClick={(event) => promptDelete(event, notification)}
                 >
                   <span className="flaticon-close" aria-hidden="true" />
                 </button>
@@ -145,6 +160,12 @@ export default function NotificationsPanel() {
           </button>
         </div>
       ) : null}
+
+      <ConfirmDialog {...dialogProps} />
+      <AsyncActionOverlay
+        open={Boolean(overlayMessage)}
+        message={overlayMessage}
+      />
     </div>
   );
 }

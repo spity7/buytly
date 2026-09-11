@@ -17,6 +17,7 @@ import { notificationService } from "../notifications/notification.service.js";
 import { ROLES } from "../../shared/constants.js";
 import { env } from "../../config/env.js";
 import { googleService } from "../../services/google.service.js";
+import { syncGoogleAvatarIfMissing } from "../../services/googleAvatar.service.js";
 import { cacheService } from "../../services/cache.service.js";
 
 const SALT_ROUNDS = 12;
@@ -75,7 +76,7 @@ const applyGoogleProfileFields = (user, profile) => {
 const resolveAuthProviderAfterGoogleLink = (user) =>
   user.passwordHash ? "both" : "google";
 
-const linkGoogleToExistingUser = (user, profile) => {
+const linkGoogleToExistingUser = async (user, profile) => {
   if (user.googleId && user.googleId !== profile.googleId) {
     throw new AppError(
       "This account is linked to a different Google account",
@@ -87,6 +88,7 @@ const linkGoogleToExistingUser = (user, profile) => {
   user.authProvider = resolveAuthProviderAfterGoogleLink(user);
   applyGoogleProfileFields(user, profile);
   verifyEmailFromGoogle(user);
+  await syncGoogleAvatarIfMissing(user, profile.picture);
 };
 
 export const authService = {
@@ -198,7 +200,12 @@ export const authService = {
         throw new AppError("Account inactive", 401);
       }
 
-      if (verifyEmailFromGoogle(user)) {
+      const emailVerified = verifyEmailFromGoogle(user);
+      const avatarSynced = await syncGoogleAvatarIfMissing(
+        user,
+        profile.picture,
+      );
+      if (emailVerified || avatarSynced) {
         await user.save();
       }
 
@@ -221,7 +228,7 @@ export const authService = {
         throw new AppError("Account inactive", 401);
       }
 
-      linkGoogleToExistingUser(existingByEmail, profile);
+      await linkGoogleToExistingUser(existingByEmail, profile);
       await existingByEmail.save();
 
       const tokens = await issueTokenPair(existingByEmail);
@@ -244,6 +251,10 @@ export const authService = {
       await user.save();
     } catch (err) {
       handleDuplicateEmailError(err);
+    }
+
+    if (await syncGoogleAvatarIfMissing(user, profile.picture)) {
+      await user.save();
     }
 
     if (role === ROLES.AGENT) {

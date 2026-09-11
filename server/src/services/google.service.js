@@ -23,6 +23,7 @@ export const googleService = {
         emailVerified: payload.email_verified === true,
         firstName: payload.given_name?.trim() || undefined,
         lastName: payload.family_name?.trim() || undefined,
+        picture: payload.picture?.trim() || undefined,
       };
     } catch (err) {
       if (err instanceof AppError) {

@@ -5,12 +5,20 @@ import Footer from "@/components/common/default-footer";
 import MobileMenu from "@/components/common/mobile-menu";
 import { buytlyApi } from "@/api/generated";
 import { getApiError } from "@/lib/auth/getApiError";
+import { AUTHENTICATED_HOME } from "@/lib/auth/constants";
+import { hasStoredTokens } from "@/lib/auth/tokens";
+import { invalidateNotificationQueries } from "@/lib/notifications/invalidateNotificationQueries";
+import { useAuth } from "@/providers/AuthProvider";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 
 const VerifyEmailContent = () => {
   const searchParams = useSearchParams();
+  const router = useRouter();
+  const queryClient = useQueryClient();
+  const { refreshUser, isAuthenticated } = useAuth();
   const token = searchParams.get("token") ?? "";
   const [status, setStatus] = useState("loading");
   const [message, setMessage] = useState("");
@@ -28,6 +36,11 @@ const VerifyEmailContent = () => {
       try {
         const response = await buytlyApi.verifyEmail({ token });
         if (!cancelled) {
+          if (hasStoredTokens()) {
+            await refreshUser();
+            await invalidateNotificationQueries(queryClient);
+          }
+          router.refresh();
           setStatus("success");
           setMessage(response.message || "Email verified successfully.");
         }
@@ -44,7 +57,7 @@ const VerifyEmailContent = () => {
     return () => {
       cancelled = true;
     };
-  }, [token]);
+  }, [token, refreshUser, queryClient, router]);
 
   return (
     <>
@@ -81,7 +94,23 @@ const VerifyEmailContent = () => {
 
                 {status !== "loading" ? (
                   <p className="mb0 mt20">
-                    <Link href="/?auth=signin">Go to sign in</Link>
+                    <Link
+                      href={
+                        status === "success" && isAuthenticated
+                          ? AUTHENTICATED_HOME
+                          : "/?auth=signin"
+                      }
+                      onClick={() => {
+                        if (hasStoredTokens()) {
+                          void refreshUser();
+                        }
+                        router.refresh();
+                      }}
+                    >
+                      {status === "success" && isAuthenticated
+                        ? "Go to dashboard"
+                        : "Go to sign in"}
+                    </Link>
                   </p>
                 ) : null}
               </div>

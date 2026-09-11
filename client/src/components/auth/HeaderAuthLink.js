@@ -1,5 +1,9 @@
 "use client";
 
+import AccountHeaderAvatar, {
+  AccountHeaderAvatarLoading,
+  getAccountLabel,
+} from "@/components/auth/AccountHeaderAvatar";
 import AuthModalTrigger from "@/components/common/login-signup-modal/AuthModalTrigger";
 import { useAuth } from "@/providers/AuthProvider";
 import Link from "next/link";
@@ -16,20 +20,21 @@ const HeaderAuthLink = ({
         aria-busy="true"
         aria-label="Loading account"
       >
-        <i className="far fa-user-circle fz16 me-2" />
-        <span className="d-none d-xl-block header-auth-link__placeholder" />
+        <AccountHeaderAvatarLoading />
       </span>
     );
   }
 
   if (isAuthenticated) {
-    const displayName =
-      user?.firstName || user?.email?.split("@")[0] || "Account";
+    const accountLabel = getAccountLabel(user);
 
     return (
-      <Link href="/dashboard-home" className={className}>
-        <i className="far fa-user-circle fz16 me-2" />
-        <span className="d-none d-xl-block">{displayName}</span>
+      <Link
+        href="/dashboard-home"
+        className={`${className} header-auth-link--account`}
+        aria-label={`${accountLabel}, go to dashboard`}
+      >
+        <AccountHeaderAvatar user={user} />
       </Link>
     );
   }

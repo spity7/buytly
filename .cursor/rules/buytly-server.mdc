@@ -14,7 +14,8 @@ Key references in `server/docs/`:
 - `api-rules.md` — response shape, pagination, rate limits
 - `modules.md` — endpoint contracts
 - `database-schema.md` — collections and indexes
-- `auth-flow.md` — JWT and role permissions
+- `auth-flow.md` — JWT lifecycle and auth flows
+- `roles.md` — role definitions, permissions, and authorization layers
 - `deployment.md` — env vars and production setup
 
 ## Module pattern
