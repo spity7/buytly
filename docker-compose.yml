@@ -18,6 +18,8 @@ services:
     depends_on:
       - server
     restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
     healthcheck:
       test:
         [

@@ -1,9 +1,16 @@
+import fs from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
 import dotenv from "dotenv";
 import { z } from "zod";
 
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const envPath = path.resolve(__dirname, "../../.env");
+
 // Test env is set in tests/setup.js — do not load .env
-if (process.env.NODE_ENV !== "test") {
-  dotenv.config();
+// In Docker, vars come from compose env_file (no mounted .env)
+if (process.env.NODE_ENV !== "test" && fs.existsSync(envPath)) {
+  dotenv.config({ path: envPath });
 }
 
 const envSchema = z
