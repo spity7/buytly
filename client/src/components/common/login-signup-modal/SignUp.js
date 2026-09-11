@@ -18,6 +18,7 @@ const ROLES = [
 
 const SignUp = ({
   showGoogleAuth = true,
+  googleAuthKey = 0,
   defaultRole = "buyer",
   redirectTo = AUTHENTICATED_HOME,
   intentHint = null,
@@ -252,6 +253,7 @@ const SignUp = ({
       {showGoogleAuth ? (
         <div className="d-grid mb15">
           <GoogleAuthButton
+            key={googleAuthKey}
             onCredential={handleGoogleCredential}
             disabled={isGoogleSubmitting || isSubmitting}
             error={googleError}

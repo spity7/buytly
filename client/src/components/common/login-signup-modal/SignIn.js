@@ -9,7 +9,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
-const SignIn = ({ showGoogleAuth = true }) => {
+const SignIn = ({ showGoogleAuth = true, googleAuthKey = 0 }) => {
   const { login, loginWithGoogle } = useAuth();
   const router = useRouter();
   const [email, setEmail] = useState("");
@@ -123,6 +123,7 @@ const SignIn = ({ showGoogleAuth = true }) => {
       {showGoogleAuth ? (
         <div className="d-grid mb15">
           <GoogleAuthButton
+            key={googleAuthKey}
             onCredential={handleGoogleCredential}
             disabled={isGoogleSubmitting || isSubmitting}
             error={googleError}

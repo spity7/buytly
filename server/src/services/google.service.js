@@ -28,6 +28,18 @@ export const googleService = {
       if (err instanceof AppError) {
         throw err;
       }
+
+      if (process.env.NODE_ENV === "development") {
+        console.error("Google token verification failed:", err.message);
+      }
+
+      if (/token used too (early|late)/i.test(err.message)) {
+        throw new AppError(
+          "Invalid Google token — sync your system clock and try again",
+          401,
+        );
+      }
+
       throw new AppError("Invalid Google token", 401);
     }
   },

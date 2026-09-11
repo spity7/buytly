@@ -1388,6 +1388,46 @@ section[aria-label^="Notifications"] {
     }
 }
 
+.signup-modal {
+    .modal {
+        padding-top: 1.25rem;
+        padding-bottom: 0.75rem;
+    }
+
+    .modal-dialog {
+        max-height: calc(100vh - 2rem);
+        margin-top: 0;
+        margin-bottom: 0;
+    }
+
+    .modal-dialog-centered {
+        align-items: flex-start;
+    }
+
+    .modal-content {
+        max-height: calc(100vh - 2rem);
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+    }
+
+    .modal-body {
+        overflow-x: hidden;
+        overflow-y: auto;
+        flex: 1 1 auto;
+        min-height: 0;
+    }
+
+    .log-reg-form form {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .google-auth-button {
+        overflow: visible;
+    }
+}
+
 .google-auth-button {
     &__btn {
         position: relative;

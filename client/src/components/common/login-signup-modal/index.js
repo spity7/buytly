@@ -16,6 +16,8 @@ const DEFAULT_SIGNUP_CONFIG = {
 const LoginSignupModal = () => {
   const [activeTab, setActiveTab] = useState("signin");
   const [signupConfig, setSignupConfig] = useState(DEFAULT_SIGNUP_CONFIG);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [googleAuthKey, setGoogleAuthKey] = useState(0);
 
   useEffect(() => {
     const signInTab = document.getElementById("nav-home-tab");
@@ -29,6 +31,9 @@ const LoginSignupModal = () => {
     const onSignIn = () => setActiveTab("signin");
     const onSignUp = () => setActiveTab("signup");
     const onModalShown = () => {
+      setIsModalOpen(true);
+      setGoogleAuthKey((key) => key + 1);
+
       const intent = consumeAuthIntent();
 
       if (intent) {
@@ -46,15 +51,18 @@ const LoginSignupModal = () => {
 
       setSignupConfig(DEFAULT_SIGNUP_CONFIG);
     };
+    const onModalHidden = () => setIsModalOpen(false);
 
     signInTab.addEventListener("shown.bs.tab", onSignIn);
     signUpTab.addEventListener("shown.bs.tab", onSignUp);
     modalEl?.addEventListener("shown.bs.modal", onModalShown);
+    modalEl?.addEventListener("hidden.bs.modal", onModalHidden);
 
     return () => {
       signInTab.removeEventListener("shown.bs.tab", onSignIn);
       signUpTab.removeEventListener("shown.bs.tab", onSignUp);
       modalEl?.removeEventListener("shown.bs.modal", onModalShown);
+      modalEl?.removeEventListener("hidden.bs.modal", onModalHidden);
     };
   }, []);
 
@@ -113,7 +121,10 @@ const LoginSignupModal = () => {
                 role="tabpanel"
                 aria-labelledby="nav-home-tab"
               >
-                <SignIn showGoogleAuth={activeTab === "signin"} />
+                <SignIn
+                  showGoogleAuth={isModalOpen && activeTab === "signin"}
+                  googleAuthKey={googleAuthKey}
+                />
               </div>
               {/* End signin content */}
 
@@ -124,7 +135,8 @@ const LoginSignupModal = () => {
                 aria-labelledby="nav-profile-tab"
               >
                 <SignUp
-                  showGoogleAuth={activeTab === "signup"}
+                  showGoogleAuth={isModalOpen && activeTab === "signup"}
+                  googleAuthKey={googleAuthKey}
                   defaultRole={signupConfig.defaultRole}
                   redirectTo={signupConfig.redirectTo}
                   intentHint={signupConfig.intentHint}
