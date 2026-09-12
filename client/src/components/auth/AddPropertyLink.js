@@ -22,21 +22,15 @@ const AddPropertyLink = ({ className, children = defaultChildren }) => {
   const { isAuthenticated, isLoading, user } = useAuth();
   const hasMounted = useHasMounted();
 
-  if (
-    hasMounted &&
-    !isLoading &&
-    isAuthenticated &&
-    !canManageListings(user?.role)
-  ) {
+  if (!hasMounted || isLoading) {
     return null;
   }
 
-  if (
-    hasMounted &&
-    !isLoading &&
-    isAuthenticated &&
-    canManageListings(user?.role)
-  ) {
+  if (isAuthenticated && !canManageListings(user?.role)) {
+    return null;
+  }
+
+  if (isAuthenticated && canManageListings(user?.role)) {
     return (
       <Link className={className} href={ADD_PROPERTY_PATH}>
         {children}
