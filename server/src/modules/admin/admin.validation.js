@@ -2,7 +2,6 @@ import { z } from "zod";
 import {
   ROLES,
   PROPERTY_STATUSES,
-  PROPERTY_TYPES,
   LISTING_TYPES,
 } from "../../shared/constants.js";
 
@@ -36,7 +35,7 @@ export const listAdminPropertiesSchema = z.object({
   page: z.coerce.number().int().positive().optional(),
   limit: z.coerce.number().int().positive().max(100).optional(),
   status: z.enum(PROPERTY_STATUSES).optional(),
-  type: z.enum(PROPERTY_TYPES).optional(),
+  type: z.string().min(1).max(50).optional(),
   listingType: z.enum(LISTING_TYPES).optional(),
   search: z.string().optional(),
   sortBy: z.enum(["price", "createdAt", "viewCount"]).optional(),

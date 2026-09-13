@@ -5,6 +5,7 @@ export const ROLES = {
   ADMIN: "admin",
 };
 
+/** @deprecated Use catalog API — kept for tests and legacy references */
 export const PROPERTY_TYPES = [
   "apartment",
   "villa",
@@ -14,6 +15,8 @@ export const PROPERTY_TYPES = [
   "duplex",
   "studio",
 ];
+
+export const DEFAULT_CURRENCY = "USD";
 
 export const LISTING_TYPES = ["sale", "rent"];
 

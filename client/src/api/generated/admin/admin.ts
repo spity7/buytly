@@ -6,16 +6,22 @@
  * OpenAPI spec version: 1.0.0
  */
 import type {
+  AdminListCatalogAmenities200,
+  AdminListCatalogPropertyTypes200,
   AdminListPropertiesParams,
   AdminListUsersParams,
   AdminModeratePropertyBody,
   AdminUpdateUserRoleBody,
   AdminUpdateUserStatusBody,
   AdminUserDetailResponse,
+  CreateCatalogAmenityRequest,
+  CreateCatalogPropertyTypeRequest,
   GetAnalytics200,
   PaginatedAdminUsersResponse,
   PaginatedPropertiesResponse,
   PropertySuccessResponse,
+  UpdateCatalogAmenityRequest,
+  UpdateCatalogPropertyTypeRequest,
   UserSuccessResponse,
 } from "../buytly.schemas";
 
@@ -137,6 +143,126 @@ export const getAdmin = () => {
       options,
     );
   };
+  /**
+   * @summary List all property types (admin)
+   */
+  const adminListCatalogPropertyTypes = (
+    options?: SecondParameter<
+      typeof customInstance<AdminListCatalogPropertyTypes200>
+    >,
+  ) => {
+    return customInstance<AdminListCatalogPropertyTypes200>(
+      { url: `/admin/catalog/property-types`, method: "GET" },
+      options,
+    );
+  };
+  /**
+   * @summary Create property type
+   */
+  const adminCreateCatalogPropertyType = (
+    createCatalogPropertyTypeRequest: BodyType<CreateCatalogPropertyTypeRequest>,
+    options?: SecondParameter<typeof customInstance<void>>,
+  ) => {
+    return customInstance<void>(
+      {
+        url: `/admin/catalog/property-types`,
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        data: createCatalogPropertyTypeRequest,
+      },
+      options,
+    );
+  };
+  /**
+   * @summary Update property type
+   */
+  const adminUpdateCatalogPropertyType = (
+    id: string,
+    updateCatalogPropertyTypeRequest: BodyType<UpdateCatalogPropertyTypeRequest>,
+    options?: SecondParameter<typeof customInstance<void>>,
+  ) => {
+    return customInstance<void>(
+      {
+        url: `/admin/catalog/property-types/${id}`,
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        data: updateCatalogPropertyTypeRequest,
+      },
+      options,
+    );
+  };
+  /**
+   * @summary Delete property type
+   */
+  const adminDeleteCatalogPropertyType = (
+    id: string,
+    options?: SecondParameter<typeof customInstance<void>>,
+  ) => {
+    return customInstance<void>(
+      { url: `/admin/catalog/property-types/${id}`, method: "DELETE" },
+      options,
+    );
+  };
+  /**
+   * @summary List all amenities (admin)
+   */
+  const adminListCatalogAmenities = (
+    options?: SecondParameter<
+      typeof customInstance<AdminListCatalogAmenities200>
+    >,
+  ) => {
+    return customInstance<AdminListCatalogAmenities200>(
+      { url: `/admin/catalog/amenities`, method: "GET" },
+      options,
+    );
+  };
+  /**
+   * @summary Create amenity
+   */
+  const adminCreateCatalogAmenity = (
+    createCatalogAmenityRequest: BodyType<CreateCatalogAmenityRequest>,
+    options?: SecondParameter<typeof customInstance<void>>,
+  ) => {
+    return customInstance<void>(
+      {
+        url: `/admin/catalog/amenities`,
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        data: createCatalogAmenityRequest,
+      },
+      options,
+    );
+  };
+  /**
+   * @summary Update amenity
+   */
+  const adminUpdateCatalogAmenity = (
+    id: string,
+    updateCatalogAmenityRequest: BodyType<UpdateCatalogAmenityRequest>,
+    options?: SecondParameter<typeof customInstance<void>>,
+  ) => {
+    return customInstance<void>(
+      {
+        url: `/admin/catalog/amenities/${id}`,
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        data: updateCatalogAmenityRequest,
+      },
+      options,
+    );
+  };
+  /**
+   * @summary Delete amenity
+   */
+  const adminDeleteCatalogAmenity = (
+    id: string,
+    options?: SecondParameter<typeof customInstance<void>>,
+  ) => {
+    return customInstance<void>(
+      { url: `/admin/catalog/amenities/${id}`, method: "DELETE" },
+      options,
+    );
+  };
   return {
     adminListUsers,
     adminGetUserById,
@@ -145,6 +271,14 @@ export const getAdmin = () => {
     adminListProperties,
     adminModerateProperty,
     getAnalytics,
+    adminListCatalogPropertyTypes,
+    adminCreateCatalogPropertyType,
+    adminUpdateCatalogPropertyType,
+    adminDeleteCatalogPropertyType,
+    adminListCatalogAmenities,
+    adminCreateCatalogAmenity,
+    adminUpdateCatalogAmenity,
+    adminDeleteCatalogAmenity,
   };
 };
 
@@ -172,4 +306,36 @@ export type AdminModeratePropertyResult = NonNullable<
 >;
 export type GetAnalyticsResult = NonNullable<
   Awaited<ReturnType<ReturnType<typeof getAdmin>["getAnalytics"]>>
+>;
+export type AdminListCatalogPropertyTypesResult = NonNullable<
+  Awaited<
+    ReturnType<ReturnType<typeof getAdmin>["adminListCatalogPropertyTypes"]>
+  >
+>;
+export type AdminCreateCatalogPropertyTypeResult = NonNullable<
+  Awaited<
+    ReturnType<ReturnType<typeof getAdmin>["adminCreateCatalogPropertyType"]>
+  >
+>;
+export type AdminUpdateCatalogPropertyTypeResult = NonNullable<
+  Awaited<
+    ReturnType<ReturnType<typeof getAdmin>["adminUpdateCatalogPropertyType"]>
+  >
+>;
+export type AdminDeleteCatalogPropertyTypeResult = NonNullable<
+  Awaited<
+    ReturnType<ReturnType<typeof getAdmin>["adminDeleteCatalogPropertyType"]>
+  >
+>;
+export type AdminListCatalogAmenitiesResult = NonNullable<
+  Awaited<ReturnType<ReturnType<typeof getAdmin>["adminListCatalogAmenities"]>>
+>;
+export type AdminCreateCatalogAmenityResult = NonNullable<
+  Awaited<ReturnType<ReturnType<typeof getAdmin>["adminCreateCatalogAmenity"]>>
+>;
+export type AdminUpdateCatalogAmenityResult = NonNullable<
+  Awaited<ReturnType<ReturnType<typeof getAdmin>["adminUpdateCatalogAmenity"]>>
+>;
+export type AdminDeleteCatalogAmenityResult = NonNullable<
+  Awaited<ReturnType<ReturnType<typeof getAdmin>["adminDeleteCatalogAmenity"]>>
 >;

@@ -74,6 +74,11 @@ export function getDashboardNavSections(role) {
                 icon: "flaticon-settings",
                 text: "Moderate Listings",
               },
+              {
+                href: "/dashboard-admin-catalog",
+                icon: "flaticon-home",
+                text: "Types & Amenities",
+              },
             ],
           },
         ]

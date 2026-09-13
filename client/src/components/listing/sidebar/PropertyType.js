@@ -1,9 +1,11 @@
 "use client";
 
 import React from "react";
-import { LISTING_PROPERTY_TYPE_OPTIONS } from "@/lib/listings/listingFilters";
+import { useCatalogPropertyTypes } from "@/hooks/useCatalog";
 
 const PropertyType = ({ filterFunctions }) => {
+  const { data: propertyTypes = [] } = useCatalogPropertyTypes();
+
   return (
     <>
       <label className="custom_checkbox">
@@ -15,8 +17,8 @@ const PropertyType = ({ filterFunctions }) => {
         />
         <span className="checkmark" />
       </label>
-      {LISTING_PROPERTY_TYPE_OPTIONS.map((option) => (
-        <label className="custom_checkbox" key={option.value}>
+      {propertyTypes.map((option) => (
+        <label className="custom_checkbox" key={option.id}>
           {option.label}
           <input
             type="checkbox"

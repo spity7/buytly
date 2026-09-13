@@ -7,6 +7,7 @@ import { normalizeNotificationPreferences } from "../notifications/notification.
 import bcrypt from "bcrypt";
 import crypto from "crypto";
 import { cacheService } from "../../services/cache.service.js";
+import { catalogService } from "../catalog/catalog.service.js";
 
 export const userService = {
   async getMe(userId) {
@@ -49,6 +50,12 @@ export const userService = {
   async updatePreferences(userId, preferences) {
     const user = await User.findById(userId);
     if (!user) throw new AppError("User not found", 404);
+
+    if (preferences.propertyTypes?.length) {
+      await catalogService.assertValidPropertyTypesForPreferences(
+        preferences.propertyTypes,
+      );
+    }
 
     user.preferences = {
       ...(user.preferences?.toObject?.() || user.preferences || {}),

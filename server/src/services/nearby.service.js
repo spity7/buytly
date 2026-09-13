@@ -1,7 +1,25 @@
-const OVERPASS_URL = "https://overpass-api.de/api/interpreter";
+const DEFAULT_OVERPASS_ENDPOINTS = [
+  "https://overpass.kumi.systems/api/interpreter",
+  "https://overpass-api.de/api/interpreter",
+];
+
 const RADIUS_METERS = 5000;
 const MAX_PER_CATEGORY = 5;
 const OVERPASS_TIMEOUT_MS = 25_000;
+const OVERPASS_USER_AGENT =
+  process.env.OVERPASS_USER_AGENT || "Buytly/1.0 (+https://buytly.local)";
+
+function getOverpassEndpoints() {
+  const configured = process.env.OVERPASS_URL?.trim();
+  if (!configured) {
+    return DEFAULT_OVERPASS_ENDPOINTS;
+  }
+
+  return [
+    configured,
+    ...DEFAULT_OVERPASS_ENDPOINTS.filter((url) => url !== configured),
+  ];
+}
 
 const CATEGORIES = [
   {
@@ -105,7 +123,7 @@ const buildOverpassQuery = (lat, lng) => {
 (
 ${filterQueries}
 );
-out center 60;`;
+out center;`;
 };
 
 const categorizeElements = (elements, originLat, originLng) => {
@@ -138,34 +156,74 @@ const categorizeElements = (elements, originLat, originLng) => {
     });
   }
 
-  return CATEGORIES.map((category) => ({
-    title: category.title,
-    places: grouped[category.id]
+  return CATEGORIES.map((category) => {
+    const seen = new Set();
+    const places = grouped[category.id]
       .sort((a, b) => a.distanceKm - b.distanceKm)
-      .slice(0, MAX_PER_CATEGORY),
-  }));
+      .filter((place) => {
+        const key = `${place.name}|${place.subtitle}`;
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      })
+      .slice(0, MAX_PER_CATEGORY);
+
+    return {
+      title: category.title,
+      places,
+    };
+  });
 };
+
+async function requestOverpass(query, endpoint) {
+  const response = await fetch(endpoint, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded",
+      "User-Agent": OVERPASS_USER_AGENT,
+    },
+    body: `data=${encodeURIComponent(query)}`,
+    signal: AbortSignal.timeout(OVERPASS_TIMEOUT_MS),
+  });
+
+  const contentType = response.headers.get("content-type") || "";
+
+  if (!response.ok) {
+    throw new Error(
+      `Overpass request failed with status ${response.status} (${endpoint})`,
+    );
+  }
+
+  if (!contentType.includes("json")) {
+    const body = await response.text();
+    throw new Error(
+      `Overpass returned non-JSON from ${endpoint}: ${body.slice(0, 120)}`,
+    );
+  }
+
+  return response.json();
+}
 
 export const nearbyService = {
   async fetchNearbyPlaces(lat, lng) {
     const query = buildOverpassQuery(lat, lng);
-    const response = await fetch(OVERPASS_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body: `data=${encodeURIComponent(query)}`,
-      signal: AbortSignal.timeout(OVERPASS_TIMEOUT_MS),
-    });
+    const endpoints = getOverpassEndpoints();
+    let lastError;
 
-    if (!response.ok) {
-      throw new Error(`Overpass request failed with status ${response.status}`);
+    for (const endpoint of endpoints) {
+      try {
+        const payload = await requestOverpass(query, endpoint);
+        const categories = categorizeElements(payload.elements || [], lat, lng);
+
+        return {
+          categories,
+          source: "openstreetmap",
+        };
+      } catch (error) {
+        lastError = error;
+      }
     }
 
-    const payload = await response.json();
-    const categories = categorizeElements(payload.elements || [], lat, lng);
-
-    return {
-      categories,
-      source: "openstreetmap",
-    };
+    throw lastError ?? new Error("Overpass request failed");
   },
 };

@@ -29,6 +29,26 @@ export function notificationDeleteConfirmation(title) {
   };
 }
 
+export function catalogItemDeleteConfirmation(label, kind = "item") {
+  return {
+    title: `Delete ${kind}?`,
+    message: `"${label}" will be removed from the catalog. If it is used on live listings, deactivate it instead.`,
+    confirmLabel: "Delete",
+    confirmVariant: "danger",
+    confirmingLabel: "Deleting...",
+  };
+}
+
+export function catalogItemDeactivateConfirmation(label, kind = "item") {
+  return {
+    title: `Deactivate ${kind}?`,
+    message: `"${label}" will be hidden from listing forms and search filters. Existing listings can still show it until they are edited.`,
+    confirmLabel: "Deactivate",
+    confirmVariant: "danger",
+    confirmingLabel: "Deactivating...",
+  };
+}
+
 export function favoriteRemoveConfirmation(title) {
   return {
     title: "Remove from favorites?",

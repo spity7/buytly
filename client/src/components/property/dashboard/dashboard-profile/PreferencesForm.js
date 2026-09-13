@@ -1,7 +1,7 @@
 "use client";
 
 import { buytlyApi } from "@/api/generated";
-import { UserPreferencesPropertyTypesItem } from "@/api/generated/buytly.schemas";
+import { useCatalogPropertyTypes } from "@/hooks/useCatalog";
 import DashboardFormSubmit from "@/components/property/dashboard/dashboard-profile/DashboardFormSubmit";
 import ProfileFormSkeleton from "@/components/property/dashboard/dashboard-profile/ProfileFormSkeleton";
 import { hasFormChanges } from "@/lib/form/hasFormChanges";
@@ -9,8 +9,6 @@ import { useAsyncAction } from "@/hooks/useAsyncAction";
 import { notifyError } from "@/lib/toast";
 import { useAuth } from "@/providers/AuthProvider";
 import { useEffect, useMemo, useState } from "react";
-
-const PROPERTY_TYPE_OPTIONS = Object.values(UserPreferencesPropertyTypesItem);
 
 const emptyForm = {
   budgetMin: "",
@@ -34,6 +32,7 @@ const buildPreferencesSnapshot = (user) => ({
 
 const PreferencesForm = () => {
   const { user, refreshUser, isLoading } = useAuth();
+  const { data: propertyTypeOptions = [] } = useCatalogPropertyTypes();
   const [form, setForm] = useState(emptyForm);
   const [baseline, setBaseline] = useState(null);
   const { run, isBusy } = useAsyncAction();
@@ -166,15 +165,15 @@ const PreferencesForm = () => {
               Property types
             </span>
             <div className="preferences-types">
-              {PROPERTY_TYPE_OPTIONS.map((type) => (
-                <label key={type} className="preferences-types__item">
+              {propertyTypeOptions.map((type) => (
+                <label key={type.id} className="preferences-types__item">
                   <input
                     type="checkbox"
-                    checked={form.propertyTypes.includes(type)}
-                    onChange={() => togglePropertyType(type)}
+                    checked={form.propertyTypes.includes(type.value)}
+                    onChange={() => togglePropertyType(type.value)}
                     disabled={isBusy}
                   />
-                  <span>{type.charAt(0).toUpperCase() + type.slice(1)}</span>
+                  <span>{type.label}</span>
                 </label>
               ))}
             </div>

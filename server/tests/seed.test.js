@@ -11,6 +11,8 @@ import { Favorite } from "../src/modules/favorites/favorite.model.js";
 import { Booking } from "../src/modules/bookings/booking.model.js";
 import { Transaction } from "../src/modules/transactions/transaction.model.js";
 import { Notification } from "../src/modules/notifications/notification.model.js";
+import { PropertyTypeCatalog } from "../src/modules/catalog/property-type.model.js";
+import { AmenityCatalog } from "../src/modules/catalog/amenity.model.js";
 
 const DEMO_PASSWORD = "BuytlyDemo2026!";
 
@@ -28,6 +30,12 @@ describe.skipIf(!mongoAvailable)("seed script", () => {
     });
 
     expect(await User.countDocuments()).toBe(SEED_EXPECTED_COUNTS.users);
+    expect(await PropertyTypeCatalog.countDocuments()).toBe(
+      SEED_EXPECTED_COUNTS.propertyTypes,
+    );
+    expect(await AmenityCatalog.countDocuments()).toBe(
+      SEED_EXPECTED_COUNTS.amenities,
+    );
     expect(await AgentProfile.countDocuments()).toBe(
       SEED_EXPECTED_COUNTS.agentProfiles,
     );
@@ -69,9 +77,23 @@ describe.skipIf(!mongoAvailable)("seed script", () => {
     expect(archived?.status).toBe("archived");
     expect(archived?.deletedAt).toBeTruthy();
 
-    const land = await Property.findOne({ title: "Al Shamkha Residential Land" });
+    const land = await Property.findOne({
+      title: "Al Shamkha Residential Land",
+    });
     expect(land?.type).toBe("land");
     expect(land?.status).toBe("active");
+
+    const properties = await Property.find({});
+    expect(properties.every((p) => p.currency === "USD")).toBe(true);
+
+    const catalogAmenities = new Set(
+      (await AmenityCatalog.find({}).select("value")).map((row) => row.value),
+    );
+    for (const property of properties) {
+      for (const amenity of property.amenities || []) {
+        expect(catalogAmenities.has(amenity)).toBe(true);
+      }
+    }
 
     const app = await getApp();
     const login = await request(app)

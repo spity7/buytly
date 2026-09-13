@@ -13,6 +13,14 @@ import {
   propertyIdSchema,
   moderatePropertySchema,
 } from "./admin.validation.js";
+import { catalogController } from "../catalog/catalog.controller.js";
+import {
+  catalogItemIdSchema,
+  createAmenitySchema,
+  createPropertyTypeSchema,
+  updateAmenitySchema,
+  updatePropertyTypeSchema,
+} from "../catalog/catalog.validation.js";
 
 const router = Router();
 
@@ -317,5 +325,268 @@ router.patch(
  *         $ref: '#/components/responses/Forbidden'
  */
 router.get("/analytics", asyncHandler(adminController.getAnalytics));
+
+/**
+ * @swagger
+ * /admin/catalog/property-types:
+ *   get:
+ *     operationId: adminListCatalogPropertyTypes
+ *     summary: List all property types (admin)
+ *     tags: [Admin, Catalog]
+ *     security:
+ *       - BearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Property type list (includes listingCount per item)
+ *         content:
+ *           application/json:
+ *             schema:
+ *               allOf:
+ *                 - $ref: '#/components/schemas/SuccessResponse'
+ *                 - type: object
+ *                   properties:
+ *                     data:
+ *                       type: array
+ *                       items:
+ *                         $ref: '#/components/schemas/AdminCatalogPropertyType'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ */
+router.get(
+  "/catalog/property-types",
+  asyncHandler(catalogController.adminListPropertyTypes),
+);
+
+/**
+ * @swagger
+ * /admin/catalog/property-types:
+ *   post:
+ *     operationId: adminCreateCatalogPropertyType
+ *     summary: Create property type
+ *     tags: [Admin, Catalog]
+ *     security:
+ *       - BearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/CreateCatalogPropertyTypeRequest'
+ *     responses:
+ *       201:
+ *         description: Property type created
+ *       400:
+ *         $ref: '#/components/responses/ValidationError'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ *       409:
+ *         $ref: '#/components/responses/Conflict'
+ */
+router.post(
+  "/catalog/property-types",
+  validate(createPropertyTypeSchema),
+  asyncHandler(catalogController.adminCreatePropertyType),
+);
+
+/**
+ * @swagger
+ * /admin/catalog/property-types/{id}:
+ *   patch:
+ *     operationId: adminUpdateCatalogPropertyType
+ *     summary: Update property type
+ *     tags: [Admin, Catalog]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - $ref: '#/components/parameters/ObjectIdParam'
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/UpdateCatalogPropertyTypeRequest'
+ *     responses:
+ *       200:
+ *         description: Property type updated
+ *       400:
+ *         $ref: '#/components/responses/ValidationError'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ */
+router.patch(
+  "/catalog/property-types/:id",
+  validateMultiple({
+    params: catalogItemIdSchema,
+    body: updatePropertyTypeSchema,
+  }),
+  asyncHandler(catalogController.adminUpdatePropertyType),
+);
+
+/**
+ * @swagger
+ * /admin/catalog/property-types/{id}:
+ *   delete:
+ *     operationId: adminDeleteCatalogPropertyType
+ *     summary: Delete property type
+ *     tags: [Admin, Catalog]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - $ref: '#/components/parameters/ObjectIdParam'
+ *     responses:
+ *       200:
+ *         description: Property type deleted
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ *       409:
+ *         $ref: '#/components/responses/Conflict'
+ */
+router.delete(
+  "/catalog/property-types/:id",
+  validate(catalogItemIdSchema, "params"),
+  asyncHandler(catalogController.adminDeletePropertyType),
+);
+
+/**
+ * @swagger
+ * /admin/catalog/amenities:
+ *   get:
+ *     operationId: adminListCatalogAmenities
+ *     summary: List all amenities (admin)
+ *     tags: [Admin, Catalog]
+ *     security:
+ *       - BearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Amenity list (includes listingCount per item)
+ *         content:
+ *           application/json:
+ *             schema:
+ *               allOf:
+ *                 - $ref: '#/components/schemas/SuccessResponse'
+ *                 - type: object
+ *                   properties:
+ *                     data:
+ *                       type: array
+ *                       items:
+ *                         $ref: '#/components/schemas/AdminCatalogAmenity'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ */
+router.get(
+  "/catalog/amenities",
+  asyncHandler(catalogController.adminListAmenities),
+);
+
+/**
+ * @swagger
+ * /admin/catalog/amenities:
+ *   post:
+ *     operationId: adminCreateCatalogAmenity
+ *     summary: Create amenity
+ *     tags: [Admin, Catalog]
+ *     security:
+ *       - BearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/CreateCatalogAmenityRequest'
+ *     responses:
+ *       201:
+ *         description: Amenity created
+ *       400:
+ *         $ref: '#/components/responses/ValidationError'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ *       409:
+ *         $ref: '#/components/responses/Conflict'
+ */
+router.post(
+  "/catalog/amenities",
+  validate(createAmenitySchema),
+  asyncHandler(catalogController.adminCreateAmenity),
+);
+
+/**
+ * @swagger
+ * /admin/catalog/amenities/{id}:
+ *   patch:
+ *     operationId: adminUpdateCatalogAmenity
+ *     summary: Update amenity
+ *     tags: [Admin, Catalog]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - $ref: '#/components/parameters/ObjectIdParam'
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/UpdateCatalogAmenityRequest'
+ *     responses:
+ *       200:
+ *         description: Amenity updated
+ *       400:
+ *         $ref: '#/components/responses/ValidationError'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ */
+router.patch(
+  "/catalog/amenities/:id",
+  validateMultiple({ params: catalogItemIdSchema, body: updateAmenitySchema }),
+  asyncHandler(catalogController.adminUpdateAmenity),
+);
+
+/**
+ * @swagger
+ * /admin/catalog/amenities/{id}:
+ *   delete:
+ *     operationId: adminDeleteCatalogAmenity
+ *     summary: Delete amenity
+ *     tags: [Admin, Catalog]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - $ref: '#/components/parameters/ObjectIdParam'
+ *     responses:
+ *       200:
+ *         description: Amenity deleted
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ *       409:
+ *         $ref: '#/components/responses/Conflict'
+ */
+router.delete(
+  "/catalog/amenities/:id",
+  validate(catalogItemIdSchema, "params"),
+  asyncHandler(catalogController.adminDeleteAmenity),
+);
 
 export default router;

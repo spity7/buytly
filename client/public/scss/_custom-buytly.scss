@@ -1676,25 +1676,86 @@ header.nav-homepage-style.sticky {
     }
 }
 
-// Dashboard — floor plan editor cards
+// Dashboard — floor plan editor
+.property-form-floor-plans {
+    .floor-plans-empty {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 36px 28px;
+        text-align: center;
+        background-color: #fafafa;
+        border-color: #e4e6eb !important;
+    }
+
+    .floor-plans-empty__icon {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 56px;
+        height: 56px;
+        margin-bottom: 16px;
+        border-radius: 50%;
+        background: #f3f5f7;
+        color: #697488;
+        font-size: 24px;
+    }
+
+    .floor-plans-empty__title {
+        margin: 0 0 8px;
+        font-size: 17px;
+        font-weight: 700;
+        color: #181a20;
+    }
+
+    .floor-plans-empty__text {
+        max-width: 420px;
+        margin: 0;
+        font-size: 14px;
+        line-height: 1.55;
+        color: #697488;
+    }
+
+    .floor-plans-empty__action {
+        margin-top: 18px;
+    }
+}
+
 .floor-plan-card {
+    position: relative;
     background-color: #fafafa;
     border-color: #e4e6eb !important;
 }
 
-.floor-plan-remove-btn {
-    border: 1px solid #f1416c;
-    background-color: #fff5f8;
-    color: #f1416c;
-    font-weight: 600;
+.floor-plan-card__remove {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    z-index: 2;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    border: 1px solid rgba(220, 38, 38, 0.25);
+    border-radius: 10px;
+    background-color: #fff5f5;
+    color: #dc2626;
+    line-height: 1;
     transition:
         background-color 0.2s ease,
         color 0.2s ease,
         border-color 0.2s ease;
 
+    .fas {
+        font-size: 15px;
+    }
+
     &:hover {
-        background-color: #f1416c;
-        border-color: #f1416c;
+        background-color: #dc2626;
+        border-color: #dc2626;
         color: #ffffff;
     }
 }
@@ -2516,5 +2577,238 @@ tr.dashboard-row-highlight {
     .listing-style1 {
         margin-bottom: 30px;
         height: 100%;
+    }
+}
+
+.catalog-admin {
+    .catalog-admin__tabs {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 20px;
+        margin-bottom: 24px;
+        padding-top: 8px;
+        padding-right: 10px;
+    }
+
+    .catalog-admin__tab {
+        position: relative;
+        display: inline-flex;
+        vertical-align: top;
+    }
+
+    .catalog-admin__tab-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        overflow: hidden;
+        line-height: 1.25;
+    }
+
+    .catalog-admin__tab-label {
+        display: inline-block;
+        font-weight: 600;
+        line-height: 1.25;
+    }
+
+    .catalog-admin__tab-count {
+        position: absolute;
+        top: 0;
+        right: 0;
+        margin: 0;
+        padding: 0;
+        font-size: 17px;
+        font-weight: 700;
+        line-height: 1;
+        transform: translate(72%, -88%);
+        pointer-events: none;
+        z-index: 1;
+        color: var(--primary-color);
+    }
+
+    .catalog-admin__tab:not(.catalog-admin__tab--selected) .catalog-admin__tab-count {
+        color: var(--headings-color, #181a20);
+    }
+
+    .catalog-admin__tab-active-note {
+        font-size: 11px;
+        font-weight: 500;
+        line-height: 1.2;
+        opacity: 0.9;
+    }
+
+    .catalog-admin__tab-btn.btn-white .catalog-admin__tab-active-note {
+        color: #697488;
+    }
+
+    .catalog-admin__list-panel {
+        background: #fff;
+        border: 1px solid #ececec;
+        border-radius: 12px;
+        min-height: 280px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .catalog-admin__pagination {
+        margin-top: 20px;
+    }
+
+    .catalog-admin__table-filters {
+        justify-content: flex-start;
+    }
+
+    .catalog-admin__empty {
+        max-width: 360px;
+        padding: 36px 28px;
+        text-align: center;
+    }
+
+    .catalog-admin__empty-icon {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 56px;
+        height: 56px;
+        margin-bottom: 16px;
+        border-radius: 50%;
+        background: #f3f5f7;
+        color: #697488;
+        font-size: 24px;
+    }
+
+    .catalog-admin__empty-title {
+        margin: 0 0 8px;
+        font-size: 17px;
+        font-weight: 700;
+        color: #181a20;
+    }
+
+    .catalog-admin__empty-text {
+        margin: 0;
+        font-size: 14px;
+        line-height: 1.55;
+        color: #697488;
+    }
+
+    .catalog-admin__empty-action {
+        margin-top: 18px;
+    }
+
+    .catalog-admin__form-panel {
+        background: var(--body-bg, #f7f7f7);
+        border: 1px solid #ececec;
+        border-radius: 12px;
+        padding: 24px;
+        height: 100%;
+    }
+
+    .catalog-admin__help {
+        font-size: 13px;
+        color: #717171;
+        margin-top: 6px;
+        margin-bottom: 0;
+    }
+
+    .catalog-admin__field-error {
+        font-size: 13px;
+        color: #dc2626;
+        margin-top: 8px;
+        margin-bottom: 0;
+        line-height: 1.4;
+    }
+
+    .catalog-admin__badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 4px 10px;
+        border-radius: 999px;
+        font-size: 12px;
+        font-weight: 600;
+        line-height: 1.2;
+
+        &--active {
+            background: rgba(34, 197, 94, 0.12);
+            color: #15803d;
+        }
+
+        &--inactive {
+            background: rgba(107, 114, 128, 0.12);
+            color: #4b5563;
+        }
+    }
+
+    .catalog-admin__row-editing {
+        background: rgba(59, 130, 246, 0.06);
+    }
+
+    .catalog-admin__actions {
+        gap: 4px;
+    }
+
+    .catalog-admin__action-btn {
+        border: none;
+        background: transparent;
+        padding: 6px 8px;
+        line-height: 1;
+        border-radius: 8px;
+        transition:
+            background-color 0.2s ease,
+            color 0.2s ease;
+
+        &:disabled {
+            opacity: 0.45;
+            cursor: not-allowed;
+        }
+
+        .fas,
+        [class^="flaticon-"],
+        [class*=" flaticon-"] {
+            font-size: 16px;
+        }
+
+        &--edit {
+            color: #2563eb;
+
+            &:hover:not(:disabled) {
+                background: rgba(37, 99, 235, 0.1);
+                color: #1d4ed8;
+            }
+        }
+
+        &--deactivate {
+            color: #d97706;
+
+            &:hover:not(:disabled) {
+                background: rgba(217, 119, 6, 0.12);
+                color: #b45309;
+            }
+        }
+
+        &--activate {
+            color: #15803d;
+
+            &:hover:not(:disabled) {
+                background: rgba(21, 128, 61, 0.12);
+                color: #166534;
+            }
+        }
+
+        &--delete {
+            color: #dc2626;
+
+            &:hover:not(:disabled) {
+                background: rgba(220, 38, 38, 0.1);
+                color: #b91c1c;
+            }
+        }
+    }
+
+    .catalog-admin__mono {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+            "Liberation Mono", "Courier New", monospace;
+        font-size: 13px;
+        color: #374151;
     }
 }

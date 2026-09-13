@@ -214,7 +214,8 @@
  *           type: array
  *           items:
  *             type: string
- *             enum: [apartment, villa, townhouse, land, commercial, duplex, studio]
+ *             description: Active catalog property type slug
+ *             pattern: '^[a-z0-9]+(?:-[a-z0-9]+)*$'
  *           example: [apartment, villa]
  *
  *     NotificationChannelPreferences:
@@ -515,7 +516,8 @@
  *
  *     PropertyType:
  *       type: string
- *       enum: [apartment, villa, townhouse, land, commercial, duplex, studio]
+ *       description: Slug of an active catalog property type (see GET /catalog/property-types)
+ *       pattern: '^[a-z0-9]+(?:-[a-z0-9]+)*$'
  *       example: apartment
  *
  *     ListingType:
@@ -679,8 +681,8 @@
  *           example: 450000
  *         currency:
  *           type: string
- *           minLength: 3
- *           maxLength: 3
+ *           enum: [USD]
+ *           description: Always USD; other values are ignored by the API
  *           example: USD
  *         location:
  *           $ref: '#/components/schemas/PropertyLocation'
@@ -700,6 +702,7 @@
  *           example: sqm
  *         amenities:
  *           type: array
+ *           description: Values must match active catalog amenities (GET /catalog/amenities)
  *           items:
  *             type: string
  *         status:
@@ -1460,6 +1463,114 @@
  *             $ref: '#/components/schemas/FavoriteItem'
  *         pagination:
  *           $ref: '#/components/schemas/PaginationMeta'
+ *
+ *     CatalogPropertyType:
+ *       type: object
+ *       required: [id, value, label, sortOrder, isActive]
+ *       properties:
+ *         id:
+ *           type: string
+ *         value:
+ *           type: string
+ *           example: apartment
+ *         label:
+ *           type: string
+ *           example: Apartment
+ *         sortOrder:
+ *           type: integer
+ *         isActive:
+ *           type: boolean
+ *
+ *     AdminCatalogPropertyType:
+ *       allOf:
+ *         - $ref: '#/components/schemas/CatalogPropertyType'
+ *         - type: object
+ *           required: [listingCount]
+ *           properties:
+ *             listingCount:
+ *               type: integer
+ *               minimum: 0
+ *               description: Number of listings using this type value
+ *
+ *     CatalogAmenity:
+ *       type: object
+ *       required: [id, value, label, sortOrder, isActive]
+ *       properties:
+ *         id:
+ *           type: string
+ *         value:
+ *           type: string
+ *           example: WiFi
+ *         label:
+ *           type: string
+ *         sortOrder:
+ *           type: integer
+ *         isActive:
+ *           type: boolean
+ *
+ *     AdminCatalogAmenity:
+ *       allOf:
+ *         - $ref: '#/components/schemas/CatalogAmenity'
+ *         - type: object
+ *           required: [listingCount]
+ *           properties:
+ *             listingCount:
+ *               type: integer
+ *               minimum: 0
+ *               description: Number of listings that include this amenity value
+ *
+ *     CreateCatalogPropertyTypeRequest:
+ *       type: object
+ *       required: [value, label]
+ *       properties:
+ *         value:
+ *           type: string
+ *           example: penthouse
+ *         label:
+ *           type: string
+ *           example: Penthouse
+ *         sortOrder:
+ *           type: integer
+ *         isActive:
+ *           type: boolean
+ *
+ *     UpdateCatalogPropertyTypeRequest:
+ *       type: object
+ *       properties:
+ *         value:
+ *           type: string
+ *         label:
+ *           type: string
+ *         sortOrder:
+ *           type: integer
+ *         isActive:
+ *           type: boolean
+ *
+ *     CreateCatalogAmenityRequest:
+ *       type: object
+ *       required: [value, label]
+ *       properties:
+ *         value:
+ *           type: string
+ *           example: Sauna
+ *         label:
+ *           type: string
+ *         sortOrder:
+ *           type: integer
+ *         isActive:
+ *           type: boolean
+ *
+ *     UpdateCatalogAmenityRequest:
+ *       type: object
+ *       properties:
+ *         value:
+ *           type: string
+ *         label:
+ *           type: string
+ *         sortOrder:
+ *           type: integer
+ *         isActive:
+ *           type: boolean
  */
 
 export {};

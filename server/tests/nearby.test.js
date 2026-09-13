@@ -5,6 +5,12 @@ import {
   nearbyService,
 } from "../src/services/nearby.service.js";
 
+const jsonOverpassResponse = (elements) => ({
+  ok: true,
+  headers: { get: () => "application/json" },
+  json: async () => ({ elements }),
+});
+
 describe("nearby.service", () => {
   describe("haversineKm", () => {
     it("returns zero for identical coordinates", () => {
@@ -32,22 +38,19 @@ describe("nearby.service", () => {
     beforeEach(() => {
       vi.stubGlobal(
         "fetch",
-        vi.fn(async () => ({
-          ok: true,
-          json: async () => ({
-            elements: [
-              {
-                lat: 25.21,
-                lon: 55.27,
-                tags: { amenity: "school", name: "Test School" },
-              },
-              {
-                center: { lat: 25.22, lon: 55.28 },
-                tags: { amenity: "hospital", name: "Test Hospital" },
-              },
-            ],
-          }),
-        })),
+        vi.fn(async () =>
+          jsonOverpassResponse([
+            {
+              lat: 25.21,
+              lon: 55.27,
+              tags: { amenity: "school", name: "Test School" },
+            },
+            {
+              center: { lat: 25.22, lon: 55.28 },
+              tags: { amenity: "hospital", name: "Test Hospital" },
+            },
+          ]),
+        ),
       );
     });
 
@@ -64,11 +67,58 @@ describe("nearby.service", () => {
       expect(result.categories[1].places[0].name).toBe("Test Hospital");
     });
 
+    it("deduplicates places with the same name and subtitle", async () => {
+      vi.stubGlobal(
+        "fetch",
+        vi.fn(async () =>
+          jsonOverpassResponse([
+            {
+              lat: 25.21,
+              lon: 55.27,
+              tags: { amenity: "school", name: "Test School" },
+            },
+            {
+              lat: 25.211,
+              lon: 55.271,
+              tags: { amenity: "school", name: "Test School" },
+            },
+          ]),
+        ),
+      );
+
+      const result = await nearbyService.fetchNearbyPlaces(25.2048, 55.2708);
+      expect(result.categories[0].places).toHaveLength(1);
+    });
+
+    it("falls back to the next Overpass endpoint when the first fails", async () => {
+      const fetchMock = vi
+        .fn()
+        .mockRejectedValueOnce(new Error("primary down"))
+        .mockResolvedValueOnce({
+          ok: true,
+          headers: { get: () => "application/json" },
+          json: async () => ({
+            elements: [
+              {
+                lat: 33.89,
+                lon: 35.5,
+                tags: { amenity: "school", name: "Fallback School" },
+              },
+            ],
+          }),
+        });
+      vi.stubGlobal("fetch", fetchMock);
+
+      const result = await nearbyService.fetchNearbyPlaces(33.884, 35.486);
+
+      expect(fetchMock).toHaveBeenCalledTimes(2);
+      expect(result.categories[0].places[0].name).toBe("Fallback School");
+    });
+
     it("passes an abort timeout to Overpass fetch", async () => {
-      const fetchMock = vi.fn(async (_url, _options) => ({
-        ok: true,
-        json: async () => ({ elements: [] }),
-      }));
+      const fetchMock = vi.fn(async (_url, _options) =>
+        jsonOverpassResponse([]),
+      );
       vi.stubGlobal("fetch", fetchMock);
 
       await nearbyService.fetchNearbyPlaces(25.2048, 55.2708);

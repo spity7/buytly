@@ -6,11 +6,16 @@ export default function ApiPagination({
   total,
   limit,
   onPageChange,
+  itemLabel = "properties",
+  itemLabelSingular,
 }) {
+  const singular = itemLabelSingular ?? itemLabel;
+  const countLabel = total === 1 ? singular : itemLabel;
+
   if (!totalPages || totalPages <= 1) {
     return total > 0 ? (
       <p className="mt10 pagination_page_count text-center">
-        Showing {total} {total === 1 ? "property" : "properties"}
+        Showing {total} {countLabel}
       </p>
     ) : null;
   }
@@ -50,7 +55,7 @@ export default function ApiPagination({
       </ul>
       <p className="mt10 pagination_page_count text-center">
         {(page - 1) * limit + 1}-{Math.min(page * limit, total)} of {total}{" "}
-        properties
+        {itemLabel}
       </p>
     </div>
   );

@@ -1,5 +1,7 @@
 "use client";
 
+import PropertyLocationMap from "@/components/property/property-single-style/common/PropertyLocationMap";
+import { buildPropertyMapEmbedSrc } from "@/lib/geo/propertyCoordinates";
 import { usePropertySingle } from "@/providers/PropertySingleProvider";
 import React from "react";
 
@@ -11,10 +13,7 @@ const PropertyAddress = () => {
     return <p className="text">Address not available.</p>;
   }
 
-  const mapQuery = encodeURIComponent(
-    location.address ||
-      [location.city, location.country].filter(Boolean).join(", "),
-  );
+  const showMap = Boolean(buildPropertyMapEmbedSrc(location));
 
   return (
     <>
@@ -33,17 +32,11 @@ const PropertyAddress = () => {
         </div>
       </div>
 
-      {mapQuery && (
+      {showMap ? (
         <div className="col-md-12">
-          <iframe
-            className="position-relative bdrs12 mt30 h250"
-            loading="lazy"
-            src={`https://maps.google.com/maps?q=${mapQuery}&t=m&z=14&output=embed&iwloc=near`}
-            title={location.address || "Property location"}
-            aria-label={location.address || "Property location"}
-          />
+          <PropertyLocationMap />
         </div>
-      )}
+      ) : null}
     </>
   );
 };

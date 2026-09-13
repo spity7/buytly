@@ -44,7 +44,11 @@ npm run seed:reset    # wipe collections first, then seed
 | `SEED_PASSWORD` | `BuytlyDemo2026!` | Shared password for all `@buytly.demo` accounts |
 | `SEED_FORCE`    | —                 | Required to run when `NODE_ENV=production`      |
 
-Demo logins: `admin@buytly.demo`, `seller@buytly.demo`, `agent@buytly.demo`, `buyer@buytly.demo` (see seed output for full list). Includes land and archived listings, seller2 reviews, and cache invalidation when Redis is connected. **Development only** — never seed production without intent.
+Demo logins: `admin@buytly.demo`, `seller@buytly.demo`, `agent@buytly.demo`, `buyer@buytly.demo` (see seed output for full list). Includes land and archived listings, seller2 reviews, and cache invalidation when Redis is connected.
+
+**`npm run seed:reset`** (recommended) wipes users, listings, and the **listing catalog** collections, then reloads property types, amenities, and demo data. All demo listing prices use **`currency: USD`**, consistent with the API (create/update always store USD). Use **`npm run seed`** without reset only to append users when emails are new; catalog rows are skipped if types already exist (demo amenities are upserted).
+
+**Development only** — never seed production without intent.
 
 Generate JWT secrets:
 
@@ -82,6 +86,8 @@ The Next.js client fetches the live OpenAPI spec from `/api/docs.json` for Orval
 | SMTP_FROM              | Yes      | From email address (verified sender for SendGrid)                                 |
 | GCS_ORPHAN_GRACE_HOURS | No       | Grace period for `npm run cleanup:gcs` (default 48)                               |
 | REDIS_URL              | No       | Redis connection URL (optional)                                                   |
+| OVERPASS_URL           | No       | Primary Overpass API URL for What's Nearby (falls back to public mirrors)         |
+| OVERPASS_USER_AGENT    | No       | User-Agent sent to Overpass (recommended in production)                           |
 | GOOGLE_CLIENT_ID       | Yes      | Google OAuth Web client ID (same as client `NEXT_PUBLIC_GOOGLE_CLIENT_ID`)        |
 
 **Docker Compose (repo root `.env`):** copy `.env.example` → `.env` at the repo root. Never commit `.env`. Required for client build/runtime:

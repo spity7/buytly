@@ -13,6 +13,8 @@
 | bookings        | Bookings         | Visit scheduling           |
 | transactions    | Transactions     | Buy/rent tracking          |
 | notifications   | Notifications    | In-app notifications       |
+| propertytypecatalogs | Catalog     | Admin-managed property types |
+| amenitycatalogs | Catalog          | Admin-managed amenities    |
 
 ## users
 
@@ -64,9 +66,9 @@
 ```javascript
 {
   title, slug (unique), description: String,
-  type: enum [apartment, villa, townhouse, land, commercial, duplex, studio],
+  type: String (slug — must match an active catalog property type),
   listingType: enum [sale, rent],
-  price: Number, currency: String,
+  price: Number, currency: String (always USD on create/update),
   location: {
     type: Point,
     coordinates: [lng, lat],
@@ -179,6 +181,20 @@
   timestamps
 }
 ```
+
+## propertytypecatalogs / amenitycatalogs
+
+```javascript
+{
+  value: String (unique; slug for types, stored amenity string for amenities),
+  label: String,
+  sortOrder: Number,
+  isActive: Boolean,
+  timestamps
+}
+```
+
+Seeded from defaults when empty on first catalog API access.
 
 ## Relationships
 

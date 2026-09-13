@@ -1,9 +1,5 @@
 import mongoose from "mongoose";
-import {
-  PROPERTY_TYPES,
-  LISTING_TYPES,
-  PROPERTY_STATUSES,
-} from "../../shared/constants.js";
+import { LISTING_TYPES, PROPERTY_STATUSES } from "../../shared/constants.js";
 
 const mediaSchema = new mongoose.Schema(
   {
@@ -34,7 +30,7 @@ const propertySchema = new mongoose.Schema(
     title: { type: String, required: true, trim: true },
     slug: { type: String, required: true, unique: true, lowercase: true },
     description: { type: String, required: true },
-    type: { type: String, enum: PROPERTY_TYPES, required: true },
+    type: { type: String, required: true, trim: true, lowercase: true },
     listingType: { type: String, enum: LISTING_TYPES, required: true },
     price: { type: Number, required: true, min: 0 },
     currency: { type: String, default: "USD" },

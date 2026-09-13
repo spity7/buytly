@@ -14,6 +14,15 @@ import {
 import { notifyError } from "@/lib/toast";
 import { isPropertyTerminal } from "@/lib/properties/mapProperty";
 import PropertyFormNearbyPreview from "@/components/property/dashboard/dashboard-add-property/PropertyFormNearbyPreview";
+import PropertyLocationPicker from "@/components/property/dashboard/dashboard-add-property/PropertyLocationPicker";
+import {
+  coordinatesToLatLngStrings,
+  latLngStringsToGeoJsonCoordinates,
+} from "@/lib/geo/propertyCoordinates";
+import {
+  useCatalogAmenities,
+  useCatalogPropertyTypes,
+} from "@/hooks/useCatalog";
 import PropertyFormStatusBanner from "@/components/property/dashboard/dashboard-add-property/PropertyFormStatusBanner";
 import PropertyFormActions from "@/components/property/dashboard/dashboard-add-property/PropertyFormActions";
 import { getPropertyFormCancelHref } from "@/lib/properties/propertyFormActions";
@@ -24,30 +33,70 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 
-const PROPERTY_TYPES = [
-  "apartment",
-  "villa",
-  "townhouse",
-  "land",
-  "commercial",
-  "duplex",
-  "studio",
-];
+function sanitizeWholeNumberInput(value) {
+  if (value === "") return "";
+  const digits = String(value).replace(/\D/g, "");
+  return digits === "" ? "" : String(parseInt(digits, 10));
+}
 
-const AMENITY_OPTIONS = [
-  "Air Conditioning",
-  "Barbeque",
-  "Dryer",
-  "Gym",
-  "Lawn",
-  "Microwave",
-  "Outdoor Shower",
-  "Refrigerator",
-  "Swimming Pool",
-  "TV Cable",
-  "Washer",
-  "WiFi",
-];
+function formatWholeNumberField(value) {
+  if (value == null || value === "") return "";
+  const n = Number(value);
+  if (Number.isNaN(n)) return "";
+  return String(Math.trunc(n));
+}
+
+function parseOptionalWholeNumber(value) {
+  if (value === "" || value == null) return undefined;
+  const n = parseInt(String(value), 10);
+  return Number.isNaN(n) ? undefined : n;
+}
+
+function blockWholeNumberKeyDown(event) {
+  if (event.ctrlKey || event.metaKey || event.altKey) return;
+
+  const allowedKeys = new Set([
+    "Backspace",
+    "Delete",
+    "Tab",
+    "Escape",
+    "Enter",
+    "ArrowLeft",
+    "ArrowRight",
+    "ArrowUp",
+    "ArrowDown",
+    "Home",
+    "End",
+  ]);
+
+  if (allowedKeys.has(event.key)) return;
+  if (/^\d$/.test(event.key)) return;
+
+  event.preventDefault();
+}
+
+function WholeNumberInput({ value, onChange, className, placeholder, id }) {
+  return (
+    <input
+      id={id}
+      type="text"
+      className={className}
+      placeholder={placeholder}
+      inputMode="numeric"
+      pattern="[0-9]*"
+      autoComplete="off"
+      value={value}
+      onChange={(event) =>
+        onChange(sanitizeWholeNumberInput(event.target.value))
+      }
+      onKeyDown={blockWholeNumberKeyDown}
+      onPaste={(event) => {
+        event.preventDefault();
+        onChange(sanitizeWholeNumberInput(event.clipboardData.getData("text")));
+      }}
+    />
+  );
+}
 
 const emptyFloorPlan = () => ({
   title: "",
@@ -96,10 +145,9 @@ function buildFormFromProperty(property) {
     address: property.location?.address || "",
     city: property.location?.city || "",
     country: property.location?.country || "",
-    latitude: property.location?.coordinates?.[1]?.toString() || "",
-    longitude: property.location?.coordinates?.[0]?.toString() || "",
-    bedrooms: property.bedrooms?.toString() || "",
-    bathrooms: property.bathrooms?.toString() || "",
+    ...coordinatesToLatLngStrings(property.location?.coordinates),
+    bedrooms: formatWholeNumberField(property.bedrooms),
+    bathrooms: formatWholeNumberField(property.bathrooms),
     area: property.area?.toString() || "",
     status: property.status || "draft",
     amenities: property.amenities || [],
@@ -108,8 +156,8 @@ function buildFormFromProperty(property) {
       title: plan.title || "",
       area: plan.area?.toString() || "",
       areaUnit: plan.areaUnit || "sqm",
-      bedrooms: plan.bedrooms?.toString() || "",
-      bathrooms: plan.bathrooms?.toString() || "",
+      bedrooms: formatWholeNumberField(plan.bedrooms),
+      bathrooms: formatWholeNumberField(plan.bathrooms),
       price: plan.price?.toString() || "",
       gcsKey: plan.gcsKey || "",
       url: plan.url || "",
@@ -145,8 +193,8 @@ async function resolveFloorPlans(savedId, floorPlans) {
       title: plan.title.trim(),
       area: plan.area ? Number(plan.area) : undefined,
       areaUnit: plan.areaUnit || "sqm",
-      bedrooms: plan.bedrooms ? Number(plan.bedrooms) : undefined,
-      bathrooms: plan.bathrooms ? Number(plan.bathrooms) : undefined,
+      bedrooms: parseOptionalWholeNumber(plan.bedrooms),
+      bathrooms: parseOptionalWholeNumber(plan.bathrooms),
       price: plan.price ? Number(plan.price) : undefined,
       gcsKey: plan.gcsKey || undefined,
     };
@@ -217,6 +265,10 @@ export default function PropertyForm({ propertyId }) {
   const { user } = useAuth();
   const isAdmin = user?.role === "admin";
   const isEdit = Boolean(propertyId);
+  const { data: propertyTypes = [], isLoading: propertyTypesLoading } =
+    useCatalogPropertyTypes();
+  const { data: amenitiesCatalog = [], isLoading: amenitiesLoading } =
+    useCatalogAmenities();
   const [form, setForm] = useState(emptyForm);
   const [baselineForm, setBaselineForm] = useState(isEdit ? null : emptyForm);
   const [existingImages, setExistingImages] = useState([]);
@@ -247,6 +299,24 @@ export default function PropertyForm({ propertyId }) {
       form.floorPlans.some((plan) => plan.imageFile)
     );
   }, [baselineForm, form, isEdit, imageFiles.length, videoFile]);
+
+  useEffect(() => {
+    if (isEdit || !propertyTypes.length) return;
+    setForm((prev) => {
+      if (propertyTypes.some((type) => type.value === prev.type)) {
+        return prev;
+      }
+      return { ...prev, type: propertyTypes[0].value };
+    });
+  }, [isEdit, propertyTypes]);
+
+  const handleLocationPick = useCallback(({ latitude, longitude }) => {
+    setForm((prev) => ({
+      ...prev,
+      latitude,
+      longitude,
+    }));
+  }, []);
 
   useEffect(() => {
     if (!isEdit) return;
@@ -534,15 +604,17 @@ export default function PropertyForm({ propertyId }) {
       type: form.type,
       listingType: form.listingType,
       price: Number(form.price),
-      currency: form.currency,
+      currency: "USD",
       location: {
-        coordinates: [Number(form.longitude), Number(form.latitude)],
+        coordinates:
+          latLngStringsToGeoJsonCoordinates(form.longitude, form.latitude) ??
+          [],
         address: form.address.trim(),
         city: form.city.trim(),
         country: form.country.trim(),
       },
-      bedrooms: form.bedrooms ? Number(form.bedrooms) : undefined,
-      bathrooms: form.bathrooms ? Number(form.bathrooms) : undefined,
+      bedrooms: parseOptionalWholeNumber(form.bedrooms),
+      bathrooms: parseOptionalWholeNumber(form.bathrooms),
       area: form.area ? Number(form.area) : undefined,
       amenities: form.amenities,
       virtualTourUrl: form.virtualTourUrl.trim() || undefined,
@@ -603,7 +675,7 @@ export default function PropertyForm({ propertyId }) {
 
   const formBusy = isLocked;
 
-  if (isLoading) {
+  if (isLoading || (!isEdit && (propertyTypesLoading || amenitiesLoading))) {
     return <DashboardFormSkeleton rows={10} />;
   }
 
@@ -681,9 +753,9 @@ export default function PropertyForm({ propertyId }) {
                 onChange={(e) => updateField("type", e.target.value)}
                 required
               >
-                {PROPERTY_TYPES.map((type) => (
-                  <option key={type} value={type}>
-                    {type}
+                {propertyTypes.map((type) => (
+                  <option key={type.id} value={type.value}>
+                    {type.label}
                   </option>
                 ))}
               </select>
@@ -732,14 +804,14 @@ export default function PropertyForm({ propertyId }) {
               <input
                 type="text"
                 className="form-control"
-                placeholder="USD"
-                value={form.currency}
-                onChange={(e) =>
-                  updateField("currency", e.target.value.toUpperCase())
-                }
-                maxLength={3}
-                required
+                value="USD"
+                readOnly
+                disabled
+                aria-label="Currency (USD only)"
               />
+              <p className="text mb0 mt10">
+                All listings use US dollars (USD).
+              </p>
             </div>
           </div>
 
@@ -748,13 +820,11 @@ export default function PropertyForm({ propertyId }) {
               <label className="heading-color ff-heading fw600 mb10">
                 Bedrooms
               </label>
-              <input
-                type="number"
+              <WholeNumberInput
                 className="form-control"
                 placeholder="e.g. 3"
                 value={form.bedrooms}
-                onChange={(e) => updateField("bedrooms", e.target.value)}
-                min={0}
+                onChange={(value) => updateField("bedrooms", value)}
               />
             </div>
           </div>
@@ -764,14 +834,11 @@ export default function PropertyForm({ propertyId }) {
               <label className="heading-color ff-heading fw600 mb10">
                 Bathrooms
               </label>
-              <input
-                type="number"
+              <WholeNumberInput
                 className="form-control"
                 placeholder="e.g. 2"
                 value={form.bathrooms}
-                onChange={(e) => updateField("bathrooms", e.target.value)}
-                min={0}
-                step="0.5"
+                onChange={(value) => updateField("bathrooms", value)}
               />
             </div>
           </div>
@@ -779,12 +846,12 @@ export default function PropertyForm({ propertyId }) {
           <div className="col-sm-6 col-xl-4">
             <div className="mb20">
               <label className="heading-color ff-heading fw600 mb10">
-                Area
+                Area (sqm)
               </label>
               <input
                 type="number"
                 className="form-control"
-                placeholder="e.g. 1200"
+                placeholder="e.g. 120"
                 value={form.area}
                 onChange={(e) => updateField("area", e.target.value)}
                 min={1}
@@ -841,36 +908,28 @@ export default function PropertyForm({ propertyId }) {
             </div>
           </div>
 
-          <div className="col-sm-6 col-xl-4">
+          <div className="col-sm-12">
             <div className="mb20">
               <label className="heading-color ff-heading fw600 mb10">
-                Latitude
+                Map location
               </label>
-              <input
-                type="number"
-                className="form-control"
-                placeholder="e.g. 25.2048"
-                value={form.latitude}
-                onChange={(e) => updateField("latitude", e.target.value)}
-                required
-                step="any"
+              <PropertyLocationPicker
+                latitude={form.latitude}
+                longitude={form.longitude}
+                onChange={handleLocationPick}
+                disabled={isLocked}
               />
-            </div>
-          </div>
-
-          <div className="col-sm-6 col-xl-4">
-            <div className="mb20">
-              <label className="heading-color ff-heading fw600 mb10">
-                Longitude
-              </label>
               <input
-                type="number"
-                className="form-control"
-                placeholder="e.g. 55.2708"
-                value={form.longitude}
-                onChange={(e) => updateField("longitude", e.target.value)}
+                type="hidden"
+                name="latitude"
+                value={form.latitude}
                 required
-                step="any"
+              />
+              <input
+                type="hidden"
+                name="longitude"
+                value={form.longitude}
+                required
               />
             </div>
           </div>
@@ -898,164 +957,180 @@ export default function PropertyForm({ propertyId }) {
             </div>
           </div>
 
-          <div className="col-sm-12 mt20 mb20">
+          <div className="col-sm-12 mt20 mb20 property-form-floor-plans">
             <div className="d-flex align-items-center justify-content-between mb10">
-              <h4 className="fz17 mb0">Floor Plans:</h4>
-              <button
-                type="button"
-                className="ud-btn btn-white2 btn-sm"
-                onClick={addFloorPlan}
-              >
-                Add floor plan
-              </button>
+              <h4 className="fz17 mb0">Floor plans</h4>
+              {form.floorPlans.length > 0 ? (
+                <button
+                  type="button"
+                  className="ud-btn btn-white2 btn-sm"
+                  onClick={addFloorPlan}
+                >
+                  Add another floor plan
+                </button>
+              ) : null}
             </div>
 
+            {form.floorPlans.length === 0 ? (
+              <div className="floor-plans-empty bdr1 bdrs12">
+                <span
+                  className="floor-plans-empty__icon flaticon-expand"
+                  aria-hidden
+                />
+                <h5 className="floor-plans-empty__title">No floor plans yet</h5>
+                <p className="floor-plans-empty__text">
+                  Optional. Add a level with size, beds, baths, and a plan image
+                  for buyers to compare layouts.
+                </p>
+                <button
+                  type="button"
+                  className="ud-btn btn-white2 btn-sm floor-plans-empty__action"
+                  onClick={addFloorPlan}
+                >
+                  Add floor plan
+                </button>
+              </div>
+            ) : null}
+
             {form.floorPlans.map((plan, index) => (
-              <div
-                className="row floor-plan-card bdr1 bdrs12 p20 mb20"
-                key={index}
-              >
-                <div className="col-sm-6 col-xl-4">
-                  <div className="mb20">
-                    <label className="heading-color ff-heading fw600 mb10">
-                      Title
-                    </label>
-                    <input
-                      type="text"
-                      className="form-control"
-                      placeholder="e.g. First Floor, Ground Level"
-                      value={plan.title}
-                      onChange={(e) =>
-                        updateFloorPlan(index, "title", e.target.value)
-                      }
-                    />
-                  </div>
-                </div>
-                <div className="col-sm-6 col-xl-4">
-                  <div className="mb20">
-                    <label className="heading-color ff-heading fw600 mb10">
-                      Area
-                    </label>
-                    <input
-                      type="number"
-                      className="form-control"
-                      placeholder="e.g. 1200"
-                      value={plan.area}
-                      onChange={(e) =>
-                        updateFloorPlan(index, "area", e.target.value)
-                      }
-                      min={0}
-                    />
-                  </div>
-                </div>
-                <div className="col-sm-6 col-xl-4">
-                  <div className="mb20">
-                    <label className="heading-color ff-heading fw600 mb10">
-                      Bedrooms
-                    </label>
-                    <input
-                      type="number"
-                      className="form-control"
-                      placeholder="e.g. 3"
-                      value={plan.bedrooms}
-                      onChange={(e) =>
-                        updateFloorPlan(index, "bedrooms", e.target.value)
-                      }
-                      min={0}
-                    />
-                  </div>
-                </div>
-                <div className="col-sm-6 col-xl-4">
-                  <div className="mb20">
-                    <label className="heading-color ff-heading fw600 mb10">
-                      Bathrooms
-                    </label>
-                    <input
-                      type="number"
-                      className="form-control"
-                      placeholder="e.g. 2"
-                      value={plan.bathrooms}
-                      onChange={(e) =>
-                        updateFloorPlan(index, "bathrooms", e.target.value)
-                      }
-                      min={0}
-                      step="0.5"
-                    />
-                  </div>
-                </div>
-                <div className="col-sm-6 col-xl-4">
-                  <div className="mb20">
-                    <label className="heading-color ff-heading fw600 mb10">
-                      Price (optional)
-                    </label>
-                    <input
-                      type="number"
-                      className="form-control"
-                      placeholder="e.g. 350000"
-                      value={plan.price}
-                      onChange={(e) =>
-                        updateFloorPlan(index, "price", e.target.value)
-                      }
-                      min={0}
-                    />
-                  </div>
-                </div>
-                <div className="col-sm-6 col-xl-4">
-                  <div className="mb20">
-                    <label className="heading-color ff-heading fw600 mb10">
-                      Plan image
-                    </label>
-                    <input
-                      type="file"
-                      className="form-control"
-                      accept="image/*"
-                      onChange={(e) => {
-                        handleFloorPlanImage(index, e.target.files);
-                        e.target.value = "";
-                      }}
-                    />
-                  </div>
-                </div>
-                {plan.url && (
-                  <div className="col-12">
-                    <div className="row profile-box position-relative d-md-flex align-items-end mb0">
-                      <div className="col-6 col-md-4 col-lg-3">
-                        <div className="profile-img mb20 position-relative">
-                          <Image
-                            width={212}
-                            height={194}
-                            className="w-100 bdrs12 cover"
-                            src={plan.url}
-                            alt={plan.imageName || plan.title || "Floor plan"}
-                            unoptimized
-                          />
-                          <button
-                            type="button"
-                            style={{ border: "none" }}
-                            className="tag-del"
-                            title="Remove image"
-                            onClick={() => clearFloorPlanImage(index)}
-                            aria-label="Remove floor plan image"
-                          >
-                            <span className="fas fa-trash-can" />
-                          </button>
-                        </div>
-                        <p className="text fz13 mb0 text-truncate">
-                          {plan.imageName || plan.title || "Floor plan image"}
-                        </p>
-                      </div>
+              <div className="floor-plan-card bdr1 bdrs12 p20 mb20" key={index}>
+                <button
+                  type="button"
+                  className="floor-plan-card__remove"
+                  onClick={() => removeFloorPlan(index)}
+                  title="Remove floor plan"
+                  aria-label="Remove floor plan"
+                >
+                  <span className="fas fa-trash-alt" aria-hidden />
+                </button>
+                <div className="row">
+                  <div className="col-sm-6 col-xl-4">
+                    <div className="mb20">
+                      <label className="heading-color ff-heading fw600 mb10">
+                        Title
+                      </label>
+                      <input
+                        type="text"
+                        className="form-control"
+                        placeholder="e.g. First Floor, Ground Level"
+                        value={plan.title}
+                        onChange={(e) =>
+                          updateFloorPlan(index, "title", e.target.value)
+                        }
+                      />
                     </div>
                   </div>
-                )}
-                <div className="col-12 d-flex justify-content-end pt10">
-                  <button
-                    type="button"
-                    className="ud-btn btn-sm floor-plan-remove-btn"
-                    onClick={() => removeFloorPlan(index)}
-                  >
-                    <span className="fas fa-trash-alt me-2" />
-                    Remove floor plan
-                  </button>
+                  <div className="col-sm-6 col-xl-4">
+                    <div className="mb20">
+                      <label className="heading-color ff-heading fw600 mb10">
+                        Area (sqm)
+                      </label>
+                      <input
+                        type="number"
+                        className="form-control"
+                        placeholder="e.g. 85"
+                        value={plan.area}
+                        onChange={(e) =>
+                          updateFloorPlan(index, "area", e.target.value)
+                        }
+                        min={0}
+                      />
+                    </div>
+                  </div>
+                  <div className="col-sm-6 col-xl-4">
+                    <div className="mb20">
+                      <label className="heading-color ff-heading fw600 mb10">
+                        Bedrooms
+                      </label>
+                      <WholeNumberInput
+                        className="form-control"
+                        placeholder="e.g. 3"
+                        value={plan.bedrooms}
+                        onChange={(value) =>
+                          updateFloorPlan(index, "bedrooms", value)
+                        }
+                      />
+                    </div>
+                  </div>
+                  <div className="col-sm-6 col-xl-4">
+                    <div className="mb20">
+                      <label className="heading-color ff-heading fw600 mb10">
+                        Bathrooms
+                      </label>
+                      <WholeNumberInput
+                        className="form-control"
+                        placeholder="e.g. 2"
+                        value={plan.bathrooms}
+                        onChange={(value) =>
+                          updateFloorPlan(index, "bathrooms", value)
+                        }
+                      />
+                    </div>
+                  </div>
+                  <div className="col-sm-6 col-xl-4">
+                    <div className="mb20">
+                      <label className="heading-color ff-heading fw600 mb10">
+                        Price (optional)
+                      </label>
+                      <input
+                        type="number"
+                        className="form-control"
+                        placeholder="e.g. 350000"
+                        value={plan.price}
+                        onChange={(e) =>
+                          updateFloorPlan(index, "price", e.target.value)
+                        }
+                        min={0}
+                      />
+                    </div>
+                  </div>
+                  <div className="col-sm-6 col-xl-4">
+                    <div className="mb20">
+                      <label className="heading-color ff-heading fw600 mb10">
+                        Plan image
+                      </label>
+                      <input
+                        type="file"
+                        className="form-control"
+                        accept="image/*"
+                        onChange={(e) => {
+                          handleFloorPlanImage(index, e.target.files);
+                          e.target.value = "";
+                        }}
+                      />
+                    </div>
+                  </div>
+                  {plan.url && (
+                    <div className="col-12">
+                      <div className="row profile-box position-relative d-md-flex align-items-end mb0">
+                        <div className="col-6 col-md-4 col-lg-3">
+                          <div className="profile-img mb20 position-relative">
+                            <Image
+                              width={212}
+                              height={194}
+                              className="w-100 bdrs12 cover"
+                              src={plan.url}
+                              alt={plan.imageName || plan.title || "Floor plan"}
+                              unoptimized
+                            />
+                            <button
+                              type="button"
+                              style={{ border: "none" }}
+                              className="tag-del"
+                              title="Remove image"
+                              onClick={() => clearFloorPlanImage(index)}
+                              aria-label="Remove floor plan image"
+                            >
+                              <span className="fas fa-trash-can" />
+                            </button>
+                          </div>
+                          <p className="text fz13 mb0 text-truncate">
+                            {plan.imageName || plan.title || "Floor plan image"}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             ))}
@@ -1064,14 +1139,14 @@ export default function PropertyForm({ propertyId }) {
           <div className="col-sm-12">
             <h4 className="fz17 mb20">Amenities</h4>
             <div className="row">
-              {AMENITY_OPTIONS.map((amenity) => (
-                <div className="col-sm-6 col-md-4 col-lg-3" key={amenity}>
+              {amenitiesCatalog.map((amenity) => (
+                <div className="col-sm-6 col-md-4 col-lg-3" key={amenity.id}>
                   <label className="custom_checkbox d-block mb15">
-                    {amenity}
+                    {amenity.label}
                     <input
                       type="checkbox"
-                      checked={form.amenities.includes(amenity)}
-                      onChange={() => toggleAmenity(amenity)}
+                      checked={form.amenities.includes(amenity.value)}
+                      onChange={() => toggleAmenity(amenity.value)}
                     />
                     <span className="checkmark" />
                   </label>
@@ -1128,7 +1203,9 @@ export default function PropertyForm({ propertyId }) {
                             promptDeleteMedia(item, {
                               onRemoved: () =>
                                 setExistingImages((prev) =>
-                                  prev.filter((media) => media._id !== item._id),
+                                  prev.filter(
+                                    (media) => media._id !== item._id,
+                                  ),
                                 ),
                             })
                           }

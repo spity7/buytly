@@ -8,6 +8,7 @@ import bookingRoutes from "../modules/bookings/booking.routes.js";
 import transactionRoutes from "../modules/transactions/transaction.routes.js";
 import adminRoutes from "../modules/admin/admin.routes.js";
 import notificationRoutes from "../modules/notifications/notification.routes.js";
+import catalogRoutes from "../modules/catalog/catalog.routes.js";
 import { isDBConnected } from "../config/db.js";
 import { getRedisStatus } from "../config/redis.js";
 import { ApiResponse } from "../shared/ApiResponse.js";
@@ -80,5 +81,6 @@ router.use("/bookings", bookingRoutes);
 router.use("/transactions", transactionRoutes);
 router.use("/admin", adminRoutes);
 router.use("/notifications", notificationRoutes);
+router.use("/catalog", catalogRoutes);
 
 export default router;

@@ -6,6 +6,7 @@ import { getAdmin } from "./admin/admin";
 import { getAgents } from "./agents/agents";
 import { getAuth } from "./auth/auth";
 import { getBookings } from "./bookings/bookings";
+import { getCatalog } from "./catalog/catalog";
 import { getFavorites } from "./favorites/favorites";
 import { getHealth } from "./health/health";
 import { getNotifications } from "./notifications/notifications";
@@ -19,6 +20,7 @@ export const getBuytlyAPI = () => ({
   ...getAgents(),
   ...getAuth(),
   ...getBookings(),
+  ...getCatalog(),
   ...getFavorites(),
   ...getHealth(),
   ...getNotifications(),

@@ -95,7 +95,9 @@ Property list supports:
 - `search` — Full-text search on title/description
 - `lat`, `lng`, `radiusKm` — Geo-radius search (all three required). When combined with `search`, radius filtering uses `$geoWithin` instead of distance sorting so MongoDB accepts the query.
 
-`GET /properties/:id/nearby` returns schools, medical facilities, and transit stops within 5 km using OpenStreetMap (Overpass API). Results are cached for 24 hours per rounded coordinate pair. Same visibility rules as `GET /properties/:id`. When the external lookup fails, the endpoint still returns 200 with empty categories and `unavailable: true`.
+`GET /properties/:id/nearby` returns schools, medical facilities, and transit stops within 5 km using OpenStreetMap (Overpass API). The server tries multiple public Overpass mirrors (configurable via `OVERPASS_URL`) with a `User-Agent` header. Successful results are cached for 24 hours per rounded coordinate pair. Same visibility rules as `GET /properties/:id`. When all mirrors fail, the endpoint still returns 200 with empty categories and `unavailable: true` (failures are not cached).
+
+`GET /catalog/nearby?lat=&lng=` uses the same Overpass lookup for dashboard map previews before a listing is saved (public, no auth).
 
 ## Versioning
 

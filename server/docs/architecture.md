@@ -113,7 +113,11 @@ Test env skips network send entirely.
 
 ## Database seeding
 
-`scripts/seed.js` (`npm run seed`, `npm run seed:reset`) loads demo users, agent profiles, 18 properties across Dubai/Abu Dhabi/Sharjah (including land, archived, sold/rented/pending/draft statuses and map coordinates), 8 reviews, favorites, bookings, transactions, saved searches, and notifications. Invalidates listing caches when Redis is ready. Catalog and expected counts live in `scripts/seed/catalog.js`; smoke test in `tests/seed.test.js`.
+`scripts/seed.js` (`npm run seed`, `npm run seed:reset`) loads demo users, agent profiles, 18 properties across Dubai/Abu Dhabi/Sharjah (including land, archived, sold/rented/pending/draft statuses and map coordinates), 8 reviews, favorites, bookings, transactions, saved searches, and notifications. Invalidates listing caches when Redis is ready.
+
+**Listing catalog:** `seed:reset` clears and repopulates `propertytypecatalogs` and `amenitycatalogs` (defaults from `src/modules/catalog/catalog.defaults.js` plus demo-only amenities in `scripts/seed/catalog.js`). Demo properties use **USD** and amenity strings that exist in that catalog so they match API validation. Non-reset seed upserts missing demo amenities when types already exist.
+
+**Fixture data** (users, property titles, coordinates) lives in `scripts/seed/catalog.js` — not to be confused with the runtime **catalog module** (`src/modules/catalog/`). Smoke test: `tests/seed.test.js`.
 
 ## GCS orphan cleanup
 

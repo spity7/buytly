@@ -1,5 +1,4 @@
 import { z } from "zod";
-import { PROPERTY_TYPES } from "../../shared/constants.js";
 import { PHONE_COUNTRY_CODES } from "../../shared/phone.js";
 import { NOTIFICATION_PREFERENCE_KEYS } from "../notifications/notification.preferences.js";
 
@@ -56,7 +55,15 @@ export const updatePreferencesSchema = z.object({
   budgetMin: z.number().min(0).optional(),
   budgetMax: z.number().min(0).optional(),
   locations: z.array(z.string()).optional(),
-  propertyTypes: z.array(z.enum(PROPERTY_TYPES)).optional(),
+  propertyTypes: z
+    .array(
+      z
+        .string()
+        .min(1)
+        .max(50)
+        .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/),
+    )
+    .optional(),
 });
 
 const notificationChannelSchema = z

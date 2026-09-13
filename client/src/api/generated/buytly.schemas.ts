@@ -57,25 +57,11 @@ export interface Avatar {
   url?: string;
 }
 
-export type UserPreferencesPropertyTypesItem =
-  (typeof UserPreferencesPropertyTypesItem)[keyof typeof UserPreferencesPropertyTypesItem];
-
-// eslint-disable-next-line @typescript-eslint/no-redeclare
-export const UserPreferencesPropertyTypesItem = {
-  apartment: "apartment",
-  villa: "villa",
-  townhouse: "townhouse",
-  land: "land",
-  commercial: "commercial",
-  duplex: "duplex",
-  studio: "studio",
-} as const;
-
 export interface UserPreferences {
   budgetMin?: number;
   budgetMax?: number;
   locations?: string[];
-  propertyTypes?: UserPreferencesPropertyTypesItem[];
+  propertyTypes?: string[];
 }
 
 export interface NotificationChannelPreferences {
@@ -275,18 +261,11 @@ export interface GoogleAuthRequest {
   role?: GoogleAuthRequestRole;
 }
 
-export type PropertyType = (typeof PropertyType)[keyof typeof PropertyType];
-
-// eslint-disable-next-line @typescript-eslint/no-redeclare
-export const PropertyType = {
-  apartment: "apartment",
-  villa: "villa",
-  townhouse: "townhouse",
-  land: "land",
-  commercial: "commercial",
-  duplex: "duplex",
-  studio: "studio",
-} as const;
+/**
+ * Slug of an active catalog property type (see GET /catalog/property-types)
+ * @pattern ^[a-z0-9]+(?:-[a-z0-9]+)*$
+ */
+export type PropertyType = string;
 
 export type ListingType = (typeof ListingType)[keyof typeof ListingType];
 
@@ -380,6 +359,17 @@ export interface Property {
   updatedAt?: string;
 }
 
+/**
+ * Always USD; other values are ignored by the API
+ */
+export type CreatePropertyRequestCurrency =
+  (typeof CreatePropertyRequestCurrency)[keyof typeof CreatePropertyRequestCurrency];
+
+// eslint-disable-next-line @typescript-eslint/no-redeclare
+export const CreatePropertyRequestCurrency = {
+  USD: "USD",
+} as const;
+
 export interface CreatePropertyRequest {
   /**
    * @minLength 3
@@ -395,11 +385,8 @@ export interface CreatePropertyRequest {
    * @exclusiveMinimum
    */
   price: number;
-  /**
-   * @minLength 3
-   * @maxLength 3
-   */
-  currency?: string;
+  /** Always USD; other values are ignored by the API */
+  currency?: CreatePropertyRequestCurrency;
   location: PropertyLocation;
   /** @minimum 0 */
   bedrooms?: number;
@@ -407,6 +394,7 @@ export interface CreatePropertyRequest {
   bathrooms?: number;
   area?: number;
   areaUnit?: string;
+  /** Values must match active catalog amenities (GET /catalog/amenities) */
   amenities?: string[];
   status?: PropertyStatus;
   agentId?: ObjectId;
@@ -911,6 +899,71 @@ export interface PaginatedFavoritesResponse {
   pagination: PaginationMeta;
 }
 
+export interface CatalogPropertyType {
+  id: string;
+  value: string;
+  label: string;
+  sortOrder: number;
+  isActive: boolean;
+}
+
+export type AdminCatalogPropertyTypeAllOf = {
+  /**
+   * Number of listings using this type value
+   * @minimum 0
+   */
+  listingCount: number;
+};
+
+export type AdminCatalogPropertyType = CatalogPropertyType &
+  AdminCatalogPropertyTypeAllOf;
+
+export interface CatalogAmenity {
+  id: string;
+  value: string;
+  label: string;
+  sortOrder: number;
+  isActive: boolean;
+}
+
+export type AdminCatalogAmenityAllOf = {
+  /**
+   * Number of listings that include this amenity value
+   * @minimum 0
+   */
+  listingCount: number;
+};
+
+export type AdminCatalogAmenity = CatalogAmenity & AdminCatalogAmenityAllOf;
+
+export interface CreateCatalogPropertyTypeRequest {
+  value: string;
+  label: string;
+  sortOrder?: number;
+  isActive?: boolean;
+}
+
+export interface UpdateCatalogPropertyTypeRequest {
+  value?: string;
+  label?: string;
+  sortOrder?: number;
+  isActive?: boolean;
+}
+
+export interface CreateCatalogAmenityRequest {
+  value: string;
+  label: string;
+  sortOrder?: number;
+  isActive?: boolean;
+}
+
+export interface UpdateCatalogAmenityRequest {
+  value?: string;
+  label?: string;
+  sortOrder?: number;
+  isActive?: boolean;
+}
+
 /**
  * Request validation failed
  */
@@ -1330,6 +1383,32 @@ export type CheckFavorite200AllOf = {
 
 export type CheckFavorite200 = SuccessResponse & CheckFavorite200AllOf;
 
+export type ListCatalogPropertyTypes200AllOf = {
+  data?: CatalogPropertyType[];
+};
+
+export type ListCatalogPropertyTypes200 = SuccessResponse &
+  ListCatalogPropertyTypes200AllOf;
+
+export type ListCatalogAmenities200AllOf = {
+  data?: CatalogAmenity[];
+};
+
+export type ListCatalogAmenities200 = SuccessResponse &
+  ListCatalogAmenities200AllOf;
+
+export type GetCatalogNearbyPreviewParams = {
+  lat: number;
+  lng: number;
+};
+
+export type GetCatalogNearbyPreview200AllOf = {
+  data?: PropertyNearbyData;
+};
+
+export type GetCatalogNearbyPreview200 = SuccessResponse &
+  GetCatalogNearbyPreview200AllOf;
+
 export type CreateBooking201AllOf = {
   data?: Booking;
 };
@@ -1613,3 +1692,17 @@ export type GetAnalytics200AllOf = {
 };
 
 export type GetAnalytics200 = SuccessResponse & GetAnalytics200AllOf;
+
+export type AdminListCatalogPropertyTypes200AllOf = {
+  data?: AdminCatalogPropertyType[];
+};
+
+export type AdminListCatalogPropertyTypes200 = SuccessResponse &
+  AdminListCatalogPropertyTypes200AllOf;
+
+export type AdminListCatalogAmenities200AllOf = {
+  data?: AdminCatalogAmenity[];
+};
+
+export type AdminListCatalogAmenities200 = SuccessResponse &
+  AdminListCatalogAmenities200AllOf;

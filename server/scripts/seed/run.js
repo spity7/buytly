@@ -14,12 +14,19 @@ import { RefreshToken } from "../../src/modules/auth/refreshToken.model.js";
 import { slugify } from "../../src/utils/slugify.js";
 import {
   SEED_AGENT_PROFILES,
+  SEED_DEMO_AMENITIES,
   SEED_DOMAIN,
   SEED_PROPERTIES,
   SEED_REVIEWS,
   SEED_SAVED_SEARCHES,
   SEED_USERS,
 } from "./catalog.js";
+import { PropertyTypeCatalog } from "../../src/modules/catalog/property-type.model.js";
+import { AmenityCatalog } from "../../src/modules/catalog/amenity.model.js";
+import {
+  DEFAULT_AMENITIES,
+  DEFAULT_PROPERTY_TYPES,
+} from "../../src/modules/catalog/catalog.defaults.js";
 
 const SALT_ROUNDS = 12;
 
@@ -48,7 +55,32 @@ async function clearDatabase() {
     AgentProfile.deleteMany({}),
     RefreshToken.deleteMany({}),
     User.deleteMany({}),
+    PropertyTypeCatalog.deleteMany({}),
+    AmenityCatalog.deleteMany({}),
   ]);
+}
+
+async function ensureSeedCatalog(reset) {
+  const typeCount = await PropertyTypeCatalog.countDocuments();
+
+  if (reset || typeCount === 0) {
+    await PropertyTypeCatalog.insertMany(DEFAULT_PROPERTY_TYPES);
+
+    const amenityByValue = new Map();
+    for (const item of [...DEFAULT_AMENITIES, ...SEED_DEMO_AMENITIES]) {
+      amenityByValue.set(item.value, item);
+    }
+    await AmenityCatalog.insertMany([...amenityByValue.values()]);
+    return;
+  }
+
+  for (const item of SEED_DEMO_AMENITIES) {
+    await AmenityCatalog.updateOne(
+      { value: item.value },
+      { $setOnInsert: item },
+      { upsert: true },
+    );
+  }
 }
 
 async function seedUsers(password) {
@@ -97,8 +129,7 @@ async function seedProperties(usersByKey) {
 
   for (const def of SEED_PROPERTIES) {
     const slug = await buildUniqueSlug(def.title);
-    const archiveFields =
-      def.status === "archived" ? buildArchiveUpdate() : {};
+    const archiveFields = def.status === "archived" ? buildArchiveUpdate() : {};
     const property = await Property.create({
       title: def.title,
       slug,
@@ -233,7 +264,7 @@ async function seedTransactions(usersByKey, propertiesByTitle) {
     agentId: usersByKey.agent._id,
     type: "buy",
     amount: 5200000,
-    currency: "AED",
+    currency: "USD",
     status: "pending",
     notes: "Offer submitted — awaiting seller approval.",
   });
@@ -320,6 +351,11 @@ export async function runSeed({ reset = false, password, disconnect = true }) {
     console.log("[seed] Clearing existing data...");
     await clearDatabase();
   }
+
+  console.log(
+    "[seed] Ensuring listing catalog (property types & amenities)...",
+  );
+  await ensureSeedCatalog(reset);
 
   console.log("[seed] Creating users...");
   const usersByKey = await seedUsers(password);

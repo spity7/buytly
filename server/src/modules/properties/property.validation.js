@@ -1,12 +1,15 @@
 import { z } from "zod";
 import {
-  PROPERTY_TYPES,
+  DEFAULT_CURRENCY,
   LISTING_TYPES,
   PROPERTY_STATUSES,
 } from "../../shared/constants.js";
 
 const locationSchema = z.object({
-  coordinates: z.tuple([z.number(), z.number()]),
+  coordinates: z.tuple([
+    z.number().min(-180).max(180),
+    z.number().min(-90).max(90),
+  ]),
   address: z.string().optional(),
   city: z.string().optional(),
   country: z.string().optional(),
@@ -17,7 +20,7 @@ const floorPlanSchema = z.object({
   area: z.number().positive().optional(),
   areaUnit: z.string().optional(),
   bedrooms: z.number().int().min(0).optional(),
-  bathrooms: z.number().min(0).optional(),
+  bathrooms: z.number().int().min(0).optional(),
   price: z.number().min(0).optional(),
   gcsKey: z.string().optional(),
 });
@@ -25,13 +28,17 @@ const floorPlanSchema = z.object({
 export const createPropertySchema = z.object({
   title: z.string().min(3).max(200),
   description: z.string().min(10),
-  type: z.enum(PROPERTY_TYPES),
+  type: z
+    .string()
+    .min(1)
+    .max(50)
+    .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/),
   listingType: z.enum(LISTING_TYPES),
   price: z.number().positive(),
-  currency: z.string().length(3).optional(),
+  currency: z.literal(DEFAULT_CURRENCY).optional(),
   location: locationSchema,
   bedrooms: z.number().int().min(0).optional(),
-  bathrooms: z.number().min(0).optional(),
+  bathrooms: z.number().int().min(0).optional(),
   area: z.number().positive().optional(),
   areaUnit: z.string().optional(),
   amenities: z.array(z.string()).optional(),
@@ -50,7 +57,7 @@ export const listMyPropertiesSchema = z.object({
   page: z.coerce.number().int().positive().optional(),
   limit: z.coerce.number().int().positive().max(100).optional(),
   status: z.enum(PROPERTY_STATUSES).optional(),
-  type: z.enum(PROPERTY_TYPES).optional(),
+  type: z.string().min(1).max(50).optional(),
   listingType: z.enum(LISTING_TYPES).optional(),
   search: z.string().optional(),
   sortBy: z.enum(["price", "createdAt", "viewCount"]).optional(),
@@ -63,7 +70,7 @@ export const listPropertiesSchema = z.object({
   limit: z.coerce.number().int().positive().max(100).optional(),
   minPrice: z.coerce.number().optional(),
   maxPrice: z.coerce.number().optional(),
-  type: z.enum(PROPERTY_TYPES).optional(),
+  type: z.string().min(1).max(50).optional(),
   listingType: z.enum(LISTING_TYPES).optional(),
   status: z.enum(["active", "sold", "rented"]).optional(),
   city: z.string().optional(),

@@ -8,7 +8,8 @@ import {
 } from "../../shared/pagination.js";
 import { buildPropertyTextFilter } from "../../shared/search.js";
 import { slugify } from "../../utils/slugify.js";
-import { ROLES } from "../../shared/constants.js";
+import { DEFAULT_CURRENCY, ROLES } from "../../shared/constants.js";
+import { catalogService } from "../catalog/catalog.service.js";
 import { User } from "../users/user.model.js";
 import { notificationService } from "../notifications/notification.service.js";
 import { nearbyService } from "../../services/nearby.service.js";
@@ -128,11 +129,21 @@ const applyAdminStatusTransition = (property, normalizedStatus) => {
   property.status = normalizedStatus;
 };
 
+const applyListingCatalogRules = async (payload) => {
+  await catalogService.assertValidPropertyType(payload.type);
+  if (payload.amenities?.length) {
+    await catalogService.assertValidAmenities(payload.amenities);
+  }
+  payload.currency = DEFAULT_CURRENCY;
+};
+
 export const propertyService = {
   async create(data, user) {
     const slug = await buildUniqueSlug(data.title);
     const payload = { ...data };
     const isAdmin = user.role === ROLES.ADMIN;
+
+    await applyListingCatalogRules(payload);
 
     payload.status = normalizeSellerStatus(payload.status, {
       isAdmin,
@@ -311,32 +322,42 @@ export const propertyService = {
     }
 
     const previousStatus = property.status;
-    const normalizedStatus = normalizeSellerStatus(data.status, {
+    const patch = { ...data };
+
+    if (patch.type !== undefined) {
+      await catalogService.assertValidPropertyType(patch.type);
+    }
+    if (patch.amenities !== undefined) {
+      await catalogService.assertValidAmenities(patch.amenities);
+    }
+    patch.currency = DEFAULT_CURRENCY;
+
+    const normalizedStatus = normalizeSellerStatus(patch.status, {
       isAdmin,
       isCreate: false,
     });
 
     if (normalizedStatus !== undefined) {
-      data.status = normalizedStatus;
+      patch.status = normalizedStatus;
     } else {
-      delete data.status;
+      delete patch.status;
     }
 
-    if (data.title && data.title !== property.title) {
-      data.slug = await buildUniqueSlug(data.title);
+    if (patch.title && patch.title !== property.title) {
+      patch.slug = await buildUniqueSlug(patch.title);
     }
 
-    if (data.location) {
-      data.location = { type: "Point", ...data.location };
+    if (patch.location) {
+      patch.location = { type: "Point", ...patch.location };
     }
 
     const materialChanges =
       !isAdmin &&
       previousStatus === "active" &&
       normalizedStatus === undefined &&
-      hasMaterialChanges(property, data);
+      hasMaterialChanges(property, patch);
 
-    Object.assign(property, data);
+    Object.assign(property, patch);
 
     if (materialChanges) {
       property.status = "pending";
