@@ -6,7 +6,10 @@ export function mapPropertyToCard(property) {
   if (!property) return null;
 
   const id = property._id || property.id;
-  const firstImage = property.media?.find((item) => item.type === "image");
+  const firstImage = property.media
+    ?.filter((item) => item.type === "image")
+    .slice()
+    .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))[0];
   const firstMedia = property.media?.[0];
   const image =
     firstImage?.url ||

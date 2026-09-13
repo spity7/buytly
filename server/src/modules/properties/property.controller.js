@@ -84,6 +84,15 @@ export const propertyController = {
     ApiResponse.success(res, null, "Media removed");
   },
 
+  reorderMedia: async (req, res) => {
+    const property = await propertyService.reorderMedia(
+      req.params.id,
+      req.body,
+      req.user,
+    );
+    ApiResponse.success(res, property, "Photo order updated");
+  },
+
   uploadFloorPlanImage: [
     upload.single("image"),
     async (req, res, next) => {

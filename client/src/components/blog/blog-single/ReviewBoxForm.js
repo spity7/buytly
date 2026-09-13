@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
-import Select from "react-select";
+import Select from "@/components/common/AppSelect";
 
 const ReviewBoxForm = () => {
   const [showSelect, setShowSelect] = useState(false);

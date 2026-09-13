@@ -1722,6 +1722,74 @@ header.nav-homepage-style.sticky {
     }
 }
 
+.property-photo-gallery__tile {
+    overflow: hidden;
+
+    &--cover {
+        box-shadow: 0 0 0 2px #2563eb;
+    }
+}
+
+.property-photo-gallery__cover-badge {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    z-index: 2;
+    padding: 4px 10px;
+    border-radius: 999px;
+    background: #2563eb;
+    color: #ffffff;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+}
+
+.property-photo-gallery__actions {
+    position: absolute;
+    right: 8px;
+    bottom: 8px;
+    z-index: 2;
+    display: flex;
+    gap: 4px;
+    padding: 4px;
+    border-radius: 10px;
+    background: rgba(24, 26, 32, 0.72);
+    backdrop-filter: blur(4px);
+}
+
+.property-photo-gallery__action {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    padding: 0;
+    border: none;
+    border-radius: 8px;
+    background: transparent;
+    color: #ffffff;
+    line-height: 1;
+    transition: background-color 0.2s ease;
+
+    .fas {
+        font-size: 13px;
+    }
+
+    &:hover:not(:disabled) {
+        background: rgba(255, 255, 255, 0.16);
+    }
+
+    &:disabled {
+        opacity: 0.35;
+        cursor: not-allowed;
+    }
+
+    &--danger:hover:not(:disabled) {
+        background: rgba(220, 38, 38, 0.85);
+    }
+}
+
 .floor-plan-card {
     position: relative;
     background-color: #fafafa;

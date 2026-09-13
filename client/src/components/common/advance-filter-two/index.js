@@ -1,5 +1,5 @@
 "use client";
-import Select from "react-select";
+import Select from "@/components/common/AppSelect";
 import PriceRange from "./PriceRange";
 import Bedroom from "./Bedroom";
 import Bathroom from "./Bathroom";
@@ -28,10 +28,10 @@ const AdvanceFilterModal = ({ filterFunctions }) => {
         backgroundColor: isSelected
           ? "#eb6753"
           : isHovered
-          ? "#eb675312"
-          : isFocused
-          ? "#eb675312"
-          : undefined,
+            ? "#eb675312"
+            : isFocused
+              ? "#eb675312"
+              : undefined,
       };
     },
   };
@@ -133,20 +133,23 @@ const AdvanceFilterModal = ({ filterFunctions }) => {
               <div className="widget-wrapper">
                 <h6 className="list-title">Location</h6>
                 <div className="form-style2 input-group">
-                  <Select
-                    defaultValue={[locationOptions[0]]}
-                    name="colors"
-                    styles={customStyles}
-                    options={locationOptions}
-                    className="select-custom filterSelect"
-                    value={{
-                      value: filterFunctions?.location,
-                      label: filterFunctions?.location,
-                    }}
-                    classNamePrefix="select"
-                    onChange={(e) => filterFunctions?.handlelocation(e.value)}
-                    required
-                  />
+                  {showSelect && (
+                    <Select
+                      instanceId="advance-filter-two-location"
+                      defaultValue={[locationOptions[0]]}
+                      name="colors"
+                      styles={customStyles}
+                      options={locationOptions}
+                      className="select-custom filterSelect"
+                      value={{
+                        value: filterFunctions?.location,
+                        label: filterFunctions?.location,
+                      }}
+                      classNamePrefix="select"
+                      onChange={(e) => filterFunctions?.handlelocation(e.value)}
+                      required
+                    />
+                  )}
                 </div>
               </div>
             </div>

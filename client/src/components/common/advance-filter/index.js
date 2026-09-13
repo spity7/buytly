@@ -1,5 +1,5 @@
 "use client";
-import Select from "react-select";
+import Select from "@/components/common/AppSelect";
 import PriceRange from "./PriceRange";
 import Bedroom from "./Bedroom";
 import Bathroom from "./Bathroom";

@@ -1297,6 +1297,14 @@ export type UploadPropertyMedia201AllOf = {
 export type UploadPropertyMedia201 = SuccessResponse &
   UploadPropertyMedia201AllOf;
 
+export type ReorderPropertyMediaBody = {
+  /**
+   * @minItems 1
+   * @maxItems 50
+   */
+  imageIds: string[];
+};
+
 export type UploadFloorPlanImageBody = {
   image: Blob;
 };

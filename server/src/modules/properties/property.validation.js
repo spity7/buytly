@@ -91,3 +91,10 @@ export const mediaIdSchema = z.object({
   id: z.string().regex(/^[0-9a-fA-F]{24}$/),
   mediaId: z.string().regex(/^[0-9a-fA-F]{24}$/),
 });
+
+export const reorderPropertyMediaSchema = z.object({
+  imageIds: z
+    .array(z.string().regex(/^[0-9a-fA-F]{24}$/))
+    .min(1)
+    .max(50),
+});

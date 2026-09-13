@@ -12,6 +12,7 @@ import type {
   PaginatedPropertiesResponse,
   PropertyNearbySuccessResponse,
   PropertySuccessResponse,
+  ReorderPropertyMediaBody,
   SuccessResponse,
   UploadFloorPlanImage201,
   UploadFloorPlanImageBody,
@@ -183,6 +184,25 @@ export const getProperties = () => {
     );
   };
   /**
+   * Sets display order for property images. The first id is the cover photo on cards and the gallery. All image media ids must be included exactly once; video is unchanged.
+   * @summary Reorder listing photos
+   */
+  const reorderPropertyMedia = (
+    id: string,
+    reorderPropertyMediaBody: BodyType<ReorderPropertyMediaBody>,
+    options?: SecondParameter<typeof customInstance<PropertySuccessResponse>>,
+  ) => {
+    return customInstance<PropertySuccessResponse>(
+      {
+        url: `/properties/${id}/media/order`,
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        data: reorderPropertyMediaBody,
+      },
+      options,
+    );
+  };
+  /**
    * Uploads a floor plan image and returns a gcsKey for use in the floorPlans array.
    * @summary Upload floor plan image
    */
@@ -215,6 +235,7 @@ export const getProperties = () => {
     restoreProperty,
     uploadPropertyMedia,
     deletePropertyMedia,
+    reorderPropertyMedia,
     uploadFloorPlanImage,
   };
 };
@@ -252,6 +273,9 @@ export type UploadPropertyMediaResult = NonNullable<
 >;
 export type DeletePropertyMediaResult = NonNullable<
   Awaited<ReturnType<ReturnType<typeof getProperties>["deletePropertyMedia"]>>
+>;
+export type ReorderPropertyMediaResult = NonNullable<
+  Awaited<ReturnType<ReturnType<typeof getProperties>["reorderPropertyMedia"]>>
 >;
 export type UploadFloorPlanImageResult = NonNullable<
   Awaited<ReturnType<ReturnType<typeof getProperties>["uploadFloorPlanImage"]>>

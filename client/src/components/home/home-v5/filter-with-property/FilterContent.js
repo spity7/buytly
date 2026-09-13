@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import Slider from "rc-slider";
-import Select from "react-select";
+import Select from "@/components/common/AppSelect";
 
 import {
   HERO_PROPERTY_TYPE_MAP,
@@ -90,147 +90,147 @@ const FilterContent = () => {
       </ul>
 
       <div className="tab-content text-start">
-        {tabs.map((tab) => (
-          <div
-            className={`${activeTab === tab.id ? "active" : ""} tab-pane`}
-            key={tab.id}
-          >
-            <div className="advance-content-style3 at-home5">
-              <div className="row align-items-center">
-                <div className="col-md-4 col-xl-3 bdrr1 bdrrn-sm">
-                  <label>Search</label>
-                  <div className="advance-search-field position-relative">
-                    <form
-                      className="form-search position-relative"
-                      onSubmit={(event) => {
-                        event.preventDefault();
-                        handleSearch();
-                      }}
+        <div className="active tab-pane">
+          <div className="advance-content-style3 at-home5">
+            <div className="row align-items-center">
+              <div className="col-md-4 col-xl-3 bdrr1 bdrrn-sm">
+                <label>Search</label>
+                <div className="advance-search-field position-relative">
+                  <form
+                    className="form-search position-relative"
+                    onSubmit={(event) => {
+                      event.preventDefault();
+                      handleSearch();
+                    }}
+                  >
+                    <div className="box-search">
+                      <input
+                        className="form-control bgc-f7 bdrs12 ps-0"
+                        type="text"
+                        name="search"
+                        value={search}
+                        onChange={(event) => setSearch(event.target.value)}
+                        placeholder={`Enter keyword for ${
+                          tabs.find((tab) => tab.id === activeTab)?.label ??
+                          "Buy"
+                        }`}
+                      />
+                    </div>
+                  </form>
+                </div>
+              </div>
+
+              <div className="col-md-4 col-xl-2 bdrr1 bdrrn-sm px20 pl15-sm">
+                <div className="mt-3 mt-md-0 px-0">
+                  <div className="bootselect-multiselect">
+                    <label className="fz14">Looking For</label>
+                    <Select
+                      instanceId="home-v5-hero-property-type"
+                      options={PROPERTY_TYPE_OPTIONS}
+                      styles={selectStyles}
+                      className="text-start select-borderless"
+                      classNamePrefix="select"
+                      value={
+                        PROPERTY_TYPE_OPTIONS.find(
+                          (option) => option.value === propertyTypeLabel,
+                        ) || PROPERTY_TYPE_OPTIONS[0]
+                      }
+                      onChange={(option) =>
+                        setPropertyTypeLabel(option?.value || "")
+                      }
+                      isClearable={false}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="col-md-4 col-xl-2 bdrr1 bdrrn-sm px20 pl15-sm">
+                <div className="mt-3 mt-md-0">
+                  <div className="bootselect-multiselect">
+                    <label className="fz14">Location</label>
+                    <Select
+                      instanceId="home-v5-hero-location"
+                      options={LOCATION_OPTIONS}
+                      styles={selectStyles}
+                      className="text-start select-borderless"
+                      classNamePrefix="select"
+                      value={
+                        LOCATION_OPTIONS.find(
+                          (option) => option.value === location,
+                        ) || LOCATION_OPTIONS[0]
+                      }
+                      onChange={(option) =>
+                        setLocation(option?.value || "All Cities")
+                      }
+                      isClearable={false}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="col-md-4 col-xl-2 bdrr1 bdrrn-sm px20 pl15-sm">
+                <div className="mt-3 mt-md-0">
+                  <div className="dropdown-lists">
+                    <label className="fz14 mb-1">Price</label>
+                    <div
+                      className="btn open-btn text-start dropdown-toggle"
+                      data-bs-toggle="dropdown"
+                      data-bs-auto-close="outside"
+                      style={{ fontSize: "13px" }}
                     >
-                      <div className="box-search">
-                        <input
-                          className="form-control bgc-f7 bdrs12 ps-0"
-                          type="text"
-                          name="search"
-                          value={search}
-                          onChange={(event) => setSearch(event.target.value)}
-                          placeholder={`Enter keyword for ${tab.label}`}
-                        />
-                      </div>
-                    </form>
-                  </div>
-                </div>
-
-                <div className="col-md-4 col-xl-2 bdrr1 bdrrn-sm px20 pl15-sm">
-                  <div className="mt-3 mt-md-0 px-0">
-                    <div className="bootselect-multiselect">
-                      <label className="fz14">Looking For</label>
-                      <Select
-                        options={PROPERTY_TYPE_OPTIONS}
-                        styles={selectStyles}
-                        className="text-start select-borderless"
-                        classNamePrefix="select"
-                        value={
-                          PROPERTY_TYPE_OPTIONS.find(
-                            (option) => option.value === propertyTypeLabel,
-                          ) || PROPERTY_TYPE_OPTIONS[0]
-                        }
-                        onChange={(option) =>
-                          setPropertyTypeLabel(option?.value || "")
-                        }
-                        isClearable={false}
-                      />
+                      ${price[0].toLocaleString()} - $
+                      {price[1].toLocaleString()}{" "}
+                      <i className="fas fa-caret-down" />
                     </div>
-                  </div>
-                </div>
-
-                <div className="col-md-4 col-xl-2 bdrr1 bdrrn-sm px20 pl15-sm">
-                  <div className="mt-3 mt-md-0">
-                    <div className="bootselect-multiselect">
-                      <label className="fz14">Location</label>
-                      <Select
-                        options={LOCATION_OPTIONS}
-                        styles={selectStyles}
-                        className="text-start select-borderless"
-                        classNamePrefix="select"
-                        value={
-                          LOCATION_OPTIONS.find(
-                            (option) => option.value === location,
-                          ) || LOCATION_OPTIONS[0]
-                        }
-                        onChange={(option) =>
-                          setLocation(option?.value || "All Cities")
-                        }
-                        isClearable={false}
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                <div className="col-md-4 col-xl-2 bdrr1 bdrrn-sm px20 pl15-sm">
-                  <div className="mt-3 mt-md-0">
-                    <div className="dropdown-lists">
-                      <label className="fz14 mb-1">Price</label>
-                      <div
-                        className="btn open-btn text-start dropdown-toggle"
-                        data-bs-toggle="dropdown"
-                        data-bs-auto-close="outside"
-                        style={{ fontSize: "13px" }}
-                      >
-                        ${price[0].toLocaleString()} - $
-                        {price[1].toLocaleString()}{" "}
-                        <i className="fas fa-caret-down" />
-                      </div>
-                      <div className="dropdown-menu">
-                        <div className="widget-wrapper pb20 mb0 pl20 pr20">
-                          <div className="range-wrapper at-home10">
-                            <Slider
-                              range
-                              max={LISTING_MAX_PRICE}
-                              min={0}
-                              value={price}
-                              onChange={setPrice}
-                              id="slider"
-                            />
-                            <div className="d-flex align-items-center">
-                              <span id="slider-range-value1">
-                                ${price[0].toLocaleString()}
-                              </span>
-                              <i className="fa-sharp fa-solid fa-minus mx-2 dark-color icon" />
-                              <span id="slider-range-value2">
-                                ${price[1].toLocaleString()}
-                              </span>
-                            </div>
+                    <div className="dropdown-menu">
+                      <div className="widget-wrapper pb20 mb0 pl20 pr20">
+                        <div className="range-wrapper at-home10">
+                          <Slider
+                            range
+                            max={LISTING_MAX_PRICE}
+                            min={0}
+                            value={price}
+                            onChange={setPrice}
+                            id="slider"
+                          />
+                          <div className="d-flex align-items-center">
+                            <span id="slider-range-value1">
+                              ${price[0].toLocaleString()}
+                            </span>
+                            <i className="fa-sharp fa-solid fa-minus mx-2 dark-color icon" />
+                            <span id="slider-range-value2">
+                              ${price[1].toLocaleString()}
+                            </span>
                           </div>
                         </div>
                       </div>
                     </div>
                   </div>
                 </div>
+              </div>
 
-                <div className="col-md-6 col-lg-4 col-xl-3">
-                  <div className="d-flex align-items-center justify-content-start justify-content-md-center mt-3 mt-md-0">
-                    <button
-                      className="advance-search-btn"
-                      type="button"
-                      data-bs-toggle="modal"
-                      data-bs-target="#advanceSeachModal"
-                    >
-                      <span className="flaticon-settings" /> Advanced
-                    </button>
-                    <button
-                      className="advance-search-icon ud-btn btn-thm ms-4"
-                      type="button"
-                      onClick={handleSearch}
-                    >
-                      <span className="flaticon-search" />
-                    </button>
-                  </div>
+              <div className="col-md-6 col-lg-4 col-xl-3">
+                <div className="d-flex align-items-center justify-content-start justify-content-md-center mt-3 mt-md-0">
+                  <button
+                    className="advance-search-btn"
+                    type="button"
+                    data-bs-toggle="modal"
+                    data-bs-target="#advanceSeachModal"
+                  >
+                    <span className="flaticon-settings" /> Advanced
+                  </button>
+                  <button
+                    className="advance-search-icon ud-btn btn-thm ms-4"
+                    type="button"
+                    onClick={handleSearch}
+                  >
+                    <span className="flaticon-search" />
+                  </button>
                 </div>
               </div>
             </div>
           </div>
-        ))}
+        </div>
       </div>
     </div>
   );

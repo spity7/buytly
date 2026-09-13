@@ -15,6 +15,15 @@ import { notifyError } from "@/lib/toast";
 import { isPropertyTerminal } from "@/lib/properties/mapProperty";
 import PropertyFormNearbyPreview from "@/components/property/dashboard/dashboard-add-property/PropertyFormNearbyPreview";
 import PropertyLocationPicker from "@/components/property/dashboard/dashboard-add-property/PropertyLocationPicker";
+import PropertyPhotoGallery from "@/components/property/dashboard/dashboard-add-property/PropertyPhotoGallery";
+import {
+  createPendingGalleryItem,
+  getSavedGalleryIds,
+  mediaToSavedGalleryItems,
+  moveGalleryItem,
+  sortPropertyImages,
+} from "@/lib/properties/propertyPhotoGallery";
+import { reorderPropertyImages } from "@/lib/properties/reorderPropertyMedia";
 import {
   coordinatesToLatLngStrings,
   latLngStringsToGeoJsonCoordinates,
@@ -213,14 +222,12 @@ async function resolveFloorPlans(savedId, floorPlans) {
 }
 
 function splitMedia(media = []) {
-  const images = [];
+  const images = sortPropertyImages(media);
   let video = null;
 
   for (const item of media) {
     if (item.type === "video" && !video) {
       video = item;
-    } else if (item.type !== "video") {
-      images.push(item);
     }
   }
 
@@ -271,10 +278,9 @@ export default function PropertyForm({ propertyId }) {
     useCatalogAmenities();
   const [form, setForm] = useState(emptyForm);
   const [baselineForm, setBaselineForm] = useState(isEdit ? null : emptyForm);
-  const [existingImages, setExistingImages] = useState([]);
+  const [photoGallery, setPhotoGallery] = useState([]);
+  const [baselinePhotoIds, setBaselinePhotoIds] = useState([]);
   const [existingVideo, setExistingVideo] = useState(null);
-  const [imageFiles, setImageFiles] = useState([]);
-  const [imagePreviews, setImagePreviews] = useState([]);
   const [videoFile, setVideoFile] = useState(null);
   const [videoPreview, setVideoPreview] = useState(null);
   const [isLoading, setIsLoading] = useState(isEdit);
@@ -284,21 +290,27 @@ export default function PropertyForm({ propertyId }) {
   const [activeSubmitMode, setActiveSubmitMode] = useState("review");
   const [propertyStatus, setPropertyStatus] = useState(null);
   const [propertyMeta, setPropertyMeta] = useState(null);
-  const imagePreviewsRef = useRef(imagePreviews);
-  imagePreviewsRef.current = imagePreviews;
+  const photoGalleryRef = useRef(photoGallery);
+  photoGalleryRef.current = photoGallery;
   const videoPreviewRef = useRef(videoPreview);
   videoPreviewRef.current = videoPreview;
 
   const hasChanges = useMemo(() => {
     const baseline = isEdit ? baselineForm : emptyForm;
     if (!baseline) return false;
+    const photoOrderChanged =
+      JSON.stringify(getSavedGalleryIds(photoGallery)) !==
+      JSON.stringify(baselinePhotoIds);
+    const hasPendingPhotos = photoGallery.some((item) => item.type === "pending");
+
     return (
       !formsEqual(form, baseline) ||
-      imageFiles.length > 0 ||
+      hasPendingPhotos ||
+      photoOrderChanged ||
       Boolean(videoFile) ||
       form.floorPlans.some((plan) => plan.imageFile)
     );
-  }, [baselineForm, form, isEdit, imageFiles.length, videoFile]);
+  }, [baselineForm, baselinePhotoIds, form, isEdit, photoGallery, videoFile]);
 
   useEffect(() => {
     if (isEdit || !propertyTypes.length) return;
@@ -340,7 +352,8 @@ export default function PropertyForm({ propertyId }) {
             type: response.data?.type,
           });
           const { images, video } = splitMedia(response.data?.media || []);
-          setExistingImages(images);
+          setPhotoGallery(mediaToSavedGalleryItems(images));
+          setBaselinePhotoIds(images.map((item) => item._id));
           setExistingVideo(video);
         }
       } catch (error) {
@@ -358,9 +371,9 @@ export default function PropertyForm({ propertyId }) {
 
   useEffect(() => {
     return () => {
-      imagePreviewsRef.current.forEach((preview) => {
-        if (preview.url.startsWith("blob:")) {
-          URL.revokeObjectURL(preview.url);
+      photoGalleryRef.current.forEach((item) => {
+        if (item.type === "pending" && item.url?.startsWith("blob:")) {
+          URL.revokeObjectURL(item.url);
         }
       });
       const preview = videoPreviewRef.current;
@@ -458,15 +471,10 @@ export default function PropertyForm({ propertyId }) {
       return;
     }
 
-    const previews = files.map((file) => ({
-      id: `${file.name}-${file.size}-${file.lastModified}`,
-      file,
-      url: URL.createObjectURL(file),
-      name: file.name,
-    }));
-
-    setImageFiles((prev) => [...prev, ...files]);
-    setImagePreviews((prev) => [...prev, ...previews]);
+    setPhotoGallery((prev) => [
+      ...prev,
+      ...files.map((file) => createPendingGalleryItem(file)),
+    ]);
   }, []);
 
   const handleVideoSelect = useCallback(
@@ -499,15 +507,20 @@ export default function PropertyForm({ propertyId }) {
     [existingVideo, videoFile, videoPreview],
   );
 
-  const removeImagePreview = useCallback((index) => {
-    setImagePreviews((prev) => {
-      const preview = prev[index];
-      if (preview?.url.startsWith("blob:")) {
-        URL.revokeObjectURL(preview.url);
-      }
-      return prev.filter((_, itemIndex) => itemIndex !== index);
+  const setGalleryCover = useCallback((index) => {
+    setPhotoGallery((prev) => moveGalleryItem(prev, index, 0));
+  }, []);
+
+  const moveGalleryPhotoLeft = useCallback((index) => {
+    if (index <= 0) return;
+    setPhotoGallery((prev) => moveGalleryItem(prev, index, index - 1));
+  }, []);
+
+  const moveGalleryPhotoRight = useCallback((index) => {
+    setPhotoGallery((prev) => {
+      if (index >= prev.length - 1) return prev;
+      return moveGalleryItem(prev, index, index + 1);
     });
-    setImageFiles((prev) => prev.filter((_, itemIndex) => itemIndex !== index));
   }, []);
 
   const clearVideoPreview = useCallback(() => {
@@ -533,6 +546,23 @@ export default function PropertyForm({ propertyId }) {
         },
       },
     });
+  };
+
+  const removeGalleryPhoto = (item, index) => {
+    if (item.type === "saved") {
+      promptDeleteMedia(item.media, {
+        onRemoved: () => {
+          setPhotoGallery((prev) => prev.filter((_, i) => i !== index));
+          setBaselinePhotoIds((prev) => prev.filter((id) => id !== item.id));
+        },
+      });
+      return;
+    }
+
+    if (item.url?.startsWith("blob:")) {
+      URL.revokeObjectURL(item.url);
+    }
+    setPhotoGallery((prev) => prev.filter((_, i) => i !== index));
   };
 
   const executeSubmit = async (submitMode, { setProgress }) => {
@@ -569,10 +599,24 @@ export default function PropertyForm({ propertyId }) {
       }
     }
 
-    if (imageFiles.length && savedId) {
-      setProgress("Uploading photos...");
-      for (const file of imageFiles) {
-        await buytlyApi.uploadPropertyMedia(savedId, { media: file });
+    if (savedId && photoGallery.length) {
+      setProgress("Saving photos...");
+      const imageIds = [];
+
+      for (const item of photoGallery) {
+        if (item.type === "saved") {
+          imageIds.push(item.id);
+        } else {
+          const uploadResponse = await buytlyApi.uploadPropertyMedia(savedId, {
+            media: item.file,
+          });
+          const newId = uploadResponse.data?._id;
+          if (newId) imageIds.push(newId);
+        }
+      }
+
+      if (imageIds.length) {
+        await reorderPropertyImages(savedId, imageIds);
       }
     }
 
@@ -582,14 +626,10 @@ export default function PropertyForm({ propertyId }) {
     }
 
     setBaselineForm(form);
-    setImageFiles([]);
-    setImagePreviews((prev) => {
-      prev.forEach((preview) => {
-        if (preview.url.startsWith("blob:")) {
-          URL.revokeObjectURL(preview.url);
-        }
-      });
-      return [];
+    photoGallery.forEach((item) => {
+      if (item.type === "pending" && item.url?.startsWith("blob:")) {
+        URL.revokeObjectURL(item.url);
+      }
     });
     clearVideoPreview();
     await invalidatePropertyQueries(queryClient, { propertyId: savedId });
@@ -681,10 +721,7 @@ export default function PropertyForm({ propertyId }) {
 
   const isTerminal = isPropertyTerminal(propertyStatus);
   const mediaCount =
-    existingImages.length +
-    (existingVideo ? 1 : 0) +
-    imageFiles.length +
-    (videoFile ? 1 : 0);
+    photoGallery.length + (existingVideo ? 1 : 0) + (videoFile ? 1 : 0);
   const hasVideo = Boolean(existingVideo || videoFile);
 
   return (
@@ -1172,90 +1209,21 @@ export default function PropertyForm({ propertyId }) {
                 }}
               />
               <p className="text mt10 mb0">
-                Add listing photos only. Images appear in the gallery on the
-                property page.
+                Add listing photos only. The first photo is the cover on search
+                and map cards; use the star to change it or arrows to reorder.
               </p>
             </div>
 
-            {existingImages.length > 0 && (
-              <div className="mb20">
-                <p className="heading-color ff-heading fw600 mb15">
-                  Current photos
-                </p>
-                <div className="row profile-box position-relative d-md-flex align-items-end mb20">
-                  {existingImages.map((item) => (
-                    <div className="col-6 col-md-4 col-lg-3" key={item._id}>
-                      <div className="profile-img mb20 position-relative">
-                        <Image
-                          width={212}
-                          height={194}
-                          className="w-100 bdrs12 cover"
-                          src={item.url || "/images/listings/listing-1.jpg"}
-                          alt="Property photo"
-                          unoptimized
-                        />
-                        <button
-                          type="button"
-                          style={{ border: "none" }}
-                          className="tag-del"
-                          title="Delete photo"
-                          onClick={() =>
-                            promptDeleteMedia(item, {
-                              onRemoved: () =>
-                                setExistingImages((prev) =>
-                                  prev.filter(
-                                    (media) => media._id !== item._id,
-                                  ),
-                                ),
-                            })
-                          }
-                          disabled={formBusy}
-                          aria-label="Delete photo"
-                        >
-                          <span className="fas fa-trash-can" />
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {imagePreviews.length > 0 && (
-              <div className="mb20">
-                <p className="heading-color ff-heading fw600 mb15">
-                  New photos
-                </p>
-                <div className="row profile-box position-relative d-md-flex align-items-end mb20">
-                  {imagePreviews.map((preview, index) => (
-                    <div className="col-6 col-md-4 col-lg-3" key={preview.id}>
-                      <div className="profile-img mb20 position-relative">
-                        <Image
-                          width={212}
-                          height={194}
-                          className="w-100 bdrs12 cover"
-                          src={preview.url}
-                          alt={preview.name}
-                          unoptimized
-                        />
-                        <button
-                          type="button"
-                          style={{ border: "none" }}
-                          className="tag-del"
-                          title="Remove photo"
-                          onClick={() => removeImagePreview(index)}
-                        >
-                          <span className="fas fa-trash-can" />
-                        </button>
-                      </div>
-                      <p className="text fz13 mb0 text-truncate">
-                        {preview.name}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
+            {photoGallery.length > 0 ? (
+              <PropertyPhotoGallery
+                items={photoGallery}
+                disabled={formBusy}
+                onRemove={removeGalleryPhoto}
+                onSetCover={setGalleryCover}
+                onMoveLeft={moveGalleryPhotoLeft}
+                onMoveRight={moveGalleryPhotoRight}
+              />
+            ) : null}
           </div>
 
           <div className="col-sm-12">

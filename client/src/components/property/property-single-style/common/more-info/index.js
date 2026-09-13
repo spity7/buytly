@@ -1,5 +1,5 @@
 "use client";
-import Select from "react-select";
+import Select from "@/components/common/AppSelect";
 import SingleAgentInfo from "./SingleAgentInfo";
 import { useEffect, useState } from "react";
 

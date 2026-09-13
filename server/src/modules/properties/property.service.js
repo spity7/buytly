@@ -57,6 +57,14 @@ const attachMediaUrls = async (property) => {
   const doc = property.toObject ? property.toObject() : { ...property };
 
   if (doc.media?.length) {
+    doc.media.sort((a, b) => {
+      const orderDiff = (a.order ?? 0) - (b.order ?? 0);
+      if (orderDiff !== 0) return orderDiff;
+      if (a.type === "video" && b.type !== "video") return 1;
+      if (b.type === "video" && a.type !== "video") return -1;
+      return 0;
+    });
+
     doc.media = await Promise.all(
       doc.media.map(async (m) => ({
         ...m,
@@ -438,10 +446,14 @@ export const propertyService = {
       originalName: file.originalname,
     });
 
+    const nextImageOrder = property.media
+      .filter((item) => item.type !== "video")
+      .reduce((max, item) => Math.max(max, item.order ?? 0), -1);
+
     property.media.push({
       ...uploaded,
       type: isVideo ? "video" : "image",
-      order: property.media.length,
+      order: isVideo ? property.media.length : nextImageOrder + 1,
     });
 
     const previousStatus = property.status;
@@ -501,6 +513,54 @@ export const propertyService = {
 
     await maybeRependActiveListing(property, { isAdmin, previousStatus });
     await cacheService.invalidateListingCaches();
+  },
+
+  async reorderMedia(id, { imageIds }, user) {
+    const property = await findPropertyById(id, user);
+    if (!property) throw new AppError("Property not found", 404);
+
+    if (!canManageProperty(property, user)) {
+      throw new AppError("Not authorized", 403);
+    }
+
+    const imageMedia = property.media.filter((item) => item.type !== "video");
+    if (imageIds.length !== imageMedia.length) {
+      throw new AppError(
+        "imageIds must include every listing photo exactly once",
+        400,
+      );
+    }
+
+    const uniqueIds = new Set(imageIds.map(String));
+    if (uniqueIds.size !== imageIds.length) {
+      throw new AppError("imageIds must not contain duplicates", 400);
+    }
+
+    for (const item of imageMedia) {
+      if (!uniqueIds.has(String(item._id))) {
+        throw new AppError(
+          "imageIds must include every listing photo exactly once",
+          400,
+        );
+      }
+    }
+
+    for (let index = 0; index < imageIds.length; index += 1) {
+      const media = property.media.id(imageIds[index]);
+      if (!media || media.type === "video") {
+        throw new AppError("Invalid image id in imageIds", 400);
+      }
+      media.order = index;
+    }
+
+    const previousStatus = property.status;
+    const isAdmin = user.role === ROLES.ADMIN;
+    await property.save();
+
+    await maybeRependActiveListing(property, { isAdmin, previousStatus });
+    await cacheService.invalidateListingCaches();
+
+    return attachMediaUrls(property);
   },
 
   async listMine(user, query) {

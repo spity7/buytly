@@ -11,7 +11,10 @@ const PLACEHOLDER = "/images/listings/listing-single-1.jpg";
 const PropertyGallery = () => {
   const { property } = usePropertySingle();
   const images =
-    property?.media?.filter((item) => item.type === "image" && item.url) || [];
+    property?.media
+      ?.filter((item) => item.type === "image" && item.url)
+      .slice()
+      .sort((a, b) => (a.order ?? 0) - (b.order ?? 0)) || [];
 
   const galleryImages =
     images.length > 0 ? images : [{ url: PLACEHOLDER, _id: "placeholder" }];

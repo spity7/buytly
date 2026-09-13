@@ -15,6 +15,7 @@ import {
   listMyPropertiesSchema,
   propertyIdSchema,
   mediaIdSchema,
+  reorderPropertyMediaSchema,
 } from "./property.validation.js";
 import propertyReviewRoutes from "../property-reviews/property-review.routes.js";
 import { propertyReviewController } from "../property-reviews/property-review.controller.js";
@@ -508,6 +509,60 @@ router.delete(
   authorize(ROLES.SELLER, ROLES.AGENT, ROLES.ADMIN),
   validateMultiple({ params: mediaIdSchema }),
   asyncHandler(propertyController.removeMedia),
+);
+
+/**
+ * @swagger
+ * /properties/{id}/media/order:
+ *   put:
+ *     operationId: reorderPropertyMedia
+ *     summary: Reorder listing photos
+ *     description: Sets display order for property images. The first id is the cover photo on cards and the gallery. All image media ids must be included exactly once; video is unchanged.
+ *     tags: [Properties]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - $ref: '#/components/parameters/ObjectIdParam'
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [imageIds]
+ *             properties:
+ *               imageIds:
+ *                 type: array
+ *                 minItems: 1
+ *                 maxItems: 50
+ *                 items:
+ *                   type: string
+ *                   pattern: '^[0-9a-fA-F]{24}$'
+ *     responses:
+ *       200:
+ *         description: Photo order updated
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/PropertySuccessResponse'
+ *       400:
+ *         $ref: '#/components/responses/BadRequest'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ */
+router.put(
+  "/:id/media/order",
+  authenticate,
+  authorize(ROLES.SELLER, ROLES.AGENT, ROLES.ADMIN),
+  validateMultiple({
+    params: propertyIdSchema,
+    body: reorderPropertyMediaSchema,
+  }),
+  asyncHandler(propertyController.reorderMedia),
 );
 
 /**
