@@ -22,7 +22,7 @@ type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];
 
 export const getTransactions = () => {
   /**
-   * Buyer initiates a buy or rent transaction for an active property. Notifies seller and agent.
+   * Buyer initiates a purchase transaction for an active property. Notifies seller and agent.
    * @summary Initiate a transaction
    */
   const createTransaction = (
@@ -68,7 +68,7 @@ export const getTransactions = () => {
     );
   };
   /**
-   * Seller, agent, or admin updates transaction status. Completing marks the property as sold/rented.
+   * Seller, agent, or admin updates transaction status. Completing marks the property as sold.
    * @summary Update transaction status
    */
   const updateTransactionStatus = (

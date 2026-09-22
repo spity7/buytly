@@ -3,6 +3,7 @@ import request from "supertest";
 import { mongoAvailable } from "./setup.js";
 import { User } from "../src/modules/users/user.model.js";
 import { Property } from "../src/modules/properties/property.model.js";
+import { Project } from "../src/modules/projects/project.model.js";
 
 const getApp = async () => {
   const { default: app } = await import("../src/app.js");
@@ -45,14 +46,29 @@ describe.skipIf(!mongoAvailable)("admin users API", () => {
     const userId = registered.body.data.user.id;
     const accessToken = registered.body.data.accessToken;
 
+    const project = await Project.create({
+      title: "Seller project",
+      slug: "seller-project-admin-test",
+      description: "Stays live after delete",
+      kind: "single",
+      location: {
+        type: "Point",
+        city: "Dubai",
+        country: "UAE",
+        coordinates: [55.2708, 25.2048],
+      },
+      ownerId: userId,
+      status: "active",
+    });
+
     await Property.create({
       title: "Seller listing",
       slug: "seller-listing-admin-test",
       description: "Stays live after delete",
       type: "apartment",
-      listingType: "sale",
+      projectId: project._id,
       price: 300000,
-      location: { city: "Dubai", country: "UAE", coordinates: [55.2708, 25.2048] },
+      location: project.location,
       ownerId: userId,
       status: "active",
     });

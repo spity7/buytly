@@ -28,9 +28,6 @@ const FeaturedListings = ({ data = [], colstyle, isLoading, slider }) => {
       {data.map((listing) => {
         const id = listing.id || listing._id;
         const image = listing.image || PLACEHOLDER;
-        const forRent = listing.forRent ?? listing.listingType === "rent";
-        const priceSuffix = forRent ? " / mo" : "";
-
         const card = (
           <div
             className={
@@ -49,18 +46,13 @@ const FeaturedListings = ({ data = [], colstyle, isLoading, slider }) => {
                 alt={listing.title || "listing"}
               />
               <div className="sale-sticker-wrap">
-                {!forRent && (
-                  <div className="list-tag fz12">
-                    <span className="flaticon-electricity me-2" />
-                    FEATURED
-                  </div>
-                )}
+                <div className="list-tag fz12">
+                  <span className="flaticon-electricity me-2" />
+                  FEATURED
+                </div>
               </div>
 
-              <div className="list-price">
-                {listing.price}
-                {priceSuffix && <span>{priceSuffix}</span>}
-              </div>
+              <div className="list-price">{listing.price}</div>
             </div>
             <div className="list-content">
               <h6 className="list-title">
@@ -80,9 +72,7 @@ const FeaturedListings = ({ data = [], colstyle, isLoading, slider }) => {
               </div>
               <hr className="mt-2 mb-2" />
               <div className="list-meta2 d-flex justify-content-between align-items-center">
-                <span className="for-what">
-                  For {forRent ? "Rent" : "Sale"}
-                </span>
+                <span className="for-what">For Sale</span>
                 <div className="icons d-flex align-items-center">
                   <Link href={`/single-v1/${id}`} className="icon">
                     <span className="flaticon-fullscreen" />

@@ -1,0 +1,206 @@
+"use client";
+
+import { buytlyApi } from "@/api/generated";
+import ConfirmDialog from "@/components/common/ConfirmDialog";
+import {
+  DashboardFilterBar,
+  FilterSearch,
+  FilterSelect,
+} from "@/components/property/dashboard/DashboardFilterBar";
+import { useDebouncedSearch } from "@/hooks/useDebouncedSearch";
+import { useConfirmAction } from "@/hooks/useConfirmAction";
+import { getStatusLabel } from "@/lib/properties/mapProperty";
+import { notifyError } from "@/lib/toast";
+import { getApiError } from "@/lib/auth/getApiError";
+import Link from "next/link";
+import { useCallback, useEffect, useMemo, useState } from "react";
+
+const STATUS_FILTERS = [
+  { value: "", label: "All statuses" },
+  { value: "pending", label: "Pending review" },
+  { value: "active", label: "Published" },
+  { value: "draft", label: "Draft" },
+  { value: "sold", label: "Sold" },
+  { value: "archived", label: "Archived" },
+];
+
+const KIND_FILTERS = [
+  { value: "", label: "All kinds" },
+  { value: "single", label: "Single" },
+  { value: "compound", label: "Compound" },
+];
+
+export default function AdminProjectsTable() {
+  const [page, setPage] = useState(1);
+  const [searchInput, setSearchInput, search] = useDebouncedSearch();
+  const [statusFilter, setStatusFilter] = useState("pending");
+  const [kindFilter, setKindFilter] = useState("");
+  const [projects, setProjects] = useState([]);
+  const [pagination, setPagination] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const { requestConfirm, dialogProps, isLocked } = useConfirmAction();
+
+  const queryParams = useMemo(
+    () => ({
+      page,
+      limit: 20,
+      ...(statusFilter ? { status: statusFilter } : {}),
+      ...(kindFilter ? { kind: kindFilter } : {}),
+      ...(search.trim() ? { search: search.trim() } : {}),
+    }),
+    [page, statusFilter, kindFilter, search],
+  );
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const response = await buytlyApi.adminListProjects(queryParams);
+      setProjects(response.data || []);
+      setPagination(response.pagination);
+    } finally {
+      setLoading(false);
+    }
+  }, [queryParams]);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  const moderate = (id, title, status) => {
+    requestConfirm({
+      title: status === "active" ? "Approve project?" : "Update project status?",
+      message:
+        status === "active"
+          ? `"${title}" will go live and pending units will be published.`
+          : `Set "${title}" to ${status}?`,
+      confirmLabel: status === "active" ? "Approve" : "Confirm",
+      action: {
+        message: "Updating project...",
+        successMessage: "Project updated",
+        task: () => buytlyApi.adminModerateProject(id, { status }),
+        onSuccess: load,
+        onError: (error) => notifyError(getApiError(error)),
+      },
+    });
+  };
+
+  return (
+    <div className="p30">
+      <ConfirmDialog {...dialogProps} />
+      <h2 className="mb20">Moderate projects</h2>
+
+      <DashboardFilterBar className="mb20">
+        <FilterSearch
+          id="admin-projects-search"
+          value={searchInput}
+          onChange={setSearchInput}
+          placeholder="Search projects"
+          disabled={isLocked}
+        />
+        <FilterSelect
+          id="admin-project-status"
+          label="Status"
+          hideLabel
+          value={statusFilter}
+          options={STATUS_FILTERS}
+          disabled={isLocked}
+          onChange={(value) => {
+            setPage(1);
+            setStatusFilter(value);
+          }}
+        />
+        <FilterSelect
+          id="admin-project-kind"
+          label="Kind"
+          hideLabel
+          value={kindFilter}
+          options={KIND_FILTERS}
+          disabled={isLocked}
+          onChange={(value) => {
+            setPage(1);
+            setKindFilter(value);
+          }}
+        />
+      </DashboardFilterBar>
+
+      {loading && !projects.length ? (
+        <p>Loading projects...</p>
+      ) : (
+        <div className="table-responsive">
+          <table className="table-style3 table at-savesearch">
+            <thead>
+              <tr>
+                <th>Title</th>
+                <th>Kind</th>
+                <th>Status</th>
+                <th>Owner</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {projects.map((project) => {
+                const id = project._id || project.id;
+                return (
+                  <tr key={id}>
+                    <td>{project.title}</td>
+                    <td className="text-capitalize">{project.kind}</td>
+                    <td>{getStatusLabel(project.status)}</td>
+                    <td>
+                      {project.ownerId?.email ||
+                        project.ownerId?.firstName ||
+                        "—"}
+                    </td>
+                    <td className="d-flex flex-wrap gap-2">
+                      <Link href={`/dashboard-edit-project/${id}`}>Review</Link>
+                      {project.status === "pending" ? (
+                        <>
+                          <button
+                            type="button"
+                            className="btn btn-sm btn-success"
+                            disabled={isLocked}
+                            onClick={() => moderate(id, project.title, "active")}
+                          >
+                            Approve
+                          </button>
+                          <button
+                            type="button"
+                            className="btn btn-sm btn-outline-secondary"
+                            disabled={isLocked}
+                            onClick={() => moderate(id, project.title, "draft")}
+                          >
+                            Return to draft
+                          </button>
+                        </>
+                      ) : null}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {pagination && pagination.totalPages > 1 ? (
+        <div className="d-flex gap-2 mt20">
+          <button
+            type="button"
+            className="ud-btn btn-white2 btn-sm"
+            disabled={page <= 1 || isLocked}
+            onClick={() => setPage((p) => Math.max(1, p - 1))}
+          >
+            Previous
+          </button>
+          <button
+            type="button"
+            className="ud-btn btn-white2 btn-sm"
+            disabled={page >= pagination.totalPages || isLocked}
+            onClick={() => setPage((p) => p + 1)}
+          >
+            Next
+          </button>
+        </div>
+      ) : null}
+    </div>
+  );
+}

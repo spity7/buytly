@@ -49,14 +49,14 @@ const router = Router();
  *         schema:
  *           $ref: '#/components/schemas/PropertyType'
  *       - in: query
- *         name: listingType
+ *         name: projectId
  *         schema:
- *           $ref: '#/components/schemas/ListingType'
+ *           $ref: '#/components/schemas/ObjectId'
  *       - in: query
  *         name: status
  *         schema:
  *           type: string
- *           enum: [active, sold, rented]
+ *           enum: [active, sold]
  *         description: Defaults to active. Draft, pending, and archived are not exposed on the public list.
  *       - in: query
  *         name: city
@@ -139,9 +139,9 @@ router.get(
  *         schema:
  *           $ref: '#/components/schemas/PropertyType'
  *       - in: query
- *         name: listingType
+ *         name: projectId
  *         schema:
- *           $ref: '#/components/schemas/ListingType'
+ *           $ref: '#/components/schemas/ObjectId'
  *       - in: query
  *         name: search
  *         schema:

@@ -1,7 +1,7 @@
 "use client";
 
 import PropertyLocationMap from "@/components/property/property-single-style/common/PropertyLocationMap";
-import { buildPropertyMapEmbedSrc } from "@/lib/geo/propertyCoordinates";
+import { hasPropertyMapCoordinates } from "@/lib/geo/propertyCoordinates";
 import { usePropertySingle } from "@/providers/PropertySingleProvider";
 import React from "react";
 
@@ -13,7 +13,7 @@ const PropertyAddress = () => {
     return <p className="text">Address not available.</p>;
   }
 
-  const showMap = Boolean(buildPropertyMapEmbedSrc(location));
+  const showMap = hasPropertyMapCoordinates(location);
 
   return (
     <>

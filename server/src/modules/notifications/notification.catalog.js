@@ -7,7 +7,14 @@ const statusMessages = {
   archived: "Your listing has been archived.",
   pending: "Your listing is still under review.",
   sold: "Your listing was marked as sold.",
-  rented: "Your listing was marked as rented.",
+};
+
+const projectStatusMessages = {
+  active: "Your project has been approved and is now live.",
+  draft: "Your project was returned for edits.",
+  archived: "Your project has been archived.",
+  pending: "Your project is still under review.",
+  sold: "Your project was marked as sold.",
 };
 
 const toId = (value) => {
@@ -172,20 +179,90 @@ export const NOTIFICATION_EVENTS = {
     emailTemplate: "generic",
     entityType: "property",
     buildTitle: () => "Listing pending review",
-    buildMessage: ({ propertyTitle }) =>
-      `"${propertyTitle}" was submitted and awaits approval.`,
-    buildHref: ({ propertyId }) =>
-      propertyId
-        ? `/dashboard-admin-properties?highlight=${propertyId}`
-        : "/dashboard-admin-properties",
-    buildEmailData: ({ propertyTitle, title, message, propertyId }) => ({
+    buildMessage: ({ propertyTitle, projectTitle }) =>
+      `"${projectTitle || propertyTitle}" was submitted and awaits approval.`,
+    buildHref: ({ propertyId, projectId }) =>
+      projectId
+        ? `/dashboard-admin-projects?highlight=${projectId}`
+        : propertyId
+          ? `/dashboard-admin-properties?highlight=${propertyId}`
+          : "/dashboard-admin-properties",
+    buildEmailData: ({
+      propertyTitle,
+      projectTitle,
       title,
       message,
-      propertyTitle,
-      ctaUrl: propertyId
-        ? `${env.APP_URL}/dashboard-admin-properties?highlight=${propertyId}`
-        : `${env.APP_URL}/dashboard-admin-properties`,
+      propertyId,
+      projectId,
+    }) => ({
+      title,
+      message,
+      propertyTitle: projectTitle || propertyTitle,
+      projectTitle,
+      ctaUrl: projectId
+        ? `${env.APP_URL}/dashboard-admin-projects?highlight=${projectId}`
+        : propertyId
+          ? `${env.APP_URL}/dashboard-admin-properties?highlight=${propertyId}`
+          : `${env.APP_URL}/dashboard-admin-properties`,
       ctaLabel: "Review listing",
+    }),
+  },
+  "project.pending_review": {
+    type: NOTIFICATION_TYPES.PROPERTY,
+    preferenceKey: "property",
+    defaultSendEmail: true,
+    emailTemplate: "generic",
+    entityType: "project",
+    buildTitle: () => "Project pending review",
+    buildMessage: ({ projectTitle }) =>
+      `"${projectTitle}" was submitted and awaits approval.`,
+    buildHref: ({ projectId }) =>
+      projectId
+        ? `/dashboard-admin-projects?highlight=${projectId}`
+        : "/dashboard-admin-projects",
+    buildEmailData: ({ projectTitle, title, message, projectId }) => ({
+      title,
+      message,
+      projectTitle,
+      propertyTitle: projectTitle,
+      ctaUrl: projectId
+        ? `${env.APP_URL}/dashboard-admin-projects?highlight=${projectId}`
+        : `${env.APP_URL}/dashboard-admin-projects`,
+      ctaLabel: "Review project",
+    }),
+  },
+  "project.status_changed": {
+    type: NOTIFICATION_TYPES.PROPERTY,
+    preferenceKey: "property",
+    defaultSendEmail: true,
+    emailTemplate: "propertyStatus",
+    entityType: "project",
+    buildTitle: ({ status }) => `Project status: ${status}`,
+    buildMessage: ({ projectTitle, status }) =>
+      projectStatusMessages[status] ||
+      `Your project "${projectTitle}" is now ${status}.`,
+    buildHref: ({ projectId }) =>
+      projectId
+        ? `/dashboard-my-projects?highlight=${projectId}`
+        : "/dashboard-my-projects",
+    buildEmailData: ({
+      name,
+      projectTitle,
+      status,
+      projectId,
+      title,
+      message,
+    }) => ({
+      name,
+      projectTitle,
+      propertyTitle: projectTitle,
+      status,
+      title,
+      message,
+      ctaUrl: projectId
+        ? `${env.APP_URL}/dashboard-my-projects?highlight=${projectId}`
+        : `${env.APP_URL}/dashboard-my-projects`,
+      ctaLabel: "View project",
     }),
   },
   "property.status_changed": {
@@ -195,16 +272,28 @@ export const NOTIFICATION_EVENTS = {
     emailTemplate: "propertyStatus",
     entityType: "property",
     buildTitle: ({ status }) => `Listing status: ${status}`,
-    buildMessage: ({ propertyTitle, status }) =>
+    buildMessage: ({ propertyTitle, projectTitle, status }) =>
       statusMessages[status] ||
-      `Your listing "${propertyTitle}" is now ${status}.`,
+      `Your listing "${propertyTitle}" is now ${status}.` +
+        (projectTitle ? ` (Project: ${projectTitle})` : ""),
     buildHref: ({ propertyId }) =>
       propertyId
         ? `/dashboard-my-properties?highlight=${propertyId}`
         : "/dashboard-my-properties",
-    buildEmailData: ({ name, propertyTitle, status, propertyId, title, message }) => ({
+    buildEmailData: ({
       name,
       propertyTitle,
+      projectTitle,
+      projectId,
+      status,
+      propertyId,
+      title,
+      message,
+    }) => ({
+      name,
+      propertyTitle,
+      projectTitle,
+      projectId,
       status,
       title,
       message,

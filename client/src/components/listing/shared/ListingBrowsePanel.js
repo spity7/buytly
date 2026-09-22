@@ -28,6 +28,8 @@ export default function ListingBrowsePanel({
     isLoading,
     isError,
     listingStatus,
+    discoveryMode,
+    setDiscoveryMode,
     location,
     searchQuery,
     queryParams,
@@ -89,6 +91,33 @@ export default function ListingBrowsePanel({
             </div>
           )}
 
+          <div className="row align-items-center mb10">
+            <div className="col-12">
+              <div className="d-flex gap-2 mb20">
+                <button
+                  type="button"
+                  className={`ud-btn btn-sm ${discoveryMode === "units" ? "btn-thm" : "btn-white2"}`}
+                  onClick={() => setDiscoveryMode("units")}
+                >
+                  Units
+                </button>
+                <button
+                  type="button"
+                  className={`ud-btn btn-sm ${discoveryMode === "projects" ? "btn-thm" : "btn-white2"}`}
+                  onClick={() => setDiscoveryMode("projects")}
+                >
+                  Projects
+                </button>
+              </div>
+              {discoveryMode === "projects" ? (
+                <p className="fz14 text-muted mb0">
+                  Project view uses location and search filters. Price, bedrooms, and
+                  property type apply to the Units tab.
+                </p>
+              ) : null}
+            </div>
+          </div>
+
           <div className="row align-items-center mb20">
             <TopFilterBar
               pageContentTrac={pageContentTrac}
@@ -111,6 +140,7 @@ export default function ListingBrowsePanel({
               data={cards}
               isLoading={isLoading}
               layout={layout}
+              discoveryMode={discoveryMode}
             />
           </div>
 

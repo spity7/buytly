@@ -2,6 +2,7 @@ import { Router } from "express";
 import authRoutes from "../modules/auth/auth.routes.js";
 import userRoutes from "../modules/users/user.routes.js";
 import propertyRoutes from "../modules/properties/property.routes.js";
+import projectRoutes from "../modules/projects/project.routes.js";
 import agentRoutes from "../modules/agents/agent.routes.js";
 import favoriteRoutes from "../modules/favorites/favorite.routes.js";
 import bookingRoutes from "../modules/bookings/booking.routes.js";
@@ -75,6 +76,7 @@ router.get("/health", (req, res) => {
 router.use("/auth", authRoutes);
 router.use("/users", userRoutes);
 router.use("/properties", propertyRoutes);
+router.use("/projects", projectRoutes);
 router.use("/agents", agentRoutes);
 router.use("/favorites", favoriteRoutes);
 router.use("/bookings", bookingRoutes);

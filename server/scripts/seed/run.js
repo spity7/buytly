@@ -5,6 +5,7 @@ import { cacheService } from "../../src/services/cache.service.js";
 import { User } from "../../src/modules/users/user.model.js";
 import { AgentProfile } from "../../src/modules/agents/agent.model.js";
 import { Property } from "../../src/modules/properties/property.model.js";
+import { Project } from "../../src/modules/projects/project.model.js";
 import { PropertyReview } from "../../src/modules/property-reviews/property-review.model.js";
 import { Favorite } from "../../src/modules/favorites/favorite.model.js";
 import { Booking } from "../../src/modules/bookings/booking.model.js";
@@ -30,15 +31,15 @@ import {
 
 const SALT_ROUNDS = 12;
 
-async function buildUniqueSlug(title) {
+async function buildUniqueSlug(title, Model = Property) {
   let slug = slugify(title);
   let counter = 0;
-  let exists = await Property.findOne({ slug });
+  let exists = await Model.findOne({ slug });
 
   while (exists) {
     counter += 1;
     slug = `${slugify(title)}-${counter}`;
-    exists = await Property.findOne({ slug });
+    exists = await Model.findOne({ slug });
   }
 
   return slug;
@@ -52,6 +53,7 @@ async function clearDatabase() {
     Transaction.deleteMany({}),
     Notification.deleteMany({}),
     Property.deleteMany({}),
+    Project.deleteMany({}),
     AgentProfile.deleteMany({}),
     RefreshToken.deleteMany({}),
     User.deleteMany({}),
@@ -128,23 +130,41 @@ async function seedProperties(usersByKey) {
   const propertiesByTitle = {};
 
   for (const def of SEED_PROPERTIES) {
-    const slug = await buildUniqueSlug(def.title);
+    const projectSlug = await buildUniqueSlug(`${def.title} Project`, Project);
+    const unitSlug = await buildUniqueSlug(def.title);
     const archiveFields = def.status === "archived" ? buildArchiveUpdate() : {};
+    const location = {
+      type: "Point",
+      coordinates: def.coordinates,
+      address: def.address,
+      city: def.city,
+      country: def.country,
+    };
+
+    const project = await Project.create({
+      title: def.title,
+      slug: projectSlug,
+      description: def.description,
+      kind: def.projectKind || "single",
+      location,
+      amenities: def.amenities || [],
+      status: def.status,
+      ...archiveFields,
+      ownerId: usersByKey[def.ownerKey]._id,
+      agentId: def.agentKey ? usersByKey[def.agentKey]._id : undefined,
+      viewCount: def.viewCount,
+      media: [],
+    });
+
     const property = await Property.create({
       title: def.title,
-      slug,
+      slug: unitSlug,
       description: def.description,
       type: def.type,
-      listingType: def.listingType,
+      projectId: project._id,
       price: def.price,
       currency: def.currency,
-      location: {
-        type: "Point",
-        coordinates: def.coordinates,
-        address: def.address,
-        city: def.city,
-        country: def.country,
-      },
+      location,
       bedrooms: def.bedrooms,
       bathrooms: def.bathrooms,
       area: def.area,

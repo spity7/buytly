@@ -21,7 +21,7 @@ router.use(authenticate);
  *   post:
  *     operationId: createTransaction
  *     summary: Initiate a transaction
- *     description: Buyer initiates a buy or rent transaction for an active property. Notifies seller and agent.
+ *     description: Buyer initiates a purchase transaction for an active property. Notifies seller and agent.
  *     tags: [Transactions]
  *     security:
  *       - BearerAuth: []
@@ -139,7 +139,7 @@ router.get(
  *   patch:
  *     operationId: updateTransactionStatus
  *     summary: Update transaction status
- *     description: Seller, agent, or admin updates transaction status. Completing marks the property as sold/rented.
+ *     description: Seller, agent, or admin updates transaction status. Completing marks the property as sold.
  *     tags: [Transactions]
  *     security:
  *       - BearerAuth: []

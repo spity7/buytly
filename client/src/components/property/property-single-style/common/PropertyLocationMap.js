@@ -1,7 +1,10 @@
 "use client";
 
 import ListingMap1 from "@/components/listing/map-style/ListingMap1";
-import { buildPropertyMapEmbedSrc } from "@/lib/geo/propertyCoordinates";
+import {
+  buildPropertyMapEmbedSrc,
+  hasPropertyMapCoordinates,
+} from "@/lib/geo/propertyCoordinates";
 import { usePropertySingle } from "@/providers/PropertySingleProvider";
 
 const googleMapsApiKey =
@@ -22,6 +25,9 @@ export default function PropertyLocationMap({
 }) {
   const { card, property } = usePropertySingle();
   const location = property?.location;
+
+  if (!hasPropertyMapCoordinates(location)) return null;
+
   const embedSrc = buildPropertyMapEmbedSrc(location);
 
   if (hasMapMarker(card) && googleMapsApiKey) {

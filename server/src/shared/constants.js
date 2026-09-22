@@ -18,14 +18,13 @@ export const PROPERTY_TYPES = [
 
 export const DEFAULT_CURRENCY = "USD";
 
-export const LISTING_TYPES = ["sale", "rent"];
+export const PROJECT_KINDS = ["single", "compound"];
 
 export const PROPERTY_STATUSES = [
   "draft",
   "pending",
   "active",
   "sold",
-  "rented",
   "archived",
 ];
 
@@ -44,7 +43,7 @@ export const TRANSACTION_STATUSES = [
   "cancelled",
 ];
 
-export const TRANSACTION_TYPES = ["buy", "rent"];
+export const TRANSACTION_TYPES = ["buy"];
 
 export const NOTIFICATION_TYPES = {
   BOOKING: "booking",

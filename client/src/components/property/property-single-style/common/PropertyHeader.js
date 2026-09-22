@@ -10,7 +10,6 @@ const PropertyHeader = () => {
 
   if (!data) return null;
 
-  const forRent = data.forRent;
   const areaUnit = property?.areaUnit || "sqm";
   const pricePerSqft =
     data.sqft && data.priceValue
@@ -31,7 +30,7 @@ const PropertyHeader = () => {
               href="#"
             >
               <i className="fas fa-circle fz10 pe-2" />
-              For {forRent ? "rent" : "sale"}
+              For sale
             </a>
             <a className="ff-heading ml10 ml0-sm fz15" href="#">
               <i className="flaticon-fullscreen pe-2 align-text-top" />

@@ -2,6 +2,11 @@
  * GeoJSON Point order: [longitude, latitude].
  */
 
+/** Null Island / unset placeholder stored as [0, 0]. */
+export function isPlaceholderMapPoint(lng, lat) {
+  return lng === 0 && lat === 0;
+}
+
 export function coordinatesToLatLngStrings(coordinates) {
   if (!Array.isArray(coordinates) || coordinates.length < 2) {
     return { latitude: "", longitude: "" };
@@ -10,7 +15,11 @@ export function coordinatesToLatLngStrings(coordinates) {
   const lng = Number(coordinates[0]);
   const lat = Number(coordinates[1]);
 
-  if (!isValidLatitude(lat) || !isValidLongitude(lng)) {
+  if (
+    !isValidLatitude(lat) ||
+    !isValidLongitude(lng) ||
+    isPlaceholderMapPoint(lng, lat)
+  ) {
     return { latitude: "", longitude: "" };
   }
 
@@ -24,7 +33,11 @@ export function latLngStringsToGeoJsonCoordinates(longitude, latitude) {
   const lng = Number(longitude);
   const lat = Number(latitude);
 
-  if (!isValidLatitude(lat) || !isValidLongitude(lng)) {
+  if (
+    !isValidLatitude(lat) ||
+    !isValidLongitude(lng) ||
+    isPlaceholderMapPoint(lng, lat)
+  ) {
     return null;
   }
 
@@ -44,7 +57,11 @@ export function parseLatLngStrings(latitude, longitude) {
   const lat = Number(latitude);
   const lng = Number(longitude);
 
-  if (!isValidLatitude(lat) || !isValidLongitude(lng)) {
+  if (
+    !isValidLatitude(lat) ||
+    !isValidLongitude(lng) ||
+    isPlaceholderMapPoint(lng, lat)
+  ) {
     return null;
   }
 
@@ -69,22 +86,22 @@ function isValidLongitude(value) {
   );
 }
 
-/** Google Maps embed: prefer saved [lng, lat], else geocode address text. */
+/** True when listing has valid GeoJSON [lng, lat] coordinates. */
+export function hasPropertyMapCoordinates(location) {
+  if (!location) return false;
+  const { latitude, longitude } = coordinatesToLatLngStrings(
+    location.coordinates,
+  );
+  return latitude !== "" && longitude !== "";
+}
+
+/** Google Maps embed iframe src; only when saved coordinates exist. */
 export function buildPropertyMapEmbedSrc(location) {
-  if (!location) return null;
+  if (!hasPropertyMapCoordinates(location)) return null;
 
   const { latitude, longitude } = coordinatesToLatLngStrings(
     location.coordinates,
   );
-  if (latitude && longitude) {
-    const q = encodeURIComponent(`${latitude},${longitude}`);
-    return `https://maps.google.com/maps?q=${q}&t=m&z=14&output=embed&iwloc=near`;
-  }
-
-  const query =
-    location.address ||
-    [location.city, location.country].filter(Boolean).join(", ");
-  if (!query?.trim()) return null;
-
-  return `https://maps.google.com/maps?q=${encodeURIComponent(query)}&t=m&z=14&output=embed&iwloc=near`;
+  const q = encodeURIComponent(`${latitude},${longitude}`);
+  return `https://maps.google.com/maps?q=${q}&t=m&z=14&output=embed&iwloc=near`;
 }

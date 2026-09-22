@@ -1,6 +1,8 @@
 import { describe, it, expect, vi } from "vitest";
 import { mongoAvailable } from "./setup.js";
 import { User } from "../src/modules/users/user.model.js";
+import { Property } from "../src/modules/properties/property.model.js";
+import { Project } from "../src/modules/projects/project.model.js";
 
 const mockResolveAvatar = vi.fn(async (avatar) => ({
   gcsKey: avatar.gcsKey,
@@ -67,18 +69,29 @@ describe.skipIf(!mongoAvailable)("user.service", () => {
       },
     });
 
+    const project = await Project.create({
+      title: "Live project",
+      slug: "live-project-delete-test",
+      description: "Should stay active",
+      kind: "single",
+      location: {
+        type: "Point",
+        city: "Dubai",
+        country: "UAE",
+        coordinates: [55.2708, 25.2048],
+      },
+      ownerId: user._id,
+      status: "active",
+    });
+
     await Property.create({
       title: "Live listing",
       slug: "live-listing-delete-test",
       description: "Should stay active",
       type: "apartment",
-      listingType: "sale",
+      projectId: project._id,
       price: 250000,
-      location: {
-        city: "Dubai",
-        country: "UAE",
-        coordinates: [55.2708, 25.2048],
-      },
+      location: project.location,
       ownerId: user._id,
       status: "active",
     });

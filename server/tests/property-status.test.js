@@ -3,6 +3,10 @@ import request from "supertest";
 import { mongoAvailable } from "./setup.js";
 import { Property } from "../src/modules/properties/property.model.js";
 import { User } from "../src/modules/users/user.model.js";
+import {
+  buildPropertyBody,
+  createActiveProperty,
+} from "./helpers/listingFixtures.js";
 
 const getApp = async () => {
   const { default: app } = await import("../src/app.js");
@@ -18,41 +22,11 @@ const registerPayload = (overrides = {}) => ({
   ...overrides,
 });
 
-const propertyPayload = (overrides = {}) => ({
-  title: "Modern Downtown Apartment",
-  description:
-    "A spacious apartment in the heart of downtown with great views.",
-  type: "apartment",
-  listingType: "sale",
-  price: 350000,
-  currency: "USD",
-  location: {
-    coordinates: [55.2708, 25.2048],
-    address: "123 Main St",
-    city: "Dubai",
-    country: "UAE",
-  },
-  bedrooms: 2,
-  bathrooms: 2,
-  area: 120,
-  ...overrides,
-});
-
 const registerAndGetToken = async (app, overrides = {}) => {
   const res = await request(app)
     .post("/api/v1/auth/register")
     .send(registerPayload(overrides));
   return res.body.data.accessToken;
-};
-
-const createActiveProperty = async (app, sellerToken, overrides = {}) => {
-  const created = await request(app)
-    .post("/api/v1/properties")
-    .set("Authorization", `Bearer ${sellerToken}`)
-    .send(propertyPayload({ ...overrides, status: "active" }));
-
-  await Property.findByIdAndUpdate(created.body.data._id, { status: "active" });
-  return created.body.data._id;
 };
 
 describe.skipIf(!mongoAvailable)("property status rules", () => {
@@ -151,7 +125,10 @@ describe.skipIf(!mongoAvailable)("property status rules", () => {
       .post("/api/v1/properties")
       .set("Authorization", `Bearer ${sellerToken}`)
       .send(
-        propertyPayload({ title: "Draft Favorite Property", status: "draft" }),
+        await buildPropertyBody(app, sellerToken, {
+          title: "Draft Favorite Property",
+          status: "draft",
+        }),
       );
 
     const res = await request(app)
@@ -171,7 +148,12 @@ describe.skipIf(!mongoAvailable)("property status rules", () => {
     const created = await request(app)
       .post("/api/v1/properties")
       .set("Authorization", `Bearer ${sellerToken}`)
-      .send(propertyPayload({ title: "Moderate Me", status: "active" }));
+      .send(
+        await buildPropertyBody(app, sellerToken, {
+          title: "Moderate Me",
+          status: "active",
+        }),
+      );
 
     expect(created.body.data.status).toBe("pending");
 
@@ -381,7 +363,7 @@ describe.skipIf(!mongoAvailable)("property status rules", () => {
     expect(sellerGetRes.status).toBe(404);
 
     const restoreRes = await request(app)
-      .patch(`/api/v1/properties/${id}`)
+      .patch(`/api/v1/admin/properties/${id}/moderate`)
       .set("Authorization", `Bearer ${adminToken}`)
       .send({ status: "active" });
 

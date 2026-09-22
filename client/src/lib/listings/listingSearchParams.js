@@ -4,11 +4,12 @@ import {
 } from "@/lib/listings/listingFilters";
 
 export function listingStatusFromParams(searchParams) {
-  const listingType = searchParams.get("listingType");
-  if (listingType === "sale") return "Buy";
-  if (listingType === "rent") return "Rent";
   if (searchParams.get("status") === "sold") return "Sold";
   return "All";
+}
+
+export function discoveryModeFromParams(searchParams) {
+  return searchParams.get("view") === "projects" ? "projects" : "units";
 }
 
 export function parseListingSearchParams(searchParams) {
@@ -29,6 +30,7 @@ export function parseListingSearchParams(searchParams) {
     pageNumber: Number.isFinite(page) && page > 0 ? page : 1,
     currentSortingOption,
     listingStatus: listingStatusFromParams(searchParams),
+    discoveryMode: discoveryModeFromParams(searchParams),
     propertyTypes: type ? [type] : [],
     priceRange: [
       Number.isFinite(minPrice) && minPrice > 0 ? minPrice : 0,
@@ -44,6 +46,7 @@ export function buildListingSearchParams({
   page = 1,
   currentSortingOption = "Newest",
   listingStatus = "All",
+  discoveryMode = "units",
   propertyTypes = [],
   priceRange = [0, LISTING_MAX_PRICE],
   bedrooms = 0,
@@ -55,9 +58,8 @@ export function buildListingSearchParams({
     LISTING_SORT_OPTIONS[currentSortingOption] || LISTING_SORT_OPTIONS.Newest;
 
   if (page > 1) params.set("page", String(page));
-  if (listingStatus === "Buy") params.set("listingType", "sale");
-  if (listingStatus === "Rent") params.set("listingType", "rent");
   if (listingStatus === "Sold") params.set("status", "sold");
+  if (discoveryMode === "projects") params.set("view", "projects");
   if (propertyTypes.length === 1) params.set("type", propertyTypes[0]);
   if (priceRange[0] > 0) params.set("minPrice", String(priceRange[0]));
   if (priceRange[1] < LISTING_MAX_PRICE) {
@@ -91,14 +93,7 @@ export function buildSavedSearchFilters(queryParams) {
 }
 
 export function buildListingsHrefFromSavedFilters(filters = {}) {
-  const listingStatus =
-    filters.listingType === "sale"
-      ? "Buy"
-      : filters.listingType === "rent"
-        ? "Rent"
-        : filters.status === "sold"
-          ? "Sold"
-          : "All";
+  const listingStatus = filters.status === "sold" ? "Sold" : "All";
 
   const sortEntry = Object.entries(LISTING_SORT_OPTIONS).find(
     ([, value]) =>
@@ -128,9 +123,8 @@ export function buildSavedSearchName({
 } = {}) {
   const parts = [];
 
-  if (listingStatus === "Buy") parts.push("For sale");
-  else if (listingStatus === "Rent") parts.push("For rent");
-  else if (listingStatus === "Sold") parts.push("Sold");
+  if (listingStatus === "Sold") parts.push("Sold");
+  else parts.push("For sale");
 
   if (location && location !== "All Cities") parts.push(`in ${location}`);
 

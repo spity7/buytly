@@ -216,3 +216,15 @@ export function propertyMediaDeleteConfirmation() {
     confirmingLabel: "Removing...",
   };
 }
+
+export function projectMediaDeleteConfirmation(isVideo = false) {
+  return {
+    title: isVideo ? "Delete video?" : "Delete photo?",
+    message: isVideo
+      ? "This video will be permanently removed from the project gallery."
+      : "This photo will be permanently removed from the project gallery.",
+    confirmLabel: "Delete",
+    confirmVariant: "danger",
+    confirmingLabel: "Removing...",
+  };
+}

@@ -58,7 +58,6 @@ const ListingsFavourites = () => {
       ) : (
         cards.map((listing) => {
           const id = listing.id || listing._id;
-          const forRent = listing.forRent ?? listing.listingType === "rent";
           const rowBusy = actingId === id;
 
           return (
@@ -90,10 +89,7 @@ const ListingsFavourites = () => {
                     content="Remove from favorites"
                   />
 
-                  <div className="list-price">
-                    {listing.price}
-                    {forRent && <span> / mo</span>}
-                  </div>
+                  <div className="list-price">{listing.price}</div>
                 </div>
                 <div className="list-content">
                   <h6 className="list-title">
@@ -113,9 +109,7 @@ const ListingsFavourites = () => {
                   </div>
                   <hr className="mt-2 mb-2" />
                   <div className="list-meta2 d-flex justify-content-between align-items-center">
-                    <span className="for-what">
-                      For {forRent ? "Rent" : "Sale"}
-                    </span>
+                    <span className="for-what">For Sale</span>
                   </div>
                 </div>
               </div>

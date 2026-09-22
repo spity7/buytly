@@ -24,19 +24,30 @@ const LAYOUT_COLUMNS = {
   },
 };
 
+function listingHref(listing) {
+  const id = listing.id || listing._id;
+  if (listing.itemType === "project" && listing.slug) {
+    return `/project/${listing.slug}`;
+  }
+  return `/single-v1/${id}`;
+}
+
 export default function ListingPropertyGrid({
   data = [],
   colstyle = false,
   isLoading = false,
   layout = "full-4",
+  discoveryMode = "units",
 }) {
   const columns = LAYOUT_COLUMNS[layout] || LAYOUT_COLUMNS["full-4"];
   const columnClass = colstyle ? columns.list : columns.grid;
+  const emptyLabel =
+    discoveryMode === "projects" ? "projects" : "properties";
 
   if (isLoading) {
     return (
       <div className="col-12 text-center py-5">
-        <p className="text">Loading properties...</p>
+        <p className="text">Loading {emptyLabel}...</p>
       </div>
     );
   }
@@ -44,7 +55,9 @@ export default function ListingPropertyGrid({
   if (!data.length) {
     return (
       <div className="col-12 text-center py-5">
-        <p className="text">No properties found. Try adjusting your filters.</p>
+        <p className="text">
+          No {emptyLabel} found. Try adjusting your filters.
+        </p>
       </div>
     );
   }
@@ -54,8 +67,9 @@ export default function ListingPropertyGrid({
       {data.map((listing) => {
         const id = listing.id || listing._id;
         const image = listing.image || PLACEHOLDER;
-        const forRent = listing.forRent ?? listing.listingType === "rent";
-        const priceSuffix = forRent ? " / mo" : "";
+        const href = listingHref(listing);
+        const isProject =
+          listing.itemType === "project" || discoveryMode === "projects";
 
         return (
           <div className={columnClass} key={id}>
@@ -76,48 +90,53 @@ export default function ListingPropertyGrid({
                   alt={listing.title || "listing"}
                 />
                 <div className="sale-sticker-wrap">
-                  {!forRent && (
-                    <div className="list-tag fz12">
-                      <span className="flaticon-electricity me-2" />
-                      FEATURED
-                    </div>
-                  )}
+                  <div className="list-tag fz12">
+                    <span className="flaticon-electricity me-2" />
+                    FEATURED
+                  </div>
                 </div>
 
-                <div className="list-price">
-                  {listing.price}
-                  {priceSuffix && <span>{priceSuffix}</span>}
-                </div>
+                <div className="list-price">{listing.price}</div>
               </div>
               <div className="list-content">
                 <h6 className="list-title">
-                  <Link href={`/single-v1/${id}`}>{listing.title}</Link>
+                  <Link href={href}>{listing.title}</Link>
                 </h6>
                 <p className="list-text">{listing.location}</p>
-                <div className="list-meta d-flex align-items-center">
-                  <span>
-                    <span className="flaticon-bed" /> {listing.bed} bed
-                  </span>
-                  <span>
-                    <span className="flaticon-shower" /> {listing.bath} bath
-                  </span>
-                  <span>
-                    <span className="flaticon-expand" /> {listing.sqft} sqft
-                  </span>
-                </div>
+                {isProject ? (
+                  <p className="list-text fz14 text-muted mb-0">
+                    {listing.unitCount ?? 0} unit
+                    {listing.unitCount === 1 ? "" : "s"}
+                  </p>
+                ) : listing.projectTitle ? (
+                  <p className="list-text fz14 text-muted mb-0">
+                    {listing.projectTitle}
+                  </p>
+                ) : null}
+                {!isProject && (
+                  <div className="list-meta d-flex align-items-center">
+                    <span>
+                      <span className="flaticon-bed" /> {listing.bed} bed
+                    </span>
+                    <span>
+                      <span className="flaticon-shower" /> {listing.bath} bath
+                    </span>
+                    <span>
+                      <span className="flaticon-expand" /> {listing.sqft} sqft
+                    </span>
+                  </div>
+                )}
                 <hr className="mt-2 mb-2" />
                 <div className="list-meta2 d-flex justify-content-between align-items-center">
-                  <span className="for-what">
-                    For {forRent ? "Rent" : "Sale"}
-                  </span>
+                  <span className="for-what">For Sale</span>
                   <div className="icons d-flex align-items-center">
-                    <Link href={`/single-v1/${id}`} className="icon">
+                    <Link href={href} className="icon">
                       <span className="flaticon-fullscreen" />
                     </Link>
-                    <Link href={`/single-v1/${id}`} className="icon">
+                    <Link href={href} className="icon">
                       <span className="flaticon-new-tab" />
                     </Link>
-                    <FavoriteButton propertyId={id} />
+                    {!isProject && <FavoriteButton propertyId={id} />}
                   </div>
                 </div>
               </div>

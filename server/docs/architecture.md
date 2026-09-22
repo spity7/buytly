@@ -83,7 +83,7 @@ Buyer cancel → notifyFromEvent("booking.cancelled") → Agent
 
 ```
 Buyer → POST /transactions → Property validation → Transaction created → notifyMany("transaction.created") → seller/agent
-Seller/Agent → PATCH status → notifyMany("transaction.status_updated") → buyer, seller, agent; on complete, property status updated to sold/rented; property list cache invalidated
+Seller/Agent → PATCH status → notifyMany("transaction.status_updated") → buyer, seller, agent; on complete, property status updated to sold; property list cache invalidated
 Property review → notifyMany("review.received") → owner/agent (excluding reviewer)
 Listing submit/resubmit → notifyMany("property.pending_review") → admins
 Admin moderate → notifyFromEvent("property.status_changed") → owner
@@ -113,7 +113,7 @@ Test env skips network send entirely.
 
 ## Database seeding
 
-`scripts/seed.js` (`npm run seed`, `npm run seed:reset`) loads demo users, agent profiles, 18 properties across Dubai/Abu Dhabi/Sharjah (including land, archived, sold/rented/pending/draft statuses and map coordinates), 8 reviews, favorites, bookings, transactions, saved searches, and notifications. Invalidates listing caches when Redis is ready.
+`scripts/seed.js` (`npm run seed`, `npm run seed:reset`) loads demo users, agent profiles, projects with sellable units across Dubai/Abu Dhabi/Sharjah (including land, archived, sold/pending/draft statuses and map coordinates), reviews, favorites, bookings, buy-only transactions, saved searches, and notifications. Invalidates listing caches when Redis is ready.
 
 **Listing catalog:** `seed:reset` clears and repopulates `propertytypecatalogs` and `amenitycatalogs` (defaults from `src/modules/catalog/catalog.defaults.js` plus demo-only amenities in `scripts/seed/catalog.js`). Demo properties use **USD** and amenity strings that exist in that catalog so they match API validation. Non-reset seed upserts missing demo amenities when types already exist.
 

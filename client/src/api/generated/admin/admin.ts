@@ -8,8 +8,10 @@
 import type {
   AdminListCatalogAmenities200,
   AdminListCatalogPropertyTypes200,
+  AdminListProjectsParams,
   AdminListPropertiesParams,
   AdminListUsersParams,
+  AdminModerateProjectBody,
   AdminModeratePropertyBody,
   AdminUpdateUserRoleBody,
   AdminUpdateUserStatusBody,
@@ -18,6 +20,7 @@ import type {
   CreateCatalogPropertyTypeRequest,
   GetAnalytics200,
   PaginatedAdminUsersResponse,
+  PaginatedProjectsResponse,
   PaginatedPropertiesResponse,
   PropertySuccessResponse,
   UpdateCatalogAmenityRequest,
@@ -127,6 +130,36 @@ export const getAdmin = () => {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         data: adminModeratePropertyBody,
+      },
+      options,
+    );
+  };
+  /**
+   * @summary List all projects (admin)
+   */
+  const adminListProjects = (
+    params?: AdminListProjectsParams,
+    options?: SecondParameter<typeof customInstance<PaginatedProjectsResponse>>,
+  ) => {
+    return customInstance<PaginatedProjectsResponse>(
+      { url: `/admin/projects`, method: "GET", params },
+      options,
+    );
+  };
+  /**
+   * @summary Moderate a project
+   */
+  const adminModerateProject = (
+    id: string,
+    adminModerateProjectBody: BodyType<AdminModerateProjectBody>,
+    options?: SecondParameter<typeof customInstance<void>>,
+  ) => {
+    return customInstance<void>(
+      {
+        url: `/admin/projects/${id}/moderate`,
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        data: adminModerateProjectBody,
       },
       options,
     );
@@ -270,6 +303,8 @@ export const getAdmin = () => {
     adminUpdateUserRole,
     adminListProperties,
     adminModerateProperty,
+    adminListProjects,
+    adminModerateProject,
     getAnalytics,
     adminListCatalogPropertyTypes,
     adminCreateCatalogPropertyType,
@@ -303,6 +338,12 @@ export type AdminListPropertiesResult = NonNullable<
 >;
 export type AdminModeratePropertyResult = NonNullable<
   Awaited<ReturnType<ReturnType<typeof getAdmin>["adminModerateProperty"]>>
+>;
+export type AdminListProjectsResult = NonNullable<
+  Awaited<ReturnType<ReturnType<typeof getAdmin>["adminListProjects"]>>
+>;
+export type AdminModerateProjectResult = NonNullable<
+  Awaited<ReturnType<ReturnType<typeof getAdmin>["adminModerateProject"]>>
 >;
 export type GetAnalyticsResult = NonNullable<
   Awaited<ReturnType<ReturnType<typeof getAdmin>["getAnalytics"]>>

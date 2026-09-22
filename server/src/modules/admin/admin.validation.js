@@ -2,7 +2,7 @@ import { z } from "zod";
 import {
   ROLES,
   PROPERTY_STATUSES,
-  LISTING_TYPES,
+  PROJECT_KINDS,
 } from "../../shared/constants.js";
 
 export const listUsersSchema = z.object({
@@ -36,12 +36,29 @@ export const listAdminPropertiesSchema = z.object({
   limit: z.coerce.number().int().positive().max(100).optional(),
   status: z.enum(PROPERTY_STATUSES).optional(),
   type: z.string().min(1).max(50).optional(),
-  listingType: z.enum(LISTING_TYPES).optional(),
   search: z.string().optional(),
   sortBy: z.enum(["price", "createdAt", "viewCount"]).optional(),
   sortOrder: z.enum(["asc", "desc"]).optional(),
 });
 
+export const listAdminProjectsSchema = z.object({
+  page: z.coerce.number().int().positive().optional(),
+  limit: z.coerce.number().int().positive().max(100).optional(),
+  status: z.enum(PROPERTY_STATUSES).optional(),
+  kind: z.enum(PROJECT_KINDS).optional(),
+  search: z.string().optional(),
+  sortBy: z.enum(["createdAt", "viewCount", "title"]).optional(),
+  sortOrder: z.enum(["asc", "desc"]).optional(),
+});
+
 export const propertyIdSchema = z.object({
   id: z.string().regex(/^[0-9a-fA-F]{24}$/),
+});
+
+export const projectIdSchema = z.object({
+  id: z.string().regex(/^[0-9a-fA-F]{24}$/),
+});
+
+export const moderateProjectSchema = z.object({
+  status: z.enum(PROPERTY_STATUSES),
 });

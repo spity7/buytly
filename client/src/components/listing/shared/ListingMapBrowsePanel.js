@@ -24,6 +24,8 @@ export default function ListingMapBrowsePanel({
     isLoading,
     isError,
     listingStatus,
+    discoveryMode,
+    setDiscoveryMode,
     location,
     searchQuery,
     queryParams,
@@ -86,6 +88,23 @@ export default function ListingMapBrowsePanel({
           <div className="row">
             <div className="col-xl-5">
               <div className="half_map_area_content mt30 px-3 px-xl-4">
+                <div className="d-flex gap-2 mb20">
+                  <button
+                    type="button"
+                    className={`ud-btn btn-sm ${discoveryMode === "units" ? "btn-thm" : "btn-white2"}`}
+                    onClick={() => setDiscoveryMode("units")}
+                  >
+                    Units
+                  </button>
+                  <button
+                    type="button"
+                    className={`ud-btn btn-sm ${discoveryMode === "projects" ? "btn-thm" : "btn-white2"}`}
+                    onClick={() => setDiscoveryMode("projects")}
+                  >
+                    Projects
+                  </button>
+                </div>
+
                 <div className="row align-items-center mb10">
                   <TopFilterBar
                     pageContentTrac={pageContentTrac}
@@ -108,6 +127,7 @@ export default function ListingMapBrowsePanel({
                     data={cards}
                     isLoading={isLoading}
                     layout="full-4"
+                    discoveryMode={discoveryMode}
                   />
                 </div>
 

@@ -20,8 +20,15 @@ const PropertyDetails = () => {
       { label: "Bedrooms", value: property.bedrooms ?? "—" },
     ],
     [
-      { label: "Listing Type", value: property.listingType },
       { label: "Property Type", value: property.type },
+      {
+        label: "Project",
+        value:
+          property.projectId?.title ||
+          property.project?.title ||
+          card.projectTitle ||
+          "—",
+      },
       {
         label: "Property Status",
         value: getStatusLabel(property.status),

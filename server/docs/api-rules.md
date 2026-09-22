@@ -84,14 +84,23 @@ Delete account via `DELETE /api/v1/users/me` with `{ password }` in the body.
 
 Refresh expired access tokens via `POST /api/v1/auth/refresh` with the refresh token in the body.
 
+## Property create/update numeric fields
+
+- **`price`** — positive **integer** (whole USD; no cents).
+- **`location.coordinates`** — required `[lng, lat]` on create; must not be placeholder `[0, 0]`.
+- **`area`** — optional; when set, positive number with **at most 2 decimal places** (sqm).
+- **Floor plan `price`** — optional non-negative **integer** USD.
+- **Floor plan `area`** — same rules as listing `area`.
+
 ## Sorting & Filtering
 
 Property list supports:
 
 - `sortBy` — `price`, `createdAt`, `viewCount`
 - `sortOrder` — `asc`, `desc`
-- `minPrice`, `maxPrice`, `type`, `listingType`, `status`, `city`, `bedrooms`
-- `status` on public `GET /properties` — only `active` (default), `sold`, or `rented`; other values return 400
+- `minPrice`, `maxPrice`, `type`, `status`, `city`, `bedrooms`
+- `status` on public `GET /properties` — only `active` (default) or `sold`; other values return 400
+- Public `GET /projects` — `kind`, `city`, geo radius, `search`, pagination; list items include `unitCount`, `priceMin`, `priceMax`
 - `search` — Full-text search on title/description
 - `lat`, `lng`, `radiusKm` — Geo-radius search (all three required). When combined with `search`, radius filtering uses `$geoWithin` instead of distance sorting so MongoDB accepts the query.
 

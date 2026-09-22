@@ -2,6 +2,25 @@ import { formatPrice } from "./formatPrice";
 
 const PLACEHOLDER_IMAGE = "/images/listings/list-1.jpg";
 
+/** Display label for API `location` (object or legacy string). */
+export function formatPropertyLocationLabel(location, fallback = "—") {
+  if (location == null || location === "") return fallback;
+  if (typeof location === "string") {
+    const trimmed = location.trim();
+    return trimmed || fallback;
+  }
+
+  const address = location.address?.trim();
+  if (address) return address;
+
+  const cityCountry = [location.city, location.country]
+    .filter(Boolean)
+    .join(", ");
+  if (cityCountry) return cityCountry;
+
+  return fallback;
+}
+
 export function mapPropertyToCard(property) {
   if (!property) return null;
 
@@ -22,11 +41,7 @@ export function mapPropertyToCard(property) {
   const lng = Array.isArray(coordinates) ? coordinates[0] : undefined;
   const lat = Array.isArray(coordinates) ? coordinates[1] : undefined;
   const location =
-    property.locationLabel ||
-    locationObj?.address ||
-    [locationObj?.city, locationObj?.country].filter(Boolean).join(", ") ||
-    property.location ||
-    "—";
+    property.locationLabel || formatPropertyLocationLabel(locationObj, "—");
 
   return {
     id,
@@ -40,8 +55,13 @@ export function mapPropertyToCard(property) {
       property.priceLabel || formatPrice(property.price, property.currency),
     priceValue: property.price,
     currency: property.currency || "USD",
-    forRent: property.listingType === "rent",
-    listingType: property.listingType,
+    itemType: "unit",
+    projectTitle:
+      property.projectId?.title ||
+      property.project?.title ||
+      property.raw?.projectId?.title,
+    projectKind:
+      property.projectId?.kind || property.project?.kind || property.raw?.projectId?.kind,
     location,
     lat,
     lng,
@@ -65,20 +85,59 @@ export function mapPropertiesToCards(properties = []) {
   return properties.map(mapPropertyToCard).filter(Boolean);
 }
 
+export function mapProjectToCard(project) {
+  if (!project) return null;
+
+  const id = project._id || project.id;
+  const firstImage = project.media
+    ?.filter((item) => item.type === "image")
+    .slice()
+    .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))[0];
+  const image = firstImage?.url || PLACEHOLDER_IMAGE;
+  const locationObj = project.location;
+  const location = formatPropertyLocationLabel(locationObj, "—");
+  const priceMin = project.priceMin;
+  const priceLabel =
+    priceMin != null
+      ? `From ${formatPrice(priceMin, project.currency || "USD")}`
+      : "Price on request";
+
+  return {
+    id,
+    _id: id,
+    slug: project.slug,
+    title: project.title || "Untitled",
+    image,
+    location,
+    itemType: "project",
+    kind: project.kind,
+    unitCount: project.unitCount ?? 0,
+    price: priceLabel,
+    priceValue: priceMin,
+    status: project.status,
+    description: project.description,
+    media: project.media || [],
+    raw: project,
+  };
+}
+
+export function mapProjectsToCards(projects = []) {
+  return projects.map(mapProjectToCard).filter(Boolean);
+}
+
 export function getStatusLabel(status) {
   const labels = {
     draft: "Draft",
     pending: "Pending Review",
     active: "Published",
     sold: "Sold",
-    rented: "Rented",
     archived: "Archived",
   };
   return labels[status] || status || "—";
 }
 
 export function isPropertyTerminal(status) {
-  return status === "sold" || status === "rented" || status === "archived";
+  return status === "sold" || status === "archived";
 }
 
 export function isPropertyBookable(status) {
@@ -94,7 +153,6 @@ export function getStatusClass(status) {
     case "draft":
       return "pending-style style3";
     case "sold":
-    case "rented":
       return "pending-style style4";
     case "archived":
       return "pending-style style5";

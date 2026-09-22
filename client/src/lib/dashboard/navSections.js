@@ -36,14 +36,19 @@ export function getDashboardNavSections(role) {
             title: "MANAGE LISTINGS",
             items: [
               {
-                href: "/dashboard-add-property",
+                href: "/dashboard-add-project",
                 icon: "flaticon-new-tab",
-                text: "Add New Property",
+                text: "Add New Project",
+              },
+              {
+                href: "/dashboard-my-projects",
+                icon: "flaticon-home",
+                text: "My Projects",
               },
               {
                 href: "/dashboard-my-properties",
                 icon: "flaticon-home",
-                text: "My Properties",
+                text: "All Units",
               },
               {
                 href: "/dashboard-reviews",
@@ -73,6 +78,11 @@ export function getDashboardNavSections(role) {
                 href: "/dashboard-admin-properties",
                 icon: "flaticon-settings",
                 text: "Moderate Listings",
+              },
+              {
+                href: "/dashboard-admin-projects",
+                icon: "flaticon-home",
+                text: "Moderate Projects",
               },
               {
                 href: "/dashboard-admin-catalog",

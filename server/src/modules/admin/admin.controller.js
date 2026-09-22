@@ -41,6 +41,19 @@ export const adminController = {
     ApiResponse.success(res, property, "Property moderated");
   },
 
+  listProjects: async (req, res) => {
+    const result = await adminService.listProjects(req.query);
+    ApiResponse.paginated(res, result.projects, result.pagination);
+  },
+
+  moderateProject: async (req, res) => {
+    const project = await adminService.moderateProject(
+      req.params.id,
+      req.body.status,
+    );
+    ApiResponse.success(res, project, "Project moderated");
+  },
+
   getAnalytics: async (req, res) => {
     const analytics = await adminService.getAnalytics();
     ApiResponse.success(res, analytics);

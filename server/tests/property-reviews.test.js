@@ -2,7 +2,12 @@ import { describe, it, expect } from "vitest";
 import request from "supertest";
 import { mongoAvailable } from "./setup.js";
 import { Property } from "../src/modules/properties/property.model.js";
+import { Project } from "../src/modules/projects/project.model.js";
 import { PropertyReview } from "../src/modules/property-reviews/property-review.model.js";
+import {
+  buildPropertyBody,
+  createActiveProperty,
+} from "./helpers/listingFixtures.js";
 
 const getApp = async () => {
   const { default: app } = await import("../src/app.js");
@@ -18,23 +23,7 @@ const registerPayload = (overrides = {}) => ({
   ...overrides,
 });
 
-const propertyPayload = (overrides = {}) => ({
-  title: "Review Test Apartment",
-  description: "A spacious apartment for review integration tests.",
-  type: "apartment",
-  listingType: "sale",
-  price: 350000,
-  currency: "USD",
-  location: {
-    coordinates: [55.2708, 25.2048],
-    address: "123 Main St",
-    city: "Dubai",
-    country: "UAE",
-  },
-  bedrooms: 2,
-  bathrooms: 2,
-  area: 120,
-  status: "active",
+const reviewPropertyExtras = {
   virtualTourUrl: "https://my.matterport.com/show/?m=example",
   floorPlans: [
     {
@@ -46,8 +35,7 @@ const propertyPayload = (overrides = {}) => ({
       price: 350000,
     },
   ],
-  ...overrides,
-});
+};
 
 const registerAndGetToken = async (app, overrides = {}) => {
   const res = await request(app)
@@ -60,18 +48,6 @@ const registerAndGetToken = async (app, overrides = {}) => {
     );
   expect(res.status).toBe(201);
   return res.body.data.accessToken;
-};
-
-const createActiveProperty = async (app, sellerToken, overrides = {}) => {
-  const created = await request(app)
-    .post("/api/v1/properties")
-    .set("Authorization", `Bearer ${sellerToken}`)
-    .send(propertyPayload(overrides));
-
-  expect(created.status).toBe(201);
-
-  await Property.findByIdAndUpdate(created.body.data._id, { status: "active" });
-  return created.body.data._id;
 };
 
 describe.skipIf(!mongoAvailable)("property reviews API", () => {
@@ -198,7 +174,9 @@ describe.skipIf(!mongoAvailable)("property reviews API", () => {
     const sellerToken = await registerAndGetToken(app, { role: "seller" });
     const buyerToken = await registerAndGetToken(app, { role: "buyer" });
 
-    const propertyId = await createActiveProperty(app, sellerToken);
+    const propertyId = await createActiveProperty(app, sellerToken, {
+      title: "Review Test Apartment",
+    });
 
     await request(app)
       .post(`/api/v1/properties/${propertyId}/reviews`)
@@ -301,7 +279,11 @@ describe.skipIf(!mongoAvailable)("property reviews API", () => {
     const created = await request(app)
       .post("/api/v1/properties")
       .set("Authorization", `Bearer ${sellerToken}`)
-      .send(propertyPayload({ title: "Pending Review Property" }))
+      .send(
+        await buildPropertyBody(app, sellerToken, {
+          title: "Pending Review Property",
+        }),
+      )
       .expect(201);
 
     const propertyId = created.body.data._id;
@@ -324,7 +306,12 @@ describe.skipIf(!mongoAvailable)("property extended fields", () => {
     const created = await request(app)
       .post("/api/v1/properties")
       .set("Authorization", `Bearer ${token}`)
-      .send(propertyPayload({ title: "Extended Fields Property" }))
+      .send(
+        await buildPropertyBody(app, token, {
+          title: "Extended Fields Property",
+          ...reviewPropertyExtras,
+        }),
+      )
       .expect(201);
 
     expect(created.body.data.virtualTourUrl).toBe(

@@ -267,12 +267,12 @@ export interface GoogleAuthRequest {
  */
 export type PropertyType = string;
 
-export type ListingType = (typeof ListingType)[keyof typeof ListingType];
+export type ProjectKind = (typeof ProjectKind)[keyof typeof ProjectKind];
 
 // eslint-disable-next-line @typescript-eslint/no-redeclare
-export const ListingType = {
-  sale: "sale",
-  rent: "rent",
+export const ProjectKind = {
+  single: "single",
+  compound: "compound",
 } as const;
 
 export type PropertyStatus =
@@ -284,7 +284,6 @@ export const PropertyStatus = {
   pending: "pending",
   active: "active",
   sold: "sold",
-  rented: "rented",
   archived: "archived",
 } as const;
 
@@ -329,6 +328,8 @@ export interface PropertyMedia {
   url?: string;
 }
 
+export type PropertyProjectId = ObjectId | ProjectSummary;
+
 export type PropertyAgentId = ObjectId | User;
 
 export type PropertyOwnerId = ObjectId | User;
@@ -339,7 +340,9 @@ export interface Property {
   slug?: string;
   description?: string;
   type?: PropertyType;
-  listingType?: ListingType;
+  projectId?: PropertyProjectId;
+  unitLabel?: string;
+  sortOrder?: number;
   price?: number;
   currency?: string;
   location?: PropertyLocation;
@@ -371,6 +374,7 @@ export const CreatePropertyRequestCurrency = {
 } as const;
 
 export interface CreatePropertyRequest {
+  projectId: ObjectId;
   /**
    * @minLength 3
    * @maxLength 200
@@ -379,7 +383,8 @@ export interface CreatePropertyRequest {
   /** @minLength 10 */
   description: string;
   type: PropertyType;
-  listingType: ListingType;
+  unitLabel?: string;
+  sortOrder?: number;
   /**
    * @minimum 0
    * @exclusiveMinimum
@@ -387,7 +392,6 @@ export interface CreatePropertyRequest {
   price: number;
   /** Always USD; other values are ignored by the API */
   currency?: CreatePropertyRequestCurrency;
-  location: PropertyLocation;
   /** @minimum 0 */
   bedrooms?: number;
   /** @minimum 0 */
@@ -523,7 +527,6 @@ export type TransactionType =
 // eslint-disable-next-line @typescript-eslint/no-redeclare
 export const TransactionType = {
   buy: "buy",
-  rent: "rent",
 } as const;
 
 export type TransactionStatus =
@@ -964,6 +967,58 @@ export interface UpdateCatalogAmenityRequest {
   isActive?: boolean;
 }
 
+export interface ProjectSummary {
+  _id?: ObjectId;
+  title?: string;
+  slug?: string;
+  kind?: ProjectKind;
+  status?: PropertyStatus;
+}
+
+export type ProjectOwnerId = ObjectId | User;
+
+export type ProjectAgentId = ObjectId | User;
+
+export interface Project {
+  _id?: ObjectId;
+  title?: string;
+  slug?: string;
+  description?: string;
+  kind?: ProjectKind;
+  location?: PropertyLocation;
+  amenities?: string[];
+  status?: PropertyStatus;
+  media?: PropertyMedia[];
+  virtualTourUrl?: string;
+  unitCount?: number;
+  /** @nullable */
+  priceMin?: number | null;
+  /** @nullable */
+  priceMax?: number | null;
+  ownerId?: ProjectOwnerId;
+  agentId?: ProjectAgentId;
+  viewCount?: number;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface CreateProjectRequest {
+  title: string;
+  description: string;
+  kind: ProjectKind;
+  location: PropertyLocation;
+  amenities?: string[];
+  virtualTourUrl?: string;
+  status?: PropertyStatus;
+}
+
+export interface PaginatedProjectsResponse {
+  success?: boolean;
+  message?: string;
+  data?: Project[];
+  pagination?: PaginationMeta;
+}
+
 /**
  * Request validation failed
  */
@@ -1160,7 +1215,7 @@ export type ListPropertiesParams = {
   minPrice?: number;
   maxPrice?: number;
   type?: PropertyType;
-  listingType?: ListingType;
+  projectId?: ObjectId;
   /**
    * Defaults to active. Draft, pending, and archived are not exposed on the public list.
    */
@@ -1194,7 +1249,6 @@ export type ListPropertiesStatus =
 export const ListPropertiesStatus = {
   active: "active",
   sold: "sold",
-  rented: "rented",
 } as const;
 
 export type ListPropertiesSortBy =
@@ -1230,7 +1284,7 @@ export type ListMyPropertiesParams = {
   limit?: LimitParamParameter;
   status?: PropertyStatus;
   type?: PropertyType;
-  listingType?: ListingType;
+  projectId?: ObjectId;
   /**
    * Case-insensitive partial match on title and description
    */
@@ -1315,6 +1369,112 @@ export type UploadFloorPlanImage201AllOf = {
 
 export type UploadFloorPlanImage201 = SuccessResponse &
   UploadFloorPlanImage201AllOf;
+
+export type ListProjectsParams = {
+  /**
+   * Page number (1-based)
+   * @minimum 1
+   */
+  page?: PageParamParameter;
+  /**
+   * Items per page (max 100)
+   * @minimum 1
+   * @maximum 100
+   */
+  limit?: LimitParamParameter;
+  kind?: ProjectKind;
+  status?: ListProjectsStatus;
+  city?: string;
+  search?: string;
+};
+
+export type ListProjectsStatus =
+  (typeof ListProjectsStatus)[keyof typeof ListProjectsStatus];
+
+// eslint-disable-next-line @typescript-eslint/no-redeclare
+export const ListProjectsStatus = {
+  active: "active",
+  sold: "sold",
+} as const;
+
+export type CreateProject201 = {
+  success?: boolean;
+  data?: Project;
+};
+
+export type ListMyProjectsParams = {
+  /**
+   * Page number (1-based)
+   * @minimum 1
+   */
+  page?: PageParamParameter;
+  /**
+   * Items per page (max 100)
+   * @minimum 1
+   * @maximum 100
+   */
+  limit?: LimitParamParameter;
+  status?: PropertyStatus;
+  kind?: ProjectKind;
+  search?: string;
+  sortBy?: ListMyProjectsSortBy;
+  sortOrder?: ListMyProjectsSortOrder;
+  trashed?: ListMyProjectsTrashed;
+};
+
+export type ListMyProjectsSortBy =
+  (typeof ListMyProjectsSortBy)[keyof typeof ListMyProjectsSortBy];
+
+// eslint-disable-next-line @typescript-eslint/no-redeclare
+export const ListMyProjectsSortBy = {
+  createdAt: "createdAt",
+  viewCount: "viewCount",
+  title: "title",
+} as const;
+
+export type ListMyProjectsSortOrder =
+  (typeof ListMyProjectsSortOrder)[keyof typeof ListMyProjectsSortOrder];
+
+// eslint-disable-next-line @typescript-eslint/no-redeclare
+export const ListMyProjectsSortOrder = {
+  asc: "asc",
+  desc: "desc",
+} as const;
+
+export type ListMyProjectsTrashed =
+  (typeof ListMyProjectsTrashed)[keyof typeof ListMyProjectsTrashed];
+
+// eslint-disable-next-line @typescript-eslint/no-redeclare
+export const ListMyProjectsTrashed = {
+  true: true,
+  false: false,
+} as const;
+
+export type GetProjectByIdParams = {
+  includeUnits?: GetProjectByIdIncludeUnits;
+};
+
+export type GetProjectByIdIncludeUnits =
+  (typeof GetProjectByIdIncludeUnits)[keyof typeof GetProjectByIdIncludeUnits];
+
+// eslint-disable-next-line @typescript-eslint/no-redeclare
+export const GetProjectByIdIncludeUnits = {
+  true: true,
+  false: false,
+} as const;
+
+export type UpdateProject200 = {
+  success?: boolean;
+  data?: Project;
+};
+
+export type UploadProjectMediaBody = {
+  media: Blob;
+};
+
+export type ReorderProjectMediaBody = {
+  imageIds: ObjectId[];
+};
 
 export type ListNotificationsParams = {
   /**
@@ -1574,7 +1734,6 @@ export type GetAgentPropertiesParams = {
   minPrice?: number;
   maxPrice?: number;
   type?: PropertyType;
-  listingType?: ListingType;
   city?: string;
   sortBy?: GetAgentPropertiesSortBy;
   sortOrder?: GetAgentPropertiesSortOrder;
@@ -1663,7 +1822,6 @@ export type AdminListPropertiesParams = {
   limit?: LimitParamParameter;
   status?: PropertyStatus;
   type?: PropertyType;
-  listingType?: ListingType;
   /**
    * Case-insensitive partial match on title and description
    */
@@ -1692,6 +1850,48 @@ export const AdminListPropertiesSortOrder = {
 } as const;
 
 export type AdminModeratePropertyBody = {
+  status: PropertyStatus;
+};
+
+export type AdminListProjectsParams = {
+  /**
+   * Page number (1-based)
+   * @minimum 1
+   */
+  page?: PageParamParameter;
+  /**
+   * Items per page (max 100)
+   * @minimum 1
+   * @maximum 100
+   */
+  limit?: LimitParamParameter;
+  status?: PropertyStatus;
+  kind?: ProjectKind;
+  search?: string;
+  sortBy?: AdminListProjectsSortBy;
+  sortOrder?: AdminListProjectsSortOrder;
+};
+
+export type AdminListProjectsSortBy =
+  (typeof AdminListProjectsSortBy)[keyof typeof AdminListProjectsSortBy];
+
+// eslint-disable-next-line @typescript-eslint/no-redeclare
+export const AdminListProjectsSortBy = {
+  createdAt: "createdAt",
+  viewCount: "viewCount",
+  title: "title",
+} as const;
+
+export type AdminListProjectsSortOrder =
+  (typeof AdminListProjectsSortOrder)[keyof typeof AdminListProjectsSortOrder];
+
+// eslint-disable-next-line @typescript-eslint/no-redeclare
+export const AdminListProjectsSortOrder = {
+  asc: "asc",
+  desc: "desc",
+} as const;
+
+export type AdminModerateProjectBody = {
   status: PropertyStatus;
 };
 

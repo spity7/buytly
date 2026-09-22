@@ -1,8 +1,3 @@
-const LISTING_TYPE_LABELS = {
-  sale: "For sale",
-  rent: "For rent",
-};
-
 const PROPERTY_TYPE_LABELS = {
   apartment: "Apartment",
   villa: "Villa",
@@ -29,10 +24,6 @@ function formatMediaCount(count) {
   return count === 1 ? "1 file uploaded" : `${count} files uploaded`;
 }
 
-function getListingTypeLabel(listingType) {
-  return LISTING_TYPE_LABELS[listingType] || listingType || "—";
-}
-
 function getPropertyTypeLabel(type) {
   return PROPERTY_TYPE_LABELS[type] || type || "—";
 }
@@ -42,16 +33,14 @@ export function getListingStatusBannerContent({
   createdAt,
   updatedAt,
   viewCount = 0,
-  listingType,
   type,
   mediaCount = 0,
   isAdmin = false,
 }) {
-  const listingLabel = getListingTypeLabel(listingType);
   const propertyLabel = getPropertyTypeLabel(type);
   const mediaLabel = formatMediaCount(mediaCount);
   const commonMeta = [
-    { label: "Listing", value: `${listingLabel} · ${propertyLabel}` },
+    { label: "Listing", value: `For sale · ${propertyLabel}` },
     { label: "Media", value: mediaLabel },
   ];
 
@@ -111,21 +100,7 @@ export function getListingStatusBannerContent({
         meta: [
           { label: "Closed", value: formatListingDate(updatedAt || createdAt) },
           { label: "Total views", value: viewCount.toLocaleString() },
-          { label: "Listing", value: listingLabel },
-        ],
-        nextStep: isAdmin
-          ? "You can still edit listing details as an admin."
-          : "This listing is closed and can no longer be edited.",
-      };
-    case "rented":
-      return {
-        message: isAdmin
-          ? "This property has been marked as rented and is hidden from active search."
-          : "This property has been marked as rented and is no longer available.",
-        meta: [
-          { label: "Closed", value: formatListingDate(updatedAt || createdAt) },
-          { label: "Total views", value: viewCount.toLocaleString() },
-          { label: "Listing", value: listingLabel },
+          { label: "Listing", value: "For sale" },
         ],
         nextStep: isAdmin
           ? "You can still edit listing details as an admin."

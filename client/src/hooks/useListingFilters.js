@@ -14,6 +14,8 @@ import {
 } from "@/lib/listings/listingSearchParams";
 import { useDebouncedSearch } from "@/hooks/useDebouncedSearch";
 import { useProperties } from "@/hooks/useProperties";
+import { useProjects } from "@/hooks/useProjects";
+import { buildProjectQueryParams } from "@/lib/listings/listingFilters";
 
 function applyParsedFilters(parsed, setters) {
   setters.setPageNumber(parsed.pageNumber);
@@ -24,6 +26,7 @@ function applyParsedFilters(parsed, setters) {
   setters.setBedrooms(parsed.bedrooms);
   setters.setLocation(parsed.location);
   setters.setSearchInput(parsed.searchQuery);
+  setters.setDiscoveryMode(parsed.discoveryMode);
 }
 
 export function useListingFilters({
@@ -46,6 +49,7 @@ export function useListingFilters({
     initial.currentSortingOption,
   );
   const [listingStatus, setListingStatus] = useState(initial.listingStatus);
+  const [discoveryMode, setDiscoveryMode] = useState(initial.discoveryMode);
   const [propertyTypes, setPropertyTypes] = useState(initial.propertyTypes);
   const [priceRange, setPriceRange] = useState(initial.priceRange);
   const [bedrooms, setBedrooms] = useState(initial.bedrooms);
@@ -75,6 +79,7 @@ export function useListingFilters({
       setBedrooms,
       setLocation,
       setSearchInput,
+      setDiscoveryMode,
     });
     isApplyingUrl.current = false;
   }, [urlKey, searchParams, setSearchInput]);
@@ -112,6 +117,7 @@ export function useListingFilters({
       page: pageNumber,
       currentSortingOption,
       listingStatus,
+      discoveryMode,
       propertyTypes,
       priceRange,
       bedrooms,
@@ -130,6 +136,7 @@ export function useListingFilters({
     pageNumber,
     currentSortingOption,
     listingStatus,
+    discoveryMode,
     propertyTypes,
     priceRange,
     bedrooms,
@@ -137,10 +144,38 @@ export function useListingFilters({
     searchQuery,
   ]);
 
-  const { data, isLoading, isError, isFetching } = useProperties(queryParams);
+  const projectQueryParams = useMemo(
+    () =>
+      buildProjectQueryParams({
+        page: pageNumber,
+        limit: pageSize,
+        currentSortingOption,
+        listingStatus,
+        location,
+        searchQuery,
+      }),
+    [
+      pageNumber,
+      pageSize,
+      currentSortingOption,
+      listingStatus,
+      location,
+      searchQuery,
+    ],
+  );
 
-  const cards = data?.cards || [];
-  const pagination = data?.pagination;
+  const unitsQuery = useProperties(queryParams, {
+    enabled: discoveryMode === "units",
+  });
+  const projectsQuery = useProjects(projectQueryParams, {
+    enabled: discoveryMode === "projects",
+  });
+
+  const activeQuery = discoveryMode === "projects" ? projectsQuery : unitsQuery;
+  const { isLoading, isError, isFetching } = activeQuery;
+
+  const cards = activeQuery.data?.cards || [];
+  const pagination = activeQuery.data?.pagination;
   const pageContentTrac = getListingPageRange(
     pageNumber,
     pageSize,
@@ -174,6 +209,14 @@ export function useListingFilters({
     (value) => {
       resetPage();
       setListingStatus((current) => (current === value ? "All" : value));
+    },
+    [resetPage],
+  );
+
+  const handleDiscoveryMode = useCallback(
+    (mode) => {
+      resetPage();
+      setDiscoveryMode(mode === "projects" ? "projects" : "units");
     },
     [resetPage],
   );
@@ -282,6 +325,8 @@ export function useListingFilters({
     listingStatus,
     propertyTypes,
     resetFilter,
+    discoveryMode,
+    handleDiscoveryMode,
     bedrooms,
     bathroms: bathrooms,
     location,
@@ -307,6 +352,8 @@ export function useListingFilters({
     isError,
     isFetching,
     listingStatus,
+    discoveryMode,
+    setDiscoveryMode: handleDiscoveryMode,
     location,
     searchQuery,
     pageSize,

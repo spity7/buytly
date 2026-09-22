@@ -1,31 +1,34 @@
 import { z } from "zod";
 import {
   DEFAULT_CURRENCY,
-  LISTING_TYPES,
   PROPERTY_STATUSES,
 } from "../../shared/constants.js";
 
-const locationSchema = z.object({
-  coordinates: z.tuple([
-    z.number().min(-180).max(180),
-    z.number().min(-90).max(90),
-  ]),
-  address: z.string().optional(),
-  city: z.string().optional(),
-  country: z.string().optional(),
-});
-
 const floorPlanSchema = z.object({
   title: z.string().min(1).max(100),
-  area: z.number().positive().optional(),
+  area: z
+    .number()
+    .positive()
+    .refine((value) => Math.abs(value * 100 - Math.round(value * 100)) < 1e-8, {
+      message: "Area must have at most 2 decimal places",
+    })
+    .optional(),
   areaUnit: z.string().optional(),
   bedrooms: z.number().int().min(0).optional(),
   bathrooms: z.number().int().min(0).optional(),
-  price: z.number().min(0).optional(),
+  price: z.number().int().min(0).optional(),
   gcsKey: z.string().optional(),
 });
 
+const areaSqmSchema = z
+  .number()
+  .positive()
+  .refine((value) => Math.abs(value * 100 - Math.round(value * 100)) < 1e-8, {
+    message: "Area must have at most 2 decimal places",
+  });
+
 export const createPropertySchema = z.object({
+  projectId: z.string().regex(/^[0-9a-fA-F]{24}$/),
   title: z.string().min(3).max(200),
   description: z.string().min(10),
   type: z
@@ -33,13 +36,13 @@ export const createPropertySchema = z.object({
     .min(1)
     .max(50)
     .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/),
-  listingType: z.enum(LISTING_TYPES),
-  price: z.number().positive(),
+  price: z.number().int().positive(),
   currency: z.literal(DEFAULT_CURRENCY).optional(),
-  location: locationSchema,
+  unitLabel: z.string().max(100).optional(),
+  sortOrder: z.number().int().min(0).optional(),
   bedrooms: z.number().int().min(0).optional(),
   bathrooms: z.number().int().min(0).optional(),
-  area: z.number().positive().optional(),
+  area: areaSqmSchema.optional(),
   areaUnit: z.string().optional(),
   amenities: z.array(z.string()).optional(),
   floorPlans: z.array(floorPlanSchema).optional(),
@@ -51,14 +54,16 @@ export const createPropertySchema = z.object({
     .optional(),
 });
 
-export const updatePropertySchema = createPropertySchema.partial();
+export const updatePropertySchema = createPropertySchema
+  .omit({ projectId: true })
+  .partial();
 
 export const listMyPropertiesSchema = z.object({
   page: z.coerce.number().int().positive().optional(),
   limit: z.coerce.number().int().positive().max(100).optional(),
   status: z.enum(PROPERTY_STATUSES).optional(),
   type: z.string().min(1).max(50).optional(),
-  listingType: z.enum(LISTING_TYPES).optional(),
+  projectId: z.string().regex(/^[0-9a-fA-F]{24}$/).optional(),
   search: z.string().optional(),
   sortBy: z.enum(["price", "createdAt", "viewCount"]).optional(),
   sortOrder: z.enum(["asc", "desc"]).optional(),
@@ -71,8 +76,8 @@ export const listPropertiesSchema = z.object({
   minPrice: z.coerce.number().optional(),
   maxPrice: z.coerce.number().optional(),
   type: z.string().min(1).max(50).optional(),
-  listingType: z.enum(LISTING_TYPES).optional(),
-  status: z.enum(["active", "sold", "rented"]).optional(),
+  projectId: z.string().regex(/^[0-9a-fA-F]{24}$/).optional(),
+  status: z.enum(["active", "sold"]).optional(),
   city: z.string().optional(),
   bedrooms: z.coerce.number().int().optional(),
   search: z.string().optional(),

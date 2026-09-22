@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-import { LISTING_TYPES, PROPERTY_STATUSES } from "../../shared/constants.js";
+import { PROPERTY_STATUSES } from "../../shared/constants.js";
 
 const mediaSchema = new mongoose.Schema(
   {
@@ -31,7 +31,14 @@ const propertySchema = new mongoose.Schema(
     slug: { type: String, required: true, unique: true, lowercase: true },
     description: { type: String, required: true },
     type: { type: String, required: true, trim: true, lowercase: true },
-    listingType: { type: String, enum: LISTING_TYPES, required: true },
+    projectId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Project",
+      required: true,
+      index: true,
+    },
+    unitLabel: { type: String, trim: true },
+    sortOrder: { type: Number, default: 0 },
     price: { type: Number, required: true, min: 0 },
     currency: { type: String, default: "USD" },
     location: {
@@ -70,7 +77,8 @@ const propertySchema = new mongoose.Schema(
 propertySchema.index({ location: "2dsphere" });
 propertySchema.index({ price: 1 });
 propertySchema.index({ type: 1 });
-propertySchema.index({ listingType: 1, status: 1, price: 1 });
+propertySchema.index({ status: 1, price: 1 });
+propertySchema.index({ projectId: 1, sortOrder: 1 });
 propertySchema.index({ title: "text", description: "text" });
 
 export const Property = mongoose.model("Property", propertySchema);

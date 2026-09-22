@@ -219,6 +219,9 @@ export function getPropertyFormActionButtons(
   return buttons;
 }
 
-export function getPropertyFormCancelHref(isAdmin) {
-  return isAdmin ? "/dashboard-admin-properties" : "/dashboard-my-properties";
+export function getPropertyFormCancelHref(isAdmin, projectId) {
+  if (projectId) {
+    return `/dashboard-edit-project/${projectId}`;
+  }
+  return isAdmin ? "/dashboard-admin-properties" : "/dashboard-my-projects";
 }

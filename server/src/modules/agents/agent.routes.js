@@ -208,10 +208,6 @@ router.get(
  *         schema:
  *           $ref: '#/components/schemas/PropertyType'
  *       - in: query
- *         name: listingType
- *         schema:
- *           $ref: '#/components/schemas/ListingType'
- *       - in: query
  *         name: city
  *         schema:
  *           type: string

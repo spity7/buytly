@@ -456,7 +456,7 @@ export const SEED_PROPERTIES = [
     bedrooms: 0,
     bathrooms: 1,
     area: 44,
-    status: "rented",
+    status: "sold",
     amenities: AMENITIES.rent,
     viewCount: 240,
   },

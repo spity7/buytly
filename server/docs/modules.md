@@ -67,18 +67,40 @@ Default types and amenities are inserted automatically when the collections are 
 
 ---
 
+## projects
+
+**Responsibility:** Project-centric listing container (`single` = one unit, `compound` = multiple units). Holds shared location, amenities, and marketing media. All commerce is **sale-only** (no `listingType`).
+
+| Endpoint                         | Method       | Auth             | Input                                      | Output                          |
+| -------------------------------- | ------------ | ---------------- | ------------------------------------------ | ------------------------------- |
+| /projects                        | GET          | Public           | kind, city, geo, search, pagination        | projects + aggregated unitCount |
+| /projects/mine                   | GET          | Seller/Agent     | status, kind, search, pagination, trashed  | owner's projects                |
+| /projects/:id                    | GET          | Public           | includeUnits?                              | project detail                  |
+| /projects                        | POST         | Seller/Agent     | title, kind, location, …                   | created project                 |
+| /projects/:id                    | PATCH/DELETE | Owner/Agent      | updates                                    | updated/deleted                 |
+| /projects/:id/properties         | GET/POST     | Owner/Agent      | unit payloads (POST)                       | units under project             |
+| /projects/:id/media              | POST         | Owner/Agent      | file                                       | media item                      |
+| /admin/projects                  | GET          | Admin            | status, kind, search, pagination           | all projects                    |
+| /admin/projects/:id/moderate     | PATCH        | Admin            | status                                     | moderated project               |
+
+Publish rules: `single` → exactly one unit; `compound` → ≥ 2 units when status is `pending` or `active`. When a seller submits a project for review, **draft units** on that project are moved to `pending` and admins are notified. Approving a project (`admin` → `active`) also sets **pending units** on that project to `active`. Public project/unit payloads only expose units with status `active` or `sold` to non-owners. Pending project submissions notify admins (`project.pending_review`).
+
+**Dependencies:** properties (units), gcs.service, cache.service, notifications
+
+---
+
 ## properties
 
-**Responsibility:** CRUD listings, geo search, filtering, media management.
+**Responsibility:** Sellable **units** under a project. Location is inherited from the parent project on create/update. Geo search, filtering, media management.
 
 | Endpoint                          | Method       | Auth                   | Input                                                                                                 | Output                                   |
 | --------------------------------- | ------------ | ---------------------- | ----------------------------------------------------------------------------------------------------- | ---------------------------------------- |
 | /properties                       | GET          | Public                 | filters, pagination                                                                                   | property list                            |
-| /properties/mine                  | GET          | Seller/Agent           | pagination, status, type, listingType, search (partial title/description), sortBy, sortOrder, trashed | user's listings (trashed=true for trash) |
+| /properties/mine                  | GET          | Seller/Agent           | pagination, status, type, search (partial title/description), sortBy, sortOrder, trashed | user's listings (trashed=true for trash) |
 | /properties/:id/restore           | PATCH        | Owner/Agent/Admin      | —                                                                                                     | restored draft listing                   |
 | /properties/:id                   | GET          | Public                 | —                                                                                                     | property detail                          |
 | /properties/:id/nearby            | GET          | Public (optional auth) | —                                                                                                     | nearby POIs (OpenStreetMap, 5 km radius) |
-| /properties                       | POST         | Seller/Agent           | property data                                                                                         | created property                         |
+| /properties                       | POST         | Seller/Agent           | property data (**projectId** required)                                                                | created property                         |
 | /properties/:id                   | PATCH/DELETE | Owner/Agent            | updates                                                                                               | updated/deleted                          |
 | /properties/:id/media             | POST         | Owner/Agent            | file (image or one video)                                                                             | media item                               |
 | /properties/:id/media/order       | PUT          | Owner/Agent            | `{ imageIds: ObjectId[] }` — all listing images, order = cover first                                  | property                                 |
@@ -92,13 +114,13 @@ Default types and amenities are inserted automatically when the collections are 
 
 Create/update payloads accept optional `floorPlans[]` and `virtualTourUrl`. Floor plan images are uploaded via `/floor-plans/image` and referenced by `gcsKey` in the array. Listing media supports multiple images plus **one** optional video (`POST /properties/:id/media` returns 400 when a second video is uploaded). Image `order` starts at 0 for the cover photo (cards, map pins, gallery hero). Reorder with `PUT /properties/:id/media/order` passing every image id exactly once. The public property page shows photos in the gallery and the video in a separate Video section. **What's Nearby** is not stored on the listing — it is generated from latitude/longitude via `GET /properties/:id/nearby`.
 
-Non-admin create/update cannot publish directly: `status: "active"` is stored as `pending`. Omitting `status` on PATCH keeps the current status unless **material fields** change on an active listing (title, description, price, location, amenities, floor plans, etc.) — then status becomes `pending` again. Media add/remove on an active listing also triggers re-review. Non-admins cannot set `sold`, `rented`, or `archived` via create/update.
+Non-admin create/update cannot publish directly: `status: "active"` is stored as `pending`. Omitting `status` on PATCH keeps the current status unless **material fields** change on an active listing (title, description, price, amenities, floor plans, etc.) — then status becomes `pending` again. Media add/remove on an active listing also triggers re-review. Non-admins cannot set `sold` or `archived` via create/update. Unit payloads do not include `listingType` or standalone location (project is the location source).
 
 **Soft delete / trash:** `DELETE /properties/:id` sets `deletedAt` and `status: archived`. Trashed listings appear in `GET /properties/mine?trashed=true`. `PATCH /properties/:id/restore` clears `deletedAt` and sets `status: draft`. Admin archive via moderate uses the same soft-delete semantics.
 
-Public `GET /properties` defaults to `status=active`. The public list accepts only `active`, `sold`, or `rented` as a status filter (draft/pending/archived return 400). Public `GET /properties/:id` returns non-active listings only to the owner, assigned agent, or admin (optional auth). **Admins** may also `GET`/`PATCH` soft-deleted (`archived`) listings through the property endpoints; restoring via `PATCH` with a non-archived status clears `deletedAt`.
+Public `GET /properties` defaults to `status=active`. The public list accepts only `active` or `sold` as a status filter (draft/pending/archived return 400). Public `GET /properties/:id` returns non-active listings only to the owner, assigned agent, or admin (optional auth). **Admins** may also `GET`/`PATCH` soft-deleted (`archived`) listings through the property endpoints; restoring via `PATCH` with a non-archived status clears `deletedAt`.
 
-Pending submissions notify all active admins. Admin moderation notifies the listing owner.
+Pending unit submissions notify all active admins (includes `projectId` / `projectTitle` when available). Admin moderation notifies the listing owner.
 
 **Dependencies:** gcs.service, image.service (via gcs upload), cache.service, notifications
 
@@ -154,7 +176,7 @@ POST returns 404 if the property is not active.
 
 ## transactions
 
-**Responsibility:** Buy/rent transaction tracking and status management.
+**Responsibility:** Purchase transaction tracking and status management (`type: buy` only).
 
 | Endpoint                 | Method | Auth         | Input                    | Output              |
 | ------------------------ | ------ | ------------ | ------------------------ | ------------------- |
@@ -163,7 +185,7 @@ POST returns 404 if the property is not active.
 | /transactions/:id        | GET    | User         | —                        | transaction detail  |
 | /transactions/:id/status | PATCH  | Seller/Agent | status                   | updated transaction |
 
-Completing a transaction sets the property to `sold` or `rented` and invalidates the property list cache.
+Completing a transaction sets the property to `sold` and invalidates the property list cache.
 
 **Dependencies:** properties, notifications, cache.service
 
@@ -179,8 +201,10 @@ Completing a transaction sets the property to `sold` or `rented` and invalidates
 | /admin/users/:id               | GET    | Admin | —                                                                                            | user detail + related counts                       |
 | /admin/users/:id/status        | PATCH  | Admin | isActive                                                                                     | updated user (active users only)                   |
 | /admin/users/:id/role          | PATCH  | Admin | role                                                                                         | updated user                                       |
-| /admin/properties              | GET    | Admin | pagination, status, type, listingType, search (partial title/description), sortBy, sortOrder | all listings (includes archived / soft-deleted)    |
+| /admin/properties              | GET    | Admin | pagination, status, type, search (partial title/description), sortBy, sortOrder | all listings (includes archived / soft-deleted)    |
 | /admin/properties/:id/moderate | PATCH  | Admin | status                                                                                       | moderated listing                                  |
+| /admin/projects                | GET    | Admin | pagination, status, kind, search, sortBy, sortOrder                                          | all projects                                       |
+| /admin/projects/:id/moderate   | PATCH  | Admin | status                                                                                       | moderated project                                  |
 | /admin/analytics               | GET    | Admin | —                                                                                            | KPI analytics                                      |
 
 Moderation notifies the listing owner (in-app + email).

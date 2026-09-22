@@ -520,14 +520,14 @@
  *       pattern: '^[a-z0-9]+(?:-[a-z0-9]+)*$'
  *       example: apartment
  *
- *     ListingType:
+ *     ProjectKind:
  *       type: string
- *       enum: [sale, rent]
- *       example: sale
+ *       enum: [single, compound]
+ *       example: single
  *
  *     PropertyStatus:
  *       type: string
- *       enum: [draft, pending, active, sold, rented, archived]
+ *       enum: [draft, pending, active, sold, archived]
  *       example: active
  *
  *     PropertyLocation:
@@ -598,8 +598,14 @@
  *           example: Spacious apartment with city views and premium finishes.
  *         type:
  *           $ref: '#/components/schemas/PropertyType'
- *         listingType:
- *           $ref: '#/components/schemas/ListingType'
+ *         projectId:
+ *           oneOf:
+ *             - $ref: '#/components/schemas/ObjectId'
+ *             - $ref: '#/components/schemas/ProjectSummary'
+ *         unitLabel:
+ *           type: string
+ *         sortOrder:
+ *           type: integer
  *         price:
  *           type: number
  *           example: 450000
@@ -659,8 +665,10 @@
  *
  *     CreatePropertyRequest:
  *       type: object
- *       required: [title, description, type, listingType, price, location]
+ *       required: [projectId, title, description, type, price]
  *       properties:
+ *         projectId:
+ *           $ref: '#/components/schemas/ObjectId'
  *         title:
  *           type: string
  *           minLength: 3
@@ -672,8 +680,10 @@
  *           example: Spacious apartment with city views.
  *         type:
  *           $ref: '#/components/schemas/PropertyType'
- *         listingType:
- *           $ref: '#/components/schemas/ListingType'
+ *         unitLabel:
+ *           type: string
+ *         sortOrder:
+ *           type: integer
  *         price:
  *           type: number
  *           minimum: 0
@@ -684,8 +694,6 @@
  *           enum: [USD]
  *           description: Always USD; other values are ignored by the API
  *           example: USD
- *         location:
- *           $ref: '#/components/schemas/PropertyLocation'
  *         bedrooms:
  *           type: integer
  *           minimum: 0
@@ -909,7 +917,7 @@
  *
  *     TransactionType:
  *       type: string
- *       enum: [buy, rent]
+ *       enum: [buy]
  *       example: buy
  *
  *     TransactionStatus:
@@ -1571,6 +1579,109 @@
  *           type: integer
  *         isActive:
  *           type: boolean
+ *
+ *     ProjectSummary:
+ *       type: object
+ *       properties:
+ *         _id:
+ *           $ref: '#/components/schemas/ObjectId'
+ *         title:
+ *           type: string
+ *         slug:
+ *           type: string
+ *         kind:
+ *           $ref: '#/components/schemas/ProjectKind'
+ *         status:
+ *           $ref: '#/components/schemas/PropertyStatus'
+ *
+ *     Project:
+ *       type: object
+ *       properties:
+ *         _id:
+ *           $ref: '#/components/schemas/ObjectId'
+ *         title:
+ *           type: string
+ *         slug:
+ *           type: string
+ *         description:
+ *           type: string
+ *         kind:
+ *           $ref: '#/components/schemas/ProjectKind'
+ *         location:
+ *           $ref: '#/components/schemas/PropertyLocation'
+ *         amenities:
+ *           type: array
+ *           items:
+ *             type: string
+ *         status:
+ *           $ref: '#/components/schemas/PropertyStatus'
+ *         media:
+ *           type: array
+ *           items:
+ *             $ref: '#/components/schemas/PropertyMedia'
+ *         virtualTourUrl:
+ *           type: string
+ *           format: uri
+ *         unitCount:
+ *           type: integer
+ *         priceMin:
+ *           type: number
+ *           nullable: true
+ *         priceMax:
+ *           type: number
+ *           nullable: true
+ *         ownerId:
+ *           oneOf:
+ *             - $ref: '#/components/schemas/ObjectId'
+ *             - $ref: '#/components/schemas/User'
+ *         agentId:
+ *           oneOf:
+ *             - $ref: '#/components/schemas/ObjectId'
+ *             - $ref: '#/components/schemas/User'
+ *         viewCount:
+ *           type: integer
+ *         createdAt:
+ *           type: string
+ *           format: date-time
+ *         updatedAt:
+ *           type: string
+ *           format: date-time
+ *
+ *     CreateProjectRequest:
+ *       type: object
+ *       required: [title, description, kind, location]
+ *       properties:
+ *         title:
+ *           type: string
+ *         description:
+ *           type: string
+ *         kind:
+ *           $ref: '#/components/schemas/ProjectKind'
+ *         location:
+ *           $ref: '#/components/schemas/PropertyLocation'
+ *         amenities:
+ *           type: array
+ *           items:
+ *             type: string
+ *         virtualTourUrl:
+ *           type: string
+ *         status:
+ *           $ref: '#/components/schemas/PropertyStatus'
+ *
+ *     PaginatedProjectsResponse:
+ *       type: object
+ *       properties:
+ *         success:
+ *           type: boolean
+ *           example: true
+ *         message:
+ *           type: string
+ *         data:
+ *           type: array
+ *           items:
+ *             $ref: '#/components/schemas/Project'
+ *         pagination:
+ *           $ref: '#/components/schemas/PaginationMeta'
  */
 
 export {};

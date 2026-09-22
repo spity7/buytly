@@ -10,6 +10,7 @@ import PropertyAddress from "@/components/property/property-single-style/common/
 import PropertyDetails from "@/components/property/property-single-style/common/PropertyDetails";
 import PropertyFeaturesAminites from "@/components/property/property-single-style/common/PropertyFeaturesAminites";
 import PropertyHeader from "@/components/property/property-single-style/common/PropertyHeader";
+import PropertyProjectBreadcrumb from "@/components/property/property-single-style/common/PropertyProjectBreadcrumb";
 import PropertyStatusBanner from "@/components/property/property-single-style/common/PropertyStatusBanner";
 import PropertyVideo from "@/components/property/property-single-style/common/PropertyVideo";
 import PropertyNearby from "@/components/property/property-single-style/common/PropertyNearby";
@@ -119,6 +120,9 @@ function SingleV1Content() {
       <PropertySingleShell>
         <section className="pt60 pb90 bgc-f7">
           <div className="container">
+            <div className="row">
+              <PropertyProjectBreadcrumb />
+            </div>
             <div className="row">
               <PropertyHeader />
             </div>

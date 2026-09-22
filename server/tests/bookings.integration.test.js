@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import request from "supertest";
 import { mongoAvailable } from "./setup.js";
-import { Property } from "../src/modules/properties/property.model.js";
+import { createActiveProperty } from "./helpers/listingFixtures.js";
 
 const getApp = async () => {
   const { default: app } = await import("../src/app.js");
@@ -20,32 +20,6 @@ const register = async (app, overrides = {}) => {
       ...overrides,
     });
   return res.body.data.accessToken;
-};
-
-const createActiveProperty = async (app, sellerToken) => {
-  const created = await request(app)
-    .post("/api/v1/properties")
-    .set("Authorization", `Bearer ${sellerToken}`)
-    .send({
-      title: "Booking Cancel Test Listing",
-      description: "Listing used in booking cancel integration test.",
-      type: "apartment",
-      listingType: "sale",
-      price: 300000,
-      location: {
-        coordinates: [55.2708, 25.2048],
-        address: "123 Main St",
-        city: "Dubai",
-        country: "UAE",
-      },
-      bedrooms: 2,
-      bathrooms: 2,
-      area: 100,
-    });
-
-  const propertyId = created.body.data._id;
-  await Property.findByIdAndUpdate(propertyId, { status: "active" });
-  return propertyId;
 };
 
 describe.skipIf(!mongoAvailable)("bookings API", () => {

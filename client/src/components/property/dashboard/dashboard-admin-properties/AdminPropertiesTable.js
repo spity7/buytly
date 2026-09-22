@@ -23,7 +23,6 @@ import {
 } from "@/lib/confirmations";
 import {
   ADMIN_PROPERTY_STATUS_FILTERS,
-  LISTING_TYPE_FILTERS,
   PROPERTY_SORT_OPTIONS,
   PROPERTY_TYPE_FILTERS,
   parseSortValue,
@@ -66,7 +65,6 @@ export default function AdminPropertiesTable() {
   const [page, setPage] = useState(1);
   const [searchInput, setSearchInput, search] = useDebouncedSearch();
   const [statusFilter, setStatusFilter] = useState("");
-  const [listingType, setListingType] = useState("");
   const [type, setPropertyType] = useState("");
   const [sort, setSort] = useState("createdAt:desc");
 
@@ -81,12 +79,11 @@ export default function AdminPropertiesTable() {
     };
 
     if (statusFilter) params.status = statusFilter;
-    if (listingType) params.listingType = listingType;
     if (type) params.type = type;
     if (search.trim()) params.search = search.trim();
 
     return params;
-  }, [page, statusFilter, listingType, type, search, sortBy, sortOrder]);
+  }, [page, statusFilter, type, search, sortBy, sortOrder]);
 
   const { requestConfirm, isLocked, overlayMessage, dialogProps, pending } =
     useConfirmAction({ overlay: true });
@@ -109,7 +106,6 @@ export default function AdminPropertiesTable() {
       }
 
       setStatusFilter("");
-      setListingType("");
       setPropertyType("");
       setSearchInput("");
 
@@ -190,18 +186,6 @@ export default function AdminPropertiesTable() {
             setStatusFilter(value);
           }}
           options={ADMIN_PROPERTY_STATUS_FILTERS}
-        />
-        <FilterSelect
-          id="admin-listing-type"
-          label="Listing type"
-          hideLabel
-          value={listingType}
-          disabled={tableBusy}
-          onChange={(value) => {
-            setPage(1);
-            setListingType(value);
-          }}
-          options={LISTING_TYPE_FILTERS}
         />
         <FilterSelect
           id="admin-property-type"

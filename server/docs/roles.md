@@ -53,17 +53,17 @@ When a user registers (or first Google sign-up) as **`agent`**, an `AgentProfile
 
 ## Buyer (`buyer`)
 
-**Purpose:** End users searching for property, requesting visits, and initiating purchases or rentals.
+**Purpose:** End users searching for property, requesting visits, and initiating purchases.
 
 ### Capabilities
 
 | Area           | What buyers can do                                                    |
 | -------------- | --------------------------------------------------------------------- |
-| Browse         | View public active/sold/rented listings                               |
+| Browse         | View public active/sold listings and projects                       |
 | Favorites      | Add/remove favorites (any authenticated user)                         |
 | Saved searches | Manage saved searches on profile                                      |
 | Bookings       | Create visit requests, view own bookings, cancel pending ones         |
-| Transactions   | Initiate buy/rent transactions, view transactions they participate in |
+| Transactions   | Initiate purchase transactions, view transactions they participate in |
 | Reviews        | Submit one review per active property                                 |
 | Profile        | Update own profile, notification prefs, avatar                        |
 
@@ -83,7 +83,7 @@ When a buyer books a visit, the listing contact is `property.agentId || property
 
 ## Seller (`seller`)
 
-**Purpose:** Property owners who list and sell/rent their own properties without being licensed agents.
+**Purpose:** Property owners who list and sell properties via projects without being licensed agents.
 
 ### Listing capabilities
 
@@ -97,7 +97,7 @@ On create, `agentId` is only set if explicitly passed in the payload (to assign 
 
 - Submitting `active` or `pending` → stored as **`pending`** for admin review
 - Default on create without status → `draft`
-- Cannot set `sold`, `rented`, or `archived` directly — use completed transactions or admin action
+- Cannot set `sold` or `archived` directly — use completed transactions or admin action
 - Material changes to an active listing re-trigger pending review
 
 ### Bookings and transactions
@@ -183,7 +183,7 @@ All `/admin/*` routes require `authenticate` + `authorize(ROLES.ADMIN)`.
 - Set any status directly without going through transactions
 - View soft-deleted properties (non-admins filter `deletedAt: null`)
 - Bypass moderation — `active` stays `active`
-- Edit terminal listings (sold/rented/archived) that non-admins cannot
+- Edit terminal listings (sold/archived) that non-admins cannot
 
 ### Cross-cutting overrides
 
@@ -225,7 +225,7 @@ flowchart TD
 | ------------------------- | ---------------------- | ------- | --------------------- | ----------- |
 | `active`                  | Visible                | Visible | Visible               | Visible     |
 | `pending`, `draft`        | 404                    | 404     | Visible               | Visible     |
-| `sold`, `rented`          | Visible in list filter | Visible | Visible               | Visible     |
+| `sold`                    | Visible in list filter | Visible | Visible               | Visible     |
 | `archived` / soft-deleted | Hidden                 | Hidden  | Owner/agent via trash | Full access |
 
 ---

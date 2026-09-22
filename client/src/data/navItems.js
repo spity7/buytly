@@ -19,8 +19,9 @@ export const propertyItems = [
     label: "Dashboard",
     subMenuItems: [
       { label: "Dashboard Home", href: "/dashboard-home" },
-      { label: "New Property", href: "/dashboard-add-property" },
-      { label: "My Properties", href: "/dashboard-my-properties" },
+      { label: "New Project", href: "/dashboard-add-project" },
+      { label: "My Projects", href: "/dashboard-my-projects" },
+      { label: "All Units", href: "/dashboard-my-properties" },
       { label: "Reviews", href: "/dashboard-reviews" },
       { label: "My Favorites", href: "/dashboard-my-favourites" },
       { label: "Saved Search", href: "/dashboard-saved-search" },

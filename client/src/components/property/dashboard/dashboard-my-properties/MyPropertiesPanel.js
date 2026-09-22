@@ -14,7 +14,6 @@ import {
 import PropertyDataTable from "@/components/property/dashboard/dashboard-my-properties/PropertyDataTable";
 import { useDebouncedSearch } from "@/hooks/useDebouncedSearch";
 import {
-  LISTING_TYPE_FILTERS,
   MY_PROPERTY_STATUS_FILTERS,
   PROPERTY_SORT_OPTIONS,
   PROPERTY_TYPE_FILTERS,
@@ -36,7 +35,6 @@ export default function MyPropertiesPanel() {
     handleSearchDebounced,
   );
   const [status, setStatus] = useState("");
-  const [listingType, setListingType] = useState("");
   const [type, setPropertyType] = useState("");
   const [sort, setSort] = useState("createdAt:desc");
 
@@ -53,12 +51,11 @@ export default function MyPropertiesPanel() {
     };
 
     if (!isTrash && status) params.status = status;
-    if (listingType) params.listingType = listingType;
     if (type) params.type = type;
     if (search.trim()) params.search = search.trim();
 
     return params;
-  }, [page, sortBy, sortOrder, isTrash, status, listingType, type, search]);
+  }, [page, sortBy, sortOrder, isTrash, status, type, search]);
 
   const resetPage = () => setPage(1);
 
@@ -116,7 +113,6 @@ export default function MyPropertiesPanel() {
         setTab(isTrashed ? "trash" : "active");
         setStatus("");
         setSearchInput("");
-        setListingType("");
         setPropertyType("");
         setPage(foundPage || 1);
         resolvedHighlightRef.current = highlightId;
@@ -137,14 +133,20 @@ export default function MyPropertiesPanel() {
       <div className="row align-items-center pb40">
         <div className="col-xxl-3">
           <div className="dashboard_title_area">
-            <h2>My Properties</h2>
-            <p className="text">We are glad to see you again!</p>
+            <h2>All units</h2>
+            <p className="text">
+              Flat list of sellable units. Manage projects from{" "}
+              <Link href="/dashboard-my-projects">My Projects</Link>.
+            </p>
           </div>
         </div>
         <div className="col-xxl-9">
-          <div className="dashboard_search_meta d-md-flex align-items-center justify-content-xxl-end">
-            <Link href="/dashboard-add-property" className="ud-btn btn-thm">
-              Add New Property
+          <div className="dashboard_search_meta d-md-flex align-items-center justify-content-xxl-end gap-2">
+            <Link href="/dashboard-my-projects" className="ud-btn btn-white2">
+              My projects
+            </Link>
+            <Link href="/dashboard-add-project" className="ud-btn btn-thm">
+              Add project
               <i className="fal fa-arrow-right-long" />
             </Link>
           </div>
@@ -200,17 +202,6 @@ export default function MyPropertiesPanel() {
                   />
                 )}
                 <FilterSelect
-                  id="my-properties-listing-type"
-                  label="Listing type"
-                  hideLabel
-                  value={listingType}
-                  onChange={(value) => {
-                    resetPage();
-                    setListingType(value);
-                  }}
-                  options={LISTING_TYPE_FILTERS}
-                />
-                <FilterSelect
                   id="my-properties-type"
                   label="Property type"
                   hideLabel
@@ -239,7 +230,7 @@ export default function MyPropertiesPanel() {
                 onPageChange={setPage}
                 highlightResolving={highlightResolving}
                 hasActiveFilters={Boolean(
-                  search || status || listingType || type,
+                  search || status || type,
                 )}
               />
             </div>

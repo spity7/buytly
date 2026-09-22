@@ -4,7 +4,6 @@ export const MY_PROPERTY_STATUS_FILTERS = [
   { value: "pending", label: "Pending review" },
   { value: "active", label: "Published" },
   { value: "sold", label: "Sold" },
-  { value: "rented", label: "Rented" },
 ];
 
 export const ADMIN_PROPERTY_STATUS_FILTERS = [
@@ -13,14 +12,7 @@ export const ADMIN_PROPERTY_STATUS_FILTERS = [
   { value: "active", label: "Published" },
   { value: "draft", label: "Draft" },
   { value: "sold", label: "Sold" },
-  { value: "rented", label: "Rented" },
   { value: "archived", label: "Archived" },
-];
-
-export const LISTING_TYPE_FILTERS = [
-  { value: "", label: "All listing types" },
-  { value: "sale", label: "For sale" },
-  { value: "rent", label: "For rent" },
 ];
 
 export const PROPERTY_TYPE_FILTERS = [
@@ -62,7 +54,6 @@ export const TRANSACTION_STATUS_FILTERS = [
 export const TRANSACTION_TYPE_FILTERS = [
   { value: "", label: "All types" },
   { value: "buy", label: "Purchase" },
-  { value: "rent", label: "Rental" },
 ];
 
 export function parseSortValue(value) {

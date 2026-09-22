@@ -188,9 +188,9 @@ For full role definitions, assignment rules, two-layer authorization, and client
 
 ## Property visibility and moderation
 
-- Public `GET /properties` returns **active** listings by default. Public list `status` filter accepts only `active`, `sold`, or `rented`.
+- Public `GET /properties` returns **active** listings by default. Public list `status` filter accepts only `active` or `sold`.
 - Public `GET /properties/:id` returns **404** for non-active listings unless the requester is the owner, assigned agent, or admin (optional auth).
-- Non-admin create/update: `status: "active"` → **`pending`**. Omitting `status` on PATCH keeps the current status. Non-admins cannot set `sold`/`rented`/`archived` directly.
+- Non-admin create/update: `status: "active"` → **`pending`**. Omitting `status` on PATCH keeps the current status. Non-admins cannot set `sold`/`archived` directly. Units require a parent **project** (`projectId`).
 - Pending submissions notify admins; admin moderation notifies the owner.
 
 ## Security Measures

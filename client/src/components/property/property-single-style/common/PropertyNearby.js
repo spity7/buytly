@@ -2,13 +2,15 @@
 
 import NearbyPlacesTabs from "@/components/property/property-single-style/common/NearbyPlacesTabs";
 import { usePropertyNearby } from "@/hooks/usePropertyNearby";
+import { hasPropertyMapCoordinates } from "@/lib/geo/propertyCoordinates";
 import { usePropertySingle } from "@/providers/PropertySingleProvider";
 
 const PropertyNearby = () => {
   const { id, property } = usePropertySingle();
-  const coordinates = property?.location?.coordinates;
+  const location = property?.location;
+  const hasCoordinates = hasPropertyMapCoordinates(location);
   const { data, isLoading, isError } = usePropertyNearby(id, {
-    enabled: Boolean(id && coordinates?.length === 2),
+    enabled: Boolean(id && hasCoordinates),
   });
 
   return (
@@ -17,7 +19,7 @@ const PropertyNearby = () => {
       isLoading={isLoading}
       isError={isError}
       unavailable={data?.unavailable}
-      hasCoordinates={Boolean(coordinates?.length)}
+      hasCoordinates={hasCoordinates}
     />
   );
 };

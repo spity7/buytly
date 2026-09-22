@@ -3,6 +3,7 @@ import request from "supertest";
 import { mongoAvailable } from "./setup.js";
 import { User } from "../src/modules/users/user.model.js";
 import { Property } from "../src/modules/properties/property.model.js";
+import { Project } from "../src/modules/projects/project.model.js";
 
 const getApp = async () => {
   const { default: app } = await import("../src/app.js");
@@ -98,19 +99,30 @@ describe.skipIf(!mongoAvailable)("catalog API", () => {
       role: "seller",
     });
 
+    const project = await Project.create({
+      title: "Catalog count project",
+      slug: "catalog-count-project-test",
+      description: "Project for catalog count test",
+      kind: "single",
+      location: {
+        type: "Point",
+        city: "Dubai",
+        country: "UAE",
+        coordinates: [55.2708, 25.2048],
+      },
+      ownerId: seller.body.data.user.id,
+      status: "active",
+    });
+
     await Property.create({
       title: "Catalog count listing",
       slug: "catalog-count-listing-test",
       description: "Uses default apartment type and WiFi amenity",
       type: "apartment",
-      listingType: "sale",
+      projectId: project._id,
       price: 250000,
       amenities: ["WiFi"],
-      location: {
-        city: "Dubai",
-        country: "UAE",
-        coordinates: [55.2708, 25.2048],
-      },
+      location: project.location,
       ownerId: seller.body.data.user.id,
       status: "active",
     });

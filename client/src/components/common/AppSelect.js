@@ -1,6 +1,6 @@
 "use client";
 
-import Select from "@/components/common/AppSelect";
+import Select from "react-select";
 import { useId } from "react";
 
 /**

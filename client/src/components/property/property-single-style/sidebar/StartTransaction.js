@@ -16,8 +16,6 @@ export default function StartTransaction() {
 
   if (!isPropertyBookable(property?.status)) return null;
 
-  const txnType = property?.listingType === "rent" ? "rent" : "buy";
-
   const handleStart = async () => {
     if (!auth?.user) {
       openAuthModal("signin");
@@ -33,7 +31,7 @@ export default function StartTransaction() {
     try {
       await buytlyApi.createTransaction({
         propertyId: id,
-        type: txnType,
+        type: "buy",
         amount: property.price,
         currency: property.currency,
       });
@@ -48,10 +46,10 @@ export default function StartTransaction() {
   return (
     <div className="default-box-shadow1 bdrs12 bdr1 p30 mb30 bgc-white">
       <h4 className="form-title mb5">
-        {txnType === "rent" ? "Start rental" : "Make an offer"}
+        Make an offer
       </h4>
       <p className="text mb20">
-        Initiate a {txnType === "rent" ? "rental" : "purchase"} transaction for{" "}
+        Initiate a purchase transaction for{" "}
         {card?.price || "this property"}.
       </p>
       <button

@@ -5,9 +5,7 @@ import React from "react";
 const ListingStatus = ({filterFunctions}) => {
   const options = [
     { id: "flexRadioDefault3", label: "All" , defaultChecked: true },
-    { id: "flexRadioDefault1", label: "Buy" },
-    { id: "flexRadioDefault2", label: "Rent", },
-
+    { id: "flexRadioDefault4", label: "Sold" },
   ];
 
   return (
@@ -24,10 +22,6 @@ const ListingStatus = ({filterFunctions}) => {
             checked={filterFunctions?.listingStatus == option.label}
             
             onChange={()=>filterFunctions.handlelistingStatus(option.label)}
-           
-            
-   
-            
           />
           <label className="form-check-label" htmlFor={option.id}>
             {option.label}

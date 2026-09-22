@@ -5,12 +5,15 @@ export function sortPropertyImages(media = []) {
     .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
 }
 
-export function mediaToSavedGalleryItems(images) {
-  return sortPropertyImages(images).map((item) => ({
+export function mediaToSavedGalleryItems(
+  images,
+  { label = "Property photo" } = {},
+) {
+  return sortPropertyImages(images).map((item, index) => ({
     type: "saved",
     id: item._id,
     url: item.url,
-    name: item.url ? "Property photo" : "",
+    name: item.gcsKey?.split("/").pop() || `${label} ${index + 1}`,
     media: item,
   }));
 }

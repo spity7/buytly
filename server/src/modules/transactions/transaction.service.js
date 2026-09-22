@@ -131,7 +131,7 @@ export const transactionService = {
 
     if (data.status === "completed") {
       await Property.findByIdAndUpdate(transaction.propertyId._id, {
-        status: transaction.type === "rent" ? "rented" : "sold",
+        status: "sold",
       });
       await cacheService.invalidateListingCaches();
     } else {

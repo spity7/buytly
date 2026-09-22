@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import request from "supertest";
 import { mongoAvailable } from "./setup.js";
 import { Property } from "../src/modules/properties/property.model.js";
+import { buildPropertyBody } from "./helpers/listingFixtures.js";
 
 vi.mock("../src/services/gcs.service.js", async (importOriginal) => {
   const actual = await importOriginal();
@@ -49,19 +50,13 @@ describe.skipIf(!mongoAvailable)("property media uploads", () => {
     const created = await request(app)
       .post("/api/v1/properties")
       .set("Authorization", `Bearer ${token}`)
-      .send({
-        title: "Video Limit Property",
-        description: "Property used to test single video uploads.",
-        type: "apartment",
-        listingType: "sale",
-        price: 250000,
-        location: {
-          coordinates: [55.2708, 25.2048],
-          address: "123 Main St",
-          city: "Dubai",
-          country: "UAE",
-        },
-      });
+      .send(
+        await buildPropertyBody(app, token, {
+          title: "Video Limit Property",
+          description: "Property used to test single video uploads.",
+          price: 250000,
+        }),
+      );
 
     const propertyId = created.body.data._id;
 
@@ -100,19 +95,13 @@ describe.skipIf(!mongoAvailable)("property media uploads", () => {
     const created = await request(app)
       .post("/api/v1/properties")
       .set("Authorization", `Bearer ${token}`)
-      .send({
-        title: "Reorder Photos Property",
-        description: "Property used to test photo reordering.",
-        type: "apartment",
-        listingType: "sale",
-        price: 250000,
-        location: {
-          coordinates: [55.2708, 25.2048],
-          address: "123 Main St",
-          city: "Dubai",
-          country: "UAE",
-        },
-      });
+      .send(
+        await buildPropertyBody(app, token, {
+          title: "Reorder Photos Property",
+          description: "Property used to test photo reordering.",
+          price: 250000,
+        }),
+      );
 
     const propertyId = created.body.data._id;
 

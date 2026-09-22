@@ -1,5 +1,6 @@
 import { User } from "../users/user.model.js";
 import { Property } from "../properties/property.model.js";
+import { Project } from "../projects/project.model.js";
 import { Booking } from "../bookings/booking.model.js";
 import { Transaction } from "../transactions/transaction.model.js";
 import { PropertyReview } from "../property-reviews/property-review.model.js";
@@ -127,7 +128,6 @@ export const adminService = {
     if (query.status) conditions.push({ status: query.status });
 
     if (query.type) conditions.push({ type: query.type });
-    if (query.listingType) conditions.push({ listingType: query.listingType });
 
     const textFilter = buildPropertyTextFilter(query.search);
     if (textFilter) conditions.push(textFilter);
@@ -174,7 +174,6 @@ export const adminService = {
       archived: "Your listing has been archived.",
       pending: "Your listing is still under review.",
       sold: "Your listing was marked as sold.",
-      rented: "Your listing was marked as rented.",
     };
 
     notificationService
@@ -195,6 +194,88 @@ export const adminService = {
       );
 
     return property;
+  },
+
+  async listProjects(query) {
+    const { page, limit, skip } = parsePagination(query);
+    const conditions = [];
+
+    if (query.status) conditions.push({ status: query.status });
+    if (query.kind) conditions.push({ kind: query.kind });
+
+    const textFilter = buildPropertyTextFilter(query.search);
+    if (textFilter) conditions.push(textFilter);
+
+    const filter =
+      conditions.length === 1 ? conditions[0] : { $and: conditions };
+
+    const sortField = query.sortBy || "createdAt";
+    const sortOrder = query.sortOrder === "asc" ? 1 : -1;
+    const sort = { [sortField]: sortOrder };
+
+    const [projects, total] = await Promise.all([
+      Project.find(filter)
+        .populate("ownerId", "firstName lastName email")
+        .populate("agentId", "firstName lastName email")
+        .sort(sort)
+        .skip(skip)
+        .limit(limit),
+      Project.countDocuments(filter),
+    ]);
+
+    return { projects, pagination: buildPaginationMeta(total, page, limit) };
+  },
+
+  async moderateProject(projectId, status) {
+    const existing = await Project.findById(projectId);
+    if (!existing) throw new AppError("Project not found", 404);
+
+    const update =
+      status === "archived"
+        ? buildArchiveUpdate()
+        : buildUnarchiveUpdate(status);
+
+    const project = await Project.findByIdAndUpdate(projectId, update, {
+      new: true,
+    }).populate("ownerId", "firstName lastName email");
+
+    if (!project) throw new AppError("Project not found", 404);
+
+    if (status === "active") {
+      await Property.updateMany(
+        { projectId: project._id, deletedAt: null, status: "pending" },
+        { $set: { status: "active" } },
+      );
+    }
+
+    await cacheService.invalidateListingCaches();
+
+    const statusMessages = {
+      active: "Your project has been approved and is now live.",
+      draft: "Your project was returned for edits.",
+      archived: "Your project has been archived.",
+      pending: "Your project is still under review.",
+      sold: "Your project was marked as sold.",
+    };
+
+    notificationService
+      .notifyFromEvent("project.status_changed", {
+        userId: project.ownerId._id,
+        context: {
+          projectId: project._id,
+          projectTitle: project.title,
+          status,
+          message:
+            statusMessages[status] ||
+            `Your project "${project.title}" is now ${status}.`,
+          name: project.ownerId.firstName || project.ownerId.email,
+        },
+      })
+      .catch((err) =>
+        console.error("Project moderation notification failed:", err.message),
+      );
+
+    return project;
   },
 
   async getAnalytics() {

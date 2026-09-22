@@ -2,19 +2,20 @@
 
 ## Collections Overview
 
-| Collection      | Module           | Description                |
-| --------------- | ---------------- | -------------------------- |
-| users           | Users            | User accounts and profiles |
-| refreshtokens   | Auth             | JWT refresh token store    |
-| properties      | Properties       | Property listings          |
-| propertyreviews | Property Reviews | Property listing reviews   |
-| agentprofiles   | Agents           | Agent profile extensions   |
-| favorites       | Favorites        | User saved properties      |
-| bookings        | Bookings         | Visit scheduling           |
-| transactions    | Transactions     | Buy/rent tracking          |
-| notifications   | Notifications    | In-app notifications       |
-| propertytypecatalogs | Catalog     | Admin-managed property types |
-| amenitycatalogs | Catalog          | Admin-managed amenities    |
+| Collection           | Module           | Description                        |
+| -------------------- | ---------------- | ---------------------------------- |
+| users                | Users            | User accounts and profiles         |
+| refreshtokens        | Auth             | JWT refresh token store            |
+| projects             | Projects         | Listing projects (single/compound) |
+| properties           | Properties       | Sellable units (listings)          |
+| propertyreviews      | Property Reviews | Property listing reviews           |
+| agentprofiles        | Agents           | Agent profile extensions           |
+| favorites            | Favorites        | User saved properties              |
+| bookings             | Bookings         | Visit scheduling                   |
+| transactions         | Transactions     | Purchase tracking                  |
+| notifications        | Notifications    | In-app notifications               |
+| propertytypecatalogs | Catalog          | Admin-managed property types       |
+| amenitycatalogs      | Catalog          | Admin-managed amenities            |
 
 ## users
 
@@ -61,24 +62,20 @@
 }
 ```
 
-## properties
+## projects
 
 ```javascript
 {
   title, slug (unique), description: String,
-  type: String (slug — must match an active catalog property type),
-  listingType: enum [sale, rent],
-  price: Number, currency: String (always USD on create/update),
+  kind: enum [single, compound],
   location: {
     type: Point,
     coordinates: [lng, lat],
     address, city, country
   },
-  bedrooms, bathrooms, area, areaUnit: Number/String,
   amenities: [String],
-  status: enum [draft, pending, active, sold, rented, archived],
+  status: enum [draft, pending, active, sold, archived],
   media: [{ gcsKey, type, order, mimeType, size }],
-  floorPlans: [{ title, area, areaUnit, bedrooms, bathrooms, price, gcsKey }],
   virtualTourUrl: String,
   agentId: ObjectId → users,
   ownerId: ObjectId → users,
@@ -88,12 +85,31 @@
 }
 ```
 
-**Indexes:**
+**Indexes:** `location` 2dsphere; `{ kind, status }`; text on title/description
 
-- `location` — 2dsphere
-- `price`, `type`, `status`
-- `{ listingType, status, price }` — compound
-- `{ title, description }` — text
+**Publish rules:** `single` → exactly 1 unit; `compound` → ≥ 2 units (non-draft publish).
+
+## properties
+
+Sellable **units** under a project. All listings are for **sale** (no `listingType`).
+
+```javascript
+{
+  projectId: ObjectId → projects (required),
+  unitLabel: String, sortOrder: Number,
+  title, slug (unique), description: String,
+  type: String (catalog slug),
+  price: Number (whole USD), currency: String (USD),
+  location: copied from project (GeoJSON Point + address fields),
+  bedrooms, bathrooms, area, areaUnit,
+  amenities: [String],
+  status: enum [draft, pending, active, sold, archived],
+  media, floorPlans, virtualTourUrl,
+  agentId, ownerId, viewCount, deletedAt, timestamps
+}
+```
+
+**Indexes:** `location` 2dsphere; `price`, `type`, `status`; `{ status, price }`; `{ projectId, sortOrder }`; text on title/description
 
 ## agentprofiles
 
@@ -158,7 +174,7 @@
 {
   propertyId: ObjectId → properties,
   buyerId, sellerId, agentId: ObjectId → users,
-  type: enum [buy, rent],
+  type: enum [buy],
   amount: Number, currency: String,
   status: enum [pending, approved, completed, cancelled],
   notes: String,
@@ -174,7 +190,7 @@
   userId: ObjectId → users,
   type: enum [booking, transaction, property, system, auth],
   title, message: String,
-  data: Mixed ({ event, entityType, entityId, propertyId, status, href }),
+  data: Mixed ({ event, entityType, entityId, propertyId, projectId, projectTitle, status, href }),
   isRead: Boolean,
   readAt: Date,
   channels: { inApp, email },

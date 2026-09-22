@@ -1,4 +1,7 @@
 import { Property } from "./property.model.js";
+import { Project } from "../projects/project.model.js";
+import { projectService } from "../projects/project.service.js";
+import { assertPublishUnitCardinality } from "../projects/project-cardinality.js";
 import { gcsService } from "../../services/gcs.service.js";
 import { cacheService } from "../../services/cache.service.js";
 import { AppError } from "../../shared/AppError.js";
@@ -48,6 +51,8 @@ const notifyAdminsOfPendingListing = async (property) => {
     {
       propertyId: property._id,
       propertyTitle: property.title,
+      projectId: property.projectId?._id || property.projectId,
+      projectTitle: property.projectId?.title,
     },
   );
 };
@@ -124,8 +129,25 @@ const buildPropertyIdFilter = (id, user) => {
 
 const findPropertyById = (id, user) =>
   Property.findOne(buildPropertyIdFilter(id, user))
+    .populate("projectId", "title slug kind status")
     .populate("agentId", "firstName lastName email phone avatar")
     .populate("ownerId", "firstName lastName email phone");
+
+const projectLocationSnapshot = (project) => {
+  const loc = project.location?.toObject
+    ? project.location.toObject()
+    : { ...project.location };
+  return { type: "Point", ...loc };
+};
+
+const validateUnitPublishForProject = async (project, nextStatus) => {
+  if (nextStatus !== "pending" && nextStatus !== "active") return;
+  const unitCount = await Property.countDocuments({
+    projectId: project._id,
+    deletedAt: null,
+  });
+  assertPublishUnitCardinality(project.kind, unitCount);
+};
 
 const applyAdminStatusTransition = (property, normalizedStatus) => {
   if (normalizedStatus === "archived") {
@@ -147,6 +169,24 @@ const applyListingCatalogRules = async (payload) => {
 
 export const propertyService = {
   async create(data, user) {
+    const project = await Project.findOne({
+      _id: data.projectId,
+      deletedAt: null,
+    });
+    if (!project) throw new AppError("Project not found", 404);
+
+    if (!projectService.canManageProject(project, user)) {
+      throw new AppError("Not authorized to add units to this project", 403);
+    }
+
+    const existingUnits = await Property.countDocuments({
+      projectId: project._id,
+      deletedAt: null,
+    });
+    if (project.kind === "single" && existingUnits >= 1) {
+      throw new AppError("Single projects can only have one unit", 400);
+    }
+
     const slug = await buildUniqueSlug(data.title);
     const payload = { ...data };
     const isAdmin = user.role === ROLES.ADMIN;
@@ -158,16 +198,24 @@ export const propertyService = {
       isCreate: true,
     });
 
+    if (payload.status === "pending" || payload.status === "active") {
+      assertPublishUnitCardinality(project.kind, existingUnits + 1);
+    }
+
     const property = await Property.create({
       ...payload,
       slug,
-      ownerId: user._id,
+      projectId: project._id,
+      ownerId: project.ownerId,
       agentId:
-        payload.agentId || (user.role === ROLES.AGENT ? user._id : undefined),
-      location: { type: "Point", ...payload.location },
+        payload.agentId ||
+        project.agentId ||
+        (user.role === ROLES.AGENT ? user._id : undefined),
+      location: projectLocationSnapshot(project),
     });
 
     if (property.status === "pending" && !isAdmin) {
+      property.projectId = project;
       await notifyAdminsOfPendingListing(property);
     }
 
@@ -191,7 +239,7 @@ export const propertyService = {
     }
 
     if (query.type) filter.type = query.type;
-    if (query.listingType) filter.listingType = query.listingType;
+    if (query.projectId) filter.projectId = query.projectId;
     filter.status = resolvePublicListStatus(query.status);
     if (query.city) filter["location.city"] = new RegExp(query.city, "i");
     if (query.bedrooms) filter.bedrooms = { $gte: query.bedrooms };
@@ -231,6 +279,7 @@ export const propertyService = {
 
     const [properties, total] = await Promise.all([
       Property.find(filter)
+        .populate("projectId", "title slug kind status")
         .populate("agentId", "firstName lastName email phone avatar")
         .populate("ownerId", "firstName lastName email")
         .sort(sort)
@@ -324,7 +373,7 @@ export const propertyService = {
 
     if (!isAdmin && isPropertyTerminal(property.status)) {
       throw new AppError(
-        "Sold, rented, or archived listings cannot be edited",
+        "Sold or archived listings cannot be edited",
         400,
       );
     }
@@ -347,6 +396,10 @@ export const propertyService = {
 
     if (normalizedStatus !== undefined) {
       patch.status = normalizedStatus;
+      const project = await Project.findById(property.projectId);
+      if (project) {
+        await validateUnitPublishForProject(project, normalizedStatus);
+      }
     } else {
       delete patch.status;
     }
@@ -355,9 +408,8 @@ export const propertyService = {
       patch.slug = await buildUniqueSlug(patch.title);
     }
 
-    if (patch.location) {
-      patch.location = { type: "Point", ...patch.location };
-    }
+    delete patch.location;
+    delete patch.projectId;
 
     const materialChanges =
       !isAdmin &&
@@ -574,7 +626,7 @@ export const propertyService = {
 
     if (query.status) conditions.push({ status: query.status });
     if (query.type) conditions.push({ type: query.type });
-    if (query.listingType) conditions.push({ listingType: query.listingType });
+    if (query.projectId) conditions.push({ projectId: query.projectId });
 
     const textFilter = buildPropertyTextFilter(query.search);
     if (textFilter) conditions.push(textFilter);
@@ -588,6 +640,7 @@ export const propertyService = {
 
     const [properties, total] = await Promise.all([
       Property.find(filter)
+        .populate("projectId", "title slug kind status")
         .populate("agentId", "firstName lastName email phone avatar")
         .populate("ownerId", "firstName lastName email")
         .sort(sort)

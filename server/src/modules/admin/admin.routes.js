@@ -10,8 +10,11 @@ import {
   updateUserStatusSchema,
   updateUserRoleSchema,
   listAdminPropertiesSchema,
+  listAdminProjectsSchema,
   propertyIdSchema,
+  projectIdSchema,
   moderatePropertySchema,
+  moderateProjectSchema,
 } from "./admin.validation.js";
 import { catalogController } from "../catalog/catalog.controller.js";
 import {
@@ -217,10 +220,6 @@ router.patch(
  *         schema:
  *           $ref: '#/components/schemas/PropertyType'
  *       - in: query
- *         name: listingType
- *         schema:
- *           $ref: '#/components/schemas/ListingType'
- *       - in: query
  *         name: search
  *         schema:
  *           type: string
@@ -295,6 +294,85 @@ router.patch(
   "/properties/:id/moderate",
   validateMultiple({ params: propertyIdSchema, body: moderatePropertySchema }),
   asyncHandler(adminController.moderateProperty),
+);
+
+/**
+ * @swagger
+ * /admin/projects:
+ *   get:
+ *     operationId: adminListProjects
+ *     summary: List all projects (admin)
+ *     tags: [Admin]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - $ref: '#/components/parameters/PageParam'
+ *       - $ref: '#/components/parameters/LimitParam'
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           $ref: '#/components/schemas/PropertyStatus'
+ *       - in: query
+ *         name: kind
+ *         schema:
+ *           $ref: '#/components/schemas/ProjectKind'
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: sortBy
+ *         schema:
+ *           type: string
+ *           enum: [createdAt, viewCount, title]
+ *       - in: query
+ *         name: sortOrder
+ *         schema:
+ *           type: string
+ *           enum: [asc, desc]
+ *     responses:
+ *       200:
+ *         description: Project list
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/PaginatedProjectsResponse'
+ */
+router.get(
+  "/projects",
+  validate(listAdminProjectsSchema, "query"),
+  asyncHandler(adminController.listProjects),
+);
+
+/**
+ * @swagger
+ * /admin/projects/{id}/moderate:
+ *   patch:
+ *     operationId: adminModerateProject
+ *     summary: Moderate a project
+ *     tags: [Admin]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - $ref: '#/components/parameters/ObjectIdParam'
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [status]
+ *             properties:
+ *               status:
+ *                 $ref: '#/components/schemas/PropertyStatus'
+ *     responses:
+ *       200:
+ *         description: Project moderated
+ */
+router.patch(
+  "/projects/:id/moderate",
+  validateMultiple({ params: projectIdSchema, body: moderateProjectSchema }),
+  asyncHandler(adminController.moderateProject),
 );
 
 /**

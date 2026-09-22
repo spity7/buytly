@@ -1,9 +1,9 @@
 import { AppError } from "../../shared/AppError.js";
 
 /** Statuses visible on the public property list endpoint. */
-export const PUBLIC_LIST_STATUSES = new Set(["active", "sold", "rented"]);
+export const PUBLIC_LIST_STATUSES = new Set(["active", "sold"]);
 
-/** Statuses non-admins may set via create/update (sold/rented come from transactions). */
+/** Statuses non-admins may set via create/update (sold comes from completed transactions). */
 export const SELLER_SETTABLE_STATUSES = new Set(["draft", "pending", "active"]);
 
 export const resolvePublicListStatus = (requestedStatus) => {
@@ -18,7 +18,7 @@ export const resolvePublicListStatus = (requestedStatus) => {
  * Normalizes status on create/update for non-admin users.
  * - active → pending (submit for review)
  * - draft / pending allowed
- * - sold / rented / archived rejected
+ * - sold / archived rejected
  * Returns undefined when status should not be changed (update without status field).
  */
 export const normalizeSellerStatus = (status, { isAdmin, isCreate }) => {
@@ -30,7 +30,7 @@ export const normalizeSellerStatus = (status, { isAdmin, isCreate }) => {
 
   if (!SELLER_SETTABLE_STATUSES.has(status)) {
     throw new AppError(
-      "You cannot set this status directly. Use transactions to mark a property sold or rented.",
+      "You cannot set this status directly. Use transactions to mark a property sold.",
       403,
     );
   }
@@ -45,14 +45,13 @@ export const normalizeSellerStatus = (status, { isAdmin, isCreate }) => {
 export const isPropertyBookable = (status) => status === "active";
 
 export const isPropertyTerminal = (status) =>
-  status === "sold" || status === "rented" || status === "archived";
+  status === "sold" || status === "archived";
 
 /** Fields that trigger re-review when changed on an active listing. */
 const MATERIAL_SCALAR_FIELDS = [
   "title",
   "description",
   "type",
-  "listingType",
   "price",
   "currency",
   "bedrooms",

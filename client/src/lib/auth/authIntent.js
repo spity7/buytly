@@ -1,4 +1,4 @@
-export const ADD_PROPERTY_PATH = "/dashboard-add-property";
+export const ADD_PROPERTY_PATH = "/dashboard-add-project";
 
 const SIGNUP_ROLES = new Set(["buyer", "seller", "agent"]);
 

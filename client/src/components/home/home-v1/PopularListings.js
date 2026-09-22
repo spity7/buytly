@@ -26,8 +26,6 @@ const PopularListings = ({ data = [] }) => {
       >
         {data.slice(0, 8).map((listing) => {
           const id = listing.id || listing._id;
-          const forRent = listing.forRent ?? listing.listingType === "rent";
-
           return (
             <SwiperSlide key={id}>
               <div className="item">
@@ -49,10 +47,7 @@ const PopularListings = ({ data = [] }) => {
                       )}
                     </div>
 
-                    <div className="list-price">
-                      {listing.price}
-                      {forRent && <span> / mo</span>}
-                    </div>
+                    <div className="list-price">{listing.price}</div>
                   </div>
                   <div className="list-content">
                     <h6 className="list-title">
@@ -72,9 +67,7 @@ const PopularListings = ({ data = [] }) => {
                     </div>
                     <hr className="mt-2 mb-2" />
                     <div className="list-meta2 d-flex justify-content-between align-items-center">
-                      <span className="for-what">
-                        For {forRent ? "Rent" : "Sale"}
-                      </span>
+                      <span className="for-what">For Sale</span>
                       <div className="icons d-flex align-items-center">
                         <Link href={`/single-v1/${id}`} className="icon">
                           <span className="flaticon-fullscreen" />

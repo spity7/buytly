@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import request from "supertest";
 import { mongoAvailable } from "./setup.js";
-import { Property } from "../src/modules/properties/property.model.js";
+import { createActiveProperty } from "./helpers/listingFixtures.js";
 
 const getApp = async () => {
   const { default: app } = await import("../src/app.js");
@@ -35,28 +35,10 @@ describe.skipIf(!mongoAvailable)("favorites API", () => {
       role: "buyer",
     });
 
-    const created = await request(app)
-      .post("/api/v1/properties")
-      .set("Authorization", `Bearer ${sellerToken}`)
-      .send({
-        title: "Favorite Test Listing",
-        description: "Listing used in favorites integration test.",
-        type: "apartment",
-        listingType: "sale",
-        price: 250000,
-        location: {
-          coordinates: [55.2708, 25.2048],
-          address: "123 Main St",
-          city: "Dubai",
-          country: "UAE",
-        },
-        bedrooms: 2,
-        bathrooms: 2,
-        area: 100,
-      });
-
-    const propertyId = created.body.data._id;
-    await Property.findByIdAndUpdate(propertyId, { status: "active" });
+    const propertyId = await createActiveProperty(app, sellerToken, {
+      title: "Favorite Test Listing",
+      price: 250000,
+    });
 
     const addRes = await request(app)
       .post("/api/v1/favorites")

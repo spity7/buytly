@@ -15,6 +15,7 @@ import Image from "next/image";
 import Blog from "@/components/common/Blog";
 import Link from "next/link";
 import PopulerProperty from "@/components/home/home-v1/PopulerProperty";
+import FeaturedProjects from "@/components/home/home-v1/FeaturedProjects";
 import FilterWithProperties from "@/components/home/home-v5/filter-with-property";
 
 export const metadata = {
@@ -150,6 +151,9 @@ const Home_V1 = () => {
         </div>
       </section>
       {/* End Featured Listings */}
+
+      <PopulerProperty />
+      <FeaturedProjects />
 
       {/* Explore property-city */}
       <section className="pb40-md pb90">

@@ -17,7 +17,7 @@ export const favoriteService = {
           path: "propertyId",
           match: { deletedAt: null },
           select:
-            "title slug price currency type listingType location status media bedrooms bathrooms",
+            "title slug price currency type projectId location status media bedrooms bathrooms",
         })
         .sort({ createdAt: -1 })
         .skip(skip)
