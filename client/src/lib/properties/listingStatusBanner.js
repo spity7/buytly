@@ -1,11 +1,14 @@
 const PROPERTY_TYPE_LABELS = {
   apartment: "Apartment",
   villa: "Villa",
-  townhouse: "Townhouse",
-  land: "Land",
-  commercial: "Commercial",
   duplex: "Duplex",
-  studio: "Studio",
+  penthouse: "Penthouse",
+  townhouse: "Townhouse",
+  office: "Office",
+  shop: "Shop",
+  building: "Building",
+  land: "Land",
+  chalet: "Chalet",
 };
 
 export function formatListingDate(value) {
@@ -90,7 +93,7 @@ export function getListingStatusBannerContent({
         ],
         nextStep: isAdmin
           ? "Changes save immediately without re-review. Use Set as draft to unpublish."
-          : 'Use "Save changes" for minor edits. Changing price, description, location, or media on a live listing sends it back for review.',
+          : 'Use "Save changes" for minor edits. Changing price, description, or media on a live listing sends it back for review. Map location is edited on the parent project.',
       };
     case "sold":
       return {

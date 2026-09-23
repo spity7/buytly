@@ -1,8 +1,8 @@
 "use client";
 
-import AsyncActionOverlay from "@/components/common/AsyncActionOverlay";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
 import NotificationItem from "@/components/notifications/NotificationItem";
+import { useAsyncAction } from "@/hooks/useAsyncAction";
 import { useConfirmAction } from "@/hooks/useConfirmAction";
 import { useNotificationNavigation } from "@/hooks/useNotificationNavigation";
 import {
@@ -40,8 +40,8 @@ export default function NotificationsPanel() {
   const markAllMutation = useMarkAllNotificationsRead();
   const hasUnread = unreadCount > 0;
   const deleteMutation = useDeleteNotification();
-  const { requestConfirm, isLocked, overlayMessage, dialogProps, pending } =
-    useConfirmAction({ overlay: true });
+  const { run, isBusy: markAllBusy } = useAsyncAction();
+  const { requestConfirm, isLocked, dialogProps, pending } = useConfirmAction();
 
   const notifications = data?.notifications || [];
   const pagination = data?.pagination;
@@ -94,9 +94,23 @@ export default function NotificationsPanel() {
           type="button"
           className="ud-btn btn-thm-border btn-sm notifications-panel__mark-all"
           disabled={
-            !hasUnread || isUnreadCountLoading || markAllMutation.isPending
+            !hasUnread ||
+            isUnreadCountLoading ||
+            markAllMutation.isPending ||
+            markAllBusy ||
+            isLocked
           }
-          onClick={() => markAllMutation.mutate()}
+          onClick={async () => {
+            try {
+              await run({
+                message: "Marking all notifications as read...",
+                successMessage: "All notifications marked as read",
+                task: () => markAllMutation.mutateAsync(),
+              });
+            } catch {
+              // Toast handled by useAsyncAction
+            }
+          }}
         >
           Mark all read
         </button>
@@ -162,10 +176,6 @@ export default function NotificationsPanel() {
       ) : null}
 
       <ConfirmDialog {...dialogProps} />
-      <AsyncActionOverlay
-        open={Boolean(overlayMessage)}
-        message={overlayMessage}
-      />
     </div>
   );
 }

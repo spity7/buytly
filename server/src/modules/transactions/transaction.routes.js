@@ -139,7 +139,7 @@ router.get(
  *   patch:
  *     operationId: updateTransactionStatus
  *     summary: Update transaction status
- *     description: Seller, agent, or admin updates transaction status. Completing marks the property as sold.
+ *     description: Seller, agent, or admin updates transaction status. Completing marks the property as sold and may mark the parent project sold when every unit on the project is sold.
  *     tags: [Transactions]
  *     security:
  *       - BearerAuth: []

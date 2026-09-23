@@ -391,7 +391,7 @@ router.delete(
  *   patch:
  *     operationId: restoreProperty
  *     summary: Restore a soft-deleted property
- *     description: Clears deletedAt and sets status to draft. Owner, assigned agent, or admin only.
+ *     description: Clears deletedAt and sets status to draft when the parent project is not in trash. Owner, assigned agent, or admin only.
  *     tags: [Properties]
  *     security:
  *       - BearerAuth: []
@@ -609,7 +609,7 @@ router.put(
  *   post:
  *     operationId: uploadFloorPlanImage
  *     summary: Upload floor plan image
- *     description: Uploads a floor plan image and returns a gcsKey for use in the floorPlans array.
+ *     description: Uploads a floor plan image and returns a gcsKey for use in the floorPlans array. Available for any property type.
  *     tags: [Properties]
  *     security:
  *       - BearerAuth: []

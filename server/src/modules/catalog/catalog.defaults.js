@@ -1,30 +1,34 @@
-import { SINGLE_PROJECT_UNIT_TYPE } from "../projects/project-cardinality.js";
-
-/** Property type slugs required by platform rules (always present & non-deletable). */
-export const PROTECTED_PROPERTY_TYPE_VALUES = [SINGLE_PROJECT_UNIT_TYPE];
+/** Property type slugs that cannot be edited, deleted, or deactivated (platform rules). */
+export const PROTECTED_PROPERTY_TYPE_VALUES = [];
 
 /** Default catalog entries bootstrapped when collections are empty. */
 export const DEFAULT_PROPERTY_TYPES = [
   { value: "apartment", label: "Apartment", sortOrder: 1 },
   { value: "villa", label: "Villa", sortOrder: 2 },
-  { value: "townhouse", label: "Townhouse", sortOrder: 3 },
-  { value: "land", label: "Land", sortOrder: 4 },
-  { value: "commercial", label: "Commercial", sortOrder: 5 },
-  { value: "duplex", label: "Duplex", sortOrder: 6 },
-  { value: "studio", label: "Studio", sortOrder: 7 },
+  { value: "duplex", label: "Duplex", sortOrder: 3 },
+  { value: "penthouse", label: "Penthouse", sortOrder: 4 },
+  { value: "townhouse", label: "Townhouse", sortOrder: 5 },
+  { value: "office", label: "Office", sortOrder: 6 },
+  { value: "shop", label: "Shop", sortOrder: 7 },
+  { value: "building", label: "Building", sortOrder: 8 },
+  { value: "land", label: "Land", sortOrder: 9 },
+  { value: "chalet", label: "Chalet", sortOrder: 10 },
 ];
 
 export const DEFAULT_AMENITIES = [
-  { value: "Air Conditioning", label: "Air Conditioning", sortOrder: 1 },
-  { value: "Barbeque", label: "Barbeque", sortOrder: 2 },
-  { value: "Dryer", label: "Dryer", sortOrder: 3 },
-  { value: "Gym", label: "Gym", sortOrder: 4 },
-  { value: "Lawn", label: "Lawn", sortOrder: 5 },
-  { value: "Microwave", label: "Microwave", sortOrder: 6 },
-  { value: "Outdoor Shower", label: "Outdoor Shower", sortOrder: 7 },
-  { value: "Refrigerator", label: "Refrigerator", sortOrder: 8 },
-  { value: "Swimming Pool", label: "Swimming Pool", sortOrder: 9 },
-  { value: "TV Cable", label: "TV Cable", sortOrder: 10 },
-  { value: "Washer", label: "Washer", sortOrder: 11 },
-  { value: "WiFi", label: "WiFi", sortOrder: 12 },
+  { value: "Parking", label: "Parking", sortOrder: 1 },
+  { value: "Elevator", label: "Elevator", sortOrder: 2 },
+  { value: "Balcony", label: "Balcony", sortOrder: 3 },
+  { value: "Terrace", label: "Terrace", sortOrder: 4 },
+  { value: "Garden", label: "Garden", sortOrder: 5 },
+  { value: "Swimming Pool", label: "Swimming Pool", sortOrder: 6 },
+  { value: "Gym", label: "Gym", sortOrder: 7 },
+  { value: "Security", label: "Security", sortOrder: 8 },
+  { value: "Generator", label: "Generator", sortOrder: 9 },
+  { value: "Central AC", label: "Central AC", sortOrder: 10 },
+  { value: "Furnished", label: "Furnished", sortOrder: 11 },
+  { value: "Sea View", label: "Sea View", sortOrder: 12 },
+  { value: "Mountain View", label: "Mountain View", sortOrder: 13 },
+  { value: "Smart Home", label: "Smart Home", sortOrder: 14 },
+  { value: "Pet Friendly", label: "Pet Friendly", sortOrder: 15 },
 ];

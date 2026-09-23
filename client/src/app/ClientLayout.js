@@ -2,6 +2,7 @@
 
 import { GoogleOAuthProvider } from "@react-oauth/google";
 import { AuthProvider } from "@/providers/AuthProvider";
+import { AsyncActionOverlayProvider } from "@/providers/AsyncActionOverlayProvider";
 import QueryProvider from "@/providers/QueryProvider";
 import AppToaster from "@/components/common/AppToaster";
 import ScrollToTop from "@/components/common/ScrollTop";
@@ -34,13 +35,15 @@ export default function ClientLayout({ children }) {
         clientId={process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ?? ""}
       >
         <AuthProvider>
-          <div className="wrapper ovh">{children}</div>
-          <GlobalAuthModal />
-          <Suspense fallback={null}>
-            <AuthModalFromQuery />
-          </Suspense>
-          <ScrollToTop />
-          <AppToaster />
+          <AsyncActionOverlayProvider>
+            <div className="wrapper ovh">{children}</div>
+            <GlobalAuthModal />
+            <Suspense fallback={null}>
+              <AuthModalFromQuery />
+            </Suspense>
+            <ScrollToTop />
+            <AppToaster />
+          </AsyncActionOverlayProvider>
         </AuthProvider>
       </GoogleOAuthProvider>
     </QueryProvider>

@@ -50,7 +50,7 @@ export function getProjectsTableEmptyState({
     icon: "flaticon-home",
     title: "No projects yet",
     description:
-      "Create a development first, then add sellable units. Single projects hold one Villa unit; compound projects hold one or more units on one page.",
+      "Create a development first, then add one or more sellable units on the project page.",
     actions: [
       { label: "Add project", variant: "thm", href: "/dashboard-add-project" },
       {

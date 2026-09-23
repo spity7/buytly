@@ -1,0 +1,33 @@
+---
+description: Buytly client (Next.js) conventions for mutations and loading UX
+globs: client/**/*
+alwaysApply: false
+---
+
+# Buytly Client
+
+## Async / busy loading
+
+- `AsyncActionOverlayProvider` is mounted in `client/src/app/ClientLayout.js` — **do not** add per-page `<AsyncActionOverlay />` unless the provider is unavailable.
+- Mutations and destructive flows use **`useAsyncAction()`** or **`useConfirmAction()`** (overlay defaults to **on**).
+- Wrap API work in `run({ message, successMessage, task })` (or `requestConfirm` + nested `action.task`).
+- Disable forms, filters, and row actions with `isBusy` / `isLocked` while work is in flight.
+- Pass `{ overlay: false }` only for background refresh where a full-page block would be wrong.
+- Do not call `buytlyApi` / `customInstance` directly for user-triggered mutations (save forms, uploads, resend email, mark-all-read, etc.) — always wrap in `run()`.
+- While the global overlay is active, `AsyncActionOverlayProvider` registers `beforeunload` so tab close/reload shows the browser confirmation dialog.
+- Dashboard helpers in `client/src/lib/properties/mapProperty.js`: `canAdminApproveUnit`, `canAddUnitToProject`, `isListingPubliclyPreviewable`, `isUnitRestoreBlockedByParentProject`, `partitionProjectUnits` — use them to disable actions the API would reject and to render public project unit availability.
+- Owner project detail may include `trashedUnitCount` (archived units while the project is live). `ProjectEditUnitsSection` surfaces a link to My properties → Trash when trashed units exist.
+- Floor plans: any property type; each level is **title + image** (`gcsKey` / upload). The floor-plan section in `PropertyForm` is always available when editing a unit.
+
+## API client
+
+- `custom-instance.ts` sends `Cache-Control: no-cache` on GET requests so the browser does not serve stale JSON (e.g. project media after upload) from `304` cache.
+- After project/property media mutations, invalidate the relevant React Query keys (`project`, `my-projects`, etc.) and refetch — see `ProjectEditPanel.refreshProject`.
+
+## Live data sync (React Query)
+
+- Global defaults live in `client/src/providers/QueryProvider.js` (`staleTime`, `refetchOnWindowFocus`, `refetchOnReconnect`).
+- `LiveQuerySyncProvider` refetches **active** stale queries every 30s while the tab is visible and when the user returns to the tab (`visibilitychange`). It also dispatches `buytly:live-sync` for loaders that are not on React Query — use `useLiveSyncReload(loadFn)` with a `{ silent: true }` option to avoid skeleton flicker.
+- Tune intervals in `client/src/lib/query/liveSync.js`. Hooks may override `staleTime` / `refetchInterval` (e.g. catalog uses longer cache).
+- On login/register, `AuthProvider` invalidates queries so dashboards load fresh data; logout calls `queryClient.clear()`.
+- Mutations should still invalidate affected keys; background sync does not replace targeted invalidation after writes.

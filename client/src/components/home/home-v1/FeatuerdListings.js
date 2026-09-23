@@ -1,5 +1,9 @@
 "use client";
 
+import {
+  FeaturedListingsEmptyState,
+  FeaturedListingsLoadingState,
+} from "@/components/home/FeaturedListingsSectionState";
 import FeaturedListings from "@/components/listing/grid-view/grid-default/FeatuerdListings";
 import { useProperties } from "@/hooks/useProperties";
 import { Navigation, Pagination } from "swiper/modules";
@@ -16,11 +20,11 @@ const HomeFeaturedListings = () => {
   const cards = data?.cards || [];
 
   if (isLoading) {
-    return <p className="text-center py-4">Loading featured listings...</p>;
+    return <FeaturedListingsLoadingState />;
   }
 
   if (!cards.length) {
-    return <p className="text-center py-4">No featured listings yet.</p>;
+    return <FeaturedListingsEmptyState />;
   }
 
   return (

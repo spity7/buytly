@@ -8,6 +8,7 @@ import { closeAuthModal } from "./authModal";
 import { getApiError, useAuth } from "@/providers/AuthProvider";
 import { AUTHENTICATED_HOME } from "@/lib/auth/constants";
 import { useRouter } from "next/navigation";
+import { useAsyncAction } from "@/hooks/useAsyncAction";
 import { useEffect, useState } from "react";
 
 const ROLES = [
@@ -38,8 +39,8 @@ const SignUp = ({
   const [error, setError] = useState("");
   const [googleError, setGoogleError] = useState("");
   const [success, setSuccess] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isGoogleSubmitting, setIsGoogleSubmitting] = useState(false);
+  const { run, isBusy: isSubmitting } = useAsyncAction();
+  const { run: runGoogle, isBusy: isGoogleSubmitting } = useAsyncAction();
 
   useEffect(() => {
     setForm((current) => ({ ...current, role: defaultRole }));
@@ -66,30 +67,34 @@ const SignUp = ({
       return;
     }
 
-    setIsSubmitting(true);
-
     try {
-      await register({
-        email: form.email,
-        password: form.password,
-        confirmPassword: form.confirmPassword,
-        firstName: form.firstName || undefined,
-        lastName: form.lastName || undefined,
-        role: form.role,
-        ...(trimmedPhone
-          ? {
-              phoneCountryCode: form.phoneCountryCode,
-              phoneNumber: trimmedPhone,
-            }
-          : {}),
+      await run({
+        message: "Creating account...",
+        showToast: false,
+        task: async () => {
+          await register({
+            email: form.email,
+            password: form.password,
+            confirmPassword: form.confirmPassword,
+            firstName: form.firstName || undefined,
+            lastName: form.lastName || undefined,
+            role: form.role,
+            ...(trimmedPhone
+              ? {
+                  phoneCountryCode: form.phoneCountryCode,
+                  phoneNumber: trimmedPhone,
+                }
+              : {}),
+          });
+          setSuccess(
+            "Account created! Check your email to verify your address.",
+          );
+          await closeAuthModal();
+          router.push(redirectTo);
+        },
       });
-      setSuccess("Account created! Check your email to verify your address.");
-      await closeAuthModal();
-      router.push(redirectTo);
     } catch (err) {
       setError(getApiError(err, "Registration failed. Please try again."));
-    } finally {
-      setIsSubmitting(false);
     }
   };
 
@@ -101,16 +106,18 @@ const SignUp = ({
 
     setGoogleError("");
     setSuccess("");
-    setIsGoogleSubmitting(true);
-
     try {
-      await loginWithGoogle({ idToken: credential, role: form.role });
-      await closeAuthModal();
-      router.push(redirectTo);
+      await runGoogle({
+        message: "Signing in with Google...",
+        showToast: false,
+        task: async () => {
+          await loginWithGoogle({ idToken: credential, role: form.role });
+          await closeAuthModal();
+          router.push(redirectTo);
+        },
+      });
     } catch (err) {
       setGoogleError(getApiError(err, "Google sign-in failed."));
-    } finally {
-      setIsGoogleSubmitting(false);
     }
   };
 

@@ -59,7 +59,7 @@ const PropertyDetails = ({ id }) => {
             <div key={index} className="d-flex justify-content-between">
               <div className="pd-list">
                 <p className="fw600 mb10 ff-heading dark-color">
-                  {detail.label}
+                  {detail.label}:
                 </p>
               </div>
               <div className="pd-list">

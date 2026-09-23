@@ -9,16 +9,17 @@ export const ROLES = {
 export const PROPERTY_TYPES = [
   "apartment",
   "villa",
-  "townhouse",
-  "land",
-  "commercial",
   "duplex",
-  "studio",
+  "penthouse",
+  "townhouse",
+  "office",
+  "shop",
+  "building",
+  "land",
+  "chalet",
 ];
 
 export const DEFAULT_CURRENCY = "USD";
-
-export const PROJECT_KINDS = ["single", "compound"];
 
 export const PROPERTY_STATUSES = [
   "draft",

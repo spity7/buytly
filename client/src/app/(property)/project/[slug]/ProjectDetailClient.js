@@ -4,10 +4,46 @@ import DefaultHeader from "@/components/common/DefaultHeader";
 import Footer from "@/components/common/default-footer";
 import MobileMenu from "@/components/common/mobile-menu";
 import { buytlyApi } from "@/api/generated";
-import { formatPropertyLocationLabel } from "@/lib/properties/mapProperty";
+import {
+  formatPropertyLocationLabel,
+  partitionProjectUnits,
+} from "@/lib/properties/mapProperty";
 import { formatPrice } from "@/lib/properties/formatPrice";
 import Link from "next/link";
 import { useEffect, useState } from "react";
+
+function UnitCard({ unit, sold = false }) {
+  const id = unit._id || unit.id;
+  return (
+    <div className="col-md-6 col-lg-4 mb20">
+      <div className="bdr1 bdrs12 p20 h-100 bg-white">
+        <div className="d-flex justify-content-between align-items-start gap-2 mb10">
+          <h5 className="mb0">{unit.title}</h5>
+          {sold ? <span className="badge bg-secondary">Sold</span> : null}
+        </div>
+        <p className="mb10">
+          {formatPrice(unit.price, unit.currency || "USD")}
+        </p>
+        <p className="fz14 text-muted mb15">
+          {[
+            unit.bedrooms != null && `${unit.bedrooms} bed`,
+            unit.bathrooms != null && `${unit.bathrooms} bath`,
+            unit.area != null && `${unit.area} sqm`,
+          ]
+            .filter(Boolean)
+            .join(" · ")}
+        </p>
+        {sold ? (
+          <span className="fz14 text-muted">No longer available</span>
+        ) : (
+          <Link href={`/single-v1/${id}`} className="ud-btn btn-thm btn-sm">
+            View unit
+          </Link>
+        )}
+      </div>
+    </div>
+  );
+}
 
 export default function ProjectDetailClient({ slug }) {
   const [project, setProject] = useState(null);
@@ -50,7 +86,7 @@ export default function ProjectDetailClient({ slug }) {
     );
   }
 
-  const units = project.units || [];
+  const { available, sold } = partitionProjectUnits(project.units || []);
   const images = (project.media || [])
     .filter((m) => m.type === "image")
     .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
@@ -61,6 +97,14 @@ export default function ProjectDetailClient({ slug }) {
         ? `${formatPrice(project.priceMin, "USD")} – ${formatPrice(project.priceMax, "USD")}`
         : `From ${formatPrice(project.priceMin, "USD")}`
       : "Price on request";
+  const projectSold = project.status === "sold";
+  const availabilityLabel = projectSold
+    ? "Fully sold"
+    : available.length
+      ? `${available.length} available${sold.length ? ` · ${sold.length} sold` : ""}`
+      : sold.length
+        ? `${sold.length} sold`
+        : "No units listed";
 
   return (
     <>
@@ -82,7 +126,18 @@ export default function ProjectDetailClient({ slug }) {
               <h1 className="mb10">{project.title}</h1>
               <p className="text mb15">
                 {formatPropertyLocationLabel(project.location)} ·{" "}
-                <span className="text-capitalize">{project.kind}</span> · For sale
+                <span className="text-capitalize">{project.kind}</span>
+                {projectSold ? " · Sold out" : " · For sale"}
+              </p>
+              <p className="fz14 text-muted mb10">
+                {availabilityLabel}
+                {" · "}
+                <i
+                  className="flaticon-fullscreen pe-1 align-text-top"
+                  aria-hidden="true"
+                />
+                {(project.viewCount ?? 0).toLocaleString()} view
+                {(project.viewCount ?? 0) === 1 ? "" : "s"}
               </p>
               <p className="h4 text-thm mb20">{priceRange}</p>
               <p>{project.description}</p>
@@ -135,37 +190,32 @@ export default function ProjectDetailClient({ slug }) {
             </div>
           </div>
 
-          <h3 className="mb20">Units for sale ({units.length})</h3>
-          {units.length === 0 ? (
-            <p className="bdr1 bdrs12 p20 bg-white">No units available yet.</p>
+          {available.length > 0 ? (
+            <>
+              <h3 className="mb20">Units for sale ({available.length})</h3>
+              <div className="row">
+                {available.map((unit) => (
+                  <UnitCard key={unit._id || unit.id} unit={unit} />
+                ))}
+              </div>
+            </>
           ) : (
-            <div className="row">
-              {units.map((unit) => {
-                const id = unit._id || unit.id;
-                return (
-                  <div className="col-md-6 col-lg-4 mb20" key={id}>
-                    <div className="bdr1 bdrs12 p20 h-100 bg-white">
-                      <h5>{unit.title}</h5>
-                      <p className="mb10">
-                        {formatPrice(unit.price, unit.currency || "USD")}
-                      </p>
-                      <p className="fz14 text-muted mb15">
-                        {[unit.bedrooms != null && `${unit.bedrooms} bed`, unit.bathrooms != null && `${unit.bathrooms} bath`, unit.area != null && `${unit.area} sqm`]
-                          .filter(Boolean)
-                          .join(" · ")}
-                      </p>
-                      <Link
-                        href={`/single-v1/${id}`}
-                        className="ud-btn btn-thm btn-sm"
-                      >
-                        View unit
-                      </Link>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+            <h3 className="mb20">Units for sale</h3>
           )}
+          {available.length === 0 && !sold.length ? (
+            <p className="bdr1 bdrs12 p20 bg-white">No units available yet.</p>
+          ) : null}
+
+          {sold.length > 0 ? (
+            <div className="mt30">
+              <h3 className="mb20">Sold units ({sold.length})</h3>
+              <div className="row">
+                {sold.map((unit) => (
+                  <UnitCard key={unit._id || unit.id} unit={unit} sold />
+                ))}
+              </div>
+            </div>
+          ) : null}
         </div>
       </section>
 

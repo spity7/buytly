@@ -1,7 +1,6 @@
 "use client";
 
 import PasswordInput from "@/components/common/PasswordInput";
-import AsyncActionOverlay from "@/components/common/AsyncActionOverlay";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
 import { buytlyApi } from "@/api/generated";
 import { useConfirmAction } from "@/hooks/useConfirmAction";
@@ -16,8 +15,8 @@ const DeleteAccountForm = () => {
   const isGoogleAccount = user?.authProvider === "google";
   const [password, setPassword] = useState("");
   const [confirmText, setConfirmText] = useState("");
-  const { requestConfirm, isLocked, overlayMessage, dialogProps } =
-    useConfirmAction({ overlay: true });
+  const { requestConfirm, isLocked, dialogProps } =
+    useConfirmAction();
 
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -113,7 +112,6 @@ const DeleteAccountForm = () => {
       </fieldset>
 
       <ConfirmDialog {...dialogProps} />
-      <AsyncActionOverlay message={overlayMessage} />
     </form>
   );
 };

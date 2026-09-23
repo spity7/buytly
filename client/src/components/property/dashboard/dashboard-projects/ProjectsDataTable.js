@@ -5,7 +5,6 @@ import Link from "next/link";
 import React from "react";
 import { Tooltip as ReactTooltip } from "react-tooltip";
 import { buytlyApi } from "@/api/generated";
-import AsyncActionOverlay from "@/components/common/AsyncActionOverlay";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
 import ApiPagination from "@/components/property/ApiPagination";
 import { DashboardTableSkeleton } from "@/components/property/dashboard/skeletons/DashboardSkeletons";
@@ -30,6 +29,7 @@ import DashboardTableEmptyState, {
   DashboardTableErrorState,
 } from "@/components/property/dashboard/DashboardTableEmptyState";
 import { getProjectsTableEmptyState } from "@/lib/dashboard/tableEmptyStates";
+import { canAddUnitToProject } from "@/lib/properties/mapProperty";
 
 const PLACEHOLDER = "/images/listings/list-1.jpg";
 
@@ -40,12 +40,6 @@ const formatDate = (value) => {
     day: "numeric",
     year: "numeric",
   }).format(new Date(value));
-};
-
-const formatKind = (kind) => {
-  if (kind === "compound") return "Compound";
-  if (kind === "single") return "Single";
-  return kind ? String(kind) : "—";
 };
 
 const ProjectsDataTable = ({
@@ -68,7 +62,7 @@ const ProjectsDataTable = ({
     overlayMessage,
     dialogProps,
     pending,
-  } = useConfirmAction({ overlay: true });
+  } = useConfirmAction();
 
   const highlightId = useHighlightQueryParam();
   const { data, isFetching, isError } = useMyProjects(
@@ -174,7 +168,6 @@ const ProjectsDataTable = ({
           <thead className="t-head">
             <tr>
               <th scope="col">Project</th>
-              <th scope="col">Type</th>
               <th scope="col">Units</th>
               <th scope="col">Status</th>
               <th scope="col">{isTrash ? "Deleted" : "Created"}</th>
@@ -192,6 +185,7 @@ const ProjectsDataTable = ({
                 project.status === "active" &&
                 project.slug &&
                 !project.deletedAt;
+              const showAddUnit = canAddUnitToProject(project);
 
               return (
                 <tr key={projectId} {...getRowProps(projectId)}>
@@ -219,7 +213,6 @@ const ProjectsDataTable = ({
                       </div>
                     </div>
                   </th>
-                  <td className="vam">{formatKind(project.kind)}</td>
                   <td className="vam">{project.unitCount ?? 0}</td>
                   <td className="vam">
                     <StatusBadge
@@ -302,15 +295,17 @@ const ProjectsDataTable = ({
                           >
                             <span className="fas fa-pen fa" />
                           </Link>
-                          <Link
-                            href={`/dashboard-add-property?projectId=${projectId}`}
-                            className={`icon${tableBusy ? " pe-none opacity-50" : ""}`}
-                            data-tooltip-id={`add-unit-${projectId}`}
-                            aria-disabled={tableBusy}
-                            tabIndex={tableBusy ? -1 : undefined}
-                          >
-                            <span className="far fa-plus" />
-                          </Link>
+                          {showAddUnit ? (
+                            <Link
+                              href={`/dashboard-add-property?projectId=${projectId}`}
+                              className={`icon${tableBusy ? " pe-none opacity-50" : ""}`}
+                              data-tooltip-id={`add-unit-${projectId}`}
+                              aria-disabled={tableBusy}
+                              tabIndex={tableBusy ? -1 : undefined}
+                            >
+                              <span className="far fa-plus" />
+                            </Link>
+                          ) : null}
                           <button
                             type="button"
                             className="icon"
@@ -372,7 +367,6 @@ const ProjectsDataTable = ({
       )}
 
       <ConfirmDialog {...dialogProps} />
-      <AsyncActionOverlay message={overlayMessage} />
     </>
   );
 };

@@ -3,7 +3,6 @@
 import Link from "next/link";
 import React, { useCallback, useMemo, useState } from "react";
 import { buytlyApi } from "@/api/generated";
-import AsyncActionOverlay from "@/components/common/AsyncActionOverlay";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
 import ApiPagination from "@/components/property/ApiPagination";
 import {
@@ -16,7 +15,11 @@ import { useAdminProperties } from "@/hooks/useAdminProperties";
 import { useDebouncedSearch } from "@/hooks/useDebouncedSearch";
 import { useConfirmAction } from "@/hooks/useConfirmAction";
 import StatusBadge from "@/components/common/StatusBadge";
-import { getStatusLabel } from "@/lib/properties/mapProperty";
+import {
+  canAdminApproveUnit,
+  getStatusLabel,
+  isListingPubliclyPreviewable,
+} from "@/lib/properties/mapProperty";
 import {
   adminApproveListingConfirmation,
   adminArchiveListingConfirmation,
@@ -90,8 +93,8 @@ export default function AdminPropertiesTable() {
     return params;
   }, [page, statusFilter, type, search, sortBy, sortOrder]);
 
-  const { requestConfirm, isLocked, overlayMessage, dialogProps, pending } =
-    useConfirmAction({ overlay: true });
+  const { requestConfirm, isLocked, dialogProps, pending } =
+    useConfirmAction();
 
   const highlightId = useHighlightQueryParam();
   const { data, isFetching, isError } = useAdminProperties(
@@ -260,13 +263,21 @@ export default function AdminPropertiesTable() {
               const propertyId = property._id;
               const owner = property.ownerId;
               const rowBusy = moderatingId === propertyId;
+              const canApprove = canAdminApproveUnit(property);
+              const publicPreview = isListingPubliclyPreviewable(
+                property.status,
+              );
 
               return (
                 <tr key={propertyId} {...getRowProps(propertyId)}>
                   <th scope="row">
-                    <Link href={`/single-v1/${propertyId}`}>
-                      {property.title}
-                    </Link>
+                    {publicPreview ? (
+                      <Link href={`/single-v1/${propertyId}`}>
+                        {property.title}
+                      </Link>
+                    ) : (
+                      property.title
+                    )}
                   </th>
                   <td className="vam admin-properties-table__owner">
                     {owner?.firstName} {owner?.lastName}
@@ -284,7 +295,12 @@ export default function AdminPropertiesTable() {
                           <button
                             type="button"
                             className="ud-btn btn-thm btn-sm"
-                            disabled={rowBusy || tableBusy}
+                            disabled={rowBusy || tableBusy || !canApprove}
+                            title={
+                              canApprove
+                                ? undefined
+                                : "Approve the parent project before publishing this unit"
+                            }
                             onClick={() =>
                               promptModerate(
                                 propertyId,
@@ -357,7 +373,6 @@ export default function AdminPropertiesTable() {
       )}
 
       <ConfirmDialog {...dialogProps} />
-      <AsyncActionOverlay message={overlayMessage} />
     </>
   );
 }

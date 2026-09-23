@@ -25,16 +25,7 @@ const registerPayload = (overrides = {}) => ({
 
 const reviewPropertyExtras = {
   virtualTourUrl: "https://my.matterport.com/show/?m=example",
-  floorPlans: [
-    {
-      title: "First Floor",
-      area: 1200,
-      areaUnit: "sqft",
-      bedrooms: 2,
-      bathrooms: 2,
-      price: 350000,
-    },
-  ],
+  floorPlans: [{ title: "First Floor" }],
 };
 
 const registerAndGetToken = async (app, overrides = {}) => {

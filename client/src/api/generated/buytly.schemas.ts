@@ -267,14 +267,6 @@ export interface GoogleAuthRequest {
  */
 export type PropertyType = string;
 
-export type ProjectKind = (typeof ProjectKind)[keyof typeof ProjectKind];
-
-// eslint-disable-next-line @typescript-eslint/no-redeclare
-export const ProjectKind = {
-  single: "single",
-  compound: "compound",
-} as const;
-
 export type PropertyStatus =
   (typeof PropertyStatus)[keyof typeof PropertyStatus];
 
@@ -344,7 +336,8 @@ export interface Property {
   sortOrder?: number;
   price?: number;
   currency?: string;
-  location?: PropertyLocation;
+  /** Denormalized copy of the parent project location (not accepted on create/update). */
+  readonly location?: PropertyLocation;
   bedrooms?: number;
   bathrooms?: number;
   area?: number;
@@ -407,11 +400,6 @@ export interface CreatePropertyRequest {
 export interface FloorPlan {
   _id?: ObjectId;
   title?: string;
-  area?: number;
-  areaUnit?: string;
-  bedrooms?: number;
-  bathrooms?: number;
-  price?: number;
   gcsKey?: string;
   /** Signed GCS URL (present when resolved) */
   url?: string;
@@ -423,11 +411,7 @@ export interface FloorPlanInput {
    * @maxLength 100
    */
   title: string;
-  area?: number;
-  areaUnit?: string;
-  bedrooms?: number;
-  bathrooms?: number;
-  price?: number;
+  /** Set after POST /properties/{id}/floor-plans/image */
   gcsKey?: string;
 }
 
@@ -969,7 +953,6 @@ export interface ProjectSummary {
   _id?: ObjectId;
   title?: string;
   slug?: string;
-  kind?: ProjectKind;
   status?: PropertyStatus;
 }
 
@@ -982,13 +965,15 @@ export interface Project {
   title?: string;
   slug?: string;
   description?: string;
-  kind?: ProjectKind;
   location?: PropertyLocation;
   amenities?: string[];
   status?: PropertyStatus;
   media?: PropertyMedia[];
   virtualTourUrl?: string;
+  /** Live (non-trashed) units on owner dashboard; public active/sold units otherwise. */
   unitCount?: number;
+  /** Trashed units on this project (owner dashboard only, when project is not in trash). */
+  trashedUnitCount?: number;
   /** @nullable */
   priceMin?: number | null;
   /** @nullable */
@@ -1003,7 +988,6 @@ export interface Project {
 export interface CreateProjectRequest {
   title: string;
   description: string;
-  kind: ProjectKind;
   location: PropertyLocation;
   amenities?: string[];
   virtualTourUrl?: string;
@@ -1380,7 +1364,6 @@ export type ListProjectsParams = {
    * @maximum 100
    */
   limit?: LimitParamParameter;
-  kind?: ProjectKind;
   status?: ListProjectsStatus;
   city?: string;
   search?: string;
@@ -1413,7 +1396,6 @@ export type ListMyProjectsParams = {
    */
   limit?: LimitParamParameter;
   status?: PropertyStatus;
-  kind?: ProjectKind;
   search?: string;
   sortBy?: ListMyProjectsSortBy;
   sortOrder?: ListMyProjectsSortOrder;
@@ -1864,7 +1846,6 @@ export type AdminListProjectsParams = {
    */
   limit?: LimitParamParameter;
   status?: PropertyStatus;
-  kind?: ProjectKind;
   search?: string;
   sortBy?: AdminListProjectsSortBy;
   sortOrder?: AdminListProjectsSortOrder;

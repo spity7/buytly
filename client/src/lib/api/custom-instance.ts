@@ -25,6 +25,13 @@ AXIOS_INSTANCE.interceptors.request.use((config) => {
     }
   }
 
+  const method = (config.method || "get").toLowerCase();
+  if (method === "get") {
+    config.headers = config.headers ?? {};
+    config.headers["Cache-Control"] = "no-cache";
+    config.headers.Pragma = "no-cache";
+  }
+
   // Orval sets Content-Type to multipart/form-data without a boundary; let axios
   // set the header when sending FormData so file uploads parse correctly.
   if (config.data instanceof FormData && config.headers) {

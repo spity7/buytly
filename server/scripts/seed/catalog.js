@@ -73,7 +73,7 @@ export const SEED_USERS = [
       budgetMin: 80000,
       budgetMax: 180000,
       locations: ["Dubai"],
-      propertyTypes: ["apartment", "studio"],
+      propertyTypes: ["apartment", "penthouse"],
     },
   },
 ];
@@ -105,32 +105,25 @@ export const SEED_AGENT_PROFILES = [
 
 /** Amenity strings on demo listings — each must exist in the listing catalog after seed. */
 const AMENITIES = {
-  standard: ["Parking", "Balcony", "Air Conditioning", "Security"],
+  standard: ["Parking", "Balcony", "Central AC", "Security"],
   premium: ["Swimming Pool", "Gym", "Concierge", "Smart Home", "Sea View"],
   rent: ["Furnished", "WiFi", "Maintenance", "Pet Friendly"],
 };
 
 /** Extra catalog rows for demo amenities not in API default bootstrap. */
 export const SEED_DEMO_AMENITIES = [
-  { value: "Parking", label: "Parking", sortOrder: 20 },
-  { value: "Balcony", label: "Balcony", sortOrder: 21 },
-  { value: "Security", label: "Security", sortOrder: 22 },
-  { value: "Concierge", label: "Concierge", sortOrder: 23 },
-  { value: "Smart Home", label: "Smart Home", sortOrder: 24 },
-  { value: "Sea View", label: "Sea View", sortOrder: 25 },
-  { value: "Furnished", label: "Furnished", sortOrder: 26 },
-  { value: "Maintenance", label: "Maintenance", sortOrder: 27 },
-  { value: "Pet Friendly", label: "Pet Friendly", sortOrder: 28 },
-  { value: "Garden", label: "Garden", sortOrder: 29 },
-  { value: "Community Pool", label: "Community Pool", sortOrder: 30 },
-  { value: "Private Pool", label: "Private Pool", sortOrder: 31 },
-  { value: "Beach Access", label: "Beach Access", sortOrder: 32 },
-  { value: "Investor Ready", label: "Investor Ready", sortOrder: 33 },
-  { value: "Park View", label: "Park View", sortOrder: 34 },
-  { value: "Maid Room", label: "Maid Room", sortOrder: 35 },
-  { value: "Freehold", label: "Freehold", sortOrder: 36 },
-  { value: "Corner Plot", label: "Corner Plot", sortOrder: 37 },
-  { value: "Utility Ready", label: "Utility Ready", sortOrder: 38 },
+  { value: "Concierge", label: "Concierge", sortOrder: 20 },
+  { value: "WiFi", label: "WiFi", sortOrder: 21 },
+  { value: "Maintenance", label: "Maintenance", sortOrder: 22 },
+  { value: "Community Pool", label: "Community Pool", sortOrder: 23 },
+  { value: "Private Pool", label: "Private Pool", sortOrder: 24 },
+  { value: "Beach Access", label: "Beach Access", sortOrder: 25 },
+  { value: "Investor Ready", label: "Investor Ready", sortOrder: 26 },
+  { value: "Park View", label: "Park View", sortOrder: 27 },
+  { value: "Maid Room", label: "Maid Room", sortOrder: 28 },
+  { value: "Freehold", label: "Freehold", sortOrder: 29 },
+  { value: "Corner Plot", label: "Corner Plot", sortOrder: 30 },
+  { value: "Utility Ready", label: "Utility Ready", sortOrder: 31 },
 ];
 
 export const SEED_PROPERTIES = [
@@ -161,7 +154,7 @@ export const SEED_PROPERTIES = [
     title: "Downtown Burj Khalifa Studio",
     description:
       "Furnished studio in the heart of Downtown with gym access and 24/7 concierge.",
-    type: "studio",
+    type: "apartment",
     listingType: "rent",
     price: 95000,
     currency: "USD",
@@ -367,7 +360,7 @@ export const SEED_PROPERTIES = [
     title: "Commercial Plot DIFC Adjacent",
     description:
       "Freehold commercial land suitable for boutique office or retail development.",
-    type: "commercial",
+    type: "land",
     listingType: "sale",
     price: 12000000,
     currency: "USD",
@@ -445,7 +438,7 @@ export const SEED_PROPERTIES = [
     title: "Rented JLT Studio",
     description:
       "Studio currently rented — visible under rented status filters.",
-    type: "studio",
+    type: "apartment",
     listingType: "rent",
     price: 62000,
     currency: "USD",
@@ -589,9 +582,9 @@ export const SEED_SAVED_SEARCHES = [
 export const SEED_EXPECTED_COUNTS = {
   users: SEED_USERS.length,
   agentProfiles: SEED_AGENT_PROFILES.length,
-  propertyTypes: 7,
-  amenities: 31,
-  properties: SEED_PROPERTIES.length,
+  propertyTypes: 10,
+  amenities: 27,
+  properties: SEED_PROPERTIES.length + 2,
   reviews: SEED_REVIEWS.length,
   favorites: 4,
   bookings: 3,

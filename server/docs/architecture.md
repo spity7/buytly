@@ -83,7 +83,7 @@ Buyer cancel → notifyFromEvent("booking.cancelled") → Agent
 
 ```
 Buyer → POST /transactions → Property validation → Transaction created → notifyMany("transaction.created") → seller/agent
-Seller/Agent → PATCH status → notifyMany("transaction.status_updated") → buyer, seller, agent; on complete, property status updated to sold; property list cache invalidated
+Seller/Agent → PATCH status → notifyMany("transaction.status_updated") → buyer, seller, agent; on complete, property status updated to sold; when every non-trashed unit on the project is sold the parent project becomes `sold` and the owner receives `project.status_changed`; same project sync runs when an admin marks a unit sold; property list cache invalidated
 Property review → notifyMany("review.received") → owner/agent (excluding reviewer)
 Listing submit/resubmit → notifyMany("property.pending_review") → admins
 Admin moderate → notifyFromEvent("property.status_changed") → owner

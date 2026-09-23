@@ -6,7 +6,6 @@ import {
   useAdminCatalogAmenities,
   useAdminCatalogPropertyTypes,
 } from "@/hooks/useCatalog";
-import { getApiError } from "@/lib/auth/getApiError";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
@@ -23,11 +22,9 @@ import {
 import { DashboardTableSkeleton } from "@/components/property/dashboard/skeletons/DashboardSkeletons";
 import { Tooltip as ReactTooltip } from "react-tooltip";
 import ApiPagination from "@/components/property/ApiPagination";
-import { SINGLE_PROJECT_UNIT_TYPE } from "@/lib/properties/projectForm";
-
 const CATALOG_PAGE_SIZE = 10;
 
-const PROTECTED_PROPERTY_TYPE_VALUES = new Set([SINGLE_PROJECT_UNIT_TYPE]);
+const PROTECTED_PROPERTY_TYPE_VALUES = new Set();
 
 const STATUS_FILTER_OPTIONS = [
   { value: "", label: "All statuses" },
@@ -81,7 +78,22 @@ function findDuplicateTypeValue(typeRows, value, editingId) {
   );
 }
 
-function CatalogTabButton({ label, total, active, isSelected, onSelect }) {
+function catalogAdminFormMatchesRow(row, form) {
+  return (
+    row.label === form.label.trim() &&
+    (Number(form.sortOrder) || 0) === (row.sortOrder ?? 0) &&
+    row.isActive === form.isActive
+  );
+}
+
+function CatalogTabButton({
+  label,
+  total,
+  active,
+  isSelected,
+  onSelect,
+  disabled,
+}) {
   const inactive = Math.max(0, total - active);
   const ariaLabel =
     inactive > 0
@@ -102,6 +114,7 @@ function CatalogTabButton({ label, total, active, isSelected, onSelect }) {
           isSelected ? "btn-thm" : "btn-white"
         }`}
         onClick={onSelect}
+        disabled={disabled}
         aria-label={ariaLabel}
       >
         <span className="catalog-admin__tab-label">{label}</span>
@@ -179,6 +192,7 @@ function renderCatalogListPanel({
   onPageChange,
   paginationItemLabel,
   paginationItemLabelSingular,
+  paginationDisabled,
 }) {
   if (isLoading) {
     return (
@@ -235,6 +249,7 @@ function renderCatalogListPanel({
           onPageChange={onPageChange}
           itemLabel={paginationItemLabel}
           itemLabelSingular={paginationItemLabelSingular}
+          disabled={paginationDisabled}
         />
       </div>
     </>
@@ -248,6 +263,7 @@ function CatalogTable({
   onDelete,
   onToggleActive,
   busyId,
+  actionsDisabled,
   editingId,
 }) {
   return (
@@ -266,6 +282,11 @@ function CatalogTable({
         <tbody>
           {rows.map((row) => {
             const rowBusy = busyId === row.id;
+            const actionWaitTooltip = actionsDisabled
+              ? rowBusy
+                ? "Working..."
+                : "Please wait..."
+              : null;
             const isEditing = editingId === row.id;
             const listingCount = row.listingCount ?? 0;
             const isProtectedType = PROTECTED_PROPERTY_TYPE_VALUES.has(
@@ -275,16 +296,16 @@ function CatalogTable({
             const deleteBlocked = listingCount > 0 || isProtectedType;
             const deactivateBlocked = isProtectedType && row.isActive;
             const editTooltip = editBlocked
-              ? "Required for single projects — cannot be edited."
+              ? "Protected type — cannot be edited."
               : "Edit";
             const deleteTooltip = isProtectedType
-              ? "Required for single projects — cannot be removed."
+              ? "Protected type — cannot be removed."
               : deleteBlocked
                 ? `Used on ${listingCount} listing${listingCount === 1 ? "" : "s"}. Deactivate instead.`
                 : "Delete";
             const toggleLabel = row.isActive ? "Deactivate" : "Activate";
             const toggleTooltip = deactivateBlocked
-              ? "Required for single projects — always stays active."
+              ? "Protected type — always stays active."
               : toggleLabel;
             const editTooltipId = `catalog-edit-${row.id}`;
             const toggleTooltipId = `catalog-toggle-${row.id}`;
@@ -305,7 +326,7 @@ function CatalogTable({
                     <button
                       type="button"
                       className="icon catalog-admin__action-btn catalog-admin__action-btn--edit"
-                      disabled={rowBusy || editBlocked}
+                      disabled={actionsDisabled || editBlocked}
                       data-tooltip-id={editTooltipId}
                       aria-label={`Edit ${row.label}`}
                       onClick={() => onEdit(row)}
@@ -319,7 +340,7 @@ function CatalogTable({
                           ? "catalog-admin__action-btn--deactivate"
                           : "catalog-admin__action-btn--activate"
                       }`}
-                      disabled={rowBusy || deactivateBlocked}
+                      disabled={actionsDisabled || deactivateBlocked}
                       data-tooltip-id={toggleTooltipId}
                       aria-label={`${toggleLabel} ${row.label}`}
                       onClick={() => onToggleActive(row)}
@@ -334,7 +355,7 @@ function CatalogTable({
                     <button
                       type="button"
                       className="icon catalog-admin__action-btn catalog-admin__action-btn--delete"
-                      disabled={rowBusy || deleteBlocked}
+                      disabled={actionsDisabled || deleteBlocked}
                       data-tooltip-id={deleteTooltipId}
                       aria-label={`Delete ${row.label}`}
                       onClick={() => onDelete(row)}
@@ -344,17 +365,17 @@ function CatalogTable({
                     <ReactTooltip
                       id={editTooltipId}
                       place="top"
-                      content={rowBusy ? "Working..." : editTooltip}
+                      content={actionWaitTooltip ?? editTooltip}
                     />
                     <ReactTooltip
                       id={toggleTooltipId}
                       place="top"
-                      content={rowBusy ? "Working..." : toggleTooltip}
+                      content={actionWaitTooltip ?? toggleTooltip}
                     />
                     <ReactTooltip
                       id={deleteTooltipId}
                       place="top"
-                      content={rowBusy ? "Working..." : deleteTooltip}
+                      content={actionWaitTooltip ?? deleteTooltip}
                     />
                   </div>
                 </td>
@@ -406,13 +427,24 @@ export default function AdminCatalogManager() {
   const [amenityPage, setAmenityPage] = useState(1);
   const typesQuery = useAdminCatalogPropertyTypes();
   const amenitiesQuery = useAdminCatalogAmenities();
-  const { requestConfirm, dialogProps } = useConfirmAction();
+  const { requestConfirm, dialogProps, isLocked, run } = useConfirmAction();
 
-  const invalidateCatalog = async () => {
-    await Promise.all([
-      queryClient.invalidateQueries({ queryKey: ["admin", "catalog"] }),
-      queryClient.invalidateQueries({ queryKey: ["catalog"] }),
-    ]);
+  const scheduleTypesRefresh = () => {
+    void queryClient.invalidateQueries({
+      queryKey: ["admin", "catalog", "property-types"],
+    });
+    void queryClient.invalidateQueries({
+      queryKey: ["catalog", "property-types"],
+    });
+  };
+
+  const scheduleAmenitiesRefresh = () => {
+    void queryClient.invalidateQueries({
+      queryKey: ["admin", "catalog", "amenities"],
+    });
+    void queryClient.invalidateQueries({
+      queryKey: ["catalog", "amenities"],
+    });
   };
 
   const typeRows = typesQuery.data || [];
@@ -480,63 +512,88 @@ export default function AdminCatalogManager() {
     ? `"${duplicateAmenityLabel.label}" already uses this display name.`
     : "";
 
+  const editingTypeRow = editingTypeId
+    ? typeRows.find((row) => row.id === editingTypeId)
+    : null;
+  const editingAmenityRow = editingAmenityId
+    ? amenityRows.find((row) => row.id === editingAmenityId)
+    : null;
+  const typeFormUnchanged = Boolean(
+    editingTypeRow && catalogAdminFormMatchesRow(editingTypeRow, typeForm),
+  );
+  const amenityFormUnchanged = Boolean(
+    editingAmenityRow &&
+    catalogAdminFormMatchesRow(editingAmenityRow, amenityForm),
+  );
+
   const submitType = async (event) => {
     event.preventDefault();
-    setBusyId(editingTypeId || "new-type");
-    try {
-      const payload = {
-        label: typeForm.label.trim(),
-        sortOrder: Number(typeForm.sortOrder) || 0,
-        isActive: typeForm.isActive,
-      };
 
-      if (typeNameConflict) {
-        toast.error(typeNameConflictMessage);
+    const payload = {
+      label: typeForm.label.trim(),
+      sortOrder: Number(typeForm.sortOrder) || 0,
+      isActive: typeForm.isActive,
+    };
+
+    if (typeNameConflict) {
+      toast.error(typeNameConflictMessage);
+      return;
+    }
+
+    if (typeFormUnchanged) {
+      return;
+    }
+
+    if (editingTypeId) {
+      const editingRow = typeRows.find((row) => row.id === editingTypeId);
+      if (editingRow && PROTECTED_PROPERTY_TYPE_VALUES.has(editingRow.value)) {
+        toast.error("This property type is required and cannot be edited.");
         return;
       }
-
-      if (editingTypeId) {
-        const editingRow = typeRows.find((row) => row.id === editingTypeId);
-        if (
-          editingRow &&
-          PROTECTED_PROPERTY_TYPE_VALUES.has(editingRow.value)
-        ) {
-          toast.error("This property type is required and cannot be edited.");
-          return;
-        }
-
-        await customInstance({
-          url: `/admin/catalog/property-types/${editingTypeId}`,
-          method: "PATCH",
-          data: payload,
-        });
-        toast.success("Property type updated");
-      } else {
-        const value = slugifyLabel(typeForm.label);
-        if (!value) {
-          toast.error(
-            "Display name must include letters or numbers so a slug can be generated.",
-          );
-          return;
-        }
-
-        await customInstance({
-          url: "/admin/catalog/property-types",
-          method: "POST",
-          data: {
-            ...payload,
-            value,
-          },
-        });
-        toast.success("Property type created");
+    } else {
+      const value = slugifyLabel(typeForm.label);
+      if (!value) {
+        toast.error(
+          "Display name must include letters or numbers so a slug can be generated.",
+        );
+        return;
       }
+    }
 
-      setTypeForm(emptyTypeForm);
-      setEditingTypeId(null);
-      await invalidateCatalog();
-      typesQuery.refetch();
-    } catch (error) {
-      toast.error(getApiError(error));
+    const busyKey = editingTypeId || "new-type";
+    setBusyId(busyKey);
+    try {
+      await run({
+        message: editingTypeId
+          ? "Saving property type..."
+          : "Adding property type...",
+        successMessage: editingTypeId
+          ? "Property type updated"
+          : "Property type created",
+        task: async () => {
+          if (editingTypeId) {
+            await customInstance({
+              url: `/admin/catalog/property-types/${editingTypeId}`,
+              method: "PATCH",
+              data: payload,
+            });
+          } else {
+            await customInstance({
+              url: "/admin/catalog/property-types",
+              method: "POST",
+              data: {
+                ...payload,
+                value: slugifyLabel(typeForm.label),
+              },
+            });
+          }
+          setTypeForm(emptyTypeForm);
+          setEditingTypeId(null);
+          scheduleTypesRefresh();
+        },
+      });
+    } catch {
+      // Error toast handled by run()
     } finally {
       setBusyId(null);
     }
@@ -544,42 +601,52 @@ export default function AdminCatalogManager() {
 
   const submitAmenity = async (event) => {
     event.preventDefault();
-    setBusyId(editingAmenityId || "new-amenity");
+
+    const label = amenityForm.label.trim();
+    const payload = {
+      label,
+      sortOrder: Number(amenityForm.sortOrder) || 0,
+      isActive: amenityForm.isActive,
+    };
+
+    if (duplicateAmenityLabel) {
+      toast.error(amenityNameConflictMessage);
+      return;
+    }
+
+    if (amenityFormUnchanged) {
+      return;
+    }
+
+    const busyKey = editingAmenityId || "new-amenity";
+    setBusyId(busyKey);
     try {
-      const label = amenityForm.label.trim();
-      const payload = {
-        label,
-        sortOrder: Number(amenityForm.sortOrder) || 0,
-        isActive: amenityForm.isActive,
-      };
-
-      if (duplicateAmenityLabel) {
-        toast.error(amenityNameConflictMessage);
-        return;
-      }
-
-      if (editingAmenityId) {
-        await customInstance({
-          url: `/admin/catalog/amenities/${editingAmenityId}`,
-          method: "PATCH",
-          data: payload,
-        });
-        toast.success("Amenity updated");
-      } else {
-        await customInstance({
-          url: "/admin/catalog/amenities",
-          method: "POST",
-          data: { ...payload, value: label },
-        });
-        toast.success("Amenity created");
-      }
-
-      setAmenityForm(emptyAmenityForm);
-      setEditingAmenityId(null);
-      await invalidateCatalog();
-      amenitiesQuery.refetch();
-    } catch (error) {
-      toast.error(getApiError(error));
+      await run({
+        message: editingAmenityId ? "Saving amenity..." : "Adding amenity...",
+        successMessage: editingAmenityId
+          ? "Amenity updated"
+          : "Amenity created",
+        task: async () => {
+          if (editingAmenityId) {
+            await customInstance({
+              url: `/admin/catalog/amenities/${editingAmenityId}`,
+              method: "PATCH",
+              data: payload,
+            });
+          } else {
+            await customInstance({
+              url: "/admin/catalog/amenities",
+              method: "POST",
+              data: { ...payload, value: label },
+            });
+          }
+          setAmenityForm(emptyAmenityForm);
+          setEditingAmenityId(null);
+          scheduleAmenitiesRefresh();
+        },
+      });
+    } catch {
+      // Error toast handled by run()
     } finally {
       setBusyId(null);
     }
@@ -588,18 +655,24 @@ export default function AdminCatalogManager() {
   const patchTypeActive = async (row, isActive) => {
     setBusyId(row.id);
     try {
-      await customInstance({
-        url: `/admin/catalog/property-types/${row.id}`,
-        method: "PATCH",
-        data: { isActive },
+      await run({
+        message: isActive
+          ? "Activating property type..."
+          : "Deactivating property type...",
+        successMessage: isActive
+          ? "Property type activated"
+          : "Property type deactivated",
+        task: async () => {
+          await customInstance({
+            url: `/admin/catalog/property-types/${row.id}`,
+            method: "PATCH",
+            data: { isActive },
+          });
+          scheduleTypesRefresh();
+        },
       });
-      toast.success(
-        isActive ? "Property type activated" : "Property type deactivated",
-      );
-      await invalidateCatalog();
-      typesQuery.refetch();
-    } catch (error) {
-      toast.error(getApiError(error));
+    } catch {
+      // Error toast handled by run()
     } finally {
       setBusyId(null);
     }
@@ -608,16 +681,20 @@ export default function AdminCatalogManager() {
   const patchAmenityActive = async (row, isActive) => {
     setBusyId(row.id);
     try {
-      await customInstance({
-        url: `/admin/catalog/amenities/${row.id}`,
-        method: "PATCH",
-        data: { isActive },
+      await run({
+        message: isActive ? "Activating amenity..." : "Deactivating amenity...",
+        successMessage: isActive ? "Amenity activated" : "Amenity deactivated",
+        task: async () => {
+          await customInstance({
+            url: `/admin/catalog/amenities/${row.id}`,
+            method: "PATCH",
+            data: { isActive },
+          });
+          scheduleAmenitiesRefresh();
+        },
       });
-      toast.success(isActive ? "Amenity activated" : "Amenity deactivated");
-      await invalidateCatalog();
-      amenitiesQuery.refetch();
-    } catch (error) {
-      toast.error(getApiError(error));
+    } catch {
+      // Error toast handled by run()
     } finally {
       setBusyId(null);
     }
@@ -636,13 +713,17 @@ export default function AdminCatalogManager() {
         message: "Deactivating property type...",
         successMessage: "Property type deactivated",
         task: async () => {
-          await customInstance({
-            url: `/admin/catalog/property-types/${row.id}`,
-            method: "PATCH",
-            data: { isActive: false },
-          });
-          await invalidateCatalog();
-          typesQuery.refetch();
+          setBusyId(row.id);
+          try {
+            await customInstance({
+              url: `/admin/catalog/property-types/${row.id}`,
+              method: "PATCH",
+              data: { isActive: false },
+            });
+            scheduleTypesRefresh();
+          } finally {
+            setBusyId(null);
+          }
         },
       },
     });
@@ -661,13 +742,17 @@ export default function AdminCatalogManager() {
         message: "Deactivating amenity...",
         successMessage: "Amenity deactivated",
         task: async () => {
-          await customInstance({
-            url: `/admin/catalog/amenities/${row.id}`,
-            method: "PATCH",
-            data: { isActive: false },
-          });
-          await invalidateCatalog();
-          amenitiesQuery.refetch();
+          setBusyId(row.id);
+          try {
+            await customInstance({
+              url: `/admin/catalog/amenities/${row.id}`,
+              method: "PATCH",
+              data: { isActive: false },
+            });
+            scheduleAmenitiesRefresh();
+          } finally {
+            setBusyId(null);
+          }
         },
       },
     });
@@ -681,16 +766,20 @@ export default function AdminCatalogManager() {
         message: "Deleting property type...",
         successMessage: "Property type deleted",
         task: async () => {
-          await customInstance({
-            url: `/admin/catalog/property-types/${row.id}`,
-            method: "DELETE",
-          });
-          if (editingTypeId === row.id) {
-            setEditingTypeId(null);
-            setTypeForm(emptyTypeForm);
+          setBusyId(row.id);
+          try {
+            await customInstance({
+              url: `/admin/catalog/property-types/${row.id}`,
+              method: "DELETE",
+            });
+            if (editingTypeId === row.id) {
+              setEditingTypeId(null);
+              setTypeForm(emptyTypeForm);
+            }
+            scheduleTypesRefresh();
+          } finally {
+            setBusyId(null);
           }
-          await invalidateCatalog();
-          typesQuery.refetch();
         },
       },
     });
@@ -704,16 +793,20 @@ export default function AdminCatalogManager() {
         message: "Deleting amenity...",
         successMessage: "Amenity deleted",
         task: async () => {
-          await customInstance({
-            url: `/admin/catalog/amenities/${row.id}`,
-            method: "DELETE",
-          });
-          if (editingAmenityId === row.id) {
-            setEditingAmenityId(null);
-            setAmenityForm(emptyAmenityForm);
+          setBusyId(row.id);
+          try {
+            await customInstance({
+              url: `/admin/catalog/amenities/${row.id}`,
+              method: "DELETE",
+            });
+            if (editingAmenityId === row.id) {
+              setEditingAmenityId(null);
+              setAmenityForm(emptyAmenityForm);
+            }
+            scheduleAmenitiesRefresh();
+          } finally {
+            setBusyId(null);
           }
-          await invalidateCatalog();
-          amenitiesQuery.refetch();
         },
       },
     });
@@ -760,10 +853,10 @@ export default function AdminCatalogManager() {
   const isLoading =
     tab === "types" ? typesQuery.isLoading : amenitiesQuery.isLoading;
   const isError = tab === "types" ? typesQuery.isError : amenitiesQuery.isError;
-  const formBusy = Boolean(busyId);
+  const isCatalogBusy = isLocked || Boolean(busyId);
 
   return (
-    <div className="catalog-admin">
+    <div className="catalog-admin" aria-busy={isCatalogBusy}>
       <div className="catalog-admin__tabs" role="tablist" aria-label="Catalog">
         <CatalogTabButton
           label="Property types"
@@ -771,6 +864,7 @@ export default function AdminCatalogManager() {
           active={activeTypeCount}
           isSelected={tab === "types"}
           onSelect={() => setTab("types")}
+          disabled={isCatalogBusy}
         />
         <CatalogTabButton
           label="Amenities"
@@ -778,14 +872,13 @@ export default function AdminCatalogManager() {
           active={activeAmenityCount}
           isSelected={tab === "amenities"}
           onSelect={() => setTab("amenities")}
+          disabled={isCatalogBusy}
         />
       </div>
 
       <p className="text mb25">
         Active options appear on listing forms and search filters. Deactivate
-        items instead of deleting when they are already used on properties.{" "}
-        <strong>Villa</strong> is required for single projects and cannot be
-        edited, removed, or deactivated.
+        items instead of deleting when they are already used on properties.
       </p>
 
       {isError ? (
@@ -817,12 +910,29 @@ export default function AdminCatalogManager() {
                     }
                     placeholder="Penthouse"
                     required
-                    disabled={formBusy}
+                    disabled={isCatalogBusy}
                     aria-invalid={typeNameConflict ? true : undefined}
                   />
                   {typeNameConflict ? (
                     <p className="catalog-admin__field-error">
                       {typeNameConflictMessage}
+                    </p>
+                  ) : null}
+                  {!editingTypeId && typeSlugPreview ? (
+                    <p className="catalog-admin__help">
+                      Stored value (slug):{" "}
+                      <span className="catalog-admin__mono">
+                        {typeSlugPreview}
+                      </span>
+                    </p>
+                  ) : null}
+                  {editingTypeId && typeForm.value ? (
+                    <p className="catalog-admin__help">
+                      Stored value (slug):{" "}
+                      <span className="catalog-admin__mono">
+                        {typeForm.value}
+                      </span>{" "}
+                      — cannot be changed after creation.
                     </p>
                   ) : null}
                 </div>
@@ -841,7 +951,7 @@ export default function AdminCatalogManager() {
                       }))
                     }
                     min={0}
-                    disabled={formBusy}
+                    disabled={isCatalogBusy}
                   />
                 </div>
                 <label className="custom_checkbox d-block mb20">
@@ -849,7 +959,7 @@ export default function AdminCatalogManager() {
                   <input
                     type="checkbox"
                     checked={typeForm.isActive}
-                    disabled={formBusy}
+                    disabled={isCatalogBusy}
                     onChange={(e) =>
                       setTypeForm((prev) => ({
                         ...prev,
@@ -863,15 +973,29 @@ export default function AdminCatalogManager() {
                   <button
                     type="submit"
                     className="ud-btn btn-thm"
-                    disabled={formBusy || Boolean(typeNameConflict)}
+                    disabled={
+                      isCatalogBusy ||
+                      Boolean(typeNameConflict) ||
+                      typeFormUnchanged
+                    }
+                    title={
+                      typeFormUnchanged
+                        ? "Make changes to enable save"
+                        : undefined
+                    }
                   >
-                    {editingTypeId ? "Save changes" : "Add type"}
+                    {isCatalogBusy &&
+                    (busyId === editingTypeId || busyId === "new-type")
+                      ? "Saving..."
+                      : editingTypeId
+                        ? "Save changes"
+                        : "Add type"}
                   </button>
                   {editingTypeId ? (
                     <button
                       type="button"
                       className="ud-btn btn-white"
-                      disabled={formBusy}
+                      disabled={isCatalogBusy}
                       onClick={() => {
                         setEditingTypeId(null);
                         setTypeForm(emptyTypeForm);
@@ -889,7 +1013,7 @@ export default function AdminCatalogManager() {
               id="catalog-status-filter-types"
               statusFilter={statusFilter}
               onChange={setStatusFilter}
-              disabled={formBusy}
+              disabled={isCatalogBusy}
             />
             {renderCatalogListPanel({
               isLoading,
@@ -904,11 +1028,14 @@ export default function AdminCatalogManager() {
               onPageChange: setTypePage,
               paginationItemLabel: "property types",
               paginationItemLabelSingular: "property type",
+              paginationDisabled: isCatalogBusy,
               tableProps: {
                 columns: typeColumns,
                 busyId,
+                actionsDisabled: isCatalogBusy,
                 editingId: editingTypeId,
                 onEdit: (row) => {
+                  if (isCatalogBusy) return;
                   setEditingTypeId(row.id);
                   setTypeForm({
                     value: row.value,
@@ -946,12 +1073,27 @@ export default function AdminCatalogManager() {
                     }
                     placeholder="Swimming Pool"
                     required
-                    disabled={formBusy}
+                    disabled={isCatalogBusy}
                     aria-invalid={duplicateAmenityLabel ? true : undefined}
                   />
                   {duplicateAmenityLabel ? (
                     <p className="catalog-admin__field-error">
                       {amenityNameConflictMessage}
+                    </p>
+                  ) : null}
+                  {editingAmenityId && amenityForm.value ? (
+                    <p className="catalog-admin__help">
+                      Stored value:{" "}
+                      <span className="catalog-admin__mono">
+                        {amenityForm.value}
+                      </span>{" "}
+                      — listings reference this; it does not change when you
+                      edit the display name.
+                    </p>
+                  ) : null}
+                  {!editingAmenityId ? (
+                    <p className="catalog-admin__help">
+                      The stored value will match the display name on create.
                     </p>
                   ) : null}
                 </div>
@@ -970,7 +1112,7 @@ export default function AdminCatalogManager() {
                       }))
                     }
                     min={0}
-                    disabled={formBusy}
+                    disabled={isCatalogBusy}
                   />
                 </div>
                 <label className="custom_checkbox d-block mb20">
@@ -978,7 +1120,7 @@ export default function AdminCatalogManager() {
                   <input
                     type="checkbox"
                     checked={amenityForm.isActive}
-                    disabled={formBusy}
+                    disabled={isCatalogBusy}
                     onChange={(e) =>
                       setAmenityForm((prev) => ({
                         ...prev,
@@ -992,15 +1134,29 @@ export default function AdminCatalogManager() {
                   <button
                     type="submit"
                     className="ud-btn btn-thm"
-                    disabled={formBusy || Boolean(duplicateAmenityLabel)}
+                    disabled={
+                      isCatalogBusy ||
+                      Boolean(duplicateAmenityLabel) ||
+                      amenityFormUnchanged
+                    }
+                    title={
+                      amenityFormUnchanged
+                        ? "Make changes to enable save"
+                        : undefined
+                    }
                   >
-                    {editingAmenityId ? "Save changes" : "Add amenity"}
+                    {isCatalogBusy &&
+                    (busyId === editingAmenityId || busyId === "new-amenity")
+                      ? "Saving..."
+                      : editingAmenityId
+                        ? "Save changes"
+                        : "Add amenity"}
                   </button>
                   {editingAmenityId ? (
                     <button
                       type="button"
                       className="ud-btn btn-white"
-                      disabled={formBusy}
+                      disabled={isCatalogBusy}
                       onClick={() => {
                         setEditingAmenityId(null);
                         setAmenityForm(emptyAmenityForm);
@@ -1018,7 +1174,7 @@ export default function AdminCatalogManager() {
               id="catalog-status-filter-amenities"
               statusFilter={statusFilter}
               onChange={setStatusFilter}
-              disabled={formBusy}
+              disabled={isCatalogBusy}
             />
             {renderCatalogListPanel({
               isLoading,
@@ -1033,11 +1189,14 @@ export default function AdminCatalogManager() {
               onPageChange: setAmenityPage,
               paginationItemLabel: "amenities",
               paginationItemLabelSingular: "amenity",
+              paginationDisabled: isCatalogBusy,
               tableProps: {
                 columns: amenityColumns,
                 busyId,
+                actionsDisabled: isCatalogBusy,
                 editingId: editingAmenityId,
                 onEdit: (row) => {
+                  if (isCatalogBusy) return;
                   setEditingAmenityId(row.id);
                   setAmenityForm({
                     value: row.value,

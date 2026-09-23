@@ -87,7 +87,7 @@ Refresh expired access tokens via `POST /api/v1/auth/refresh` with the refresh t
 ## Property create/update numeric fields
 
 - **`price`** — positive **integer** (whole USD; no cents).
-- **`location.coordinates`** — required `[lng, lat]` on create; must not be placeholder `[0, 0]`.
+- **Location** — set only on **projects** (`location.coordinates` required `[lng, lat]` on project create; must not be `[0, 0]`). Unit (`property`) create/update payloads must not include `location`; the server copies the parent project’s location onto each unit (and re-syncs on unit update).
 - **`area`** — optional; when set, positive number with **at most 2 decimal places** (sqm).
 - **Floor plan `price`** — optional non-negative **integer** USD.
 - **Floor plan `area`** — same rules as listing `area`.
@@ -100,6 +100,8 @@ Property list supports:
 - `sortOrder` — `asc`, `desc`
 - `minPrice`, `maxPrice`, `type`, `status`, `city`, `bedrooms`
 - `status` on public `GET /properties` — only `active` (default) or `sold`; other values return 400
+- Public `GET /properties/:id` — `active` and `sold` listings on public parent projects are visible without auth; other statuses require owner, agent, or admin
+- `viewCount` — incremented on `GET /properties/:id` and `GET /projects/:id` (and slug) only for `active` records and only when the request is not from a user who can manage that listing (owner, agent, or admin)
 - Public `GET /projects` — `kind`, `city`, geo radius, `search`, pagination; list items include `unitCount`, `priceMin`, `priceMax`
 - `search` — Full-text search on title/description
 - `lat`, `lng`, `radiusKm` — Geo-radius search (all three required). When combined with `search`, radius filtering uses `$geoWithin` instead of distance sorting so MongoDB accepts the query.

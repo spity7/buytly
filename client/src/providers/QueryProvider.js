@@ -1,5 +1,7 @@
 "use client";
 
+import LiveQuerySyncProvider from "@/providers/LiveQuerySyncProvider";
+import { DEFAULT_QUERY_STALE_TIME_MS } from "@/lib/query/liveSync";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useState } from "react";
 
@@ -9,15 +11,18 @@ export default function QueryProvider({ children }) {
       new QueryClient({
         defaultOptions: {
           queries: {
-            staleTime: 60 * 1000,
+            staleTime: DEFAULT_QUERY_STALE_TIME_MS,
             retry: 1,
-            refetchOnWindowFocus: false,
+            refetchOnWindowFocus: true,
+            refetchOnReconnect: true,
           },
         },
       }),
   );
 
   return (
-    <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+    <QueryClientProvider client={queryClient}>
+      <LiveQuerySyncProvider>{children}</LiveQuerySyncProvider>
+    </QueryClientProvider>
   );
 }

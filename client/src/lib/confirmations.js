@@ -8,19 +8,6 @@ export function propertyTrashConfirmation(title) {
   };
 }
 
-export function projectKindChangeConfirmation(nextKindLabel) {
-  const isSingle = nextKindLabel === "Single";
-  return {
-    title: "Change project type?",
-    message: isSingle
-      ? "Single projects hold exactly one sellable unit (Villa type). You cannot change the type after adding units."
-      : "Compound projects need at least one unit before you can publish. You cannot change the type after adding units.",
-    confirmLabel: "Change type",
-    confirmVariant: "default",
-    confirmingLabel: "Updating...",
-  };
-}
-
 export function projectTrashConfirmation(title) {
   return {
     title: "Move project to trash?",
@@ -196,6 +183,16 @@ export function adminArchiveListingConfirmation(title) {
     title: "Archive listing?",
     message: `"${title}" will be hidden from public search and marked as archived.`,
     confirmLabel: "Archive listing",
+    confirmVariant: "danger",
+    confirmingLabel: "Archiving...",
+  };
+}
+
+export function adminArchiveProjectConfirmation(title) {
+  return {
+    title: "Archive project?",
+    message: `"${title}" and its units will be hidden from public search and marked as archived.`,
+    confirmLabel: "Archive project",
     confirmVariant: "danger",
     confirmingLabel: "Archiving...",
   };

@@ -3,11 +3,11 @@
 import { buytlyApi } from "@/api/generated";
 import { buildListingsHrefFromSavedFilters } from "@/lib/listings/listingSearchParams";
 import Link from "next/link";
-import AsyncActionOverlay from "@/components/common/AsyncActionOverlay";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
 import { useConfirmAction } from "@/hooks/useConfirmAction";
 import { getApiError } from "@/lib/auth/getApiError";
 import { savedSearchDeleteConfirmation } from "@/lib/confirmations";
+import { useLiveSyncReload } from "@/hooks/useLiveSyncReload";
 import { useCallback, useEffect, useState } from "react";
 import { Tooltip as ReactTooltip } from "react-tooltip";
 import { DashboardTableSkeleton } from "@/components/property/dashboard/skeletons/DashboardSkeletons";
@@ -32,11 +32,12 @@ const SearchDataTable = () => {
   const [searches, setSearches] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
-  const { requestConfirm, isLocked, overlayMessage, dialogProps, pending } =
-    useConfirmAction({ overlay: true });
+  const { requestConfirm, isLocked, dialogProps, pending } = useConfirmAction();
 
-  const loadSearches = useCallback(async () => {
-    setIsLoading(true);
+  const loadSearches = useCallback(async ({ silent = false } = {}) => {
+    if (!silent) {
+      setIsLoading(true);
+    }
     setError("");
 
     try {
@@ -46,13 +47,17 @@ const SearchDataTable = () => {
       setError(getApiError(err));
       setSearches([]);
     } finally {
-      setIsLoading(false);
+      if (!silent) {
+        setIsLoading(false);
+      }
     }
   }, []);
 
   useEffect(() => {
     loadSearches();
   }, [loadSearches]);
+
+  useLiveSyncReload(loadSearches);
 
   const promptDelete = (searchId, name) => {
     requestConfirm({
@@ -147,7 +152,6 @@ const SearchDataTable = () => {
       </table>
 
       <ConfirmDialog {...dialogProps} />
-      <AsyncActionOverlay message={overlayMessage} />
     </>
   );
 };

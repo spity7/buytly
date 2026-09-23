@@ -50,7 +50,7 @@ const options = {
       { name: "Auth", description: "Authentication" },
       { name: "Users", description: "User profiles" },
       { name: "Properties", description: "Property units (listings)" },
-      { name: "Projects", description: "Property projects (single or compound)" },
+      { name: "Projects", description: "Development projects and shared marketing" },
       { name: "Agents", description: "Agent profiles" },
       { name: "Favorites", description: "Saved properties" },
       { name: "Bookings", description: "Visit scheduling" },

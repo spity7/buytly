@@ -2,14 +2,12 @@
 
 import { buytlyApi } from "@/api/generated";
 import { useAuth } from "@/providers/AuthProvider";
-import { getApiError } from "@/lib/auth/getApiError";
 import {
   buildSavedSearchFilters,
   buildSavedSearchName,
 } from "@/lib/listings/listingSearchParams";
+import { useAsyncAction } from "@/hooks/useAsyncAction";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
-import { toast } from "sonner";
 
 export default function SaveSearchButton({
   queryParams,
@@ -19,7 +17,7 @@ export default function SaveSearchButton({
 }) {
   const router = useRouter();
   const { isAuthenticated } = useAuth();
-  const [isSaving, setIsSaving] = useState(false);
+  const { run, isBusy: isSaving } = useAsyncAction();
 
   const handleSave = async () => {
     if (!isAuthenticated) {
@@ -35,17 +33,18 @@ export default function SaveSearchButton({
     const name = window.prompt("Name this saved search", defaultName);
     if (!name?.trim()) return;
 
-    setIsSaving(true);
     try {
-      await buytlyApi.addSavedSearch({
-        name: name.trim(),
-        filters: buildSavedSearchFilters(queryParams),
+      await run({
+        message: "Saving search...",
+        successMessage: "Search saved",
+        task: () =>
+          buytlyApi.addSavedSearch({
+            name: name.trim(),
+            filters: buildSavedSearchFilters(queryParams),
+          }),
       });
-      toast.success("Search saved");
-    } catch (error) {
-      toast.error(getApiError(error));
-    } finally {
-      setIsSaving(false);
+    } catch {
+      // Toast handled by run()
     }
   };
 

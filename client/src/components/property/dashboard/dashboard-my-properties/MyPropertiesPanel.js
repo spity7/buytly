@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import React, {
   useCallback,
   useEffect,
@@ -13,22 +14,22 @@ import { useHighlightQueryParam } from "@/hooks/useDashboardRowHighlight";
 import { findPaginatedHighlightPage } from "@/lib/dashboard/findPaginatedHighlightPage";
 import {
   DashboardFilterBar,
+  FilterClearButton,
   FilterSearch,
   FilterSelect,
-  FilterSortSelect,
 } from "@/components/property/dashboard/DashboardFilterBar";
 import PropertyDataTable from "@/components/property/dashboard/dashboard-my-properties/PropertyDataTable";
 import { useDebouncedSearch } from "@/hooks/useDebouncedSearch";
+import { useMyProjects } from "@/hooks/useProjects";
 import {
   MY_PROPERTY_STATUS_FILTERS,
-  PROPERTY_SORT_OPTIONS,
   PROPERTY_TYPE_FILTERS,
-  parseSortValue,
 } from "@/lib/dashboard/filterOptions";
 
 const PAGE_SIZE = 10;
 
 export default function MyPropertiesPanel() {
+  const searchParams = useSearchParams();
   const highlightId = useHighlightQueryParam();
   const [highlightResolving, setHighlightResolving] = useState(false);
   const resolvedHighlightRef = useRef(null);
@@ -42,35 +43,72 @@ export default function MyPropertiesPanel() {
   );
   const [status, setStatus] = useState("");
   const [type, setPropertyType] = useState("");
-  const [sort, setSort] = useState("createdAt:desc");
+  const [projectId, setProjectId] = useState(
+    () => searchParams.get("projectId") || "",
+  );
 
   const isTrash = tab === "trash";
-  const { sortBy, sortOrder } = parseSortValue(sort);
+
+  const { data: projectsData } = useMyProjects({
+    limit: 100,
+    sortBy: "title",
+    sortOrder: "asc",
+    trashed: "false",
+  });
+
+  const projectFilterOptions = useMemo(() => {
+    const projects = projectsData?.projects || [];
+    return [
+      { value: "", label: "All projects" },
+      ...projects.map((project) => ({
+        value: String(project._id || project.id),
+        label: project.title || "Untitled",
+      })),
+    ];
+  }, [projectsData]);
 
   const queryParams = useMemo(() => {
     const params = {
       page,
       limit: PAGE_SIZE,
-      sortBy,
-      sortOrder,
+      sortBy: "createdAt",
+      sortOrder: "desc",
       trashed: isTrash ? "true" : "false",
     };
 
     if (!isTrash && status) params.status = status;
     if (type) params.type = type;
+    if (projectId) params.projectId = projectId;
     if (search.trim()) params.search = search.trim();
 
     return params;
-  }, [page, sortBy, sortOrder, isTrash, status, type, search]);
+  }, [page, isTrash, status, type, projectId, search]);
+
+  const hasActiveFilters = Boolean(
+    search.trim() || status || type || projectId,
+  );
 
   const resetPage = () => setPage(1);
 
   const clearFilters = useCallback(() => {
     setStatus("");
     setPropertyType("");
+    setProjectId("");
     setSearchInput("");
     setPage(1);
   }, [setSearchInput]);
+
+  useEffect(() => {
+    const fromUrl = searchParams.get("projectId");
+    if (fromUrl) {
+      setProjectId(fromUrl);
+      setPage(1);
+    }
+    if (searchParams.get("tab") === "trash") {
+      setTab("trash");
+      setPage(1);
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     if (!highlightId) {
@@ -127,6 +165,7 @@ export default function MyPropertiesPanel() {
         setStatus("");
         setSearchInput("");
         setPropertyType("");
+        setProjectId("");
         setPage(foundPage || 1);
         resolvedHighlightRef.current = highlightId;
       } finally {
@@ -143,18 +182,18 @@ export default function MyPropertiesPanel() {
 
   return (
     <>
-      <div className="row align-items-center pb40">
-        <div className="col-xxl-3">
+      <div className="row align-items-center pb40 g-2">
+        <div className="col">
           <div className="dashboard_title_area">
             <h2>All units</h2>
-            <p className="text">
+            <p className="text mb-0">
               Flat list of sellable units. Manage projects from{" "}
               <Link href="/dashboard-my-projects">My Projects</Link>.
             </p>
           </div>
         </div>
-        <div className="col-xxl-9">
-          <div className="dashboard_search_meta d-md-flex align-items-center justify-content-xxl-end gap-2">
+        <div className="col-auto">
+          <div className="dashboard_search_meta d-flex flex-wrap align-items-center justify-content-end gap-2">
             <Link href="/dashboard-my-projects" className="ud-btn btn-white2">
               My projects
             </Link>
@@ -195,7 +234,7 @@ export default function MyPropertiesPanel() {
               </div>
               <p className="fz14 text-muted mb20">
                 {isTrash
-                  ? "Trashed units are hidden from the public site. Restore to edit again, or delete permanently (not allowed when visit bookings or purchase records exist)."
+                  ? "Trashed units are hidden from the public site. Restore to edit again, or delete permanently (not allowed when visit bookings or purchase records exist). Units trashed with a project are restored from Projects → Trash, not here."
                   : "Units belonging to trashed projects are hidden here until the project is restored. Move units to trash before permanent deletion."}
               </p>
 
@@ -204,7 +243,20 @@ export default function MyPropertiesPanel() {
                   id="my-properties-search"
                   value={searchInput}
                   onChange={setSearchInput}
-                  placeholder="Search listings"
+                  placeholder="Search by title or location"
+                  disabled={highlightResolving}
+                />
+                <FilterSelect
+                  id="my-properties-project"
+                  label="Project"
+                  hideLabel
+                  value={projectId}
+                  disabled={highlightResolving}
+                  onChange={(value) => {
+                    resetPage();
+                    setProjectId(value);
+                  }}
+                  options={projectFilterOptions}
                 />
                 {!isTrash && (
                   <FilterSelect
@@ -212,6 +264,7 @@ export default function MyPropertiesPanel() {
                     label="Status"
                     hideLabel
                     value={status}
+                    disabled={highlightResolving}
                     onChange={(value) => {
                       resetPage();
                       setStatus(value);
@@ -224,19 +277,18 @@ export default function MyPropertiesPanel() {
                   label="Property type"
                   hideLabel
                   value={type}
+                  disabled={highlightResolving}
                   onChange={(value) => {
                     resetPage();
                     setPropertyType(value);
                   }}
                   options={PROPERTY_TYPE_FILTERS}
                 />
-                <FilterSortSelect
-                  value={sort}
-                  onChange={(value) => {
-                    resetPage();
-                    setSort(value);
-                  }}
-                  options={PROPERTY_SORT_OPTIONS}
+                <FilterClearButton
+                  visible={hasActiveFilters}
+                  disabled={highlightResolving}
+                  onClick={clearFilters}
+                  className="ms-auto"
                 />
               </DashboardFilterBar>
 
@@ -247,7 +299,7 @@ export default function MyPropertiesPanel() {
                 pageSize={PAGE_SIZE}
                 onPageChange={setPage}
                 highlightResolving={highlightResolving}
-                hasActiveFilters={Boolean(search || status || type)}
+                hasActiveFilters={hasActiveFilters}
                 onMovedToTrash={() => {
                   setTab("trash");
                   setPage(1);

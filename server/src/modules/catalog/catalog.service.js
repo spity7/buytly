@@ -31,11 +31,35 @@ function labelMatchFilter(label, excludeId) {
 const assertPropertyTypeNotProtected = (value, action) => {
   if (PROTECTED_PROPERTY_TYPE_VALUES.includes(value)) {
     throw new AppError(
-      `The "${value}" property type is required for single projects and cannot be ${action}.`,
+      `The "${value}" property type is protected and cannot be ${action}.`,
       409,
     );
   }
 };
+
+async function upsertDefaultCatalogEntries(Model, entries) {
+  await Promise.all(
+    entries.map((entry) =>
+      Model.updateOne(
+        { value: entry.value },
+        {
+          $setOnInsert: {
+            label: entry.label,
+            sortOrder: entry.sortOrder,
+            isActive: true,
+          },
+        },
+        { upsert: true },
+      ),
+    ),
+  );
+}
+
+/** After first successful bootstrap, skip repeated default upserts on every catalog read. */
+let defaultsBootstrapped = false;
+
+/** One bootstrap at a time per process (parallel catalog reads share the same work). */
+let ensureDefaultsPromise = null;
 
 export const catalogService = {
   async ensureRequiredPropertyTypes() {
@@ -58,19 +82,38 @@ export const catalogService = {
   },
 
   async ensureDefaults() {
-    const [typeCount, amenityCount] = await Promise.all([
-      PropertyTypeCatalog.countDocuments(),
-      AmenityCatalog.countDocuments(),
-    ]);
+    if (defaultsBootstrapped) {
+      const [typeCount, amenityCount] = await Promise.all([
+        PropertyTypeCatalog.estimatedDocumentCount(),
+        AmenityCatalog.estimatedDocumentCount(),
+      ]);
 
-    if (typeCount === 0) {
-      await PropertyTypeCatalog.insertMany(DEFAULT_PROPERTY_TYPES);
+      if (typeCount > 0 && amenityCount > 0) {
+        await this.ensureRequiredPropertyTypes();
+        return;
+      }
+
+      defaultsBootstrapped = false;
     }
 
-    if (amenityCount === 0) {
-      await AmenityCatalog.insertMany(DEFAULT_AMENITIES);
+    if (!ensureDefaultsPromise) {
+      ensureDefaultsPromise = this._ensureDefaults()
+        .then(() => {
+          defaultsBootstrapped = true;
+        })
+        .finally(() => {
+          ensureDefaultsPromise = null;
+        });
     }
+    return ensureDefaultsPromise;
+  },
 
+  async _ensureDefaults() {
+    await upsertDefaultCatalogEntries(
+      PropertyTypeCatalog,
+      DEFAULT_PROPERTY_TYPES,
+    );
+    await upsertDefaultCatalogEntries(AmenityCatalog, DEFAULT_AMENITIES);
     await this.ensureRequiredPropertyTypes();
   },
 

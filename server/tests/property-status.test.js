@@ -2,10 +2,13 @@ import { describe, it, expect } from "vitest";
 import request from "supertest";
 import { mongoAvailable } from "./setup.js";
 import { Property } from "../src/modules/properties/property.model.js";
+import { Project } from "../src/modules/projects/project.model.js";
 import { User } from "../src/modules/users/user.model.js";
 import {
   buildPropertyBody,
   createActiveProperty,
+  createProject,
+  createPropertyForProject,
 } from "./helpers/listingFixtures.js";
 
 const getApp = async () => {
@@ -55,6 +58,21 @@ describe.skipIf(!mongoAvailable)("property status rules", () => {
     const res = await request(app).get("/api/v1/properties?status=sold");
     expect(res.status).toBe(200);
     expect(res.body.data.some((p) => p._id === id)).toBe(true);
+  });
+
+  it("allows public get by id for sold listing on a public project", async () => {
+    const app = await getApp();
+    const token = await registerAndGetToken(app, {
+      email: "sold-detail-seller@example.com",
+    });
+    const id = await createActiveProperty(app, token, {
+      title: "Sold Detail Property",
+    });
+    await Property.findByIdAndUpdate(id, { status: "sold" });
+
+    const res = await request(app).get(`/api/v1/properties/${id}`);
+    expect(res.status).toBe(200);
+    expect(res.body.data.status).toBe("sold");
   });
 
   it("rejects seller setting sold status directly", async () => {
@@ -157,6 +175,10 @@ describe.skipIf(!mongoAvailable)("property status rules", () => {
 
     expect(created.body.data.status).toBe("pending");
 
+    await Project.findByIdAndUpdate(created.body.data.projectId, {
+      status: "active",
+    });
+
     const adminRegister = await request(app)
       .post("/api/v1/auth/register")
       .send(
@@ -217,6 +239,60 @@ describe.skipIf(!mongoAvailable)("property status rules", () => {
 
     const property = await Property.findById(propertyId);
     expect(property.status).toBe("sold");
+
+    const project = await Project.findById(property.projectId);
+    expect(project.status).toBe("sold");
+  });
+
+  it("keeps compound project active until every unit is sold", async () => {
+    const app = await getApp();
+    const sellerToken = await registerAndGetToken(app, {
+      email: "compound-txn-seller@example.com",
+    });
+    const buyerToken = await registerAndGetToken(app, {
+      email: "compound-txn-buyer@example.com",
+      role: "buyer",
+    });
+
+    const projectRes = await createProject(app, sellerToken, {
+      title: "Compound Txn Project",
+    });
+    const projectId = projectRes.body.data._id;
+
+    const unitA = await createPropertyForProject(app, sellerToken, projectId, {
+      title: "Compound Unit A",
+    });
+    const unitB = await createPropertyForProject(app, sellerToken, projectId, {
+      title: "Compound Unit B",
+    });
+
+    await Property.findByIdAndUpdate(unitA.body.data._id, { status: "active" });
+    await Property.findByIdAndUpdate(unitB.body.data._id, { status: "active" });
+    await Project.findByIdAndUpdate(projectId, { status: "active" });
+
+    const completeSale = async (propertyId) => {
+      const txn = await request(app)
+        .post("/api/v1/transactions")
+        .set("Authorization", `Bearer ${buyerToken}`)
+        .send({ propertyId, type: "buy", amount: 350000 });
+      expect(txn.status).toBe(201);
+
+      const complete = await request(app)
+        .patch(`/api/v1/transactions/${txn.body.data._id}/status`)
+        .set("Authorization", `Bearer ${sellerToken}`)
+        .send({ status: "completed" });
+      expect(complete.status).toBe(200);
+    };
+
+    await completeSale(unitA.body.data._id);
+
+    let project = await Project.findById(projectId);
+    expect(project.status).toBe("active");
+
+    await completeSale(unitB.body.data._id);
+
+    project = await Project.findById(projectId);
+    expect(project.status).toBe("sold");
   });
 
   it("soft-deletes property and hides from mine list", async () => {
@@ -331,12 +407,10 @@ describe.skipIf(!mongoAvailable)("property status rules", () => {
       role: "admin",
     });
 
-    const adminLogin = await request(app)
-      .post("/api/v1/auth/login")
-      .send({
-        email: "admin-archived-edit-admin@example.com",
-        password: "password123",
-      });
+    const adminLogin = await request(app).post("/api/v1/auth/login").send({
+      email: "admin-archived-edit-admin@example.com",
+      password: "password123",
+    });
 
     const adminToken = adminLogin.body.data.accessToken;
 
@@ -360,7 +434,8 @@ describe.skipIf(!mongoAvailable)("property status rules", () => {
       .get(`/api/v1/properties/${id}`)
       .set("Authorization", `Bearer ${sellerToken}`);
 
-    expect(sellerGetRes.status).toBe(404);
+    expect(sellerGetRes.status).toBe(200);
+    expect(sellerGetRes.body.data.status).toBe("archived");
 
     const restoreRes = await request(app)
       .patch(`/api/v1/admin/properties/${id}/moderate`)

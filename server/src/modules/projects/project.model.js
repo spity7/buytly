@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-import { PROJECT_KINDS, PROPERTY_STATUSES } from "../../shared/constants.js";
+import { PROPERTY_STATUSES } from "../../shared/constants.js";
 
 const mediaSchema = new mongoose.Schema(
   {
@@ -17,7 +17,6 @@ const projectSchema = new mongoose.Schema(
     title: { type: String, required: true, trim: true },
     slug: { type: String, required: true, unique: true, lowercase: true },
     description: { type: String, required: true },
-    kind: { type: String, enum: PROJECT_KINDS, required: true },
     location: {
       type: { type: String, enum: ["Point"], default: "Point" },
       coordinates: { type: [Number], required: true },
@@ -47,7 +46,7 @@ const projectSchema = new mongoose.Schema(
 );
 
 projectSchema.index({ location: "2dsphere" });
-projectSchema.index({ kind: 1, status: 1 });
+projectSchema.index({ status: 1, createdAt: -1 });
 projectSchema.index({ title: "text", description: "text" });
 
 export const Project = mongoose.model("Project", projectSchema);

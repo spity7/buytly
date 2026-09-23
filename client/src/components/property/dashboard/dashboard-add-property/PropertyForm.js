@@ -2,7 +2,6 @@
 
 import { buytlyApi } from "@/api/generated";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
-import AsyncActionOverlay from "@/components/common/AsyncActionOverlay";
 import FormFieldError from "@/components/common/FormFieldError";
 import { DashboardFormSkeleton } from "@/components/property/dashboard/skeletons/DashboardSkeletons";
 import { useConfirmAction } from "@/hooks/useConfirmAction";
@@ -16,8 +15,9 @@ import { notifyError } from "@/lib/toast";
 import { getVirtualTourUrlFieldError } from "@/lib/properties/fieldErrors";
 import { PRICE_FROM_LABEL } from "@/lib/properties/formatPrice";
 import { isPropertyTerminal } from "@/lib/properties/mapProperty";
+import PropertyUnitProjectCard from "@/components/property/dashboard/dashboard-add-property/PropertyUnitProjectCard";
 import PropertyFormNearbyPreview from "@/components/property/dashboard/dashboard-add-property/PropertyFormNearbyPreview";
-import PropertyLocationPicker from "@/components/property/dashboard/dashboard-add-property/PropertyLocationPicker";
+import VideoFilePlayer from "@/components/common/VideoFilePlayer";
 import PropertyPhotoGallery from "@/components/property/dashboard/dashboard-add-property/PropertyPhotoGallery";
 import {
   createPendingGalleryItem,
@@ -27,10 +27,7 @@ import {
   sortPropertyImages,
 } from "@/lib/properties/propertyPhotoGallery";
 import { reorderPropertyImages } from "@/lib/properties/reorderPropertyMedia";
-import {
-  coordinatesToLatLngStrings,
-  latLngStringsToGeoJsonCoordinates,
-} from "@/lib/geo/propertyCoordinates";
+import { coordinatesToLatLngStrings } from "@/lib/geo/propertyCoordinates";
 import {
   useCatalogAmenities,
   useCatalogPropertyTypes,
@@ -38,7 +35,6 @@ import {
 import PropertyFormStatusBanner from "@/components/property/dashboard/dashboard-add-property/PropertyFormStatusBanner";
 import PropertyFormActions from "@/components/property/dashboard/dashboard-add-property/PropertyFormActions";
 import { getPropertyFormCancelHref } from "@/lib/properties/propertyFormActions";
-import { SINGLE_PROJECT_UNIT_TYPE } from "@/lib/properties/projectForm";
 import { invalidatePropertyQueries } from "@/lib/properties/invalidatePropertyQueries";
 import { useProject } from "@/hooks/useProjects";
 import { useAuth } from "@/providers/AuthProvider";
@@ -103,16 +99,6 @@ function parseOptionalAreaSqm(value) {
   return n;
 }
 
-/** Floor plan price: optional whole USD, >= 0 when set. */
-function parseOptionalFloorPlanPrice(value) {
-  if (value === "" || value == null) return undefined;
-  const trimmed = String(value).trim();
-  if (!/^\d+$/.test(trimmed)) return null;
-  const n = Number(trimmed);
-  if (!Number.isSafeInteger(n) || n < 0) return null;
-  return n;
-}
-
 const TYPE_SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const TOP_LEVEL_FIELD_ERROR_KEYS = [
   "title",
@@ -123,7 +109,6 @@ const TOP_LEVEL_FIELD_ERROR_KEYS = [
   "bathrooms",
   "area",
   "virtualTourUrl",
-  "mapLocation",
 ];
 
 const emptyFieldErrors = () => ({
@@ -135,7 +120,6 @@ const emptyFieldErrors = () => ({
   bathrooms: "",
   area: "",
   virtualTourUrl: "",
-  mapLocation: "",
   floorPlans: {},
 });
 
@@ -169,24 +153,14 @@ function getOptionalWholeNumberFieldError(value, fieldLabel) {
   return "";
 }
 
-function getMapLocationFieldError(latitude, longitude) {
-  if (latLngStringsToGeoJsonCoordinates(longitude, latitude) == null) {
-    return "Pin the property on the map.";
-  }
-  return "";
-}
-
 function floorPlanRowHasContent(plan) {
   return Boolean(
-    plan.title?.trim() ||
-    plan.area ||
-    plan.bedrooms ||
-    plan.bathrooms ||
-    plan.price ||
-    plan.imageFile ||
-    plan.url ||
-    plan.gcsKey,
+    plan.title?.trim() || plan.imageFile || plan.url || plan.gcsKey,
   );
+}
+
+function floorPlanHasImage(plan) {
+  return Boolean(plan.imageFile || plan.url || plan.gcsKey);
 }
 
 function getFloorPlanTitleFieldError(plan) {
@@ -215,12 +189,10 @@ function getAreaFieldError(value) {
   return "";
 }
 
-function getFloorPlanPriceFieldError(value) {
-  if (value === "" || value == null) return "";
-  if (parseOptionalFloorPlanPrice(value) === null) {
-    return "Use a whole dollar amount (0 or more), or clear the field.";
-  }
-  return "";
+function getFloorPlanImageFieldError(plan) {
+  if (!plan.title?.trim()) return "";
+  if (floorPlanHasImage(plan)) return "";
+  return "Upload a plan image for this level.";
 }
 
 function collectFloorPlanFieldErrors(plan) {
@@ -228,10 +200,7 @@ function collectFloorPlanFieldErrors(plan) {
 
   const errors = {
     title: getFloorPlanTitleFieldError(plan),
-    area: getAreaFieldError(plan.area),
-    price: getFloorPlanPriceFieldError(plan.price),
-    bedrooms: getOptionalWholeNumberFieldError(plan.bedrooms, "bedrooms"),
-    bathrooms: getOptionalWholeNumberFieldError(plan.bathrooms, "bathrooms"),
+    image: getFloorPlanImageFieldError(plan),
   };
 
   const filtered = Object.fromEntries(
@@ -240,7 +209,7 @@ function collectFloorPlanFieldErrors(plan) {
   return Object.keys(filtered).length ? filtered : null;
 }
 
-function validatePropertyFormFields(form, { skipMapLocation = false } = {}) {
+function validatePropertyFormFields(form) {
   const floorPlans = {};
   form.floorPlans.forEach((plan, index) => {
     const planErrors = collectFloorPlanFieldErrors(plan);
@@ -256,9 +225,6 @@ function validatePropertyFormFields(form, { skipMapLocation = false } = {}) {
     bathrooms: getOptionalWholeNumberFieldError(form.bathrooms, "bathrooms"),
     area: getAreaFieldError(form.area),
     virtualTourUrl: getVirtualTourUrlFieldError(form.virtualTourUrl),
-    mapLocation: skipMapLocation
-      ? ""
-      : getMapLocationFieldError(form.latitude, form.longitude),
     floorPlans,
   };
 }
@@ -336,11 +302,6 @@ function invalidClass(hasError) {
 
 const emptyFloorPlan = () => ({
   title: "",
-  area: "",
-  areaUnit: "sqm",
-  bedrooms: "",
-  bathrooms: "",
-  price: "",
   gcsKey: "",
   url: "",
   imageFile: null,
@@ -353,11 +314,6 @@ const emptyForm = {
   type: "apartment",
   price: "",
   currency: "USD",
-  address: "",
-  city: "",
-  country: "",
-  latitude: "",
-  longitude: "",
   bedrooms: "",
   bathrooms: "",
   area: "",
@@ -377,10 +333,6 @@ function buildFormFromProperty(property) {
     type: property.type || "apartment",
     price: property.price?.toString() || "",
     currency: property.currency || "USD",
-    address: property.location?.address || "",
-    city: property.location?.city || "",
-    country: property.location?.country || "",
-    ...coordinatesToLatLngStrings(property.location?.coordinates),
     bedrooms: formatWholeNumberField(property.bedrooms),
     bathrooms: formatWholeNumberField(property.bathrooms),
     area: property.area?.toString() || "",
@@ -393,17 +345,18 @@ function buildFormFromProperty(property) {
         : "",
     floorPlans: (property.floorPlans || []).map((plan) => ({
       title: plan.title || "",
-      area: plan.area?.toString() || "",
-      areaUnit: plan.areaUnit || "sqm",
-      bedrooms: formatWholeNumberField(plan.bedrooms),
-      bathrooms: formatWholeNumberField(plan.bathrooms),
-      price: plan.price?.toString() || "",
       gcsKey: plan.gcsKey || "",
       url: plan.url || "",
       imageFile: null,
       imageName: plan.title ? `${plan.title} plan` : "Floor plan image",
     })),
   };
+}
+
+function getProjectIdRef(projectRef) {
+  if (!projectRef) return null;
+  if (typeof projectRef === "string") return projectRef;
+  return projectRef._id || projectRef.id || null;
 }
 
 function formsEqual(a, b) {
@@ -428,16 +381,8 @@ async function resolveFloorPlans(savedId, floorPlans) {
   for (const plan of floorPlans) {
     if (!plan.title?.trim()) continue;
 
-    const planArea = parseOptionalAreaSqm(plan.area);
-    const planPrice = parseOptionalFloorPlanPrice(plan.price);
-
     const entry = {
       title: plan.title.trim(),
-      area: planArea,
-      areaUnit: plan.areaUnit || "sqm",
-      bedrooms: parseOptionalWholeNumber(plan.bedrooms),
-      bathrooms: parseOptionalWholeNumber(plan.bathrooms),
-      price: planPrice,
       gcsKey: plan.gcsKey || undefined,
     };
 
@@ -499,19 +444,35 @@ function getSubmitSuccessMessage(isEdit, submitMode, status, isAdmin = false) {
   return "Property saved as draft";
 }
 
-export default function PropertyForm({ propertyId, projectId: projectIdProp }) {
+export default function PropertyForm({
+  propertyId,
+  projectId: projectIdProp,
+  unitDashboardLayout = false,
+}) {
   const router = useRouter();
   const queryClient = useQueryClient();
   const { user } = useAuth();
   const isAdmin = user?.role === "admin";
   const isEdit = Boolean(propertyId);
-  const unitUnderProject = Boolean(projectIdProp);
-  const { data: parentProject } = useProject(projectIdProp, {
-    enabled: Boolean(projectIdProp && !isEdit),
-  });
-  const [parentProjectKind, setParentProjectKind] = useState(null);
-  const isSingleProjectUnit =
-    parentProject?.kind === "single" || parentProjectKind === "single";
+  const unitUnderProject = Boolean(projectIdProp) || unitDashboardLayout;
+  const [linkedProjectId, setLinkedProjectId] = useState(projectIdProp ?? null);
+  const { data: parentProject, isLoading: parentProjectLoading } = useProject(
+    linkedProjectId,
+    { enabled: Boolean(linkedProjectId) },
+  );
+  const projectMapCoords = useMemo(() => {
+    const coords = parentProject?.location?.coordinates;
+    if (!Array.isArray(coords) || coords.length < 2) {
+      return { latitude: "", longitude: "" };
+    }
+    return coordinatesToLatLngStrings(coords);
+  }, [parentProject?.location?.coordinates]);
+
+  useEffect(() => {
+    if (projectIdProp) {
+      setLinkedProjectId(projectIdProp);
+    }
+  }, [projectIdProp]);
   const { data: propertyTypes = [], isLoading: propertyTypesLoading } =
     useCatalogPropertyTypes();
   const { data: amenitiesCatalog = [], isLoading: amenitiesLoading } =
@@ -524,8 +485,7 @@ export default function PropertyForm({ propertyId, projectId: projectIdProp }) {
   const [videoFile, setVideoFile] = useState(null);
   const [videoPreview, setVideoPreview] = useState(null);
   const [isLoading, setIsLoading] = useState(isEdit);
-  const { requestConfirm, run, isLocked, overlayMessage, dialogProps } =
-    useConfirmAction({ overlay: true });
+  const { requestConfirm, run, isLocked, dialogProps } = useConfirmAction();
   const submitModeRef = useRef("review");
   const [activeSubmitMode, setActiveSubmitMode] = useState("review");
   const [fieldErrors, setFieldErrors] = useState(emptyFieldErrors);
@@ -537,7 +497,6 @@ export default function PropertyForm({ propertyId, projectId: projectIdProp }) {
   const bathroomsInputRef = useRef(null);
   const areaInputRef = useRef(null);
   const virtualTourInputRef = useRef(null);
-  const mapLocationRef = useRef(null);
   const [propertyStatus, setPropertyStatus] = useState(null);
   const [propertyMeta, setPropertyMeta] = useState(null);
   const photoGalleryRef = useRef(photoGallery);
@@ -567,36 +526,12 @@ export default function PropertyForm({ propertyId, projectId: projectIdProp }) {
   useEffect(() => {
     if (isEdit || !propertyTypes.length) return;
     setForm((prev) => {
-      if (isSingleProjectUnit) {
-        return { ...prev, type: SINGLE_PROJECT_UNIT_TYPE };
-      }
       if (propertyTypes.some((type) => type.value === prev.type)) {
         return prev;
       }
       return { ...prev, type: propertyTypes[0].value };
     });
-  }, [isEdit, isSingleProjectUnit, propertyTypes]);
-
-  useEffect(() => {
-    if (!isSingleProjectUnit) return;
-    setForm((prev) =>
-      prev.type === SINGLE_PROJECT_UNIT_TYPE
-        ? prev
-        : { ...prev, type: SINGLE_PROJECT_UNIT_TYPE },
-    );
-  }, [isSingleProjectUnit]);
-
-  const handleLocationPick = useCallback(({ latitude, longitude }) => {
-    setForm((prev) => ({
-      ...prev,
-      latitude,
-      longitude,
-    }));
-    setFieldErrors((prev) => ({
-      ...prev,
-      mapLocation: getMapLocationFieldError(latitude, longitude),
-    }));
-  }, []);
+  }, [isEdit, propertyTypes]);
 
   useEffect(() => {
     if (!isEdit) return;
@@ -618,7 +553,11 @@ export default function PropertyForm({ propertyId, projectId: projectIdProp }) {
             viewCount: response.data?.viewCount ?? 0,
             type: response.data?.type,
           });
-          setParentProjectKind(response.data?.projectId?.kind || null);
+          const projectRef = response.data?.projectId;
+          const projectIdFromProperty = getProjectIdRef(projectRef);
+          if (projectIdFromProperty) {
+            setLinkedProjectId(projectIdFromProperty);
+          }
           const { images, video } = splitMedia(response.data?.media || []);
           setPhotoGallery(mediaToSavedGalleryItems(images));
           setBaselinePhotoIds(images.map((item) => item._id));
@@ -655,44 +594,38 @@ export default function PropertyForm({ propertyId, projectId: projectIdProp }) {
     setForm((prev) => ({ ...prev, [field]: value }));
   };
 
-  const syncTopLevelFieldError = useCallback(
-    (field, value) => {
-      let message = "";
-      switch (field) {
-        case "title":
-          message = getTitleFieldError(value);
-          break;
-        case "description":
-          message = getDescriptionFieldError(value);
-          break;
-        case "type":
-          message = getTypeFieldError(value);
-          break;
-        case "price":
-          message = getPriceFieldError(value);
-          break;
-        case "bedrooms":
-          message = getOptionalWholeNumberFieldError(value, "bedrooms");
-          break;
-        case "bathrooms":
-          message = getOptionalWholeNumberFieldError(value, "bathrooms");
-          break;
-        case "area":
-          message = getAreaFieldError(value);
-          break;
-        case "virtualTourUrl":
-          message = getVirtualTourUrlFieldError(value);
-          break;
-        case "mapLocation":
-          message = getMapLocationFieldError(form.latitude, form.longitude);
-          break;
-        default:
-          break;
-      }
-      setFieldErrors((prev) => ({ ...prev, [field]: message }));
-    },
-    [form.latitude, form.longitude],
-  );
+  const syncTopLevelFieldError = useCallback((field, value) => {
+    let message = "";
+    switch (field) {
+      case "title":
+        message = getTitleFieldError(value);
+        break;
+      case "description":
+        message = getDescriptionFieldError(value);
+        break;
+      case "type":
+        message = getTypeFieldError(value);
+        break;
+      case "price":
+        message = getPriceFieldError(value);
+        break;
+      case "bedrooms":
+        message = getOptionalWholeNumberFieldError(value, "bedrooms");
+        break;
+      case "bathrooms":
+        message = getOptionalWholeNumberFieldError(value, "bathrooms");
+        break;
+      case "area":
+        message = getAreaFieldError(value);
+        break;
+      case "virtualTourUrl":
+        message = getVirtualTourUrlFieldError(value);
+        break;
+      default:
+        break;
+    }
+    setFieldErrors((prev) => ({ ...prev, [field]: message }));
+  }, []);
 
   const focusFirstFieldError = useCallback((errors) => {
     const refByField = {
@@ -704,18 +637,12 @@ export default function PropertyForm({ propertyId, projectId: projectIdProp }) {
       bathrooms: bathroomsInputRef,
       area: areaInputRef,
       virtualTourUrl: virtualTourInputRef,
-      mapLocation: mapLocationRef,
     };
 
     for (const key of TOP_LEVEL_FIELD_ERROR_KEYS) {
       if (!errors[key]) continue;
       const ref = refByField[key];
-      if (key === "mapLocation") {
-        ref.current?.scrollIntoView({ behavior: "smooth", block: "center" });
-        ref.current?.focus();
-      } else {
-        ref.current?.focus();
-      }
+      ref.current?.focus();
       return;
     }
 
@@ -725,13 +652,7 @@ export default function PropertyForm({ propertyId, projectId: projectIdProp }) {
     if (Number.isNaN(firstIndex)) return;
 
     const planErrors = errors.floorPlans[firstIndex];
-    for (const subField of [
-      "title",
-      "area",
-      "bedrooms",
-      "bathrooms",
-      "price",
-    ]) {
+    for (const subField of ["title", "image"]) {
       if (!planErrors?.[subField]) continue;
       document.getElementById(`floor-plan-${firstIndex}-${subField}`)?.focus();
       return;
@@ -739,9 +660,7 @@ export default function PropertyForm({ propertyId, projectId: projectIdProp }) {
   }, []);
 
   const runFormFieldValidation = useCallback(() => {
-    const errors = validatePropertyFormFields(form, {
-      skipMapLocation: unitUnderProject,
-    });
+    const errors = validatePropertyFormFields(form);
     setFieldErrors(errors);
     if (!fieldErrorsAreEmpty(errors)) {
       focusFirstFieldError(errors);
@@ -1062,10 +981,6 @@ export default function PropertyForm({ propertyId, projectId: projectIdProp }) {
       if (order != null) payload.sortOrder = order;
     }
 
-    if (isSingleProjectUnit) {
-      payload.type = SINGLE_PROJECT_UNIT_TYPE;
-    }
-
     return payload;
   };
 
@@ -1115,10 +1030,38 @@ export default function PropertyForm({ propertyId, projectId: projectIdProp }) {
   const formBusy = isLocked;
 
   if (isLoading || (!isEdit && (propertyTypesLoading || amenitiesLoading))) {
-    return <DashboardFormSkeleton rows={10} />;
+    if (!unitDashboardLayout) {
+      return <DashboardFormSkeleton rows={10} />;
+    }
+
+    return (
+      <div className="unit-dashboard-page">
+        <header className="unit-dashboard-page__header">
+          <h2 className="unit-dashboard-page__title">
+            {isEdit ? "Edit unit" : "Add unit"}
+          </h2>
+          <p className="unit-dashboard-page__lede mb0">Loading…</p>
+        </header>
+        <div className="row unit-dashboard-page__layout g-4">
+          <div className="col-xl-8">
+            <div className="unit-dashboard-page__form-panel bdrs12 default-box-shadow2 bgc-white overflow-hidden position-relative">
+              <DashboardFormSkeleton rows={10} />
+            </div>
+          </div>
+          <div className="col-xl-4">
+            <div className="unit-dashboard-page__aside">
+              <PropertyUnitProjectCard isLoading project={null} />
+            </div>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   const isTerminal = isPropertyTerminal(propertyStatus);
+  const parentProjectTrashed = Boolean(parentProject?.deletedAt);
+  const formBlockedByParent =
+    parentProjectTrashed && !isAdmin && Boolean(linkedProjectId);
   const mediaCount =
     photoGallery.length + (existingVideo ? 1 : 0) + (videoFile ? 1 : 0);
   const hasVideo = Boolean(existingVideo || videoFile);
@@ -1134,8 +1077,12 @@ export default function PropertyForm({ propertyId, projectId: projectIdProp }) {
     );
   }
 
-  return (
-    <form className="form-style1 p30" onSubmit={handleSubmit}>
+  const formClassName = unitDashboardLayout
+    ? "form-style1 unit-dashboard-page__form"
+    : "form-style1 p30";
+
+  const formContent = (
+    <form className={formClassName} onSubmit={handleSubmit}>
       {isEdit && propertyStatus && (
         <PropertyFormStatusBanner
           status={propertyStatus}
@@ -1148,12 +1095,20 @@ export default function PropertyForm({ propertyId, projectId: projectIdProp }) {
         />
       )}
 
+      {formBlockedByParent ? (
+        <div className="alert alert-warning mb20" role="status">
+          The parent project is in trash. Restore it from{" "}
+          <a href="/dashboard-my-projects">My projects → Trash</a> before
+          editing this unit.
+        </div>
+      ) : null}
+
       <fieldset
-        disabled={(isTerminal && !isAdmin) || formBusy}
+        disabled={(isTerminal && !isAdmin) || formBusy || formBlockedByParent}
         style={{ border: "none", padding: 0, margin: 0 }}
       >
         <div className="row">
-          {unitUnderProject && !isSingleProjectUnit ? (
+          {unitUnderProject ? (
             <div className="col-sm-6">
               <div className="mb20">
                 <label className="heading-color ff-heading fw600 mb10">
@@ -1260,12 +1215,9 @@ export default function PropertyForm({ propertyId, projectId: projectIdProp }) {
                 }}
                 onBlur={() => syncTopLevelFieldError("type", form.type)}
                 required
-                disabled={isSingleProjectUnit}
                 aria-invalid={Boolean(fieldErrors.type)}
                 aria-describedby={
-                  fieldErrors.type || isSingleProjectUnit
-                    ? "property-type-error"
-                    : undefined
+                  fieldErrors.type ? "property-type-error" : undefined
                 }
               >
                 {propertyTypes.map((type) => (
@@ -1274,15 +1226,6 @@ export default function PropertyForm({ propertyId, projectId: projectIdProp }) {
                   </option>
                 ))}
               </select>
-              {isSingleProjectUnit ? (
-                <p className="text fz13 mt10 mb0">
-                  Single projects use one{" "}
-                  {propertyTypes.find(
-                    (t) => t.value === SINGLE_PROJECT_UNIT_TYPE,
-                  )?.label || "Villa"}{" "}
-                  unit — type is fixed.
-                </p>
-              ) : null}
               <FormFieldError
                 id="property-type-error"
                 message={fieldErrors.type}
@@ -1432,109 +1375,15 @@ export default function PropertyForm({ propertyId, projectId: projectIdProp }) {
             </div>
           </div>
 
-          {!unitUnderProject ? (
-            <>
-              <div className="col-sm-12">
-                <h4 className="fz17 mb20">Location</h4>
-              </div>
-
-              <div className="col-sm-12">
-                <div className="mb20">
-                  <label className="heading-color ff-heading fw600 mb10">
-                    Address
-                  </label>
-                  <input
-                    type="text"
-                    className="form-control"
-                    placeholder="Street address, building, unit"
-                    value={form.address}
-                    onChange={(e) => updateField("address", e.target.value)}
-                  />
-                </div>
-              </div>
-
-              <div className="col-sm-6 col-xl-4">
-                <div className="mb20">
-                  <label className="heading-color ff-heading fw600 mb10">
-                    City
-                  </label>
-                  <input
-                    type="text"
-                    className="form-control"
-                    placeholder="e.g. Dubai"
-                    value={form.city}
-                    onChange={(e) => updateField("city", e.target.value)}
-                  />
-                </div>
-              </div>
-
-              <div className="col-sm-6 col-xl-4">
-                <div className="mb20">
-                  <label className="heading-color ff-heading fw600 mb10">
-                    Country
-                  </label>
-                  <input
-                    type="text"
-                    className="form-control"
-                    placeholder="e.g. United Arab Emirates"
-                    value={form.country}
-                    onChange={(e) => updateField("country", e.target.value)}
-                  />
-                </div>
-              </div>
-
-              <div className="col-sm-12">
-                <div className="mb20">
-                  <label className="heading-color ff-heading fw600 mb10">
-                    Map location
-                  </label>
-                  <div
-                    ref={mapLocationRef}
-                    tabIndex={-1}
-                    className={
-                      fieldErrors.mapLocation
-                        ? "property-form-map-wrap property-form-map-wrap--invalid"
-                        : "property-form-map-wrap"
-                    }
-                    aria-invalid={Boolean(fieldErrors.mapLocation)}
-                    aria-describedby={
-                      fieldErrors.mapLocation ? "property-map-error" : undefined
-                    }
-                  >
-                    <PropertyLocationPicker
-                      latitude={form.latitude}
-                      longitude={form.longitude}
-                      onChange={handleLocationPick}
-                      disabled={isLocked}
-                    />
-                  </div>
-                  <FormFieldError
-                    id="property-map-error"
-                    message={fieldErrors.mapLocation}
-                  />
-                  <input
-                    type="hidden"
-                    name="latitude"
-                    value={form.latitude}
-                    required
-                  />
-                  <input
-                    type="hidden"
-                    name="longitude"
-                    value={form.longitude}
-                    required
-                  />
-                </div>
-              </div>
-
-              <div className="col-sm-12">
-                <PropertyFormNearbyPreview
-                  propertyId={propertyId}
-                  latitude={form.latitude}
-                  longitude={form.longitude}
-                />
-              </div>
-            </>
+          {linkedProjectId && !parentProjectLoading ? (
+            <div className="col-sm-12">
+              <PropertyFormNearbyPreview
+                propertyId={isEdit ? propertyId : undefined}
+                latitude={projectMapCoords.latitude}
+                longitude={projectMapCoords.longitude}
+                locationSource="project"
+              />
+            </div>
           ) : null}
 
           <div className="col-sm-12">
@@ -1593,8 +1442,8 @@ export default function PropertyForm({ propertyId, projectId: projectIdProp }) {
                 />
                 <h5 className="floor-plans-empty__title">No floor plans yet</h5>
                 <p className="floor-plans-empty__text">
-                  Optional. Add a level with size, beds, baths, and a plan image
-                  for buyers to compare layouts.
+                  Optional. Add a label (e.g. Ground floor) and upload the plan
+                  image for each level.
                 </p>
                 <button
                   type="button"
@@ -1618,7 +1467,7 @@ export default function PropertyForm({ propertyId, projectId: projectIdProp }) {
                   <span className="fas fa-trash-alt" aria-hidden />
                 </button>
                 <div className="row">
-                  <div className="col-sm-6 col-xl-4">
+                  <div className="col-sm-6 col-xl-5">
                     <div className="mb20">
                       <label className="heading-color ff-heading fw600 mb10">
                         Title
@@ -1650,163 +1499,37 @@ export default function PropertyForm({ propertyId, projectId: projectIdProp }) {
                       />
                     </div>
                   </div>
-                  <div className="col-sm-6 col-xl-4">
-                    <div className="mb20">
-                      <label className="heading-color ff-heading fw600 mb10">
-                        Area (sqm)
-                      </label>
-                      <input
-                        id={`floor-plan-${index}-area`}
-                        type="number"
-                        className={`form-control${
-                          fieldErrors.floorPlans[index]?.area
-                            ? " is-invalid"
-                            : ""
-                        }`}
-                        placeholder="e.g. 85"
-                        value={plan.area}
-                        onChange={(e) =>
-                          updateFloorPlan(
-                            index,
-                            "area",
-                            sanitizeAreaSqmInput(e.target.value),
-                          )
-                        }
-                        onBlur={() => touchFloorPlanRow(index)}
-                        min={1}
-                        step="0.01"
-                        inputMode="decimal"
-                        aria-invalid={Boolean(
-                          fieldErrors.floorPlans[index]?.area,
-                        )}
-                        aria-describedby={
-                          fieldErrors.floorPlans[index]?.area
-                            ? `floor-plan-${index}-area-error`
-                            : undefined
-                        }
-                      />
-                      <FormFieldError
-                        id={`floor-plan-${index}-area-error`}
-                        message={fieldErrors.floorPlans[index]?.area}
-                      />
-                    </div>
-                  </div>
-                  <div className="col-sm-6 col-xl-4">
-                    <div className="mb20">
-                      <label className="heading-color ff-heading fw600 mb10">
-                        Bedrooms
-                      </label>
-                      <WholeNumberInput
-                        id={`floor-plan-${index}-bedrooms`}
-                        className={`form-control${invalidClass(
-                          fieldErrors.floorPlans[index]?.bedrooms,
-                        )}`}
-                        placeholder="e.g. 3"
-                        value={plan.bedrooms}
-                        invalid={Boolean(
-                          fieldErrors.floorPlans[index]?.bedrooms,
-                        )}
-                        ariaDescribedBy={
-                          fieldErrors.floorPlans[index]?.bedrooms
-                            ? `floor-plan-${index}-bedrooms-error`
-                            : undefined
-                        }
-                        onChange={(value) =>
-                          updateFloorPlan(index, "bedrooms", value)
-                        }
-                        onBlur={() => touchFloorPlanRow(index)}
-                      />
-                      <FormFieldError
-                        id={`floor-plan-${index}-bedrooms-error`}
-                        message={fieldErrors.floorPlans[index]?.bedrooms}
-                      />
-                    </div>
-                  </div>
-                  <div className="col-sm-6 col-xl-4">
-                    <div className="mb20">
-                      <label className="heading-color ff-heading fw600 mb10">
-                        Bathrooms
-                      </label>
-                      <WholeNumberInput
-                        id={`floor-plan-${index}-bathrooms`}
-                        className={`form-control${invalidClass(
-                          fieldErrors.floorPlans[index]?.bathrooms,
-                        )}`}
-                        placeholder="e.g. 2"
-                        value={plan.bathrooms}
-                        invalid={Boolean(
-                          fieldErrors.floorPlans[index]?.bathrooms,
-                        )}
-                        ariaDescribedBy={
-                          fieldErrors.floorPlans[index]?.bathrooms
-                            ? `floor-plan-${index}-bathrooms-error`
-                            : undefined
-                        }
-                        onChange={(value) =>
-                          updateFloorPlan(index, "bathrooms", value)
-                        }
-                        onBlur={() => touchFloorPlanRow(index)}
-                      />
-                      <FormFieldError
-                        id={`floor-plan-${index}-bathrooms-error`}
-                        message={fieldErrors.floorPlans[index]?.bathrooms}
-                      />
-                    </div>
-                  </div>
-                  <div className="col-sm-6 col-xl-4">
-                    <div className="mb20">
-                      <label className="heading-color ff-heading fw600 mb10">
-                        {PRICE_FROM_LABEL} (optional)
-                      </label>
-                      <input
-                        id={`floor-plan-${index}-price`}
-                        type="number"
-                        className={`form-control${
-                          fieldErrors.floorPlans[index]?.price
-                            ? " is-invalid"
-                            : ""
-                        }`}
-                        placeholder="e.g. 350000"
-                        value={plan.price}
-                        onChange={(e) =>
-                          updateFloorPlan(
-                            index,
-                            "price",
-                            sanitizeWholeNumberInput(e.target.value),
-                          )
-                        }
-                        onBlur={() => touchFloorPlanRow(index)}
-                        min={0}
-                        step="1"
-                        inputMode="numeric"
-                        aria-invalid={Boolean(
-                          fieldErrors.floorPlans[index]?.price,
-                        )}
-                        aria-describedby={
-                          fieldErrors.floorPlans[index]?.price
-                            ? `floor-plan-${index}-price-error`
-                            : undefined
-                        }
-                      />
-                      <FormFieldError
-                        id={`floor-plan-${index}-price-error`}
-                        message={fieldErrors.floorPlans[index]?.price}
-                      />
-                    </div>
-                  </div>
-                  <div className="col-sm-6 col-xl-4">
+                  <div className="col-sm-6 col-xl-5">
                     <div className="mb20">
                       <label className="heading-color ff-heading fw600 mb10">
                         Plan image
                       </label>
                       <input
+                        id={`floor-plan-${index}-image`}
                         type="file"
-                        className="form-control"
+                        className={`form-control${
+                          fieldErrors.floorPlans[index]?.image
+                            ? " is-invalid"
+                            : ""
+                        }`}
                         accept="image/*"
                         onChange={(e) => {
                           handleFloorPlanImage(index, e.target.files);
                           e.target.value = "";
                         }}
+                        onBlur={() => touchFloorPlanRow(index)}
+                        aria-invalid={Boolean(
+                          fieldErrors.floorPlans[index]?.image,
+                        )}
+                        aria-describedby={
+                          fieldErrors.floorPlans[index]?.image
+                            ? `floor-plan-${index}-image-error`
+                            : undefined
+                        }
+                      />
+                      <FormFieldError
+                        id={`floor-plan-${index}-image-error`}
+                        message={fieldErrors.floorPlans[index]?.image}
                       />
                     </div>
                   </div>
@@ -1929,10 +1652,9 @@ export default function PropertyForm({ propertyId, projectId: projectIdProp }) {
                 <div className="row profile-box position-relative d-md-flex align-items-end mb20">
                   <div className="col-12 col-md-8 col-lg-6">
                     <div className="profile-img mb20 position-relative">
-                      <video
+                      <VideoFilePlayer
                         className="w-100 bdrs12 cover"
                         src={existingVideo.url}
-                        controls
                         style={{ maxHeight: 280, objectFit: "cover" }}
                       />
                       <button
@@ -1962,10 +1684,9 @@ export default function PropertyForm({ propertyId, projectId: projectIdProp }) {
                 <div className="row profile-box position-relative d-md-flex align-items-end mb20">
                   <div className="col-12 col-md-8 col-lg-6">
                     <div className="profile-img mb20 position-relative">
-                      <video
+                      <VideoFilePlayer
                         className="w-100 bdrs12 cover"
                         src={videoPreview.url}
-                        controls
                         style={{ maxHeight: 280, objectFit: "cover" }}
                       />
                       <button
@@ -2005,8 +1726,41 @@ export default function PropertyForm({ propertyId, projectId: projectIdProp }) {
       </fieldset>
 
       <ConfirmDialog {...dialogProps} />
-
-      <AsyncActionOverlay message={overlayMessage} />
     </form>
+  );
+
+  if (!unitDashboardLayout) {
+    return formContent;
+  }
+
+  const pageTitle = isEdit ? "Edit unit" : "Add unit";
+  const pageLede = isEdit
+    ? "Update pricing, media, and details for this sellable listing. Shared location and project marketing stay on the parent project."
+    : "Create a sellable listing under your project. Location and shared amenities are inherited from the parent project.";
+
+  return (
+    <div className="unit-dashboard-page">
+      <header className="unit-dashboard-page__header">
+        <h2 className="unit-dashboard-page__title">{pageTitle}</h2>
+        <p className="unit-dashboard-page__lede mb0">{pageLede}</p>
+      </header>
+
+      <div className="row unit-dashboard-page__layout g-4">
+        <div className="col-xl-8">
+          <div className="unit-dashboard-page__form-panel bdrs12 default-box-shadow2 bgc-white overflow-hidden position-relative">
+            {formContent}
+          </div>
+        </div>
+        <div className="col-xl-4">
+          <div className="unit-dashboard-page__aside">
+            <PropertyUnitProjectCard
+              project={parentProject}
+              isLoading={parentProjectLoading && !parentProject}
+              unitTitle={isEdit ? form.title : null}
+            />
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }

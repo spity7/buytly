@@ -26,11 +26,11 @@ const registerAndGetToken = async (app, email) => {
 };
 
 describe.skipIf(!mongoAvailable)("projects API", () => {
-  it("creates a single project and lists it publicly when active", async () => {
+  it("creates a project and lists it publicly when active", async () => {
     const app = await getApp();
     const token = await registerAndGetToken(app, "proj-seller@example.com");
 
-    const created = await createProject(app, token, { kind: "single" });
+    const created = await createProject(app, token);
     expect(created.status).toBe(201);
 
     const projectId = created.body.data._id;
@@ -46,13 +46,12 @@ describe.skipIf(!mongoAvailable)("projects API", () => {
     expect(list.body.data.length).toBeGreaterThanOrEqual(1);
   });
 
-  it("allows publishing compound project with one unit", async () => {
+  it("allows publishing project with one unit", async () => {
     const app = await getApp();
     const token = await registerAndGetToken(app, "compound@example.com");
 
     const created = await createProject(app, token, {
-      kind: "compound",
-      title: "Compound Test",
+      title: "Publish Test Project",
     });
     const projectId = created.body.data._id;
 
@@ -67,13 +66,12 @@ describe.skipIf(!mongoAvailable)("projects API", () => {
     expect(publish.body.data.status).toBe("pending");
   });
 
-  it("rejects publishing compound project with no units", async () => {
+  it("rejects publishing project with no units", async () => {
     const app = await getApp();
     const token = await registerAndGetToken(app, "compound-empty@example.com");
 
     const created = await createProject(app, token, {
-      kind: "compound",
-      title: "Empty Compound",
+      title: "Empty Project",
     });
     const projectId = created.body.data._id;
 
@@ -89,7 +87,7 @@ describe.skipIf(!mongoAvailable)("projects API", () => {
     const app = await getApp();
     const token = await registerAndGetToken(app, "slug-public@example.com");
 
-    const created = await createProject(app, token, { kind: "single" });
+    const created = await createProject(app, token);
     const projectId = created.body.data._id;
 
     const unitRes = await createPropertyForProject(app, token, projectId, {
@@ -104,6 +102,33 @@ describe.skipIf(!mongoAvailable)("projects API", () => {
     const bySlug = await request(app).get(`/api/v1/projects/slug/${slug}`);
     expect(bySlug.status).toBe(200);
     expect(bySlug.body.data.units).toEqual([]);
+  });
+
+  it("does not increment project view count when owner loads from dashboard", async () => {
+    const app = await getApp();
+    const token = await registerAndGetToken(app, "proj-owner-view@example.com");
+
+    const created = await createProject(app, token);
+    const projectId = created.body.data._id;
+    const slug = created.body.data.slug;
+
+    await createPropertyForProject(app, token, projectId, { status: "draft" });
+    await Project.findByIdAndUpdate(projectId, { status: "active" });
+
+    const publicView = await request(app).get(`/api/v1/projects/slug/${slug}`);
+    expect(publicView.status).toBe(200);
+    const afterPublic = publicView.body.data.viewCount;
+
+    const ownerView = await request(app)
+      .get(`/api/v1/projects/slug/${slug}`)
+      .set("Authorization", `Bearer ${token}`);
+    expect(ownerView.status).toBe(200);
+    expect(ownerView.body.data.viewCount).toBe(afterPublic);
+
+    const secondPublic = await request(app).get(
+      `/api/v1/projects/slug/${slug}`,
+    );
+    expect(secondPublic.body.data.viewCount).toBe(afterPublic + 1);
   });
 
   it("approving project publishes pending units", async () => {
@@ -121,7 +146,7 @@ describe.skipIf(!mongoAvailable)("projects API", () => {
     });
     const adminToken = adminLogin.body.data.accessToken;
 
-    const created = await createProject(app, sellerToken, { kind: "single" });
+    const created = await createProject(app, sellerToken);
     const projectId = created.body.data._id;
     await createPropertyForProject(app, sellerToken, projectId, {
       status: "draft",
@@ -150,7 +175,7 @@ describe.skipIf(!mongoAvailable)("projects API", () => {
     const app = await getApp();
     const token = await registerAndGetToken(app, "trash-flow@example.com");
 
-    const created = await createProject(app, token, { kind: "single" });
+    const created = await createProject(app, token);
     const projectId = created.body.data._id;
 
     await createPropertyForProject(app, token, projectId, { status: "draft" });
@@ -186,11 +211,51 @@ describe.skipIf(!mongoAvailable)("projects API", () => {
     expect(restoredUnit.status).toBe("draft");
   });
 
+  it("blocks restoring a unit while its parent project is in trash", async () => {
+    const app = await getApp();
+    const token = await registerAndGetToken(
+      app,
+      "unit-restore-block@example.com",
+    );
+
+    const created = await createProject(app, token);
+    const projectId = created.body.data._id;
+
+    await createPropertyForProject(app, token, projectId, { status: "draft" });
+
+    await request(app)
+      .delete(`/api/v1/projects/${projectId}`)
+      .set("Authorization", `Bearer ${token}`);
+
+    const { Property } =
+      await import("../src/modules/properties/property.model.js");
+    const trashedUnit = await Property.findOne({ projectId });
+    expect(trashedUnit.deletedAt).toBeTruthy();
+
+    const restoreUnit = await request(app)
+      .patch(`/api/v1/properties/${trashedUnit._id}/restore`)
+      .set("Authorization", `Bearer ${token}`);
+
+    expect(restoreUnit.status).toBe(400);
+    expect(restoreUnit.body.message).toMatch(/parent project/i);
+
+    const mineTrash = await request(app)
+      .get("/api/v1/properties/mine?trashed=true")
+      .set("Authorization", `Bearer ${token}`);
+
+    expect(mineTrash.status).toBe(200);
+    expect(
+      mineTrash.body.data.some(
+        (p) => String(p._id) === String(trashedUnit._id),
+      ),
+    ).toBe(false);
+  });
+
   it("permanently deletes a trashed project and its units", async () => {
     const app = await getApp();
     const token = await registerAndGetToken(app, "perm-del@example.com");
 
-    const created = await createProject(app, token, { kind: "single" });
+    const created = await createProject(app, token);
     const projectId = created.body.data._id;
     await createPropertyForProject(app, token, projectId, { status: "draft" });
 
@@ -211,89 +276,6 @@ describe.skipIf(!mongoAvailable)("projects API", () => {
     expect(units).toHaveLength(0);
   });
 
-  it("forces villa type for units on single projects", async () => {
-    const app = await getApp();
-    const token = await registerAndGetToken(app, "single-villa@example.com");
-
-    const created = await createProject(app, token, { kind: "single" });
-    const projectId = created.body.data._id;
-
-    const unitRes = await createPropertyForProject(app, token, projectId, {
-      type: "apartment",
-    });
-    expect(unitRes.status).toBe(201);
-    expect(unitRes.body.data.type).toBe("villa");
-  });
-
-  it("allows changing kind on draft project with no units", async () => {
-    const app = await getApp();
-    const token = await registerAndGetToken(app, "kind-switch@example.com");
-
-    const created = await createProject(app, token, { kind: "compound" });
-    const projectId = created.body.data._id;
-
-    const updated = await request(app)
-      .patch(`/api/v1/projects/${projectId}`)
-      .set("Authorization", `Bearer ${token}`)
-      .send({ kind: "single" });
-
-    expect(updated.status).toBe(200);
-    expect(updated.body.data.kind).toBe("single");
-  });
-
-  it("rejects kind change when project has units", async () => {
-    const app = await getApp();
-    const token = await registerAndGetToken(app, "kind-with-units@example.com");
-
-    const created = await createProject(app, token, { kind: "compound" });
-    const projectId = created.body.data._id;
-    await createPropertyForProject(app, token, projectId);
-
-    const updated = await request(app)
-      .patch(`/api/v1/projects/${projectId}`)
-      .set("Authorization", `Bearer ${token}`)
-      .send({ kind: "single" });
-
-    expect(updated.status).toBe(400);
-  });
-
-  it("rejects kind change when project is not draft", async () => {
-    const app = await getApp();
-    const token = await registerAndGetToken(app, "kind-active@example.com");
-
-    const created = await createProject(app, token, { kind: "compound" });
-    const projectId = created.body.data._id;
-    await Project.findByIdAndUpdate(projectId, { status: "active" });
-
-    const updated = await request(app)
-      .patch(`/api/v1/projects/${projectId}`)
-      .set("Authorization", `Bearer ${token}`)
-      .send({ kind: "single" });
-
-    expect(updated.status).toBe(400);
-  });
-
-  it("rejects publishing as single when kind and status change together with two units", async () => {
-    const app = await getApp();
-    const token = await registerAndGetToken(app, "kind-publish@example.com");
-
-    const created = await createProject(app, token, {
-      kind: "compound",
-      title: "Kind Publish Test",
-    });
-    const projectId = created.body.data._id;
-
-    await createPropertyForProject(app, token, projectId, { title: "Unit A" });
-    await createPropertyForProject(app, token, projectId, { title: "Unit B" });
-
-    const publish = await request(app)
-      .patch(`/api/v1/projects/${projectId}`)
-      .set("Authorization", `Bearer ${token}`)
-      .send({ kind: "single", status: "active" });
-
-    expect(publish.status).toBe(400);
-  });
-
   it("blocks admin from activating unit before parent project is active", async () => {
     const app = await getApp();
     const sellerToken = await registerAndGetToken(
@@ -309,7 +291,7 @@ describe.skipIf(!mongoAvailable)("projects API", () => {
     });
     const adminToken = adminLogin.body.data.accessToken;
 
-    const created = await createProject(app, sellerToken, { kind: "compound" });
+    const created = await createProject(app, sellerToken);
     const projectId = created.body.data._id;
     const unitRes = await createPropertyForProject(
       app,
@@ -329,16 +311,181 @@ describe.skipIf(!mongoAvailable)("projects API", () => {
     expect(moderate.status).toBe(400);
   });
 
+  it("admin archive cascades trash to all project units", async () => {
+    const app = await getApp();
+    const sellerToken = await registerAndGetToken(
+      app,
+      "admin-archive-cascade@example.com",
+    );
+    const adminEmail = "admin-archive-cascade-admin@example.com";
+    await registerAndGetToken(app, adminEmail);
+    await User.findOneAndUpdate({ email: adminEmail }, { role: "admin" });
+    const adminLogin = await request(app).post("/api/v1/auth/login").send({
+      email: adminEmail,
+      password: "password123",
+    });
+    const adminToken = adminLogin.body.data.accessToken;
+
+    const created = await createProject(app, sellerToken);
+    const projectId = created.body.data._id;
+    await createPropertyForProject(app, sellerToken, projectId, {
+      status: "active",
+    });
+    await Project.findByIdAndUpdate(projectId, { status: "active" });
+
+    const archive = await request(app)
+      .patch(`/api/v1/admin/projects/${projectId}/moderate`)
+      .set("Authorization", `Bearer ${adminToken}`)
+      .send({ status: "archived" });
+
+    expect(archive.status).toBe(200);
+
+    const { Property } =
+      await import("../src/modules/properties/property.model.js");
+    const unit = await Property.findOne({ projectId });
+    const project = await Project.findById(projectId);
+    expect(project.deletedAt).toBeTruthy();
+    expect(unit.deletedAt).toBeTruthy();
+    expect(unit.status).toBe("archived");
+  });
+
+  it("restores units trashed before project when project is restored", async () => {
+    const app = await getApp();
+    const token = await registerAndGetToken(app, "cascade-restore@example.com");
+
+    const created = await createProject(app, token);
+    const projectId = created.body.data._id;
+    const unitA = await createPropertyForProject(app, token, projectId, {
+      title: "Unit A",
+    });
+    await createPropertyForProject(app, token, projectId, {
+      title: "Unit B",
+    });
+    const unitAId = unitA.body.data._id;
+
+    await request(app)
+      .delete(`/api/v1/properties/${unitAId}`)
+      .set("Authorization", `Bearer ${token}`);
+
+    await request(app)
+      .delete(`/api/v1/projects/${projectId}`)
+      .set("Authorization", `Bearer ${token}`);
+
+    const restore = await request(app)
+      .patch(`/api/v1/projects/${projectId}/restore`)
+      .set("Authorization", `Bearer ${token}`);
+    expect(restore.status).toBe(200);
+
+    const { Property } =
+      await import("../src/modules/properties/property.model.js");
+    const units = await Property.find({ projectId });
+    expect(units).toHaveLength(2);
+    for (const unit of units) {
+      expect(unit.deletedAt).toBeNull();
+      expect(unit.status).toBe("draft");
+    }
+  });
+
   it("rejects permanent delete when project is not in trash", async () => {
     const app = await getApp();
     const token = await registerAndGetToken(app, "perm-active@example.com");
 
-    const created = await createProject(app, token, { kind: "single" });
+    const created = await createProject(app, token);
     const projectId = created.body.data._id;
 
     const permanent = await request(app)
       .delete(`/api/v1/projects/${projectId}/permanent`)
       .set("Authorization", `Bearer ${token}`);
     expect(permanent.status).toBe(400);
+  });
+
+  it("demotes active project to draft when its only unit is trashed", async () => {
+    const app = await getApp();
+    const token = await registerAndGetToken(
+      app,
+      "single-unit-trash@example.com",
+    );
+
+    const created = await createProject(app, token);
+    const projectId = created.body.data._id;
+
+    const unitRes = await createPropertyForProject(app, token, projectId, {
+      title: "Only Unit",
+      status: "draft",
+    });
+    const unitId = unitRes.body.data._id;
+
+    await Project.findByIdAndUpdate(projectId, { status: "active" });
+
+    const deleteUnit = await request(app)
+      .delete(`/api/v1/properties/${unitId}`)
+      .set("Authorization", `Bearer ${token}`);
+    expect(deleteUnit.status).toBe(200);
+
+    const project = await Project.findById(projectId);
+    expect(project.status).toBe("draft");
+    expect(project.deletedAt).toBeNull();
+  });
+
+  it("includes trashedUnitCount on owner project detail", async () => {
+    const app = await getApp();
+    const token = await registerAndGetToken(
+      app,
+      "trashed-unit-count@example.com",
+    );
+
+    const created = await createProject(app, token);
+    const projectId = created.body.data._id;
+
+    const unitRes = await createPropertyForProject(app, token, projectId, {
+      status: "draft",
+    });
+    const unitId = unitRes.body.data._id;
+
+    await request(app)
+      .delete(`/api/v1/properties/${unitId}`)
+      .set("Authorization", `Bearer ${token}`);
+
+    const detail = await request(app)
+      .get(`/api/v1/projects/${projectId}?includeUnits=true`)
+      .set("Authorization", `Bearer ${token}`);
+
+    expect(detail.status).toBe(200);
+    expect(detail.body.data.unitCount).toBe(0);
+    expect(detail.body.data.trashedUnitCount).toBe(1);
+    expect(detail.body.data.units).toHaveLength(0);
+  });
+
+  it("allows restoring a trashed unit when another live unit exists on the project", async () => {
+    const app = await getApp();
+    const token = await registerAndGetToken(
+      app,
+      "multi-restore@example.com",
+    );
+
+    const created = await createProject(app, token);
+    const projectId = created.body.data._id;
+
+    const first = await createPropertyForProject(app, token, projectId, {
+      title: "Original Unit",
+      status: "draft",
+    });
+    const firstId = first.body.data._id;
+
+    await request(app)
+      .delete(`/api/v1/properties/${firstId}`)
+      .set("Authorization", `Bearer ${token}`);
+
+    const replacement = await createPropertyForProject(app, token, projectId, {
+      title: "Replacement Unit",
+      status: "draft",
+    });
+    expect(replacement.status).toBe(201);
+
+    const restoreUnit = await request(app)
+      .patch(`/api/v1/properties/${firstId}/restore`)
+      .set("Authorization", `Bearer ${token}`);
+
+    expect(restoreUnit.status).toBe(200);
   });
 });

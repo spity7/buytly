@@ -7,6 +7,7 @@ import { closeAuthModal } from "./authModal";
 import { getApiError, useAuth } from "@/providers/AuthProvider";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useAsyncAction } from "@/hooks/useAsyncAction";
 import { useState } from "react";
 
 const SignIn = ({ showGoogleAuth = true, googleAuthKey = 0 }) => {
@@ -16,8 +17,8 @@ const SignIn = ({ showGoogleAuth = true, googleAuthKey = 0 }) => {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [googleError, setGoogleError] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isGoogleSubmitting, setIsGoogleSubmitting] = useState(false);
+  const { run, isBusy: isSubmitting } = useAsyncAction();
+  const { run: runGoogle, isBusy: isGoogleSubmitting } = useAsyncAction();
 
   const handleGoogleCredential = async (credential) => {
     if (!credential) {
@@ -26,32 +27,38 @@ const SignIn = ({ showGoogleAuth = true, googleAuthKey = 0 }) => {
     }
 
     setGoogleError("");
-    setIsGoogleSubmitting(true);
 
     try {
-      await loginWithGoogle({ idToken: credential });
-      await closeAuthModal();
-      router.push("/dashboard-home");
+      await runGoogle({
+        message: "Signing in with Google...",
+        showToast: false,
+        task: async () => {
+          await loginWithGoogle({ idToken: credential });
+          await closeAuthModal();
+          router.push("/dashboard-home");
+        },
+      });
     } catch (err) {
       setGoogleError(getApiError(err, "Google sign-in failed."));
-    } finally {
-      setIsGoogleSubmitting(false);
     }
   };
 
   const handleSubmit = async (event) => {
     event.preventDefault();
     setError("");
-    setIsSubmitting(true);
 
     try {
-      await login({ email, password });
-      await closeAuthModal();
-      router.push("/dashboard-home");
+      await run({
+        message: "Signing in...",
+        showToast: false,
+        task: async () => {
+          await login({ email, password });
+          await closeAuthModal();
+          router.push("/dashboard-home");
+        },
+      });
     } catch (err) {
       setError(getApiError(err, "Invalid email or password."));
-    } finally {
-      setIsSubmitting(false);
     }
   };
 

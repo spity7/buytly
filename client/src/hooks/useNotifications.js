@@ -7,14 +7,13 @@ import {
   applyNotificationDelete,
   applyNotificationRead,
 } from "@/lib/notifications/notificationQueryCache";
+import { NOTIFICATION_POLL_INTERVAL_MS } from "@/lib/query/liveSync";
 import {
   keepPreviousData,
   useMutation,
   useQuery,
   useQueryClient,
 } from "@tanstack/react-query";
-
-const UNREAD_POLL_INTERVAL_MS = 30_000;
 
 export function useNotifications(params = {}, options = {}) {
   return useQuery({
@@ -27,6 +26,8 @@ export function useNotifications(params = {}, options = {}) {
       };
     },
     placeholderData: keepPreviousData,
+    refetchInterval: NOTIFICATION_POLL_INTERVAL_MS,
+    refetchIntervalInBackground: false,
     ...options,
   });
 }
@@ -38,7 +39,7 @@ export function useUnreadNotificationCount(options = {}) {
       const response = await buytlyApi.getUnreadNotificationCount();
       return response.data?.count ?? 0;
     },
-    refetchInterval: UNREAD_POLL_INTERVAL_MS,
+    refetchInterval: NOTIFICATION_POLL_INTERVAL_MS,
     refetchIntervalInBackground: false,
     ...options,
   });

@@ -8,6 +8,7 @@ import {
   buildPaginationMeta,
 } from "../../shared/pagination.js";
 import { ROLES } from "../../shared/constants.js";
+import { syncParentProjectSoldStatus } from "../projects/project-sold-sync.js";
 
 export const transactionService = {
   async create(buyerId, data) {
@@ -46,15 +47,11 @@ export const transactionService = {
 
     await cacheService.invalidateAnalytics();
 
-    await notificationService.notifyMany(
-      "transaction.created",
-      notifyIds,
-      {
-        transactionId: transaction._id,
-        propertyTitle: property.title,
-        transactionType: data.type,
-      },
-    );
+    await notificationService.notifyMany("transaction.created", notifyIds, {
+      transactionId: transaction._id,
+      propertyTitle: property.title,
+      transactionType: data.type,
+    });
 
     return populated;
   },
@@ -130,9 +127,16 @@ export const transactionService = {
     await transaction.save();
 
     if (data.status === "completed") {
-      await Property.findByIdAndUpdate(transaction.propertyId._id, {
-        status: "sold",
-      });
+      const property = await Property.findByIdAndUpdate(
+        transaction.propertyId._id,
+        { status: "sold" },
+        { new: true },
+      ).select("projectId");
+
+      if (property?.projectId) {
+        await syncParentProjectSoldStatus(property.projectId, { notify: true });
+      }
+
       await cacheService.invalidateListingCaches();
     } else {
       await cacheService.invalidateAnalytics();
@@ -152,12 +156,11 @@ export const transactionService = {
 
     await Promise.all(
       recipientIds.map((userId) => {
-        const recipient =
-          userId.equals(transaction.buyerId._id)
-            ? transaction.buyerId
-            : userId.equals(transaction.sellerId._id)
-              ? transaction.sellerId
-              : transaction.agentId;
+        const recipient = userId.equals(transaction.buyerId._id)
+          ? transaction.buyerId
+          : userId.equals(transaction.sellerId._id)
+            ? transaction.sellerId
+            : transaction.agentId;
 
         return notificationService
           .notifyFromEvent("transaction.status_updated", {

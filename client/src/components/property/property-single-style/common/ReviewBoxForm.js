@@ -10,6 +10,8 @@ import { notifyError, notifySuccess } from "@/lib/toast";
 import { useAuthSafe } from "@/providers/AuthProvider";
 import { usePropertySingle } from "@/providers/PropertySingleProvider";
 import { useState } from "react";
+import { PROPERTY_LEAVE_REVIEW_SECTION_ID } from "@/components/property/property-single-style/common/reviews";
+import { ReviewStarRatingInput } from "@/components/property/property-single-style/common/reviews/ReviewStarRating";
 
 const ReviewBoxForm = () => {
   const { id } = usePropertySingle();
@@ -50,25 +52,25 @@ const ReviewBoxForm = () => {
   };
 
   return (
-    <form className="comments_form mt30" onSubmit={handleSubmit}>
+    <form
+      id={PROPERTY_LEAVE_REVIEW_SECTION_ID}
+      className="comments_form mt30"
+      onSubmit={handleSubmit}
+    >
       <div className="row">
         <div className="col-md-12">
           <div className="mb20">
-            <label className="heading-color ff-heading fw600 mb10">
+            <label
+              className="heading-color ff-heading fw600 mb10 d-block"
+              id="property-review-rating-label"
+            >
               Rating
             </label>
-            <select
-              className="form-select"
+            <ReviewStarRatingInput
               value={rating}
-              onChange={(e) => setRating(Number(e.target.value))}
-              required
-            >
-              {[5, 4, 3, 2, 1].map((value) => (
-                <option key={value} value={value}>
-                  {value} star{value === 1 ? "" : "s"}
-                </option>
-              ))}
-            </select>
+              onChange={setRating}
+              disabled={createReview.isPending}
+            />
           </div>
         </div>
 

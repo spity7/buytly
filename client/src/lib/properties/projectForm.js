@@ -4,24 +4,17 @@ import {
 } from "@/lib/geo/propertyCoordinates";
 import { getVirtualTourUrlFieldError } from "@/lib/properties/fieldErrors";
 
-/** Matches server `SINGLE_PROJECT_UNIT_TYPE` — only unit type on single projects. */
-export const SINGLE_PROJECT_UNIT_TYPE = "villa";
+export const MIN_PROJECT_UNITS_TO_PUBLISH = 1;
 
-export function getProjectPublishRules(kind) {
-  if (kind === "single") {
-    return { minUnits: 1, maxUnits: 1 };
-  }
-  return { minUnits: 1, maxUnits: null };
+export function getProjectPublishRules() {
+  return { minUnits: MIN_PROJECT_UNITS_TO_PUBLISH, maxUnits: null };
 }
 
-export function getProjectSubmitReviewMessage(kind) {
-  if (kind === "single") {
-    return "Single projects need exactly one unit.";
-  }
-  return "Compound projects need at least one unit.";
+export function getProjectSubmitReviewMessage() {
+  return "Add at least one unit before you can publish.";
 }
 
-export function countProjectUnitsForKind(project) {
+export function countProjectUnits(project) {
   if (!project) return 0;
   if (Array.isArray(project.units)) {
     return project.units.length;
@@ -29,35 +22,15 @@ export function countProjectUnitsForKind(project) {
   return project.unitCount ?? 0;
 }
 
-export function canChangeProjectKind(project, unitCount) {
-  if (!project) return false;
-  return project.status === "draft" && unitCount === 0;
+export function isProjectReadyToPublish(unitCount) {
+  const { minUnits } = getProjectPublishRules();
+  return unitCount >= minUnits;
 }
 
-export function isProjectReadyToPublish(kind, unitCount) {
-  const { minUnits, maxUnits } = getProjectPublishRules(kind);
-  if (unitCount < minUnits) return false;
-  if (maxUnits != null && unitCount > maxUnits) return false;
-  return true;
-}
-
-export function hasTooManyUnitsForKind(kind, unitCount) {
-  const { maxUnits } = getProjectPublishRules(kind);
-  return maxUnits != null && unitCount > maxUnits;
-}
-
-export function getProjectAgentId(project) {
-  const agent = project?.agentId;
-  if (!agent) return "";
-  if (typeof agent === "string") return agent;
-  return agent._id || agent.id || "";
-}
-
-export function emptyProjectFormState(kind = "") {
+export function emptyProjectFormState() {
   return {
     title: "",
     description: "",
-    kind: kind || "",
     address: "",
     city: "",
     country: "",
@@ -69,6 +42,40 @@ export function emptyProjectFormState(kind = "") {
   };
 }
 
+function normalizeProjectFormSlice(state) {
+  return {
+    title: (state.title || "").trim(),
+    description: (state.description || "").trim(),
+    address: (state.address || "").trim(),
+    city: (state.city || "").trim(),
+    country: (state.country || "").trim(),
+    latitude: String(state.latitude ?? "").trim(),
+    longitude: String(state.longitude ?? "").trim(),
+    virtualTourUrl: (state.virtualTourUrl || "").trim(),
+    agentId: state.agentId || "",
+    amenities: [...(state.amenities || [])].sort(),
+  };
+}
+
+/** True when the current form differs from the loaded project snapshot. */
+export function isProjectFormDirty(current, baseline) {
+  if (!baseline) {
+    return true;
+  }
+
+  return (
+    JSON.stringify(normalizeProjectFormSlice(current)) !==
+    JSON.stringify(normalizeProjectFormSlice(baseline))
+  );
+}
+
+export function getProjectAgentId(project) {
+  const agent = project?.agentId;
+  if (!agent) return "";
+  if (typeof agent === "string") return agent;
+  return agent._id || agent.id || "";
+}
+
 export function projectToFormState(project) {
   if (!project) {
     return emptyProjectFormState();
@@ -77,7 +84,6 @@ export function projectToFormState(project) {
   return {
     title: project.title || "",
     description: project.description || "",
-    kind: project.kind || "",
     address: project.location?.address || "",
     city: project.location?.city || "",
     country: project.location?.country || "",
@@ -89,7 +95,7 @@ export function projectToFormState(project) {
 }
 
 export function buildProjectPayload(form, options = {}) {
-  const { includeKind = false, includeAgentId = false } = options;
+  const { includeAgentId = false } = options;
 
   const coordinates = latLngStringsToGeoJsonCoordinates(
     form.longitude,
@@ -126,13 +132,6 @@ export function buildProjectPayload(form, options = {}) {
     amenities: form.amenities,
     virtualTourUrl: form.virtualTourUrl.trim() || undefined,
   };
-
-  if (includeKind) {
-    if (!form.kind) {
-      return { error: "Choose a project type." };
-    }
-    payload.kind = form.kind;
-  }
 
   if (includeAgentId && form.agentId) {
     payload.agentId = form.agentId;

@@ -2,6 +2,7 @@
 
 import { buytlyApi } from "@/api/generated";
 import { getApiError } from "@/lib/auth/getApiError";
+import { useAsyncAction } from "@/hooks/useAsyncAction";
 import { useAuth } from "@/providers/AuthProvider";
 import { useState } from "react";
 
@@ -9,7 +10,7 @@ const EmailVerificationBanner = () => {
   const { user, refreshUser } = useAuth();
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { run, isBusy } = useAsyncAction();
 
   if (!user || user.isEmailVerified) {
     return null;
@@ -18,21 +19,25 @@ const EmailVerificationBanner = () => {
   const handleResend = async () => {
     setMessage("");
     setError("");
-    setIsSubmitting(true);
 
     try {
-      const response = await buytlyApi.resendVerification({
-        email: user.email,
+      const response = await run({
+        message: "Sending verification email...",
+        showToast: false,
+        task: async () => {
+          const result = await buytlyApi.resendVerification({
+            email: user.email,
+          });
+          await refreshUser();
+          return result;
+        },
       });
       setMessage(
-        response.message ||
+        response?.message ||
           "If your account is unverified, a new verification email has been sent.",
       );
-      await refreshUser();
     } catch (err) {
       setError(getApiError(err));
-    } finally {
-      setIsSubmitting(false);
     }
   };
 
@@ -44,9 +49,9 @@ const EmailVerificationBanner = () => {
           type="button"
           className="ud-btn btn-thm btn-sm"
           onClick={handleResend}
-          disabled={isSubmitting}
+          disabled={isBusy}
         >
-          {isSubmitting ? "Sending..." : "Resend verification email"}
+          {isBusy ? "Sending..." : "Resend verification email"}
         </button>
       </div>
       {message ? <p className="text-success fz14 mt10 mb0">{message}</p> : null}

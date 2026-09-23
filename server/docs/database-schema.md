@@ -2,20 +2,20 @@
 
 ## Collections Overview
 
-| Collection           | Module           | Description                        |
-| -------------------- | ---------------- | ---------------------------------- |
-| users                | Users            | User accounts and profiles         |
-| refreshtokens        | Auth             | JWT refresh token store            |
-| projects             | Projects         | Listing projects (single/compound) |
-| properties           | Properties       | Sellable units (listings)          |
-| propertyreviews      | Property Reviews | Property listing reviews           |
-| agentprofiles        | Agents           | Agent profile extensions           |
-| favorites            | Favorites        | User saved properties              |
-| bookings             | Bookings         | Visit scheduling                   |
-| transactions         | Transactions     | Purchase tracking                  |
-| notifications        | Notifications    | In-app notifications               |
-| propertytypecatalogs | Catalog          | Admin-managed property types       |
-| amenitycatalogs      | Catalog          | Admin-managed amenities            |
+| Collection           | Module           | Description                                     |
+| -------------------- | ---------------- | ----------------------------------------------- |
+| users                | Users            | User accounts and profiles                      |
+| refreshtokens        | Auth             | JWT refresh token store                         |
+| projects             | Projects         | Development projects (shared marketing + units) |
+| properties           | Properties       | Sellable units (listings)                       |
+| propertyreviews      | Property Reviews | Property listing reviews                        |
+| agentprofiles        | Agents           | Agent profile extensions                        |
+| favorites            | Favorites        | User saved properties                           |
+| bookings             | Bookings         | Visit scheduling                                |
+| transactions         | Transactions     | Purchase tracking                               |
+| notifications        | Notifications    | In-app notifications                            |
+| propertytypecatalogs | Catalog          | Admin-managed property types                    |
+| amenitycatalogs      | Catalog          | Admin-managed amenities                         |
 
 ## users
 
@@ -67,7 +67,6 @@
 ```javascript
 {
   title, slug (unique), description: String,
-  kind: enum [single, compound],
   location: {
     type: Point,
     coordinates: [lng, lat],
@@ -85,11 +84,11 @@
 }
 ```
 
-**Indexes:** `location` 2dsphere; `{ kind, status }`; text on title/description
+**Indexes:** `location` 2dsphere; `{ status, createdAt }`; text on title/description
 
-**Publish rules:** `single` → exactly 1 unit; `compound` → ≥ 1 unit (non-draft publish). Units go `pending` with the project; admin unit `active` requires parent project `active` or `sold`. **`kind` is immutable** once the project is not `draft` or has any non-trashed units.
+**Publish rules:** ≥ 1 live (non-trashed) unit before publish (`pending`/`active`). Units go `pending` with the project; admin unit `active` requires parent project `active` or `sold`. Completing a purchase transaction marks the unit `sold` and sets the parent project to `sold` when all non-trashed units on the project are sold. Archiving the last live unit on a project demotes `active`/`pending` parents to `draft`.
 
-**Trash:** Seller/agent `DELETE` sets `deletedAt` + `status: archived` and cascades the same timestamp to all non-trashed units on the project. Restore reverses the project and matching units to `draft`.
+**Trash:** Seller/agent `DELETE` and admin project archive set `deletedAt` + `status: archived` on the project and **all** units (one shared timestamp). Restore reverses the project and matching units to `draft`. Per-unit restore is rejected while the parent project remains trashed. Sellers cannot edit units under a trashed parent.
 
 ## properties
 
@@ -106,7 +105,7 @@ Sellable **units** under a project. All listings are for **sale** (no `listingTy
   bedrooms, bathrooms, area, areaUnit,
   amenities: [String],
   status: enum [draft, pending, active, sold, archived],
-  media, floorPlans, virtualTourUrl,
+  media, floorPlans (`{ title, gcsKey }` per level, any property type), virtualTourUrl,
   agentId, ownerId, viewCount, deletedAt, timestamps
 }
 ```
@@ -212,7 +211,13 @@ Sellable **units** under a project. All listings are for **sale** (no `listingTy
 }
 ```
 
-Seeded from defaults when empty on first catalog API access. The `villa` property type is always upserted as active and cannot be edited, deleted, or deactivated (required for single projects).
+Seeded from `catalog.defaults.js` on first catalog API access: missing default rows are upserted (`$setOnInsert` only, so existing admin edits are kept). Bootstrap is single-flight per server process to avoid duplicate-key races under parallel requests.
+
+**Default property types:** apartment, villa, duplex, penthouse, townhouse, office, shop, building, land, chalet.
+
+**Default amenities:** Parking, Elevator, Balcony, Terrace, Garden, Swimming Pool, Gym, Security, Generator, Central AC, Furnished, Sea View, Mountain View, Smart Home, Pet Friendly.
+
+Protected property types (if any) cannot be edited, deleted, or deactivated via the admin catalog API.
 
 ## Relationships
 

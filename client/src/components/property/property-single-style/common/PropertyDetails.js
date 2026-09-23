@@ -39,29 +39,20 @@ const PropertyDetails = () => {
   ];
 
   return (
-    <div className="row">
+    <div className="property-details-grid">
       {columns.map((column, columnIndex) => (
-        <div
-          key={columnIndex}
-          className={`col-md-6 col-xl-4${
-            columnIndex === 1 ? " offset-xl-2" : ""
-          }`}
-        >
+        <div key={columnIndex} className="property-details-column">
           {column.map((detail, index) => (
-            <div key={index} className="d-flex justify-content-between">
-              <div className="pd-list">
-                <p className="fw600 mb10 ff-heading dark-color">
-                  {detail.label}
-                </p>
-              </div>
-              <div className="pd-list">
-                <p className="text mb10">
-                  {detail.isStatus ? (
-                    <StatusBadge domain="listing" status={detail.status} />
-                  ) : (
-                    detail.value
-                  )}
-                </p>
+            <div key={index} className="property-detail-row">
+              <p className="property-detail-row__label fw600 ff-heading dark-color">
+                {detail.label}:
+              </p>
+              <div className="property-detail-row__value text">
+                {detail.isStatus ? (
+                  <StatusBadge domain="listing" status={detail.status} />
+                ) : (
+                  detail.value
+                )}
               </div>
             </div>
           ))}

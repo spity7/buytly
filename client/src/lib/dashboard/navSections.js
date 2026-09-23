@@ -20,12 +20,12 @@ export function getDashboardNavSections(role) {
         },
         {
           href: "/dashboard-bookings",
-          icon: "flaticon-calendar",
+          icon: "flaticon-event",
           text: "Bookings",
         },
         {
           href: "/dashboard-transactions",
-          icon: "flaticon-contract",
+          icon: "flaticon-secure-payment",
           text: "Transactions",
         },
       ],
@@ -42,12 +42,12 @@ export function getDashboardNavSections(role) {
               },
               {
                 href: "/dashboard-my-projects",
-                icon: "flaticon-home",
+                icon: "flaticon-corporation",
                 text: "My Projects",
               },
               {
                 href: "/dashboard-my-properties",
-                icon: "flaticon-home",
+                icon: "flaticon-door",
                 text: "All Units",
               },
               {
@@ -76,17 +76,17 @@ export function getDashboardNavSections(role) {
               },
               {
                 href: "/dashboard-admin-properties",
-                icon: "flaticon-settings",
+                icon: "flaticon-protection",
                 text: "Moderate Listings",
               },
               {
                 href: "/dashboard-admin-projects",
-                icon: "flaticon-home",
+                icon: "flaticon-hotel",
                 text: "Moderate Projects",
               },
               {
                 href: "/dashboard-admin-catalog",
-                icon: "flaticon-home",
+                icon: "flaticon-network",
                 text: "Types & Amenities",
               },
             ],
@@ -98,7 +98,7 @@ export function getDashboardNavSections(role) {
       items: [
         {
           href: "/dashboard-my-favourites",
-          icon: "flaticon-like",
+          icon: "flaticon-favourite",
           text: "My Favorites",
         },
         {
@@ -113,7 +113,7 @@ export function getDashboardNavSections(role) {
       items: [
         {
           href: "/dashboard-my-profile",
-          icon: "flaticon-user",
+          icon: "flaticon-user-1",
           text: "My Profile",
         },
         {

@@ -68,7 +68,7 @@ export const getTransactions = () => {
     );
   };
   /**
-   * Seller, agent, or admin updates transaction status. Completing marks the property as sold.
+   * Seller, agent, or admin updates transaction status. Completing marks the property as sold and may mark the parent project sold when every unit on the project is sold.
    * @summary Update transaction status
    */
   const updateTransactionStatus = (

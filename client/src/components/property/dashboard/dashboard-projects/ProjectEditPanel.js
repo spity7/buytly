@@ -18,27 +18,33 @@ import {
 import { getApiError } from "@/lib/auth/getApiError";
 import StatusBadge from "@/components/common/StatusBadge";
 import { getProjectStatusBadgeProps } from "@/lib/statusBadges";
-import { getProjectKindLabel } from "@/lib/properties/projectKindOptions";
 import {
   getProjectPublishRules,
   getProjectSubmitReviewMessage,
-  hasTooManyUnitsForKind,
   isProjectReadyToPublish,
 } from "@/lib/properties/projectForm";
+import { canAddUnitToProject } from "@/lib/properties/mapProperty";
 import { notifyError, notifySuccess } from "@/lib/toast";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useMemo } from "react";
+import { useCallback, useMemo } from "react";
 import { useQueryClient } from "@tanstack/react-query";
+
+const EMPTY_PROJECT_MEDIA = [];
 
 export default function ProjectEditPanel({ projectId }) {
   const router = useRouter();
   const queryClient = useQueryClient();
   const { data: project, isLoading, isError, refetch } = useProject(projectId);
   const units = useMemo(() => project?.units || [], [project?.units]);
-  const { requestConfirm, dialogProps, isLocked, run } = useConfirmAction({
-    overlay: true,
-  });
+  const { requestConfirm, dialogProps, isLocked, run } = useConfirmAction();
+
+  const refreshProject = useCallback(async () => {
+    queryClient.invalidateQueries({ queryKey: ["my-projects"] });
+    queryClient.invalidateQueries({ queryKey: ["my-properties"] });
+    queryClient.invalidateQueries({ queryKey: ["project", projectId] });
+    await refetch();
+  }, [queryClient, projectId, refetch]);
 
   if (isLoading) {
     return (
@@ -71,17 +77,14 @@ export default function ProjectEditPanel({ projectId }) {
   const isSold = project.status === "sold";
   const readOnly = isLocked || isSold || isTrashed;
   const unitCount = isTrashed ? (project.unitCount ?? 0) : units.length;
+  const trashedUnitCount = isTrashed ? 0 : (project.trashedUnitCount ?? 0);
 
-  const canAddUnit =
-    !isTrashed &&
-    (project.kind === "compound" ||
-      (project.kind === "single" && units.length === 0));
+  const canAddUnit = !isTrashed && canAddUnitToProject(project);
 
-  const { minUnits, maxUnits } = getProjectPublishRules(project.kind);
-  const tooManyUnits = hasTooManyUnitsForKind(project.kind, unitCount);
+  const { minUnits } = getProjectPublishRules();
   const canSubmit =
     !isTrashed &&
-    isProjectReadyToPublish(project.kind, unitCount) &&
+    isProjectReadyToPublish(unitCount) &&
     !["pending", "active", "sold"].includes(project.status);
 
   const invalidateLists = () => {
@@ -92,12 +95,17 @@ export default function ProjectEditPanel({ projectId }) {
 
   const saveDetails = async (payload) => {
     try {
-      await buytlyApi.updateProject(projectId, payload);
-      notifySuccess("Project details saved");
-      await refetch();
-      invalidateLists();
-    } catch (error) {
-      notifyError(getApiError(error));
+      await run({
+        message: "Saving project details...",
+        successMessage: "Project details saved",
+        task: async () => {
+          await buytlyApi.updateProject(projectId, payload);
+          await refetch();
+          invalidateLists();
+        },
+      });
+    } catch {
+      // Toast handled by useConfirmAction
     }
   };
 
@@ -158,7 +166,7 @@ export default function ProjectEditPanel({ projectId }) {
   const submitForReview = () => {
     requestConfirm({
       title: "Submit project for review?",
-      message: `This will submit the project and all draft units for admin review. ${getProjectSubmitReviewMessage(project.kind)}`,
+      message: `This will submit the project and all draft units for admin review. ${getProjectSubmitReviewMessage()}`,
       confirmLabel: "Submit",
       action: {
         message: "Submitting project...",
@@ -182,10 +190,6 @@ export default function ProjectEditPanel({ projectId }) {
           <p className="project-edit__eyebrow mb0">Edit project</p>
           <h2 className="project-edit__title">{project.title}</h2>
           <div className="project-edit__badges">
-            <StatusBadge
-              tone="neutral"
-              label={getProjectKindLabel(project.kind)}
-            />
             <StatusBadge
               {...getProjectStatusBadgeProps(project, {
                 isTrashView: isTrashed,
@@ -220,10 +224,12 @@ export default function ProjectEditPanel({ projectId }) {
               disabled={isLocked || isSold}
               onClick={moveToTrash}
             >
+              <i className="fas fa-trash-can" aria-hidden="true" />
               Move to trash
             </button>
           )}
           <Link href="/dashboard-my-projects" className="ud-btn btn-white2">
+            <i className="fal fa-arrow-left-long" aria-hidden="true" />
             Back to projects
           </Link>
         </div>
@@ -236,15 +242,6 @@ export default function ProjectEditPanel({ projectId }) {
             <span className="project-edit-stat__value">{unitCount}</span>
             <span className="project-edit-stat__hint">
               {minUnits} required to publish
-            </span>
-          </div>
-          <div className="project-edit-stat">
-            <span className="project-edit-stat__label">Type</span>
-            <span className="project-edit-stat__value">
-              {getProjectKindLabel(project.kind)}
-            </span>
-            <span className="project-edit-stat__hint">
-              {project.kind === "single" ? "One Villa unit" : "Multi-unit"}
             </span>
           </div>
           <div className="project-edit-stat">
@@ -275,17 +272,6 @@ export default function ProjectEditPanel({ projectId }) {
         </div>
       )}
 
-      {!isTrashed && tooManyUnits ? (
-        <div
-          className="project-edit-callout project-edit-callout--warning"
-          role="status"
-        >
-          <strong>Too many units for a single project.</strong> Single projects
-          allow exactly one unit. Remove extra units or contact support if you
-          need to restructure this listing.
-        </div>
-      ) : null}
-
       <div className="row project-edit__layout g-4">
         <div className="col-xl-8">
           <div className="project-edit__main">
@@ -295,6 +281,7 @@ export default function ProjectEditPanel({ projectId }) {
                 minUnits={minUnits}
                 projectId={projectId}
                 canAddUnit={canAddUnit}
+                trashedUnitCount={trashedUnitCount}
               />
             ) : null}
 
@@ -307,8 +294,8 @@ export default function ProjectEditPanel({ projectId }) {
 
             <ProjectMediaPanel
               projectId={projectId}
-              media={project.media || []}
-              onUpdated={refetch}
+              media={project.media ?? EMPTY_PROJECT_MEDIA}
+              onUpdated={refreshProject}
               disabled={readOnly}
             />
           </div>
@@ -322,7 +309,6 @@ export default function ProjectEditPanel({ projectId }) {
                 project={project}
                 unitCount={unitCount}
                 minUnits={minUnits}
-                maxUnits={maxUnits}
                 canSubmit={canSubmit}
                 isLocked={isLocked}
                 onSubmit={submitForReview}

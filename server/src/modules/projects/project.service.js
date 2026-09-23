@@ -19,12 +19,13 @@ import {
   hasMaterialChanges,
   buildArchiveUpdate,
   buildRestoreUpdate,
+  shouldIncrementListingView,
 } from "../properties/property-status.js";
+import { assertPublishUnitCardinality } from "./project-cardinality.js";
 import {
-  assertProjectKindChange,
-  assertPublishUnitCardinality,
-  SINGLE_PROJECT_UNIT_TYPE,
-} from "./project-cardinality.js";
+  cascadeRestoreProjectUnits,
+  cascadeTrashProjectUnits,
+} from "./project-trash-cascade.js";
 import {
   assertProjectPermanentlyDeletable,
   collectProjectGcsKeys,
@@ -46,6 +47,20 @@ const canViewNonActiveProject = (project, user) =>
   canManageProject(project, user);
 
 const PUBLIC_UNIT_STATUSES = ["active", "sold"];
+const PUBLIC_PROJECT_VIEW_STATUSES = ["active", "sold"];
+
+const assertProjectContentMutationAllowed = (project, user) => {
+  const isAdmin = user.role === ROLES.ADMIN;
+  if (isAdmin) {
+    return;
+  }
+  if (project.deletedAt) {
+    throw new AppError("Project not found", 404);
+  }
+  if (project.status === "sold") {
+    throw new AppError("Sold projects cannot be edited", 400);
+  }
+};
 
 const buildUnitsQuery = (project, user) => {
   const filter = { projectId: project._id, deletedAt: null };
@@ -229,8 +244,13 @@ const enrichProjectDoc = async (project, statsMap, options = {}) => {
         projectId: project._id,
         deletedAt: project.deletedAt,
       });
+      doc.trashedUnitCount = 0;
     } else {
       doc.unitCount = await countProjectUnits(project._id);
+      doc.trashedUnitCount = await Property.countDocuments({
+        projectId: project._id,
+        deletedAt: { $ne: null },
+      });
     }
   } else {
     doc.unitCount = stats?.unitCount ?? 0;
@@ -241,14 +261,11 @@ const enrichProjectDoc = async (project, statsMap, options = {}) => {
   return doc;
 };
 
-const validatePublishIfNeeded = async (project, nextStatus, nextKind) => {
+const validatePublishIfNeeded = async (project, nextStatus) => {
   if (nextStatus !== "pending" && nextStatus !== "active") return;
 
-  const kind = nextKind ?? project.kind;
-  const unitCount = project._id
-    ? await countProjectUnits(project._id)
-    : 0;
-  assertPublishUnitCardinality(kind, unitCount);
+  const unitCount = project._id ? await countProjectUnits(project._id) : 0;
+  assertPublishUnitCardinality(unitCount);
 };
 
 export const projectService = {
@@ -266,11 +283,7 @@ export const projectService = {
       isCreate: true,
     });
 
-    await validatePublishIfNeeded(
-      { _id: null, kind: payload.kind },
-      payload.status,
-      payload.kind,
-    );
+    await validatePublishIfNeeded({ _id: null }, payload.status);
 
     const project = await Project.create({
       ...payload,
@@ -298,7 +311,6 @@ export const projectService = {
     const { page, limit, skip } = parsePagination(query);
     const filter = { deletedAt: null };
 
-    if (query.kind) filter.kind = query.kind;
     filter.status = resolvePublicListStatus(query.status);
     if (query.city) filter["location.city"] = new RegExp(query.city, "i");
 
@@ -364,13 +376,20 @@ export const projectService = {
     if (!project) throw new AppError("Project not found", 404);
 
     if (
-      project.status !== "active" &&
+      !PUBLIC_PROJECT_VIEW_STATUSES.includes(project.status) &&
       !canViewNonActiveProject(project, user)
     ) {
       throw new AppError("Project not found", 404);
     }
 
-    if (incrementView && project.status === "active" && !project.deletedAt) {
+    if (
+      shouldIncrementListingView({
+        incrementView,
+        status: project.status,
+        canManage: canManageProject(project, user),
+      }) &&
+      !project.deletedAt
+    ) {
       project.viewCount += 1;
       await project.save({ validateBeforeSave: false });
     }
@@ -433,15 +452,9 @@ export const projectService = {
       isCreate: false,
     });
 
-    if (patch.kind !== undefined && patch.kind !== project.kind) {
-      const unitCount = await countProjectUnits(project._id);
-      assertProjectKindChange(project, patch.kind, unitCount);
-    }
-
     if (normalizedStatus !== undefined) {
       patch.status = normalizedStatus;
-      const nextKind = patch.kind ?? project.kind;
-      await validatePublishIfNeeded(project, normalizedStatus, nextKind);
+      await validatePublishIfNeeded(project, normalizedStatus);
     } else {
       delete patch.status;
     }
@@ -460,9 +473,6 @@ export const projectService = {
       normalizedStatus === undefined &&
       hasMaterialChanges(project, patch);
 
-    const kindChangedToSingle =
-      patch.kind === "single" && patch.kind !== project.kind;
-
     Object.assign(project, patch);
 
     if (materialChanges) {
@@ -474,13 +484,6 @@ export const projectService = {
     }
 
     await project.save();
-
-    if (kindChangedToSingle) {
-      await Property.updateMany(
-        { projectId: project._id, deletedAt: null },
-        { $set: { type: SINGLE_PROJECT_UNIT_TYPE } },
-      );
-    }
 
     if (patch.location) {
       await Property.updateMany(
@@ -520,10 +523,7 @@ export const projectService = {
     Object.assign(project, { status: "archived", deletedAt });
     await project.save();
 
-    await Property.updateMany(
-      { projectId: project._id, deletedAt: null },
-      { $set: { status: "archived", deletedAt } },
-    );
+    await cascadeTrashProjectUnits(project._id, deletedAt);
 
     await cacheService.invalidateListingCaches();
   },
@@ -544,12 +544,7 @@ export const projectService = {
     Object.assign(project, buildRestoreUpdate());
     await project.save();
 
-    if (cascadeDeletedAt) {
-      await Property.updateMany(
-        { projectId: project._id, deletedAt: cascadeDeletedAt },
-        { $set: buildRestoreUpdate() },
-      );
-    }
+    await cascadeRestoreProjectUnits(project._id, cascadeDeletedAt);
 
     await cacheService.invalidateListingCaches();
 
@@ -586,8 +581,6 @@ export const projectService = {
     ];
 
     if (query.status) conditions.push({ status: query.status });
-    if (query.kind) conditions.push({ kind: query.kind });
-
     const textFilter = buildPropertyTextFilter(query.search);
     if (textFilter) conditions.push(textFilter);
 
@@ -626,7 +619,7 @@ export const projectService = {
     if (!project) throw new AppError("Project not found", 404);
 
     if (
-      project.status !== "active" &&
+      !PUBLIC_PROJECT_VIEW_STATUSES.includes(project.status) &&
       !canViewNonActiveProject(project, user)
     ) {
       throw new AppError("Project not found", 404);
@@ -645,6 +638,7 @@ export const projectService = {
     if (!canManageProject(project, user)) {
       throw new AppError("Not authorized", 403);
     }
+    assertProjectContentMutationAllowed(project, user);
 
     const isVideo = file.mimetype.startsWith("video/");
 
@@ -692,6 +686,7 @@ export const projectService = {
     if (!canManageProject(project, user)) {
       throw new AppError("Not authorized", 403);
     }
+    assertProjectContentMutationAllowed(project, user);
 
     const media = project.media.id(mediaId);
     if (!media) throw new AppError("Media not found", 404);
@@ -714,6 +709,7 @@ export const projectService = {
     if (!canManageProject(project, user)) {
       throw new AppError("Not authorized", 403);
     }
+    assertProjectContentMutationAllowed(project, user);
 
     const imageMedia = project.media.filter((item) => item.type !== "video");
     if (imageIds.length !== imageMedia.length) {

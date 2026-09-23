@@ -13,11 +13,14 @@ export const LISTING_SORT_OPTIONS = {
 export const LISTING_PROPERTY_TYPE_OPTIONS = [
   { label: "Apartment", value: "apartment" },
   { label: "Villa", value: "villa" },
-  { label: "Townhouse", value: "townhouse" },
-  { label: "Land", value: "land" },
-  { label: "Commercial", value: "commercial" },
   { label: "Duplex", value: "duplex" },
-  { label: "Studio", value: "studio" },
+  { label: "Penthouse", value: "penthouse" },
+  { label: "Townhouse", value: "townhouse" },
+  { label: "Office", value: "office" },
+  { label: "Shop", value: "shop" },
+  { label: "Building", value: "building" },
+  { label: "Land", value: "land" },
+  { label: "Chalet", value: "chalet" },
 ];
 
 export function buildListingQueryParams({

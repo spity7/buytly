@@ -5,6 +5,13 @@ export function sortPropertyImages(media = []) {
     .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
 }
 
+/** Stable string for syncing local gallery state from server media (avoids `[]` reference churn). */
+export function getSavedMediaFingerprint(media = []) {
+  return sortPropertyImages(media)
+    .map((item) => `${item._id || item.id}:${item.order ?? 0}`)
+    .join("|");
+}
+
 export function mediaToSavedGalleryItems(
   images,
   { label = "Property photo" } = {},

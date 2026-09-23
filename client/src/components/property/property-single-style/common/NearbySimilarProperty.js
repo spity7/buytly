@@ -1,11 +1,14 @@
 "use client";
 
+import PropertySectionEmptyState from "@/components/property/property-single-style/common/PropertySectionEmptyState";
 import { useProperties } from "@/hooks/useProperties";
 import { remoteImageProps } from "@/lib/images/remoteImage";
+import { buildListingsHref } from "@/lib/listings/listingSearchParams";
 import { mapPropertiesToCards } from "@/lib/properties/mapProperty";
 import { usePropertySingle } from "@/providers/PropertySingleProvider";
 import Image from "next/image";
 import Link from "next/link";
+import { useMemo } from "react";
 import { Navigation, Pagination } from "swiper/modules";
 import { Swiper, SwiperSlide } from "swiper/react";
 
@@ -29,12 +32,37 @@ const NearbySimilarProperty = () => {
     (listing) => String(listing.id) !== String(id),
   );
 
+  const browseHref = useMemo(
+    () =>
+      buildListingsHref({
+        location: city || "All Cities",
+        propertyTypes: property?.type ? [property.type] : [],
+      }),
+    [city, property?.type],
+  );
+
   if (isLoading) {
-    return <p className="text">Loading similar properties...</p>;
+    return <p className="text py-4 mb-0">Loading similar properties...</p>;
   }
 
   if (!listings.length) {
-    return <p className="text">No similar properties found right now.</p>;
+    const locationHint = city ? ` in ${city}` : "";
+
+    return (
+      <PropertySectionEmptyState
+        icon="flaticon-search"
+        title="No similar listings yet"
+        description={`We could not find other ${property?.type || "properties"}${locationHint} that closely match this listing. Browse the full catalog to discover more options.`}
+        actions={[
+          { label: "Browse matching listings", href: browseHref },
+          {
+            label: "View all properties",
+            href: "/listings",
+            variant: "secondary",
+          },
+        ]}
+      />
+    );
   }
 
   return (

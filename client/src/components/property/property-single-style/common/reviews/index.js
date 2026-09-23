@@ -1,58 +1,107 @@
 "use client";
 
-import { usePropertyReviews } from "@/hooks/usePropertyReviews";
+import PropertySectionEmptyState, {
+  PropertyReviewsEmptyDecoration,
+} from "@/components/property/property-single-style/common/PropertySectionEmptyState";
+import {
+  usePropertyReviewStatus,
+  usePropertyReviews,
+} from "@/hooks/usePropertyReviews";
+import { isPropertyBookable } from "@/lib/properties/mapProperty";
 import { usePropertySingle } from "@/providers/PropertySingleProvider";
-import React from "react";
+import { useMemo, useState } from "react";
+import ReviewStarRating, { formatAverageRating } from "./ReviewStarRating";
+import { REVIEW_SORT_OPTIONS, sortPropertyReviews } from "./reviewSort";
 import SingleReview from "./SingleReview";
 
-const sortOptions = ["Newest", "Highest rated", "Lowest rated"];
+export const PROPERTY_LEAVE_REVIEW_SECTION_ID = "property-leave-review";
 
 const AllReviews = () => {
-  const { id } = usePropertySingle();
+  const { id, property } = usePropertySingle();
   const { data, isLoading } = usePropertyReviews(id);
-
-  if (isLoading) {
-    return <p className="text col-12">Loading reviews...</p>;
-  }
+  const { data: hasReviewed = false, isLoading: isReviewStatusLoading } =
+    usePropertyReviewStatus(id);
+  const [sortKey, setSortKey] = useState("newest");
 
   const reviews = data?.reviews || [];
   const stats = data?.stats || { averageRating: 0, reviewCount: 0 };
+  const sortedReviews = useMemo(
+    () => sortPropertyReviews(reviews, sortKey),
+    [reviews, sortKey],
+  );
 
-  if (!stats.reviewCount) {
+  if (isLoading) {
     return (
-      <div className="product_single_content mb50">
-        <p className="text mb-0">No reviews yet. Be the first to review.</p>
+      <div className="property-reviews col-12">
+        <h4 className="title fz17 mb20">Reviews</h4>
+        <p className="property-reviews__loading text mb0">Loading reviews…</p>
       </div>
     );
   }
 
-  return (
-    <div className="product_single_content mb50">
-      <div className="mbp_pagination_comments">
-        <div className="row">
-          <div className="col-lg-12">
-            <div className="total_review d-flex align-items-center justify-content-between mb20">
-              <h6 className="fz17 mb15">
-                <i className="fas fa-star fz12 pe-2" />
-                {stats.averageRating} · {stats.reviewCount} review
-                {stats.reviewCount === 1 ? "" : "s"}
-              </h6>
-              <div className="page_control_shorting d-flex align-items-center justify-content-center justify-content-sm-end">
-                <div className="pcs_dropdown mb15 d-flex align-items-center">
-                  <span style={{ minWidth: "60px" }}>Sort by</span>
-                  <select className="form-select" defaultValue={sortOptions[0]}>
-                    {sortOptions.map((option) => (
-                      <option key={option}>{option}</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-            </div>
-          </div>
+  if (!stats.reviewCount) {
+    const canLeaveReview =
+      isPropertyBookable(property?.status) &&
+      !isReviewStatusLoading &&
+      !hasReviewed;
 
-          <SingleReview reviews={reviews} />
-        </div>
+    return (
+      <div className="property-reviews col-12">
+        <h4 className="title fz17 mb20">Reviews</h4>
+        <PropertySectionEmptyState
+          variant="embedded"
+          icon="flaticon-review"
+          title="No reviews yet"
+          description={
+            canLeaveReview
+              ? "Share your experience with this property to help other buyers and renters make confident decisions."
+              : "This listing does not have any reviews yet. Check back later to see what others thought."
+          }
+          decoration={<PropertyReviewsEmptyDecoration />}
+        />
       </div>
+    );
+  }
+
+  const count = stats.reviewCount;
+  const averageLabel = formatAverageRating(stats.averageRating);
+
+  return (
+    <div className="property-reviews col-12">
+      <h4 className="title fz17 mb20">Reviews</h4>
+      <div className="property-reviews__toolbar">
+        <div className="property-reviews__summary">
+          <ReviewStarRating value={stats.averageRating} size="lg" />
+          <span className="property-reviews__score">
+            <strong>{averageLabel}</strong>
+            <span className="property-reviews__score-sep" aria-hidden>
+              ·
+            </span>
+            <span>
+              {count} review{count === 1 ? "" : "s"}
+            </span>
+          </span>
+        </div>
+
+        {count > 1 ? (
+          <label className="property-reviews__sort">
+            <span className="property-reviews__sort-label">Sort by</span>
+            <select
+              className="form-select property-reviews__sort-select"
+              value={sortKey}
+              onChange={(e) => setSortKey(e.target.value)}
+            >
+              {REVIEW_SORT_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </label>
+        ) : null}
+      </div>
+
+      <SingleReview reviews={sortedReviews} />
     </div>
   );
 };

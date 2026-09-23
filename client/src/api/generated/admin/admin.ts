@@ -147,6 +147,7 @@ export const getAdmin = () => {
     );
   };
   /**
+   * Setting status to archived soft-deletes the project and cascades the same trash timestamp to all units. Returning to a non-archived status restores units that were trashed with that project timestamp.
    * @summary Moderate a project
    */
   const adminModerateProject = (

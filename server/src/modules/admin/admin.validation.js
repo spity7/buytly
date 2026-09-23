@@ -1,9 +1,5 @@
 import { z } from "zod";
-import {
-  ROLES,
-  PROPERTY_STATUSES,
-  PROJECT_KINDS,
-} from "../../shared/constants.js";
+import { ROLES, PROPERTY_STATUSES } from "../../shared/constants.js";
 
 export const listUsersSchema = z.object({
   page: z.coerce.number().int().positive().optional(),
@@ -45,7 +41,6 @@ export const listAdminProjectsSchema = z.object({
   page: z.coerce.number().int().positive().optional(),
   limit: z.coerce.number().int().positive().max(100).optional(),
   status: z.enum(PROPERTY_STATUSES).optional(),
-  kind: z.enum(PROJECT_KINDS).optional(),
   search: z.string().optional(),
   sortBy: z.enum(["createdAt", "viewCount", "title"]).optional(),
   sortOrder: z.enum(["asc", "desc"]).optional(),

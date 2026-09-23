@@ -6,7 +6,9 @@ import {
   createActiveProperty,
   createProject,
   createPropertyForProject,
+  propertyPayload,
 } from "./helpers/listingFixtures.js";
+import { Project } from "../src/modules/projects/project.model.js";
 
 const getApp = async () => {
   const { default: app } = await import("../src/app.js");
@@ -110,6 +112,85 @@ describe.skipIf(!mongoAvailable)("properties API", () => {
     expect(res.status).toBe(200);
     expect(res.body.data._id).toBe(id);
     expect(res.body.data.viewCount).toBeGreaterThanOrEqual(1);
+  });
+
+  it("rejects location on property create and mirrors project location on unit", async () => {
+    const app = await getApp();
+    const token = await registerAndGetToken(app, {
+      email: "unit-location@example.com",
+    });
+
+    const projectRes = await createProject(app, token, {
+      title: "Location Parent Project",
+      location: {
+        coordinates: [55.1, 25.1],
+        address: "Project Tower",
+        city: "Dubai",
+        country: "UAE",
+      },
+    });
+    const projectId = projectRes.body.data._id;
+
+    const withLocation = await request(app)
+      .post("/api/v1/properties")
+      .set("Authorization", `Bearer ${token}`)
+      .send(
+        propertyPayload(projectId, {
+          location: {
+            coordinates: [54.0, 24.0],
+            city: "Abu Dhabi",
+          },
+        }),
+      );
+    expect(withLocation.status).toBe(400);
+
+    const created = await createPropertyForProject(app, token, projectId);
+    expect(created.status).toBe(201);
+    expect(created.body.data.location.city).toBe("Dubai");
+    expect(created.body.data.location.coordinates).toEqual([55.1, 25.1]);
+
+    await Project.findByIdAndUpdate(projectId, {
+      location: {
+        type: "Point",
+        coordinates: [55.5, 25.5],
+        address: "Updated Tower",
+        city: "Sharjah",
+        country: "UAE",
+      },
+    });
+
+    const propertyId = created.body.data._id;
+    const patched = await request(app)
+      .patch(`/api/v1/properties/${propertyId}`)
+      .set("Authorization", `Bearer ${token}`)
+      .send({ title: "Renamed Unit" });
+    expect(patched.status).toBe(200);
+    expect(patched.body.data.location.city).toBe("Sharjah");
+    expect(patched.body.data.location.coordinates).toEqual([55.5, 25.5]);
+  });
+
+  it("does not increment view count when owner loads listing from dashboard", async () => {
+    const app = await getApp();
+    const token = await registerAndGetToken(app, {
+      email: "owner-view-seller@example.com",
+    });
+
+    const id = await createActiveProperty(app, token, {
+      title: "Owner Dashboard View Property",
+    });
+
+    const publicView = await request(app).get(`/api/v1/properties/${id}`);
+    expect(publicView.status).toBe(200);
+    const afterPublic = publicView.body.data.viewCount;
+
+    const ownerView = await request(app)
+      .get(`/api/v1/properties/${id}`)
+      .set("Authorization", `Bearer ${token}`);
+    expect(ownerView.status).toBe(200);
+    expect(ownerView.body.data.viewCount).toBe(afterPublic);
+
+    const secondPublic = await request(app).get(`/api/v1/properties/${id}`);
+    expect(secondPublic.body.data.viewCount).toBe(afterPublic + 1);
   });
 
   it("hides non-active property from public but allows owner access", async () => {
@@ -312,5 +393,23 @@ describe.skipIf(!mongoAvailable)("bookings API", () => {
 
     expect(approveRes.status).toBe(200);
     expect(approveRes.body.data.status).toBe("approved");
+  });
+
+  it("returns no public listings when projectId points at a non-public project", async () => {
+    const app = await getApp();
+    const token = await registerAndGetToken(app, {
+      email: "project-filter-seller@example.com",
+    });
+
+    const created = await createProject(app, token);
+    const projectId = created.body.data._id;
+    await createPropertyForProject(app, token, projectId, { status: "draft" });
+
+    const res = await request(app).get(
+      `/api/v1/properties?projectId=${projectId}`,
+    );
+
+    expect(res.status).toBe(200);
+    expect(res.body.data).toEqual([]);
   });
 });

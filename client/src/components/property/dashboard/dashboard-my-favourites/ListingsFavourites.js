@@ -5,7 +5,6 @@ import { Tooltip as ReactTooltip } from "react-tooltip";
 import Image from "next/image";
 import Link from "next/link";
 import { buytlyApi } from "@/api/generated";
-import AsyncActionOverlay from "@/components/common/AsyncActionOverlay";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
 import { DashboardGridSkeleton } from "@/components/property/dashboard/skeletons/DashboardSkeletons";
 import { useFavorites } from "@/hooks/useFavorites";
@@ -18,8 +17,8 @@ const PLACEHOLDER = "/images/listings/list-1.jpg";
 const ListingsFavourites = () => {
   const queryClient = useQueryClient();
   const { data, isLoading, isError } = useFavorites({ limit: 50 });
-  const { requestConfirm, isLocked, overlayMessage, dialogProps, pending } =
-    useConfirmAction({ overlay: true });
+  const { requestConfirm, isLocked, dialogProps, pending } =
+    useConfirmAction();
   const cards = data?.cards || [];
 
   const promptRemove = (propertyId, title) => {
@@ -119,7 +118,6 @@ const ListingsFavourites = () => {
       )}
 
       <ConfirmDialog {...dialogProps} />
-      <AsyncActionOverlay message={overlayMessage} />
     </>
   );
 };

@@ -19,12 +19,21 @@ export const PROPERTY_TYPE_FILTERS = [
   { value: "", label: "All property types" },
   { value: "apartment", label: "Apartment" },
   { value: "villa", label: "Villa" },
-  { value: "townhouse", label: "Townhouse" },
-  { value: "land", label: "Land" },
-  { value: "commercial", label: "Commercial" },
   { value: "duplex", label: "Duplex" },
-  { value: "studio", label: "Studio" },
+  { value: "penthouse", label: "Penthouse" },
+  { value: "townhouse", label: "Townhouse" },
+  { value: "office", label: "Office" },
+  { value: "shop", label: "Shop" },
+  { value: "building", label: "Building" },
+  { value: "land", label: "Land" },
+  { value: "chalet", label: "Chalet" },
 ];
+
+export function getPropertyTypeLabel(value) {
+  if (!value) return "—";
+  const match = PROPERTY_TYPE_FILTERS.find((option) => option.value === value);
+  return match?.label || String(value);
+}
 
 export const PROPERTY_SORT_OPTIONS = [
   { value: "createdAt:desc", label: "Newest first" },
@@ -40,12 +49,6 @@ export const MY_PROJECT_STATUS_FILTERS = [
   { value: "pending", label: "Pending review" },
   { value: "active", label: "Published" },
   { value: "sold", label: "Sold" },
-];
-
-export const PROJECT_KIND_FILTERS = [
-  { value: "", label: "All types" },
-  { value: "single", label: "Single" },
-  { value: "compound", label: "Compound" },
 ];
 
 export const PROJECT_SORT_OPTIONS = [

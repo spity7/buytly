@@ -1,24 +1,13 @@
 "use client";
 
 import ModalVideo from "@/components/common/ModalVideo";
+import VideoFilePlayer from "@/components/common/VideoFilePlayer";
+import {
+  extractYouTubeVideoId,
+  youtubeThumbnailFromUrl,
+} from "@/lib/media/videoThumbnails";
 import { usePropertySingle } from "@/providers/PropertySingleProvider";
 import { useMemo, useState } from "react";
-
-function extractYouTubeId(url) {
-  if (!url) return null;
-  try {
-    const parsed = new URL(url);
-    if (parsed.hostname.includes("youtu.be")) {
-      return parsed.pathname.slice(1) || null;
-    }
-    if (parsed.hostname.includes("youtube.com")) {
-      return parsed.searchParams.get("v");
-    }
-  } catch {
-    return null;
-  }
-  return null;
-}
 
 const PropertyVideo = () => {
   const { property } = usePropertySingle();
@@ -29,15 +18,10 @@ const PropertyVideo = () => {
     [property?.media],
   );
 
-  const posterImage = useMemo(
-    () =>
-      property?.media?.find((item) => item.type === "image" && item.url)?.url,
-    [property?.media],
-  );
-
   if (!videoMedia?.url) return null;
 
-  const youtubeId = extractYouTubeId(videoMedia.url);
+  const youtubeId = extractYouTubeVideoId(videoMedia.url);
+  const youtubePoster = youtubeThumbnailFromUrl(videoMedia.url);
 
   return (
     <>
@@ -47,12 +31,10 @@ const PropertyVideo = () => {
       <div className="col-md-12">
         {youtubeId ? (
           <div
-            className="property_video bdrs12 w-100"
+            className="property_video property_video--poster bdrs12 w-100"
             style={
-              posterImage
-                ? {
-                    backgroundImage: `url(${posterImage})`,
-                  }
+              youtubePoster
+                ? { backgroundImage: `url(${youtubePoster})` }
                 : undefined
             }
           >
@@ -67,13 +49,7 @@ const PropertyVideo = () => {
             </button>
           </div>
         ) : (
-          <video
-            className="w-100 bdrs12"
-            src={videoMedia.url}
-            controls
-            poster={posterImage}
-            style={{ maxHeight: 480 }}
-          />
+          <VideoFilePlayer src={videoMedia.url} style={{ maxHeight: 480 }} />
         )}
       </div>
     </>

@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { PROJECT_KINDS, PROPERTY_STATUSES } from "../../shared/constants.js";
+import { PROPERTY_STATUSES } from "../../shared/constants.js";
 
 const locationSchema = z.object({
   coordinates: z
@@ -15,7 +15,6 @@ const locationSchema = z.object({
 export const createProjectSchema = z.object({
   title: z.string().min(3).max(200),
   description: z.string().min(10),
-  kind: z.enum(PROJECT_KINDS),
   location: locationSchema,
   amenities: z.array(z.string()).optional(),
   virtualTourUrl: z.string().url().max(2000).optional().or(z.literal("")),
@@ -32,7 +31,6 @@ export const listMyProjectsSchema = z.object({
   page: z.coerce.number().int().positive().optional(),
   limit: z.coerce.number().int().positive().max(100).optional(),
   status: z.enum(PROPERTY_STATUSES).optional(),
-  kind: z.enum(PROJECT_KINDS).optional(),
   search: z.string().optional(),
   sortBy: z.enum(["createdAt", "viewCount", "title"]).optional(),
   sortOrder: z.enum(["asc", "desc"]).optional(),
@@ -42,7 +40,6 @@ export const listMyProjectsSchema = z.object({
 export const listProjectsSchema = z.object({
   page: z.coerce.number().int().positive().optional(),
   limit: z.coerce.number().int().positive().max(100).optional(),
-  kind: z.enum(PROJECT_KINDS).optional(),
   status: z.enum(["active", "sold"]).optional(),
   city: z.string().optional(),
   search: z.string().optional(),

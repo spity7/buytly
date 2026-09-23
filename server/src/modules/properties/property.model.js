@@ -15,11 +15,6 @@ const mediaSchema = new mongoose.Schema(
 const floorPlanSchema = new mongoose.Schema(
   {
     title: { type: String, required: true, trim: true },
-    area: { type: Number, min: 0 },
-    areaUnit: { type: String, default: "sqm" },
-    bedrooms: { type: Number, min: 0 },
-    bathrooms: { type: Number, min: 0 },
-    price: { type: Number, min: 0 },
     gcsKey: { type: String },
   },
   { _id: true },

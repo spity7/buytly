@@ -50,7 +50,6 @@ describe.skipIf(!mongoAvailable)("admin users API", () => {
       title: "Seller project",
       slug: "seller-project-admin-test",
       description: "Stays live after delete",
-      kind: "single",
       location: {
         type: "Point",
         city: "Dubai",

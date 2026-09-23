@@ -40,6 +40,22 @@ describe.skipIf(!mongoAvailable)("catalog API", () => {
     expect(amenities.body.data.length).toBeGreaterThan(0);
   });
 
+  it("bootstraps catalog safely under parallel requests", async () => {
+    const app = await getApp();
+
+    const responses = await Promise.all([
+      request(app).get("/api/v1/catalog/property-types"),
+      request(app).get("/api/v1/catalog/amenities"),
+      request(app).get("/api/v1/catalog/property-types"),
+      request(app).get("/api/v1/catalog/amenities"),
+    ]);
+
+    for (const res of responses) {
+      expect(res.status).toBe(200);
+      expect(res.body.data.length).toBeGreaterThan(0);
+    }
+  });
+
   it("allows admin to create and deactivate a property type", async () => {
     const app = await getApp();
     const token = await loginAsAdmin(app, "catalog-admin-types@example.com");
@@ -48,13 +64,13 @@ describe.skipIf(!mongoAvailable)("catalog API", () => {
       .post("/api/v1/admin/catalog/property-types")
       .set("Authorization", `Bearer ${token}`)
       .send({
-        value: "penthouse",
-        label: "Penthouse",
+        value: "loft",
+        label: "Loft",
         sortOrder: 99,
       });
 
     expect(created.status).toBe(201);
-    expect(created.body.data.value).toBe("penthouse");
+    expect(created.body.data.value).toBe("loft");
 
     const updated = await request(app)
       .patch(`/api/v1/admin/catalog/property-types/${created.body.data.id}`)
@@ -103,7 +119,6 @@ describe.skipIf(!mongoAvailable)("catalog API", () => {
       title: "Catalog count project",
       slug: "catalog-count-project-test",
       description: "Project for catalog count test",
-      kind: "single",
       location: {
         type: "Point",
         city: "Dubai",
@@ -117,11 +132,11 @@ describe.skipIf(!mongoAvailable)("catalog API", () => {
     await Property.create({
       title: "Catalog count listing",
       slug: "catalog-count-listing-test",
-      description: "Uses default apartment type and WiFi amenity",
+      description: "Uses default apartment type and Parking amenity",
       type: "apartment",
       projectId: project._id,
       price: 250000,
-      amenities: ["WiFi"],
+      amenities: ["Parking"],
       location: project.location,
       ownerId: seller.body.data.user.id,
       status: "active",
@@ -142,42 +157,10 @@ describe.skipIf(!mongoAvailable)("catalog API", () => {
       .set("Authorization", `Bearer ${token}`);
 
     expect(amenities.status).toBe(200);
-    const wifi = amenities.body.data.find((item) => item.value === "WiFi");
-    expect(wifi?.listingCount).toBeGreaterThanOrEqual(1);
-  });
-
-  it("protects villa type from delete and deactivation", async () => {
-    const app = await getApp();
-    const token = await loginAsAdmin(app, "catalog-villa-protect@example.com");
-
-    await request(app).get("/api/v1/catalog/property-types");
-
-    const types = await request(app)
-      .get("/api/v1/admin/catalog/property-types")
-      .set("Authorization", `Bearer ${token}`);
-
-    const villa = types.body.data.find((item) => item.value === "villa");
-    expect(villa).toBeTruthy();
-
-    const editLabel = await request(app)
-      .patch(`/api/v1/admin/catalog/property-types/${villa.id}`)
-      .set("Authorization", `Bearer ${token}`)
-      .send({ label: "Custom Villa" });
-
-    expect(editLabel.status).toBe(409);
-
-    const deactivate = await request(app)
-      .patch(`/api/v1/admin/catalog/property-types/${villa.id}`)
-      .set("Authorization", `Bearer ${token}`)
-      .send({ isActive: false });
-
-    expect(deactivate.status).toBe(409);
-
-    const del = await request(app)
-      .delete(`/api/v1/admin/catalog/property-types/${villa.id}`)
-      .set("Authorization", `Bearer ${token}`);
-
-    expect(del.status).toBe(409);
+    const parking = amenities.body.data.find(
+      (item) => item.value === "Parking",
+    );
+    expect(parking?.listingCount).toBeGreaterThanOrEqual(1);
   });
 
   it("rejects duplicate property type and amenity display names", async () => {
@@ -210,8 +193,8 @@ describe.skipIf(!mongoAvailable)("catalog API", () => {
       .post("/api/v1/admin/catalog/amenities")
       .set("Authorization", `Bearer ${token}`)
       .send({
-        value: "WiFi",
-        label: "wifi",
+        value: "duplicate-parking",
+        label: " parking ",
         sortOrder: 1,
       });
 
@@ -231,7 +214,7 @@ describe.skipIf(!mongoAvailable)("catalog API", () => {
     const dupAmenityUpdate = await request(app)
       .patch(`/api/v1/admin/catalog/amenities/${created.body.data.id}`)
       .set("Authorization", `Bearer ${token}`)
-      .send({ label: "WiFi" });
+      .send({ label: "Parking" });
 
     expect(dupAmenityUpdate.status).toBe(409);
   });

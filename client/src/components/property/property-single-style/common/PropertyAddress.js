@@ -17,17 +17,31 @@ const PropertyAddress = () => {
 
   return (
     <>
-      <div className="col-md-6 col-xl-4">
-        <div className="d-flex justify-content-between">
-          <div className="pd-list">
-            <p className="fw600 mb10 ff-heading dark-color">Address</p>
-            <p className="fw600 mb10 ff-heading dark-color">City</p>
-            <p className="fw600 mb-0 ff-heading dark-color">Country</p>
+      <div className="col-12">
+        <div className="property-details-column property-details-column--address">
+          <div className="property-detail-row">
+            <p className="property-detail-row__label fw600 ff-heading dark-color">
+              Address:
+            </p>
+            <p className="property-detail-row__value text">
+              {location.address || "—"}
+            </p>
           </div>
-          <div className="pd-list">
-            <p className="text mb10">{location.address || "—"}</p>
-            <p className="text mb10">{location.city || "—"}</p>
-            <p className="text mb-0">{location.country || "—"}</p>
+          <div className="property-detail-row">
+            <p className="property-detail-row__label fw600 ff-heading dark-color">
+              City:
+            </p>
+            <p className="property-detail-row__value text">
+              {location.city || "—"}
+            </p>
+          </div>
+          <div className="property-detail-row">
+            <p className="property-detail-row__label fw600 ff-heading dark-color">
+              Country:
+            </p>
+            <p className="property-detail-row__value text">
+              {location.country || "—"}
+            </p>
           </div>
         </div>
       </div>

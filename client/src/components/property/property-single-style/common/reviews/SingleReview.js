@@ -2,7 +2,7 @@
 
 import { remoteImageProps } from "@/lib/images/remoteImage";
 import Image from "next/image";
-import React from "react";
+import ReviewStarRating from "./ReviewStarRating";
 
 const PLACEHOLDER_AVATAR = "/images/blog/comments-2.png";
 
@@ -21,52 +21,52 @@ function formatReviewDate(value) {
 }
 
 const SingleReview = ({ reviews = [] }) => {
+  if (!reviews.length) return null;
+
   return (
-    <>
+    <ul className="property-reviews__list list-unstyled mb0">
       {reviews.map((review) => {
         const user = review.userId;
         const avatarUrl = user?.avatar?.url || PLACEHOLDER_AVATAR;
+        const name = getReviewerName(user);
 
         return (
-          <div className="col-md-12" key={review._id}>
-            <div className="mbp_first position-relative d-flex align-items-center justify-content-start mt30 mb30-sm">
-              <Image
-                width={60}
-                height={60}
-                src={avatarUrl}
-                className="mr-3"
-                alt={getReviewerName(user)}
-                {...remoteImageProps(avatarUrl)}
-              />
-              <div className="ml20">
-                <h6 className="mt-0 mb-0">{getReviewerName(user)}</h6>
-                <div>
-                  <span className="fz14">
-                    {formatReviewDate(review.createdAt)}
-                  </span>
-                  <div className="blog-single-review">
-                    <ul className="mb0 ps-0">
-                      {[...Array(review.rating || 0)].map((_, i) => (
-                        <li className="list-inline-item me-0" key={i}>
-                          <span>
-                            <i className="fas fa-star review-color2 fz10" />
-                          </span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
+          <li className="property-review-card" key={review._id}>
+            <div className="property-review-card__header">
+              <div className="property-review-card__avatar">
+                <Image
+                  width={48}
+                  height={48}
+                  src={avatarUrl}
+                  alt=""
+                  aria-hidden
+                  {...remoteImageProps(avatarUrl)}
+                />
+              </div>
+              <div className="property-review-card__meta">
+                <div className="property-review-card__meta-top">
+                  <span className="property-review-card__name">{name}</span>
+                  <ReviewStarRating value={review.rating} size="sm" />
                 </div>
+                <time
+                  className="property-review-card__date"
+                  dateTime={review.createdAt}
+                >
+                  {formatReviewDate(review.createdAt)}
+                </time>
               </div>
             </div>
 
-            {review.title && (
-              <h6 className="fz16 mb10 dark-color">{review.title}</h6>
-            )}
-            <p className="text mt20 mb20">{review.text}</p>
-          </div>
+            {review.title ? (
+              <p className="property-review-card__title">{review.title}</p>
+            ) : null}
+            {review.text ? (
+              <p className="property-review-card__text">{review.text}</p>
+            ) : null}
+          </li>
         );
       })}
-    </>
+    </ul>
   );
 };
 

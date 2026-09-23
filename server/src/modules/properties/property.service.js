@@ -1,12 +1,13 @@
 import { Property } from "./property.model.js";
 import { Project } from "../projects/project.model.js";
 import { projectService } from "../projects/project.service.js";
+import { maybeDemoteProjectWithoutLiveUnits } from "../projects/project-live-units-sync.js";
+import { syncParentProjectSoldStatus } from "../projects/project-sold-sync.js";
 import {
-  applySingleProjectUnitType,
   assertCanAddUnitToProject,
+  assertParentProjectAllowsUnitRestore,
   assertParentProjectAllowsUnitStatus,
   assertPublishUnitCardinality,
-  assertSingleProjectUnitType,
 } from "../projects/project-cardinality.js";
 import { gcsService } from "../../services/gcs.service.js";
 import { cacheService } from "../../services/cache.service.js";
@@ -25,12 +26,18 @@ import { notificationService } from "../notifications/notification.service.js";
 import { nearbyService } from "../../services/nearby.service.js";
 import {
   isPropertyTerminal,
+  isPublicPropertyViewStatus,
+  shouldIncrementListingView,
   normalizeSellerStatus,
   resolvePublicListStatus,
   hasMaterialChanges,
   buildArchiveUpdate,
   buildRestoreUpdate,
 } from "./property-status.js";
+import {
+  resolveFloorPlansForPropertyType,
+  sanitizeFloorPlanForStorage,
+} from "./floor-plans.js";
 
 const EARTH_RADIUS_KM = 6378.1;
 
@@ -87,16 +94,30 @@ const attachMediaUrls = async (property) => {
 
   if (doc.floorPlans?.length) {
     doc.floorPlans = await Promise.all(
-      doc.floorPlans.map(async (plan) => ({
-        ...plan,
-        url: plan.gcsKey
-          ? await gcsService.getSignedUrl(plan.gcsKey)
-          : undefined,
-      })),
+      doc.floorPlans.map(async (plan) => {
+        const clean = sanitizeFloorPlanForStorage(plan);
+        return {
+          ...clean,
+          url: clean.gcsKey
+            ? await gcsService.getSignedUrl(clean.gcsKey)
+            : undefined,
+        };
+      }),
     );
   }
 
   return doc;
+};
+
+const applyFloorPlansOnWrite = async (property, patch) => {
+  const nextType = patch.type ?? property?.type;
+
+  if (patch.floorPlans !== undefined) {
+    patch.floorPlans = resolveFloorPlansForPropertyType(
+      nextType,
+      patch.floorPlans,
+    );
+  }
 };
 
 const buildUniqueSlug = async (title) => {
@@ -142,7 +163,7 @@ const buildPropertyIdFilter = (id, user) => {
 
 const findPropertyById = (id, user) =>
   Property.findOne(buildPropertyIdFilter(id, user))
-    .populate("projectId", "title slug kind status")
+    .populate("projectId", "title slug status")
     .populate("agentId", "firstName lastName email phone avatar")
     .populate("ownerId", "firstName lastName email phone");
 
@@ -164,10 +185,30 @@ const validateUnitPublishForProject = async (
     projectId: project._id,
     deletedAt: null,
   });
-  assertPublishUnitCardinality(project.kind, unitCount);
+  assertPublishUnitCardinality(unitCount);
 };
 
 const PUBLIC_PARENT_PROJECT_STATUSES = ["active", "sold"];
+
+const assertSellerUnitMutationAllowed = (project, user) => {
+  if (user.role === ROLES.ADMIN) {
+    return;
+  }
+  assertParentProjectAllowsUnitRestore(project);
+};
+
+const assertPropertyContentMutationAllowed = async (property, user) => {
+  const isAdmin = user.role === ROLES.ADMIN;
+  if (!isAdmin && isPropertyTerminal(property.status)) {
+    throw new AppError("Sold or archived listings cannot be edited", 400);
+  }
+
+  const project = await Project.findById(property.projectId).select(
+    "deletedAt status",
+  );
+  if (!project) throw new AppError("Project not found", 404);
+  assertSellerUnitMutationAllowed(project, user);
+};
 
 const assertPublicParentProject = async (property) => {
   const populated = property.projectId;
@@ -219,14 +260,21 @@ export const propertyService = {
       projectId: project._id,
       deletedAt: null,
     });
-    assertCanAddUnitToProject(project, existingUnits);
+    assertCanAddUnitToProject(project);
 
     const slug = await buildUniqueSlug(data.title);
     const payload = { ...data };
+    delete payload.location;
     const isAdmin = user.role === ROLES.ADMIN;
 
-    applySingleProjectUnitType(project, payload);
     await applyListingCatalogRules(payload);
+
+    if (payload.floorPlans !== undefined) {
+      payload.floorPlans = resolveFloorPlansForPropertyType(
+        payload.type,
+        payload.floorPlans,
+      );
+    }
 
     payload.status = normalizeSellerStatus(payload.status, {
       isAdmin,
@@ -234,7 +282,7 @@ export const propertyService = {
     });
 
     if (payload.status === "pending" || payload.status === "active") {
-      assertPublishUnitCardinality(project.kind, existingUnits + 1);
+      assertPublishUnitCardinality(existingUnits + 1);
     }
 
     const property = await Property.create({
@@ -272,6 +320,7 @@ export const propertyService = {
       status: { $in: PUBLIC_PARENT_PROJECT_STATUSES },
     }).distinct("_id");
     filter.projectId = { $in: publicProjectIds };
+    const publicProjectIdSet = new Set(publicProjectIds.map(String));
 
     if (query.minPrice || query.maxPrice) {
       filter.price = {};
@@ -280,7 +329,11 @@ export const propertyService = {
     }
 
     if (query.type) filter.type = query.type;
-    if (query.projectId) filter.projectId = query.projectId;
+    if (query.projectId) {
+      filter.projectId = publicProjectIdSet.has(String(query.projectId))
+        ? query.projectId
+        : { $in: [] };
+    }
     filter.status = resolvePublicListStatus(query.status);
     if (query.city) filter["location.city"] = new RegExp(query.city, "i");
     if (query.bedrooms) filter.bedrooms = { $gte: query.bedrooms };
@@ -320,7 +373,7 @@ export const propertyService = {
 
     const [properties, total] = await Promise.all([
       Property.find(filter)
-        .populate("projectId", "title slug kind status")
+        .populate("projectId", "title slug status deletedAt")
         .populate("agentId", "firstName lastName email phone avatar")
         .populate("ownerId", "firstName lastName email")
         .sort(sort)
@@ -346,7 +399,7 @@ export const propertyService = {
     if (!property) throw new AppError("Property not found", 404);
 
     if (
-      property.status !== "active" &&
+      !isPublicPropertyViewStatus(property.status) &&
       !canViewNonActiveProperty(property, user)
     ) {
       throw new AppError("Property not found", 404);
@@ -354,12 +407,18 @@ export const propertyService = {
 
     if (
       !canManageProperty(property, user) &&
-      PUBLIC_PARENT_PROJECT_STATUSES.includes(property.status)
+      isPublicPropertyViewStatus(property.status)
     ) {
       await assertPublicParentProject(property);
     }
 
-    if (incrementView && property.status === "active") {
+    if (
+      shouldIncrementListingView({
+        incrementView,
+        status: property.status,
+        canManage: canManageProperty(property, user),
+      })
+    ) {
       property.viewCount += 1;
       await property.save({ validateBeforeSave: false });
     }
@@ -373,10 +432,14 @@ export const propertyService = {
     if (!property) throw new AppError("Property not found", 404);
 
     if (
-      property.status !== "active" &&
+      !isPublicPropertyViewStatus(property.status) &&
       !canViewNonActiveProperty(property, user)
     ) {
       throw new AppError("Property not found", 404);
+    }
+
+    if (!canManageProperty(property, user) && property.status === "active") {
+      await assertPublicParentProject(property);
     }
 
     const [lng, lat] = property.location?.coordinates || [];
@@ -428,12 +491,11 @@ export const propertyService = {
 
     const project = await Project.findById(property.projectId);
     if (!project) throw new AppError("Project not found", 404);
+    assertSellerUnitMutationAllowed(project, user);
 
     if (patch.type !== undefined) {
-      assertSingleProjectUnitType(project, patch.type);
       await catalogService.assertValidPropertyType(patch.type);
     }
-    applySingleProjectUnitType(project, patch);
     if (patch.amenities !== undefined) {
       await catalogService.assertValidAmenities(patch.amenities);
     }
@@ -460,6 +522,8 @@ export const propertyService = {
     delete patch.location;
     delete patch.projectId;
 
+    await applyFloorPlansOnWrite(property, patch);
+
     const materialChanges =
       !isAdmin &&
       previousStatus === "active" &&
@@ -467,6 +531,7 @@ export const propertyService = {
       hasMaterialChanges(property, patch);
 
     Object.assign(property, patch);
+    property.location = projectLocationSnapshot(project);
 
     if (materialChanges) {
       property.status = "pending";
@@ -477,6 +542,14 @@ export const propertyService = {
     }
 
     await property.save();
+
+    if (isAdmin && normalizedStatus === "sold") {
+      await syncParentProjectSoldStatus(property.projectId, { notify: true });
+    }
+
+    if (isAdmin && property.status === "archived" && property.deletedAt) {
+      await maybeDemoteProjectWithoutLiveUnits(property.projectId);
+    }
 
     if (
       !isAdmin &&
@@ -502,6 +575,7 @@ export const propertyService = {
 
     Object.assign(property, buildArchiveUpdate());
     await property.save();
+    await maybeDemoteProjectWithoutLiveUnits(property.projectId);
     await cacheService.invalidateListingCaches();
   },
 
@@ -516,6 +590,13 @@ export const propertyService = {
     if (!canManageProperty(property, user)) {
       throw new AppError("Not authorized to restore this property", 403);
     }
+
+    const project = await Project.findById(property.projectId).select(
+      "deletedAt status",
+    );
+    assertParentProjectAllowsUnitRestore(project);
+
+    assertCanAddUnitToProject(project);
 
     Object.assign(property, buildRestoreUpdate());
     await property.save();
@@ -532,7 +613,9 @@ export const propertyService = {
       throw new AppError("Not authorized to delete this property", 403);
     }
 
+    const projectId = property.projectId;
     await purgePropertyRecord(property, { requireTrash: true });
+    await maybeDemoteProjectWithoutLiveUnits(projectId);
     await cacheService.invalidateListingCaches();
   },
 
@@ -543,6 +626,7 @@ export const propertyService = {
     const canEdit = canManageProperty(property, user);
 
     if (!canEdit) throw new AppError("Not authorized", 403);
+    await assertPropertyContentMutationAllowed(property, user);
 
     const isVideo = file.mimetype.startsWith("video/");
 
@@ -589,6 +673,7 @@ export const propertyService = {
 
     const canEdit = canManageProperty(property, user);
     if (!canEdit) throw new AppError("Not authorized", 403);
+    await assertPropertyContentMutationAllowed(property, user);
 
     if (!file.mimetype.startsWith("image/")) {
       throw new AppError("Floor plan must be an image", 400);
@@ -613,6 +698,7 @@ export const propertyService = {
     const canEdit = canManageProperty(property, user);
 
     if (!canEdit) throw new AppError("Not authorized", 403);
+    await assertPropertyContentMutationAllowed(property, user);
 
     const media = property.media.id(mediaId);
     if (!media) throw new AppError("Media not found", 404);
@@ -635,6 +721,7 @@ export const propertyService = {
     if (!canManageProperty(property, user)) {
       throw new AppError("Not authorized", 403);
     }
+    await assertPropertyContentMutationAllowed(property, user);
 
     const imageMedia = property.media.filter((item) => item.type !== "video");
     if (imageIds.length !== imageMedia.length) {
@@ -685,13 +772,11 @@ export const propertyService = {
         : { deletedAt: null },
     ];
 
-    if (query.trashed !== "true") {
-      const activeProjectIds = await Project.find({
-        $or: [{ ownerId: user._id }, { agentId: user._id }],
-        deletedAt: null,
-      }).distinct("_id");
-      conditions.push({ projectId: { $in: activeProjectIds } });
-    }
+    const activeProjectIds = await Project.find({
+      $or: [{ ownerId: user._id }, { agentId: user._id }],
+      deletedAt: null,
+    }).distinct("_id");
+    conditions.push({ projectId: { $in: activeProjectIds } });
 
     if (query.status) conditions.push({ status: query.status });
     if (query.type) conditions.push({ type: query.type });
@@ -709,7 +794,7 @@ export const propertyService = {
 
     const [properties, total] = await Promise.all([
       Property.find(filter)
-        .populate("projectId", "title slug kind status")
+        .populate("projectId", "title slug status deletedAt")
         .populate("agentId", "firstName lastName email phone avatar")
         .populate("ownerId", "firstName lastName email")
         .sort(sort)
@@ -728,7 +813,17 @@ export const propertyService = {
 
   async getByAgent(agentId, query) {
     const { page, limit, skip } = parsePagination(query);
-    const filter = { agentId, deletedAt: null, status: "active" };
+    const publicProjectIds = await Project.find({
+      deletedAt: null,
+      status: { $in: PUBLIC_PARENT_PROJECT_STATUSES },
+    }).distinct("_id");
+
+    const filter = {
+      agentId,
+      deletedAt: null,
+      status: "active",
+      projectId: { $in: publicProjectIds },
+    };
 
     const [properties, total] = await Promise.all([
       Property.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit),

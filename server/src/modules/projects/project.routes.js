@@ -31,10 +31,6 @@ const router = Router();
  *       - $ref: '#/components/parameters/PageParam'
  *       - $ref: '#/components/parameters/LimitParam'
  *       - in: query
- *         name: kind
- *         schema:
- *           $ref: '#/components/schemas/ProjectKind'
- *       - in: query
  *         name: status
  *         schema:
  *           type: string
@@ -77,10 +73,6 @@ router.get(
  *         name: status
  *         schema:
  *           $ref: '#/components/schemas/PropertyStatus'
- *       - in: query
- *         name: kind
- *         schema:
- *           $ref: '#/components/schemas/ProjectKind'
  *       - in: query
  *         name: search
  *         schema:
@@ -384,7 +376,7 @@ router.post(
   authenticate,
   authorize(ROLES.SELLER, ROLES.AGENT, ROLES.ADMIN),
   validate(projectIdSchema, "params"),
-  projectController.uploadMedia,
+  ...projectController.uploadMedia,
 );
 
 /**

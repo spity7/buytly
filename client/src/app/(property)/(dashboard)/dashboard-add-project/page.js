@@ -15,7 +15,7 @@ export default function DashboardAddProjectPage() {
               <div className="dashboard_title_area">
                 <h2>Add New Project</h2>
                 <p className="text mb0">
-                  Create a single or compound project, then add sellable units.
+                  Create a project, then add sellable units linked to it.
                 </p>
               </div>
             </div>

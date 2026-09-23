@@ -1,12 +1,7 @@
 "use client";
 
 import FormFieldError from "@/components/common/FormFieldError";
-import ProjectKindSelector from "@/components/property/dashboard/dashboard-projects/ProjectKindSelector";
 import PropertyLocationPicker from "@/components/property/dashboard/dashboard-add-property/PropertyLocationPicker";
-import {
-  getProjectKindLabel,
-  PROJECT_KIND_FORM_DESCRIPTION,
-} from "@/lib/properties/projectKindOptions";
 import { useAgents } from "@/hooks/useAgents";
 import { getAgentDisplayName, getAgentUserId } from "@/lib/agents/mapAgent";
 import { getVirtualTourUrlFieldError } from "@/lib/properties/fieldErrors";
@@ -89,7 +84,6 @@ export default function ProjectFormFields({
   onToggleAmenity,
   amenitiesCatalog = [],
   disabled = false,
-  kindMode = "hidden",
   showAgentSelect = false,
 }) {
   const [virtualTourError, setVirtualTourError] = useState("");
@@ -115,31 +109,6 @@ export default function ProjectFormFields({
 
   return (
     <div className="row">
-      {kindMode !== "hidden" ? (
-        <div className="col-sm-12 mb20">
-          {kindMode === "readonly" ? (
-            <>
-              <h5 className="fz17 mb15">Project type</h5>
-              <p className="mb0 text">
-                {getProjectKindLabel(form.kind)}
-                <span className="d-block fz14 text-muted mt5">
-                  Type cannot be changed after units are added. Contact support
-                  if you need to restructure this project.
-                </span>
-              </p>
-            </>
-          ) : (
-            <ProjectKindSelector
-              value={form.kind}
-              onChange={(kind) => onUpdate("kind", kind)}
-              disabled={disabled}
-              legend="Project type"
-              description={PROJECT_KIND_FORM_DESCRIPTION}
-            />
-          )}
-        </div>
-      ) : null}
-
       <div className="col-sm-12">
         <h5 className="fz17 mb15">Basics</h5>
       </div>

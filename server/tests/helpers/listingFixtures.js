@@ -6,7 +6,6 @@ export const projectPayload = (overrides = {}) => ({
   title: "Sunset Residences",
   description:
     "A premium development with modern amenities and great location.",
-  kind: "single",
   location: {
     coordinates: [55.2708, 25.2048],
     address: "123 Main St",
@@ -65,7 +64,6 @@ export const createActiveProperty = async (
 ) => {
   const projectRes = await createProject(app, sellerToken, {
     title: overrides.projectTitle || "Test Project",
-    kind: "single",
   });
   const projectId = projectRes.body.data._id;
 

@@ -9,15 +9,15 @@ After **any** implementation that changes behavior, APIs, data, auth, config, or
 
 ## What to update
 
-| You changed                                      | Update                                              |
-| ------------------------------------------------ | --------------------------------------------------- |
-| Routes, endpoints, auth on a route               | `server/docs/modules.md` + Swagger in `*.routes.js` |
-| Mongoose schema, indexes, collections            | `server/docs/database-schema.md`                    |
-| JWT, roles, permissions, password flow           | `server/docs/auth-flow.md`                          |
-| Response shape, pagination, filters, rate limits | `server/docs/api-rules.md`                          |
-| Modules, middleware, services, request flow      | `server/docs/architecture.md`                       |
-| Env vars, ports, deploy steps, health check      | `server/docs/deployment.md` + `server/.env.example` |
-| Project conventions or agent instructions        | `.cursor/rules/buytly-server.mdc`                   |
+| You changed                                      | Update                                                               |
+| ------------------------------------------------ | -------------------------------------------------------------------- |
+| Routes, endpoints, auth on a route               | `server/docs/modules.md` + Swagger in `*.routes.js`                  |
+| Mongoose schema, indexes, collections            | `server/docs/database-schema.md`                                     |
+| JWT, roles, permissions, password flow           | `server/docs/auth-flow.md`                                           |
+| Response shape, pagination, filters, rate limits | `server/docs/api-rules.md`                                           |
+| Modules, middleware, services, request flow      | `server/docs/architecture.md`                                        |
+| Env vars, ports, deploy steps, health check      | `server/docs/deployment.md` + `server/.env.example`                  |
+| Project conventions or agent instructions        | `.cursor/rules/buytly-server.mdc`, `.cursor/rules/buytly-client.mdc` |
 
 ## Completion checklist
 

@@ -95,6 +95,28 @@ export function FilterSelect({
   );
 }
 
+export function FilterClearButton({
+  onClick,
+  disabled = false,
+  visible = true,
+  className = "",
+}) {
+  if (!visible) {
+    return null;
+  }
+
+  return (
+    <button
+      type="button"
+      className={`ud-btn btn-white2 btn-sm dashboard-table-filters__clear ${className}`.trim()}
+      onClick={onClick}
+      disabled={disabled}
+    >
+      Clear filters
+    </button>
+  );
+}
+
 export function FilterSortSelect({
   id = "dashboard-filter-sort",
   value,

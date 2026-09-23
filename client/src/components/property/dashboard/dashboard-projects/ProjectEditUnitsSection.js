@@ -1,109 +1,241 @@
 "use client";
 
-import DashboardTableEmptyState from "@/components/property/dashboard/DashboardTableEmptyState";
 import StatusBadge from "@/components/common/StatusBadge";
-import { PRICE_FROM_LABEL } from "@/lib/properties/formatPrice";
+import { formatPrice } from "@/lib/properties/formatPrice";
+import { isListingPubliclyPreviewable } from "@/lib/properties/mapProperty";
+import { getPropertyStatusBadgeProps } from "@/lib/statusBadges";
 import Link from "next/link";
+
+const PLACEHOLDER_IMAGE = "/images/listings/list-1.jpg";
+
+function getUnitsEmptyCopy(minUnits) {
+  if (minUnits === 1) {
+    return {
+      title: "No unit yet",
+      description:
+        "Add the sellable listing for this project (price, photos, and details). You need one unit before you can submit for review.",
+    };
+  }
+
+  return {
+    title: "No units yet",
+    description: `Add at least ${minUnits} sellable listings under this project before you submit for admin review.`,
+  };
+}
+
+function formatUnitType(type) {
+  if (!type) return "—";
+  return type.charAt(0).toUpperCase() + type.slice(1);
+}
+
+function getUnitThumbnail(unit) {
+  const images = (unit.media || [])
+    .filter((item) => item.type !== "video")
+    .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+  const first = images[0];
+  return first?.url || PLACEHOLDER_IMAGE;
+}
+
+function formatUnitSpecs(unit) {
+  const parts = [
+    unit.bedrooms != null && `${unit.bedrooms} bed`,
+    unit.bathrooms != null && `${unit.bathrooms} bath`,
+    unit.area != null && `${unit.area} sqm`,
+  ].filter(Boolean);
+  return parts.length ? parts.join(" · ") : null;
+}
 
 export default function ProjectEditUnitsSection({
   units,
   minUnits,
   projectId,
   canAddUnit,
+  trashedUnitCount = 0,
 }) {
   const unitCount = units.length;
+  const addUnitHref = `/dashboard-add-property?projectId=${projectId}`;
+  const { title: emptyTitle, description: emptyDescription } =
+    getUnitsEmptyCopy(minUnits);
+  const showHeaderAddButton = canAddUnit;
+  const requirementMet = minUnits > 0 && unitCount >= minUnits;
+  const unitsProgressLabel =
+    minUnits > 0
+      ? `${unitCount} of ${minUnits} required for review`
+      : `${unitCount} unit${unitCount === 1 ? "" : "s"}`;
+  const progressPercent =
+    minUnits > 0 ? Math.min(100, Math.round((unitCount / minUnits) * 100)) : 0;
 
   return (
     <section
-      className="project-edit-section"
+      className="project-edit-section project-edit-units"
       aria-labelledby="project-units-heading"
     >
       <div className="project-edit-section__head">
-        <div>
-          <h4
-            id="project-units-heading"
-            className="project-edit-section__title mb5"
-          >
-            Units
-          </h4>
+        <div className="project-edit-units__intro">
+          <div className="project-edit-units__title-row">
+            <h4
+              id="project-units-heading"
+              className="project-edit-section__title mb0"
+            >
+              Units
+            </h4>
+            <span
+              className={`project-edit-units__count${
+                requirementMet ? " project-edit-units__count--met" : ""
+              }`}
+            >
+              {unitsProgressLabel}
+            </span>
+          </div>
           <p className="project-edit-section__lede mb0">
             Sellable listings under this project. Draft units are submitted with
-            the project for review.
+            the project when you send it for review.
           </p>
+          {trashedUnitCount > 0 ? (
+            <p className="project-edit-units__trash-note mb0" role="note">
+              {trashedUnitCount} unit{trashedUnitCount === 1 ? "" : "s"} in
+              trash —{" "}
+              <Link href="/dashboard-my-properties?tab=trash">
+                restore from My properties
+              </Link>{" "}
+              or add a new unit below.
+            </p>
+          ) : null}
+          {minUnits > 0 ? (
+            <div
+              className="project-edit-units__progress"
+              role="progressbar"
+              aria-valuenow={unitCount}
+              aria-valuemin={0}
+              aria-valuemax={minUnits}
+              aria-label="Units required for review"
+            >
+              <div
+                className={`project-edit-units__progress-bar${
+                  requirementMet ? " project-edit-units__progress-bar--met" : ""
+                }`}
+                style={{ width: `${progressPercent}%` }}
+              />
+            </div>
+          ) : null}
         </div>
-        {canAddUnit ? (
+        {showHeaderAddButton ? (
           <Link
-            href={`/dashboard-add-property?projectId=${projectId}`}
-            className="ud-btn btn-thm project-edit-section__head-action"
+            href={addUnitHref}
+            className="ud-btn btn-thm project-edit-section__head-action project-edit-units__add-btn"
           >
+            <i className="fal fa-plus" aria-hidden="true" />
             Add unit
           </Link>
         ) : null}
       </div>
 
       {unitCount === 0 ? (
-        <DashboardTableEmptyState
-          className="project-edit-units-empty"
-          icon="flaticon-home"
-          title="No units yet"
-          description={`Add at least ${minUnits} unit${
-            minUnits === 1 ? "" : "s"
-          } before you can submit this project for review.`}
-          actions={
-            canAddUnit
-              ? [
-                  {
-                    label: "Add first unit",
-                    variant: "thm",
-                    href: `/dashboard-add-property?projectId=${projectId}`,
-                  },
-                ]
-              : []
-          }
-        />
-      ) : (
-        <div className="table-responsive project-edit-units-table">
-          <table className="table-style3 table at-savesearch mb0">
-            <thead>
-              <tr>
-                <th scope="col">Type</th>
-                <th scope="col">Title</th>
-                <th scope="col">{PRICE_FROM_LABEL}</th>
-                <th scope="col">Status</th>
-                <th scope="col" className="text-end">
-                  Action
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {units.map((unit) => {
-                const id = unit._id || unit.id;
-                return (
-                  <tr key={id}>
-                    <td className="vam text-capitalize">{unit.type || "—"}</td>
-                    <td className="vam">{unit.title}</td>
-                    <td className="vam">
-                      {unit.price != null
-                        ? `$${unit.price.toLocaleString()}`
-                        : "—"}
-                    </td>
-                    <td className="vam">
-                      <StatusBadge domain="listing" status={unit.status} />
-                    </td>
-                    <td className="vam text-end">
-                      <Link
-                        href={`/dashboard-edit-property/${id}`}
-                        className="text-thm fw600"
-                      >
-                        Edit
-                      </Link>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+        <div className="project-edit-units-placeholder">
+          <div
+            className="project-edit-units-placeholder__icon-wrap"
+            aria-hidden
+          >
+            <span className="flaticon-home project-edit-units-placeholder__icon" />
+          </div>
+          <h5 className="project-edit-units-placeholder__title">
+            {emptyTitle}
+          </h5>
+          <p className="project-edit-units-placeholder__text">
+            {emptyDescription}
+          </p>
+          {canAddUnit ? (
+            <Link
+              href={addUnitHref}
+              className="ud-btn btn-thm project-edit-units-placeholder__cta"
+            >
+              <i className="fal fa-plus" aria-hidden="true" />
+              Add unit
+            </Link>
+          ) : (
+            <p className="project-edit-units-placeholder__note mb0">
+              This project cannot accept more units right now.
+            </p>
+          )}
         </div>
+      ) : (
+        <ul className="project-edit-units-list mb0 ps-0">
+          {units.map((unit) => {
+            const id = unit._id || unit.id;
+            const editHref = `/dashboard-edit-property/${id}`;
+            const publicPreview = isListingPubliclyPreviewable(unit.status);
+            const specs = formatUnitSpecs(unit);
+            const views =
+              unit.status === "active" ? (unit.viewCount ?? 0) : null;
+
+            return (
+              <li key={id} className="project-edit-unit-card">
+                <div className="project-edit-unit-card__media">
+                  <img
+                    src={getUnitThumbnail(unit)}
+                    alt=""
+                    className="project-edit-unit-card__thumb"
+                  />
+                </div>
+                <div className="project-edit-unit-card__body">
+                  <div className="project-edit-unit-card__top">
+                    <div className="project-edit-unit-card__title-wrap">
+                      <p className="project-edit-unit-card__type mb0">
+                        {formatUnitType(unit.type)}
+                      </p>
+                      <h5 className="project-edit-unit-card__title mb0">
+                        {unit.title || "Untitled unit"}
+                      </h5>
+                    </div>
+                    <StatusBadge
+                      {...getPropertyStatusBadgeProps(unit)}
+                      className="project-edit-unit-card__badge"
+                    />
+                  </div>
+                  <div className="project-edit-unit-card__meta">
+                    <span className="project-edit-unit-card__price">
+                      {formatPrice(unit.price, unit.currency || "USD")}
+                    </span>
+                    {specs ? (
+                      <span className="project-edit-unit-card__specs">
+                        {specs}
+                      </span>
+                    ) : null}
+                    {views != null ? (
+                      <span className="project-edit-unit-card__views">
+                        <i className="flaticon-fullscreen" aria-hidden="true" />
+                        {views.toLocaleString()} view{views === 1 ? "" : "s"}
+                      </span>
+                    ) : null}
+                  </div>
+                  <div className="project-edit-unit-card__actions">
+                    <Link
+                      href={editHref}
+                      className="ud-btn btn-thm btn-sm project-edit-unit-card__btn"
+                    >
+                      <i className="fas fa-pen" aria-hidden="true" />
+                      Edit unit
+                    </Link>
+                    {publicPreview ? (
+                      <Link
+                        href={`/single-v1/${id}`}
+                        className="ud-btn btn-white2 btn-sm project-edit-unit-card__btn"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        View listing
+                        <i
+                          className="fal fa-external-link"
+                          aria-hidden="true"
+                        />
+                      </Link>
+                    ) : null}
+                  </div>
+                </div>
+              </li>
+            );
+          })}
+        </ul>
       )}
     </section>
   );

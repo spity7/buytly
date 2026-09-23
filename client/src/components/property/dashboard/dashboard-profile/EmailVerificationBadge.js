@@ -1,35 +1,34 @@
 "use client";
 
 import { buytlyApi } from "@/api/generated";
-import { getApiError } from "@/lib/auth/getApiError";
-import { notifyError, notifySuccess } from "@/lib/toast";
+import { useAsyncAction } from "@/hooks/useAsyncAction";
 import { useAuth } from "@/providers/AuthProvider";
-import { useState } from "react";
 
 const EmailVerificationBadge = () => {
   const { user, refreshUser } = useAuth();
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { run, isBusy } = useAsyncAction();
 
   if (!user) {
     return null;
   }
 
   const handleResend = async () => {
-    setIsSubmitting(true);
-
     try {
-      const response = await buytlyApi.resendVerification({
-        email: user.email,
-      });
-      notifySuccess(
-        response.message ||
+      await run({
+        message: "Sending verification email...",
+        successMessage: (response) =>
+          response?.message ||
           "If your account is unverified, a new verification email has been sent.",
-      );
-      await refreshUser();
-    } catch (err) {
-      notifyError(getApiError(err));
-    } finally {
-      setIsSubmitting(false);
+        task: async () => {
+          const response = await buytlyApi.resendVerification({
+            email: user.email,
+          });
+          await refreshUser();
+          return response;
+        },
+      });
+    } catch {
+      // Toast handled by useAsyncAction
     }
   };
 
@@ -70,9 +69,9 @@ const EmailVerificationBadge = () => {
         type="button"
         className="profile-verification-badge__action"
         onClick={handleResend}
-        disabled={isSubmitting}
+        disabled={isBusy}
       >
-        {isSubmitting ? "Sending..." : "Resend email"}
+        {isBusy ? "Sending..." : "Resend email"}
       </button>
     </div>
   );

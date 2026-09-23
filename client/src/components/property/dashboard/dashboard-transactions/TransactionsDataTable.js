@@ -3,7 +3,6 @@
 import Link from "next/link";
 import React, { useCallback, useState } from "react";
 import { buytlyApi } from "@/api/generated";
-import AsyncActionOverlay from "@/components/common/AsyncActionOverlay";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
 import StatusBadge from "@/components/common/StatusBadge";
 import ApiPagination from "@/components/property/ApiPagination";
@@ -75,8 +74,8 @@ export default function TransactionsDataTable() {
   const [page, setPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState("");
   const [typeFilter, setTypeFilter] = useState("");
-  const { requestConfirm, isLocked, overlayMessage, dialogProps, pending } =
-    useConfirmAction({ overlay: true });
+  const { requestConfirm, isLocked, dialogProps, pending } =
+    useConfirmAction();
 
   const queryParams = {
     page,
@@ -326,7 +325,6 @@ export default function TransactionsDataTable() {
       </div>
 
       <ConfirmDialog {...dialogProps} />
-      <AsyncActionOverlay message={overlayMessage} />
     </>
   );
 }

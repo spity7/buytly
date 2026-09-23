@@ -61,8 +61,6 @@ export function mapPropertyToCard(property) {
       property.projectId?.title ||
       property.project?.title ||
       property.raw?.projectId?.title,
-    projectKind:
-      property.projectId?.kind || property.project?.kind || property.raw?.projectId?.kind,
     location,
     lat,
     lng,
@@ -111,7 +109,6 @@ export function mapProjectToCard(project) {
     image,
     location,
     itemType: "project",
-    kind: project.kind,
     unitCount: project.unitCount ?? 0,
     price: priceLabel,
     priceValue: priceMin,
@@ -142,18 +139,74 @@ export function getTrashedListingLabel() {
   return "In trash";
 }
 
-export function getProjectDashboardStatusLabel(project, { isTrashView = false } = {}) {
+export function getProjectDashboardStatusLabel(
+  project,
+  { isTrashView = false } = {},
+) {
   if (isTrashView || project?.deletedAt) {
     return getTrashedListingLabel();
   }
   return getStatusLabel(project?.status);
 }
 
-export function getPropertyDashboardStatusLabel(property, { isTrashView = false } = {}) {
+export function getPropertyDashboardStatusLabel(
+  property,
+  { isTrashView = false } = {},
+) {
   if (isTrashView || property?.deletedAt) {
     return getTrashedListingLabel();
   }
   return getStatusLabel(property?.status);
+}
+
+const PARENT_PROJECT_LIVE_STATUSES = ["active", "sold"];
+
+export function canAdminApproveUnit(property) {
+  const project = property?.projectId;
+  if (!project || typeof project === "string") {
+    return false;
+  }
+  if (project.deletedAt) {
+    return false;
+  }
+  return PARENT_PROJECT_LIVE_STATUSES.includes(project.status);
+}
+
+export function canAddUnitToProject(project) {
+  if (!project || project.deletedAt) {
+    return false;
+  }
+  if (project.status === "sold" || project.status === "archived") {
+    return false;
+  }
+  return true;
+}
+
+export function isListingPubliclyPreviewable(status) {
+  return status === "active" || status === "sold";
+}
+
+export function partitionProjectUnits(units = []) {
+  const available = [];
+  const sold = [];
+
+  for (const unit of units) {
+    if (unit.status === "sold") {
+      sold.push(unit);
+    } else if (unit.status === "active") {
+      available.push(unit);
+    }
+  }
+
+  return { available, sold };
+}
+
+export function isUnitRestoreBlockedByParentProject(property) {
+  const project = property?.projectId;
+  if (!project || typeof project === "string") {
+    return false;
+  }
+  return Boolean(project.deletedAt);
 }
 
 export function isPropertyTerminal(status) {

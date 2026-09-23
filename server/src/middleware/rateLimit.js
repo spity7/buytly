@@ -1,8 +1,10 @@
 import rateLimit from "express-rate-limit";
 
+const isTestEnv = process.env.NODE_ENV === "test";
+
 export const globalRateLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 200,
+  max: isTestEnv ? 10_000 : 200,
   standardHeaders: true,
   legacyHeaders: false,
   message: {
@@ -13,7 +15,7 @@ export const globalRateLimiter = rateLimit({
 
 export const authRateLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 20,
+  max: isTestEnv ? 10_000 : 20,
   standardHeaders: true,
   legacyHeaders: false,
   message: {

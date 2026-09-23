@@ -1,7 +1,20 @@
 import { AppError } from "../../shared/AppError.js";
 
-/** Statuses visible on the public property list endpoint. */
+/** Statuses visible on the public property list and detail endpoints. */
 export const PUBLIC_LIST_STATUSES = new Set(["active", "sold"]);
+
+export const isPublicPropertyViewStatus = (status) =>
+  PUBLIC_LIST_STATUSES.has(status);
+
+/** Public marketplace views only — not owner/agent/admin dashboard previews. */
+export const shouldIncrementListingView = ({
+  incrementView = true,
+  status,
+  canManage = false,
+}) => Boolean(incrementView && status === "active" && !canManage);
+
+/** @deprecated Use shouldIncrementListingView */
+export const shouldIncrementPropertyView = shouldIncrementListingView;
 
 /** Statuses non-admins may set via create/update (sold comes from completed transactions). */
 export const SELLER_SETTABLE_STATUSES = new Set(["draft", "pending", "active"]);
@@ -69,36 +82,15 @@ const normalizeFloorPlans = (plans = []) =>
       const doc = p?.toObject ? p.toObject() : p;
       return {
         title: doc.title,
-        area: doc.area,
-        bedrooms: doc.bedrooms,
-        bathrooms: doc.bathrooms,
-        price: doc.price,
         gcsKey: doc.gcsKey,
       };
     }),
   );
 
-const normalizeLocation = (location) => {
-  if (!location) return null;
-  const doc = location.toObject ? location.toObject() : location;
-  return {
-    coordinates: doc.coordinates,
-    address: doc.address || "",
-    city: doc.city || "",
-    country: doc.country || "",
-  };
-};
-
 export const hasMaterialChanges = (property, data) => {
   for (const field of MATERIAL_SCALAR_FIELDS) {
     if (data[field] === undefined) continue;
     if (data[field] !== property[field]) return true;
-  }
-
-  if (data.location !== undefined) {
-    const current = normalizeLocation(property.location);
-    const incoming = normalizeLocation(data.location);
-    if (JSON.stringify(current) !== JSON.stringify(incoming)) return true;
   }
 
   if (data.amenities !== undefined) {

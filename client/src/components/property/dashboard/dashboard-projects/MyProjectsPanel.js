@@ -6,20 +6,15 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { buytlyApi } from "@/api/generated";
 import {
   DashboardFilterBar,
+  FilterClearButton,
   FilterSearch,
   FilterSelect,
-  FilterSortSelect,
 } from "@/components/property/dashboard/DashboardFilterBar";
 import ProjectsDataTable from "@/components/property/dashboard/dashboard-projects/ProjectsDataTable";
 import { useDebouncedSearch } from "@/hooks/useDebouncedSearch";
 import { useHighlightQueryParam } from "@/hooks/useDashboardRowHighlight";
 import { findPaginatedHighlightPage } from "@/lib/dashboard/findPaginatedHighlightPage";
-import {
-  MY_PROJECT_STATUS_FILTERS,
-  PROJECT_KIND_FILTERS,
-  PROJECT_SORT_OPTIONS,
-  parseSortValue,
-} from "@/lib/dashboard/filterOptions";
+import { MY_PROJECT_STATUS_FILTERS } from "@/lib/dashboard/filterOptions";
 
 const PAGE_SIZE = 10;
 
@@ -37,33 +32,30 @@ export default function MyProjectsPanel() {
     handleSearchDebounced,
   );
   const [status, setStatus] = useState("");
-  const [kind, setKind] = useState("");
-  const [sort, setSort] = useState("createdAt:desc");
 
   const isTrash = tab === "trash";
-  const { sortBy, sortOrder } = parseSortValue(sort);
 
   const queryParams = useMemo(() => {
     const params = {
       page,
       limit: PAGE_SIZE,
-      sortBy,
-      sortOrder,
+      sortBy: "createdAt",
+      sortOrder: "desc",
       trashed: isTrash ? "true" : "false",
     };
 
     if (!isTrash && status) params.status = status;
-    if (kind) params.kind = kind;
     if (search.trim()) params.search = search.trim();
 
     return params;
-  }, [page, sortBy, sortOrder, isTrash, status, kind, search]);
+  }, [page, isTrash, status, search]);
+
+  const hasActiveFilters = Boolean(search.trim() || status);
 
   const resetPage = () => setPage(1);
 
   const clearFilters = useCallback(() => {
     setStatus("");
-    setKind("");
     setSearchInput("");
     setPage(1);
   }, [setSearchInput]);
@@ -128,7 +120,6 @@ export default function MyProjectsPanel() {
         setTab(isTrashed ? "trash" : "active");
         setStatus("");
         setSearchInput("");
-        setKind("");
         setPage(foundPage || 1);
         resolvedHighlightRef.current = highlightId;
       } finally {
@@ -145,18 +136,18 @@ export default function MyProjectsPanel() {
 
   return (
     <>
-      <div className="row align-items-center pb40">
-        <div className="col-xxl-3">
+      <div className="row align-items-center pb40 g-2">
+        <div className="col">
           <div className="dashboard_title_area">
             <h2>My Projects</h2>
-            <p className="text">
-              Developments you manage — single or compound. Add sellable units
+            <p className="text mb-0">
+              Developments you manage. Add sellable units
               from <Link href="/dashboard-my-properties">All units</Link>.
             </p>
           </div>
         </div>
-        <div className="col-xxl-9">
-          <div className="dashboard_search_meta d-md-flex align-items-center justify-content-xxl-end gap-2">
+        <div className="col-auto">
+          <div className="dashboard_search_meta d-flex flex-wrap align-items-center justify-content-end gap-2">
             <Link href="/dashboard-my-properties" className="ud-btn btn-white2">
               All units
             </Link>
@@ -207,6 +198,7 @@ export default function MyProjectsPanel() {
                   value={searchInput}
                   onChange={setSearchInput}
                   placeholder="Search projects"
+                  disabled={highlightResolving}
                 />
                 {!isTrash && (
                   <FilterSelect
@@ -214,6 +206,7 @@ export default function MyProjectsPanel() {
                     label="Status"
                     hideLabel
                     value={status}
+                    disabled={highlightResolving}
                     onChange={(value) => {
                       resetPage();
                       setStatus(value);
@@ -221,24 +214,11 @@ export default function MyProjectsPanel() {
                     options={MY_PROJECT_STATUS_FILTERS}
                   />
                 )}
-                <FilterSelect
-                  id="my-projects-kind"
-                  label="Project type"
-                  hideLabel
-                  value={kind}
-                  onChange={(value) => {
-                    resetPage();
-                    setKind(value);
-                  }}
-                  options={PROJECT_KIND_FILTERS}
-                />
-                <FilterSortSelect
-                  value={sort}
-                  onChange={(value) => {
-                    resetPage();
-                    setSort(value);
-                  }}
-                  options={PROJECT_SORT_OPTIONS}
+                <FilterClearButton
+                  visible={hasActiveFilters}
+                  disabled={highlightResolving}
+                  onClick={clearFilters}
+                  className="ms-auto"
                 />
               </DashboardFilterBar>
 
@@ -249,7 +229,7 @@ export default function MyProjectsPanel() {
                 pageSize={PAGE_SIZE}
                 onPageChange={setPage}
                 highlightResolving={highlightResolving}
-                hasActiveFilters={Boolean(search || status || kind)}
+                hasActiveFilters={hasActiveFilters}
                 onMovedToTrash={() => {
                   setTab("trash");
                   setPage(1);

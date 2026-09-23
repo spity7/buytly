@@ -93,10 +93,11 @@ export function AuthProvider({ children }) {
         accessToken: data.accessToken,
         refreshToken: data.refreshToken,
       });
+      await queryClient.invalidateQueries();
       const hydratedUser = await hydrateUser();
       return hydratedUser ?? data.user ?? null;
     },
-    [hydrateUser],
+    [hydrateUser, queryClient],
   );
 
   const login = useCallback(
@@ -138,7 +139,7 @@ export function AuthProvider({ children }) {
     } finally {
       clearTokens();
       setUser(null);
-      queryClient.removeQueries({ queryKey: ["notifications"] });
+      queryClient.clear();
     }
   }, [queryClient]);
 

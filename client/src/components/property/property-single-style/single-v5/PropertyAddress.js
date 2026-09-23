@@ -27,9 +27,9 @@ const PropertyAddress = () => {
         <div key={index} className="col-md-6 col-xl-6">
           <div className="d-flex justify-content-between">
             <div className="pd-list">
-              <p className="fw600 mb10 ff-heading dark-color">Address</p>
-              <p className="fw600 mb10 ff-heading dark-color">City</p>
-              <p className="fw600 mb-0 ff-heading dark-color">State/county</p>
+              <p className="fw600 mb10 ff-heading dark-color">Address:</p>
+              <p className="fw600 mb10 ff-heading dark-color">City:</p>
+              <p className="fw600 mb-0 ff-heading dark-color">State/county:</p>
             </div>
             <div className="pd-list">
               <p className="text mb10">{address.address}</p>
@@ -41,9 +41,8 @@ const PropertyAddress = () => {
       ))}
       {/* End col */}
 
-      <div className="col-md-12 h-500" style={{height:'400px'}}>
-
-   <ListingMap1/>
+      <div className="col-md-12 h-500" style={{ height: "400px" }}>
+        <ListingMap1 />
       </div>
       {/* End col */}
     </>

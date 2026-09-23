@@ -2,17 +2,16 @@
 
 import { openAuthModal } from "@/components/common/login-signup-modal/authModal";
 import { buytlyApi } from "@/api/generated";
-import { getApiError } from "@/lib/auth/getApiError";
 import { isPropertyBookable } from "@/lib/properties/mapProperty";
-import { notifyError, notifySuccess } from "@/lib/toast";
+import { notifyError } from "@/lib/toast";
 import { useAuthSafe } from "@/providers/AuthProvider";
 import { usePropertySingle } from "@/providers/PropertySingleProvider";
-import { useState } from "react";
+import { useAsyncAction } from "@/hooks/useAsyncAction";
 
 export default function StartTransaction() {
   const { id, property, card } = usePropertySingle();
   const auth = useAuthSafe();
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { run, isBusy: isSubmitting } = useAsyncAction();
 
   if (!isPropertyBookable(property?.status)) return null;
 
@@ -27,19 +26,20 @@ export default function StartTransaction() {
       return;
     }
 
-    setIsSubmitting(true);
     try {
-      await buytlyApi.createTransaction({
-        propertyId: id,
-        type: "buy",
-        amount: property.price,
-        currency: property.currency,
+      await run({
+        message: "Submitting offer...",
+        successMessage: "Transaction request submitted",
+        task: () =>
+          buytlyApi.createTransaction({
+            propertyId: id,
+            type: "buy",
+            amount: property.price,
+            currency: property.currency,
+          }),
       });
-      notifySuccess("Transaction request submitted");
-    } catch (error) {
-      notifyError(getApiError(error));
-    } finally {
-      setIsSubmitting(false);
+    } catch {
+      // Toast handled by run()
     }
   };
 

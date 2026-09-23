@@ -4,21 +4,9 @@ import StatusBadge from "@/components/common/StatusBadge";
 import { getProjectStatusBadgeProps } from "@/lib/statusBadges";
 import { isProjectReadyToPublish } from "@/lib/properties/projectForm";
 
-function formatUnitRequirement(kind, minUnits, maxUnits) {
-  if (kind === "single") {
-    return "1 required (exactly one Villa unit)";
-  }
-  return `${minUnits}+ required`;
-}
-
-function getPublishHint({ kind, unitCount, minUnits, maxUnits }) {
-  if (maxUnits != null && unitCount > maxUnits) {
-    return `Single projects allow only ${maxUnits} unit. Remove ${
-      unitCount - maxUnits
-    } unit${unitCount - maxUnits === 1 ? "" : "s"} to publish.`;
-  }
-  if (isProjectReadyToPublish(kind, unitCount)) {
-    return "Unit count meets the requirement for this project type.";
+function getPublishHint({ unitCount, minUnits }) {
+  if (isProjectReadyToPublish(unitCount)) {
+    return "Unit count meets the requirement to publish.";
   }
   const needed = minUnits - unitCount;
   return `Add ${needed} more unit${needed === 1 ? "" : "s"} to meet the minimum.`;
@@ -28,51 +16,61 @@ export default function ProjectEditPublishCard({
   project,
   unitCount,
   minUnits,
-  maxUnits = null,
   canSubmit,
   isLocked,
   onSubmit,
 }) {
-  const kind = project?.kind ?? "compound";
-  const unitsReady = isProjectReadyToPublish(kind, unitCount);
-  const targetUnits = maxUnits ?? minUnits;
+  const unitsReady = isProjectReadyToPublish(unitCount);
   const progress =
-    targetUnits > 0 ? Math.min(100, (unitCount / targetUnits) * 100) : 0;
+    minUnits > 0 ? Math.min(100, (unitCount / minUnits) * 100) : 0;
 
   return (
     <div className="project-edit-section project-edit-publish">
       <h5 className="project-edit-section__title">Publishing</h5>
-      <p className="project-edit-section__lede mb20">
+      <p className="project-edit-section__lede project-edit-publish__lede">
         Add units, save details and media, then submit for admin review.
       </p>
 
-      <div className="project-edit-publish__row">
-        <span className="project-edit-publish__label">Units added</span>
-        <span className="project-edit-publish__value">
-          {unitCount} · {formatUnitRequirement(kind, minUnits, maxUnits)}
-        </span>
-      </div>
-      <div
-        className="project-edit-publish__bar"
-        role="progressbar"
-        aria-valuenow={Math.round(progress)}
-        aria-valuemin={0}
-        aria-valuemax={100}
-        aria-label="Unit requirement progress"
-      >
-        <span
-          className={`project-edit-publish__bar-fill${
-            unitsReady ? " project-edit-publish__bar-fill--ready" : ""
+      <div className="project-edit-publish__units">
+        <div className="project-edit-publish__units-head">
+          <span className="project-edit-publish__label">Units added</span>
+          <span className="project-edit-publish__count" aria-hidden>
+            <span className="project-edit-publish__count-current">
+              {unitCount}
+            </span>
+            <span className="project-edit-publish__count-sep">/</span>
+            <span className="project-edit-publish__count-goal">{minUnits}</span>
+          </span>
+        </div>
+        <p className="project-edit-publish__requirement">
+          At least {minUnits} unit required to publish
+        </p>
+        <div
+          className="project-edit-publish__bar"
+          role="progressbar"
+          aria-valuenow={Math.round(progress)}
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-label={`${unitCount} of ${minUnits} units added`}
+        >
+          <span
+            className={`project-edit-publish__bar-fill${
+              unitsReady ? " project-edit-publish__bar-fill--ready" : ""
+            }`}
+            style={{ width: `${progress}%` }}
+          />
+        </p>
+        <p
+          className={`project-edit-publish__hint${
+            unitsReady ? " project-edit-publish__hint--ready" : ""
           }`}
-          style={{ width: `${progress}%` }}
-        />
+        >
+          {getPublishHint({ unitCount, minUnits })}
+        </p>
       </div>
-      <p className="project-edit-publish__hint mb20">
-        {getPublishHint({ kind, unitCount, minUnits, maxUnits })}
-      </p>
 
       <div className="project-edit-publish__status">
-        <span className="text-uppercase fz12 text-muted d-block mb8">
+        <span className="project-edit-publish__status-label">
           Project status
         </span>
         <StatusBadge
@@ -85,18 +83,18 @@ export default function ProjectEditPublishCard({
       {canSubmit ? (
         <button
           type="button"
-          className="ud-btn btn-thm w-100 mt20"
+          className="ud-btn btn-thm project-edit-publish__submit"
           disabled={isLocked}
           onClick={onSubmit}
         >
           Submit for review
         </button>
       ) : project.status === "pending" ? (
-        <p className="text-muted fz14 mb0 mt20">
+        <p className="project-edit-publish__footnote">
           Awaiting admin review. You will be notified when it is approved.
         </p>
       ) : project.status === "active" ? (
-        <p className="text-muted fz14 mb0 mt20">
+        <p className="project-edit-publish__footnote">
           This project is live. Edit details or units as needed.
         </p>
       ) : null}

@@ -520,11 +520,6 @@
  *       pattern: '^[a-z0-9]+(?:-[a-z0-9]+)*$'
  *       example: apartment
  *
- *     ProjectKind:
- *       type: string
- *       enum: [single, compound]
- *       example: single
- *
  *     PropertyStatus:
  *       type: string
  *       enum: [draft, pending, active, sold, archived]
@@ -611,7 +606,10 @@
  *           type: string
  *           example: USD
  *         location:
- *           $ref: '#/components/schemas/PropertyLocation'
+ *           allOf:
+ *             - $ref: '#/components/schemas/PropertyLocation'
+ *           readOnly: true
+ *           description: Denormalized copy of the parent project location (not accepted on create/update).
  *         bedrooms:
  *           type: integer
  *           example: 2
@@ -730,21 +728,6 @@
  *         title:
  *           type: string
  *           example: First Floor
- *         area:
- *           type: number
- *           example: 1267
- *         areaUnit:
- *           type: string
- *           example: sqft
- *         bedrooms:
- *           type: integer
- *           example: 2
- *         bathrooms:
- *           type: number
- *           example: 2
- *         price:
- *           type: number
- *           example: 920000
  *         gcsKey:
  *           type: string
  *         url:
@@ -760,18 +743,9 @@
  *           type: string
  *           minLength: 1
  *           maxLength: 100
- *         area:
- *           type: number
- *         areaUnit:
- *           type: string
- *         bedrooms:
- *           type: integer
- *         bathrooms:
- *           type: number
- *         price:
- *           type: number
  *         gcsKey:
  *           type: string
+ *           description: Set after POST /properties/{id}/floor-plans/image
  *
  *     FloorPlanImageUpload:
  *       type: object
@@ -1585,8 +1559,6 @@
  *           type: string
  *         slug:
  *           type: string
- *         kind:
- *           $ref: '#/components/schemas/ProjectKind'
  *         status:
  *           $ref: '#/components/schemas/PropertyStatus'
  *
@@ -1601,8 +1573,6 @@
  *           type: string
  *         description:
  *           type: string
- *         kind:
- *           $ref: '#/components/schemas/ProjectKind'
  *         location:
  *           $ref: '#/components/schemas/PropertyLocation'
  *         amenities:
@@ -1620,6 +1590,10 @@
  *           format: uri
  *         unitCount:
  *           type: integer
+ *           description: Live (non-trashed) units on owner dashboard; public active/sold units otherwise.
+ *         trashedUnitCount:
+ *           type: integer
+ *           description: Trashed units on this project (owner dashboard only, when project is not in trash).
  *         priceMin:
  *           type: number
  *           nullable: true
@@ -1645,14 +1619,12 @@
  *
  *     CreateProjectRequest:
  *       type: object
- *       required: [title, description, kind, location]
+ *       required: [title, description, location]
  *       properties:
  *         title:
  *           type: string
  *         description:
  *           type: string
- *         kind:
- *           $ref: '#/components/schemas/ProjectKind'
  *         location:
  *           $ref: '#/components/schemas/PropertyLocation'
  *         amenities:

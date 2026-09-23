@@ -313,10 +313,6 @@ router.patch(
  *         schema:
  *           $ref: '#/components/schemas/PropertyStatus'
  *       - in: query
- *         name: kind
- *         schema:
- *           $ref: '#/components/schemas/ProjectKind'
- *       - in: query
  *         name: search
  *         schema:
  *           type: string
@@ -350,6 +346,7 @@ router.get(
  *   patch:
  *     operationId: adminModerateProject
  *     summary: Moderate a project
+ *     description: Setting status to archived soft-deletes the project and cascades the same trash timestamp to all units. Returning to a non-archived status restores units that were trashed with that project timestamp.
  *     tags: [Admin]
  *     security:
  *       - BearerAuth: []

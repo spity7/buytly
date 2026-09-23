@@ -21,9 +21,17 @@ import {
   buildUnarchiveUpdate,
 } from "../properties/property-status.js";
 import {
+  assertCanAddUnitToProject,
+  assertParentProjectAllowsUnitRestore,
   assertParentProjectAllowsUnitStatus,
   assertPublishUnitCardinality,
 } from "../projects/project-cardinality.js";
+import { maybeDemoteProjectWithoutLiveUnits } from "../projects/project-live-units-sync.js";
+import {
+  cascadeRestoreProjectUnits,
+  cascadeTrashProjectUnits,
+} from "../projects/project-trash-cascade.js";
+import { syncParentProjectSoldStatus } from "../projects/project-sold-sync.js";
 
 export const adminService = {
   async listUsers(query) {
@@ -145,6 +153,7 @@ export const adminService = {
 
     const [properties, total] = await Promise.all([
       Property.find(filter)
+        .populate("projectId", "title status deletedAt")
         .populate("ownerId", "firstName lastName email")
         .populate("agentId", "firstName lastName email")
         .sort(sort)
@@ -160,12 +169,15 @@ export const adminService = {
     const existing = await Property.findById(propertyId);
     if (!existing) throw new AppError("Property not found", 404);
 
-    if (status === "active") {
+    if (status !== "archived") {
       const project = await Project.findById(existing.projectId);
-      if (!project || project.deletedAt) {
-        throw new AppError("Project not found", 404);
+      assertParentProjectAllowsUnitRestore(project);
+      if (status === "active") {
+        assertParentProjectAllowsUnitStatus(project, status, { isAdmin: true });
       }
-      assertParentProjectAllowsUnitStatus(project, status, { isAdmin: true });
+      if (existing.deletedAt) {
+        assertCanAddUnitToProject(project);
+      }
     }
 
     const update =
@@ -178,6 +190,15 @@ export const adminService = {
     }).populate("ownerId", "firstName lastName email");
 
     if (!property) throw new AppError("Property not found", 404);
+
+    if (status === "sold") {
+      await syncParentProjectSoldStatus(existing.projectId, { notify: true });
+    }
+
+    if (status === "archived") {
+      await maybeDemoteProjectWithoutLiveUnits(existing.projectId);
+    }
+
     await cacheService.invalidateListingCaches();
 
     const statusMessages = {
@@ -213,8 +234,6 @@ export const adminService = {
     const conditions = [];
 
     if (query.status) conditions.push({ status: query.status });
-    if (query.kind) conditions.push({ kind: query.kind });
-
     const textFilter = buildPropertyTextFilter(query.search);
     if (textFilter) conditions.push(textFilter);
 
@@ -247,19 +266,30 @@ export const adminService = {
         projectId: existing._id,
         deletedAt: null,
       });
-      assertPublishUnitCardinality(existing.kind, unitCount);
+      assertPublishUnitCardinality(unitCount);
     }
 
-    const update =
-      status === "archived"
-        ? buildArchiveUpdate()
-        : buildUnarchiveUpdate(status);
+    const cascadeDeletedAt = existing.deletedAt;
+    let project;
 
-    const project = await Project.findByIdAndUpdate(projectId, update, {
-      new: true,
-    }).populate("ownerId", "firstName lastName email");
-
-    if (!project) throw new AppError("Project not found", 404);
+    if (status === "archived") {
+      const deletedAt = new Date();
+      project = await Project.findByIdAndUpdate(
+        projectId,
+        { status: "archived", deletedAt },
+        { new: true },
+      ).populate("ownerId", "firstName lastName email");
+      if (!project) throw new AppError("Project not found", 404);
+      await cascadeTrashProjectUnits(project._id, deletedAt);
+    } else {
+      project = await Project.findByIdAndUpdate(
+        projectId,
+        buildUnarchiveUpdate(status),
+        { new: true },
+      ).populate("ownerId", "firstName lastName email");
+      if (!project) throw new AppError("Project not found", 404);
+      await cascadeRestoreProjectUnits(project._id, cascadeDeletedAt);
+    }
 
     if (status === "active") {
       await Property.updateMany(

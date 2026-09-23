@@ -1,15 +1,11 @@
 "use client";
 
-import ConfirmDialog from "@/components/common/ConfirmDialog";
 import ProjectFormFields from "@/components/property/dashboard/dashboard-projects/ProjectFormFields";
 import { useCatalogAmenities } from "@/hooks/useCatalog";
 import { useConfirmAction } from "@/hooks/useConfirmAction";
-import { projectKindChangeConfirmation } from "@/lib/confirmations";
-import { getProjectKindLabel } from "@/lib/properties/projectKindOptions";
 import {
   buildProjectPayload,
-  canChangeProjectKind,
-  countProjectUnitsForKind,
+  isProjectFormDirty,
   projectToFormState,
 } from "@/lib/properties/projectForm";
 import { useAuth } from "@/providers/AuthProvider";
@@ -27,41 +23,23 @@ export default function ProjectDetailsForm({
   const { user } = useAuth();
   const { data: amenitiesCatalog = [] } = useCatalogAmenities();
   const [form, setForm] = useState(() => projectToFormState(project));
-  const { requestConfirm, dialogProps, isLocked } = useConfirmAction();
+  const { isLocked } = useConfirmAction();
 
   useEffect(() => {
     setForm(projectToFormState(project));
   }, [project]);
 
-  const unitCount = useMemo(() => countProjectUnitsForKind(project), [project]);
-
-  const kindMode = useMemo(() => {
-    if (!project) return "hidden";
-    if (!canChangeProjectKind(project, unitCount)) return "readonly";
-    return "editable";
-  }, [project, unitCount]);
-
   const showAgentSelect = user?.role === "seller" || user?.role === "admin";
   const formDisabled = disabled || isLocked;
-
-  const applyFieldUpdate = (field, value) => {
-    setForm((prev) => ({ ...prev, [field]: value }));
-  };
+  const baselineForm = useMemo(() => projectToFormState(project), [project]);
+  const isDirty = useMemo(
+    () => isProjectFormDirty(form, baselineForm),
+    [baselineForm, form],
+  );
+  const saveDisabled = formDisabled || !isDirty;
 
   const update = (field, value) => {
-    if (field === "kind" && value !== form.kind) {
-      requestConfirm({
-        ...projectKindChangeConfirmation(getProjectKindLabel(value)),
-        action: {
-          showToast: false,
-          task: async () => {
-            applyFieldUpdate("kind", value);
-          },
-        },
-      });
-      return;
-    }
-    applyFieldUpdate(field, value);
+    setForm((prev) => ({ ...prev, [field]: value }));
   };
 
   const updateLocation = ({ latitude, longitude }) => {
@@ -80,7 +58,6 @@ export default function ProjectDetailsForm({
   const handleSubmit = (event) => {
     event.preventDefault();
     const result = buildProjectPayload(form, {
-      includeKind: kindMode === "editable",
       includeAgentId: showAgentSelect,
     });
     if (result.error) {
@@ -92,8 +69,6 @@ export default function ProjectDetailsForm({
 
   return (
     <form className="project-edit-section" onSubmit={handleSubmit}>
-      <ConfirmDialog {...dialogProps} />
-
       <h4 className="project-edit-section__title mb5">Project details</h4>
       <p className="project-edit-section__lede mb25">
         Location, description, and amenities shared across all units on this
@@ -107,7 +82,6 @@ export default function ProjectDetailsForm({
         onToggleAmenity={toggleAmenity}
         amenitiesCatalog={amenitiesCatalog}
         disabled={formDisabled}
-        kindMode={kindMode}
         showAgentSelect={showAgentSelect}
       />
 
@@ -116,10 +90,20 @@ export default function ProjectDetailsForm({
           <button
             type="submit"
             className="ud-btn btn-thm project-wizard-actions__btn"
-            disabled={formDisabled}
+            disabled={saveDisabled}
+            title={
+              !isDirty && !formDisabled
+                ? "Make changes to enable save"
+                : undefined
+            }
           >
             {submitLabel}
           </button>
+          {!isDirty && !formDisabled ? (
+            <p className="project-wizard-actions__hint mb0">
+              Edit the form to enable save.
+            </p>
+          ) : null}
         </div>
       ) : null}
     </form>

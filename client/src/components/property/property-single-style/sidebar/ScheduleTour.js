@@ -1,10 +1,10 @@
 "use client";
 
+import { useAsyncAction } from "@/hooks/useAsyncAction";
 import { useState } from "react";
 import { openAuthModal } from "@/components/common/login-signup-modal/authModal";
 import { buytlyApi } from "@/api/generated";
-import { getApiError } from "@/lib/auth/getApiError";
-import { notifyError, notifySuccess } from "@/lib/toast";
+import { notifyError } from "@/lib/toast";
 import { useAuthSafe } from "@/providers/AuthProvider";
 import PropertyStatusBanner from "@/components/property/property-single-style/common/PropertyStatusBanner";
 import { isPropertyBookable } from "@/lib/properties/mapProperty";
@@ -18,7 +18,7 @@ const ScheduleTour = () => {
 
   const [scheduledAt, setScheduledAt] = useState("");
   const [message, setMessage] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { run, isBusy: isSubmitting } = useAsyncAction();
 
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -33,20 +33,22 @@ const ScheduleTour = () => {
       return;
     }
 
-    setIsSubmitting(true);
     try {
-      await buytlyApi.createBooking({
-        propertyId: id,
-        scheduledAt: new Date(scheduledAt).toISOString(),
-        message: message.trim() || undefined,
+      await run({
+        message: "Submitting tour request...",
+        successMessage: "Tour request submitted",
+        task: async () => {
+          await buytlyApi.createBooking({
+            propertyId: id,
+            scheduledAt: new Date(scheduledAt).toISOString(),
+            message: message.trim() || undefined,
+          });
+          setScheduledAt("");
+          setMessage("");
+        },
       });
-      notifySuccess("Tour request submitted");
-      setScheduledAt("");
-      setMessage("");
-    } catch (error) {
-      notifyError(getApiError(error));
-    } finally {
-      setIsSubmitting(false);
+    } catch {
+      // Toast handled by run()
     }
   };
 

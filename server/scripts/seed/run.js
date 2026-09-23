@@ -145,7 +145,6 @@ async function seedProperties(usersByKey) {
       title: def.title,
       slug: projectSlug,
       description: def.description,
-      kind: def.projectKind || "single",
       location,
       amenities: def.amenities || [],
       status: def.status,
@@ -183,6 +182,82 @@ async function seedProperties(usersByKey) {
   }
 
   return propertiesByTitle;
+}
+
+/** Multi-unit project with one active and one sold unit (partial sell-through demo). */
+async function seedMultiUnitPartialDemo(usersByKey) {
+  const owner = usersByKey.seller;
+  const agent = usersByKey.agent;
+  const projectSlug = await buildUniqueSlug(
+    "JVC Residences Project",
+    Project,
+  );
+
+  const location = {
+    type: "Point",
+    coordinates: [55.191, 25.056],
+    address: "Jumeirah Village Circle",
+    city: "Dubai",
+    country: "UAE",
+  };
+
+  const project = await Project.create({
+    title: "JVC Residences",
+    slug: projectSlug,
+    description:
+      "Demo development with multiple units — one still for sale and one already sold.",
+    location,
+    amenities: ["Swimming Pool", "Gym", "Parking"],
+    status: "active",
+    ownerId: owner._id,
+    agentId: agent?._id,
+    viewCount: 88,
+    media: [],
+  });
+
+  const unitDefs = [
+    {
+      title: "JVC Compound Unit A",
+      status: "active",
+      price: 890000,
+      bedrooms: 2,
+      bathrooms: 2,
+      area: 105,
+    },
+    {
+      title: "JVC Compound Unit B",
+      status: "sold",
+      price: 910000,
+      bedrooms: 2,
+      bathrooms: 2,
+      area: 108,
+    },
+  ];
+
+  for (const def of unitDefs) {
+    const unitSlug = await buildUniqueSlug(def.title);
+    await Property.create({
+      title: def.title,
+      slug: unitSlug,
+      description: def.title,
+      type: "apartment",
+      projectId: project._id,
+      price: def.price,
+      currency: "USD",
+      location,
+      bedrooms: def.bedrooms,
+      bathrooms: def.bathrooms,
+      area: def.area,
+      areaUnit: "sqm",
+      amenities: project.amenities,
+      status: def.status,
+      ownerId: owner._id,
+      agentId: agent?._id,
+      viewCount: def.status === "sold" ? 120 : 45,
+      media: [],
+      floorPlans: [],
+    });
+  }
 }
 
 async function seedReviews(usersByKey, propertiesByTitle) {
@@ -385,6 +460,9 @@ export async function runSeed({ reset = false, password, disconnect = true }) {
 
   console.log("[seed] Creating properties...");
   const propertiesByTitle = await seedProperties(usersByKey);
+
+  console.log("[seed] Creating multi-unit partial-sold demo...");
+  await seedMultiUnitPartialDemo(usersByKey);
 
   console.log("[seed] Creating reviews...");
   await seedReviews(usersByKey, propertiesByTitle);

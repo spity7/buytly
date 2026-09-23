@@ -11,8 +11,7 @@ import {
 } from "@/components/property/dashboard/DashboardFilterBar";
 import { DashboardTableSkeleton } from "@/components/property/dashboard/skeletons/DashboardSkeletons";
 import { useAdminUsers } from "@/hooks/useAdminUsers";
-import { getApiError } from "@/lib/auth/getApiError";
-import { toast } from "sonner";
+import { useAsyncAction } from "@/hooks/useAsyncAction";
 
 const PAGE_SIZE = 20;
 
@@ -62,15 +61,22 @@ export default function AdminUsersTable() {
 
   const { data, isLoading, isError, refetch } = useAdminUsers(queryParams);
   const users = data?.users || [];
+  const { run, isBusy: platformBusy } = useAsyncAction();
+  const actionsDisabled = platformBusy || Boolean(busyUserId);
 
   const updateStatus = async (userId, isActive) => {
     setBusyUserId(userId);
     try {
-      await buytlyApi.adminUpdateUserStatus(userId, { isActive });
-      toast.success(isActive ? "User activated" : "User deactivated");
-      refetch();
-    } catch (error) {
-      toast.error(getApiError(error));
+      await run({
+        message: isActive ? "Activating user..." : "Deactivating user...",
+        successMessage: isActive ? "User activated" : "User deactivated",
+        task: async () => {
+          await buytlyApi.adminUpdateUserStatus(userId, { isActive });
+          await refetch();
+        },
+      });
+    } catch {
+      // Toast handled by run()
     } finally {
       setBusyUserId(null);
     }
@@ -79,11 +85,16 @@ export default function AdminUsersTable() {
   const updateRole = async (userId, nextRole) => {
     setBusyUserId(userId);
     try {
-      await buytlyApi.adminUpdateUserRole(userId, { role: nextRole });
-      toast.success("Role updated");
-      refetch();
-    } catch (error) {
-      toast.error(getApiError(error));
+      await run({
+        message: "Updating user role...",
+        successMessage: "Role updated",
+        task: async () => {
+          await buytlyApi.adminUpdateUserRole(userId, { role: nextRole });
+          await refetch();
+        },
+      });
+    } catch {
+      // Toast handled by run()
     } finally {
       setBusyUserId(null);
     }
@@ -96,6 +107,7 @@ export default function AdminUsersTable() {
           label="Role"
           value={role}
           options={ROLE_OPTIONS}
+          disabled={actionsDisabled}
           onChange={(value) => {
             setPage(1);
             setRole(value);
@@ -105,6 +117,7 @@ export default function AdminUsersTable() {
           label="Status"
           value={statusFilter}
           options={STATUS_OPTIONS}
+          disabled={actionsDisabled}
           onChange={(value) => {
             setPage(1);
             setStatusFilter(value);
@@ -139,7 +152,7 @@ export default function AdminUsersTable() {
                   [user.firstName, user.lastName].filter(Boolean).join(" ") ||
                   user.email;
                 const isDeleted = Boolean(user.deletedAt);
-                const isBusy = busyUserId === userId;
+                const isBusy = actionsDisabled;
 
                 return (
                   <tr key={userId}>
@@ -205,6 +218,7 @@ export default function AdminUsersTable() {
           total={data?.pagination?.total || 0}
           limit={PAGE_SIZE}
           onPageChange={setPage}
+          disabled={actionsDisabled}
         />
       </div>
 

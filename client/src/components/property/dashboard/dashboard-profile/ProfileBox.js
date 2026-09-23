@@ -2,7 +2,6 @@
 
 import AccountSummary from "@/components/property/dashboard/dashboard-profile/AccountSummary";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
-import AsyncActionOverlay from "@/components/common/AsyncActionOverlay";
 import { buytlyApi } from "@/api/generated";
 import { useAsyncAction } from "@/hooks/useAsyncAction";
 import { isExternalImageSrc } from "@/lib/images/isExternalImageSrc";
@@ -20,7 +19,7 @@ const ProfileBox = () => {
   const { user, refreshUser, isLoading } = useAuth();
   const [previewUrl, setPreviewUrl] = useState(null);
   const [showRemoveConfirm, setShowRemoveConfirm] = useState(false);
-  const { run, isBusy, overlayMessage } = useAsyncAction({ overlay: true });
+  const { run, isBusy } = useAsyncAction();
 
   const avatarUrl = previewUrl || user?.avatar?.url || DEFAULT_AVATAR;
   const hasCustomAvatar = Boolean(user?.avatar?.gcsKey || previewUrl);
@@ -171,8 +170,6 @@ const ProfileBox = () => {
         }}
         onConfirm={handleDelete}
       />
-
-      <AsyncActionOverlay message={overlayMessage} />
     </div>
   );
 };

@@ -13,10 +13,12 @@ import StatusBadge from "@/components/common/StatusBadge";
 import { notifyError } from "@/lib/toast";
 import { getApiError } from "@/lib/auth/getApiError";
 import Link from "next/link";
+import { useLiveSyncReload } from "@/hooks/useLiveSyncReload";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import DashboardTableEmptyState from "@/components/property/dashboard/DashboardTableEmptyState";
 import { DashboardTableSkeleton } from "@/components/property/dashboard/skeletons/DashboardSkeletons";
 import { getAdminProjectsEmptyState } from "@/lib/dashboard/tableEmptyStates";
+import { adminArchiveProjectConfirmation } from "@/lib/confirmations";
 
 const STATUS_FILTERS = [
   { value: "", label: "All statuses" },
@@ -27,17 +29,10 @@ const STATUS_FILTERS = [
   { value: "archived", label: "Archived" },
 ];
 
-const KIND_FILTERS = [
-  { value: "", label: "All kinds" },
-  { value: "single", label: "Single" },
-  { value: "compound", label: "Compound" },
-];
-
 export default function AdminProjectsTable() {
   const [page, setPage] = useState(1);
   const [searchInput, setSearchInput, search] = useDebouncedSearch();
   const [statusFilter, setStatusFilter] = useState("pending");
-  const [kindFilter, setKindFilter] = useState("");
   const [projects, setProjects] = useState([]);
   const [pagination, setPagination] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -48,50 +43,70 @@ export default function AdminProjectsTable() {
       page,
       limit: 20,
       ...(statusFilter ? { status: statusFilter } : {}),
-      ...(kindFilter ? { kind: kindFilter } : {}),
       ...(search.trim() ? { search: search.trim() } : {}),
     }),
-    [page, statusFilter, kindFilter, search],
+    [page, statusFilter, search],
   );
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    try {
-      const response = await buytlyApi.adminListProjects(queryParams);
-      setProjects(response.data || []);
-      setPagination(response.pagination);
-    } finally {
-      setLoading(false);
-    }
-  }, [queryParams]);
+  const load = useCallback(
+    async ({ silent = false } = {}) => {
+      if (!silent) {
+        setLoading(true);
+      }
+      try {
+        const response = await buytlyApi.adminListProjects(queryParams);
+        setProjects(response.data || []);
+        setPagination(response.pagination);
+      } finally {
+        if (!silent) {
+          setLoading(false);
+        }
+      }
+    },
+    [queryParams],
+  );
 
   useEffect(() => {
     load();
   }, [load]);
 
+  useLiveSyncReload(load);
+
   const hasActiveFilters = Boolean(
-    search.trim() || kindFilter || statusFilter !== "pending",
+    search.trim() || statusFilter !== "pending",
   );
 
   const resetFilters = () => {
     setSearchInput("");
     setStatusFilter("pending");
-    setKindFilter("");
     setPage(1);
   };
 
   const moderate = (id, title, status) => {
+    const archiveConfig =
+      status === "archived" ? adminArchiveProjectConfirmation(title) : null;
+
     requestConfirm({
       title:
-        status === "active" ? "Approve project?" : "Update project status?",
+        archiveConfig?.title ??
+        (status === "active" ? "Approve project?" : "Update project status?"),
       message:
-        status === "active"
+        archiveConfig?.message ??
+        (status === "active"
           ? `"${title}" will go live and pending units will be published.`
-          : `Set "${title}" to ${status}?`,
-      confirmLabel: status === "active" ? "Approve" : "Confirm",
+          : `Set "${title}" to ${status}?`),
+      confirmLabel:
+        archiveConfig?.confirmLabel ??
+        (status === "active" ? "Approve" : "Confirm"),
+      confirmVariant: archiveConfig?.confirmVariant,
+      confirmingLabel: archiveConfig?.confirmingLabel,
       action: {
-        message: "Updating project...",
-        successMessage: "Project updated",
+        message:
+          status === "archived"
+            ? "Archiving project..."
+            : "Updating project...",
+        successMessage:
+          status === "archived" ? "Project archived" : "Project updated",
         task: () => buytlyApi.adminModerateProject(id, { status }),
         onSuccess: load,
         onError: (error) => notifyError(getApiError(error)),
@@ -124,18 +139,6 @@ export default function AdminProjectsTable() {
             setStatusFilter(value);
           }}
         />
-        <FilterSelect
-          id="admin-project-kind"
-          label="Kind"
-          hideLabel
-          value={kindFilter}
-          options={KIND_FILTERS}
-          disabled={isLocked}
-          onChange={(value) => {
-            setPage(1);
-            setKindFilter(value);
-          }}
-        />
       </DashboardFilterBar>
 
       {loading && !projects.length ? (
@@ -145,7 +148,7 @@ export default function AdminProjectsTable() {
           {...getAdminProjectsEmptyState({
             hasActiveFilters,
             isPendingQueue:
-              statusFilter === "pending" && !search.trim() && !kindFilter,
+              statusFilter === "pending" && !search.trim(),
             onClearFilters: resetFilters,
           })}
         />
@@ -155,7 +158,6 @@ export default function AdminProjectsTable() {
             <thead>
               <tr>
                 <th>Title</th>
-                <th>Kind</th>
                 <th>Status</th>
                 <th>Owner</th>
                 <th>Actions</th>
@@ -167,7 +169,6 @@ export default function AdminProjectsTable() {
                 return (
                   <tr key={id}>
                     <td>{project.title}</td>
-                    <td className="text-capitalize">{project.kind}</td>
                     <td>
                       <StatusBadge domain="listing" status={project.status} />
                     </td>
@@ -199,6 +200,18 @@ export default function AdminProjectsTable() {
                             Return to draft
                           </button>
                         </>
+                      ) : null}
+                      {project.status === "active" ? (
+                        <button
+                          type="button"
+                          className="btn btn-sm btn-outline-danger"
+                          disabled={isLocked}
+                          onClick={() =>
+                            moderate(id, project.title, "archived")
+                          }
+                        >
+                          Archive
+                        </button>
                       ) : null}
                     </td>
                   </tr>

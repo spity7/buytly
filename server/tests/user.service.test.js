@@ -73,7 +73,6 @@ describe.skipIf(!mongoAvailable)("user.service", () => {
       title: "Live project",
       slug: "live-project-delete-test",
       description: "Should stay active",
-      kind: "single",
       location: {
         type: "Point",
         city: "Dubai",

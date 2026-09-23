@@ -1,48 +1,132 @@
 "use client";
 
 import { buytlyApi } from "@/api/generated";
-import AsyncActionOverlay from "@/components/common/AsyncActionOverlay";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
+import VideoFilePlayer from "@/components/common/VideoFilePlayer";
 import PropertyPhotoGallery from "@/components/property/dashboard/dashboard-add-property/PropertyPhotoGallery";
+import { useAsyncAction } from "@/hooks/useAsyncAction";
 import { useConfirmAction } from "@/hooks/useConfirmAction";
 import { getApiError } from "@/lib/auth/getApiError";
 import { projectMediaDeleteConfirmation } from "@/lib/confirmations";
 import {
+  createPendingGalleryItem,
+  getSavedMediaFingerprint,
   mediaToSavedGalleryItems,
   moveGalleryItem,
   sortPropertyImages,
 } from "@/lib/properties/propertyPhotoGallery";
-import { notifyError, notifySuccess } from "@/lib/toast";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { notifyError } from "@/lib/toast";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+
+const EMPTY_MEDIA = [];
+const PHOTO_INPUT_ID = "project-photo-upload";
+
+const ALLOWED_IMAGE_TYPES = new Set([
+  "image/jpeg",
+  "image/jpg",
+  "image/png",
+  "image/webp",
+  "image/gif",
+  "image/heic",
+  "image/heif",
+  "image/bmp",
+  "image/avif",
+]);
 
 function isVideoFile(file) {
   return file.type.startsWith("video/");
+}
+
+function isAllowedProjectImage(file) {
+  if (isVideoFile(file)) return false;
+  if (file.type && file.type.startsWith("image/")) return true;
+  if (ALLOWED_IMAGE_TYPES.has(file.type)) return true;
+  const ext = file.name.split(".").pop()?.toLowerCase();
+  return [
+    "jpg",
+    "jpeg",
+    "png",
+    "webp",
+    "gif",
+    "heic",
+    "heif",
+    "bmp",
+    "avif",
+  ].includes(ext || "");
+}
+
+function uploadedImageToGalleryItem(item, index) {
+  return {
+    type: "saved",
+    id: item._id || item.id,
+    url: item.url,
+    name: item.gcsKey?.split("/").pop() || `Project photo ${index + 1}`,
+    media: item,
+  };
 }
 
 function projectVideoFromMedia(media = []) {
   return media.find((m) => m.type === "video") || null;
 }
 
+function unwrapUploadedMedia(response) {
+  if (response?.data && typeof response.data === "object") {
+    return response.data;
+  }
+  return response;
+}
+
+function pickPhotoFiles(fileList) {
+  const accepted = [];
+  const rejected = [];
+
+  for (const file of Array.from(fileList || [])) {
+    if (isAllowedProjectImage(file)) {
+      accepted.push(file);
+    } else {
+      rejected.push(file.name);
+    }
+  }
+
+  return { accepted, rejected };
+}
+
 export default function ProjectMediaPanel({
   projectId,
-  media = [],
+  media = EMPTY_MEDIA,
   onUpdated,
   disabled = false,
 }) {
   const [photoGallery, setPhotoGallery] = useState([]);
   const [uploadProgress, setUploadProgress] = useState(null);
   const [reordering, setReordering] = useState(false);
+  const photoInputRef = useRef(null);
+  const mediaRef = useRef(media);
+  const isUploadingRef = useRef(false);
+  mediaRef.current = media;
 
-  const { requestConfirm, dialogProps, isLocked, overlayMessage } =
-    useConfirmAction({ overlay: true });
+  const { run, isBusy: mediaActionBusy } = useAsyncAction();
+  const { requestConfirm, dialogProps, isLocked } = useConfirmAction();
 
   const video = useMemo(() => projectVideoFromMedia(media), [media]);
+  const savedMediaFingerprint = getSavedMediaFingerprint(media);
 
   useEffect(() => {
-    setPhotoGallery(
-      mediaToSavedGalleryItems(media, { label: "Project photo" }),
-    );
-  }, [media]);
+    if (isUploadingRef.current) {
+      return;
+    }
+
+    const serverItems = mediaToSavedGalleryItems(mediaRef.current, {
+      label: "Project photo",
+    });
+    setPhotoGallery((prev) => {
+      const pending = prev.filter((item) => item.type === "pending");
+      if (!pending.length) {
+        return serverItems;
+      }
+      return [...serverItems, ...pending];
+    });
+  }, [savedMediaFingerprint]);
 
   const refresh = useCallback(async () => {
     if (onUpdated) await onUpdated();
@@ -50,13 +134,21 @@ export default function ProjectMediaPanel({
 
   const persistPhotoOrder = useCallback(
     async (nextGallery) => {
-      const imageIds = nextGallery.map((item) => item.id);
+      const imageIds = nextGallery
+        .filter((item) => item.type === "saved")
+        .map((item) => item.id);
       if (!imageIds.length) return;
 
       setReordering(true);
       try {
-        await buytlyApi.reorderProjectMedia(projectId, { imageIds });
-        await refresh();
+        await run({
+          message: "Saving photo order...",
+          showToast: false,
+          task: async () => {
+            await buytlyApi.reorderProjectMedia(projectId, { imageIds });
+            await refresh();
+          },
+        });
       } catch (error) {
         notifyError(getApiError(error));
         await refresh();
@@ -64,7 +156,7 @@ export default function ProjectMediaPanel({
         setReordering(false);
       }
     },
-    [projectId, refresh],
+    [projectId, refresh, run],
   );
 
   const applyGalleryReorder = useCallback(
@@ -96,64 +188,171 @@ export default function ProjectMediaPanel({
     [applyGalleryReorder],
   );
 
-  const uploadFiles = async (
-    files,
-    { imagesOnly = false, videoOnly = false },
-  ) => {
-    const list = Array.from(files || []);
-    if (!list.length) return;
+  const clearPendingPreviews = useCallback((items) => {
+    for (const item of items) {
+      if (item.type === "pending" && item.url?.startsWith("blob:")) {
+        URL.revokeObjectURL(item.url);
+      }
+    }
+  }, []);
 
-    setUploadProgress({ done: 0, total: list.length });
+  const uploadFiles = useCallback(
+    async (files, { imagesOnly = false, videoOnly = false } = {}) => {
+      const list = Array.from(files || []);
+      if (!list.length) return;
 
-    try {
-      for (let i = 0; i < list.length; i += 1) {
-        const file = list[i];
-        if (imagesOnly && isVideoFile(file)) {
-          notifyError(
-            `Skipped ${file.name}: use the video section for videos.`,
-          );
-          continue;
-        }
-        if (videoOnly && !isVideoFile(file)) {
-          notifyError(`Skipped ${file.name}: choose a video file.`);
-          continue;
-        }
-        if (videoOnly && video) {
-          notifyError(
-            "This project already has a video. Remove it before uploading another.",
-          );
-          break;
-        }
-
-        await buytlyApi.uploadProjectMedia(projectId, { media: file });
-        setUploadProgress({ done: i + 1, total: list.length });
+      if (!projectId) {
+        notifyError("Project is still loading. Try again in a moment.");
+        return;
       }
 
-      notifySuccess(
-        list.length === 1 ? "Media uploaded" : `${list.length} files uploaded`,
-      );
-      await refresh();
-    } catch (error) {
-      notifyError(getApiError(error));
-    } finally {
-      setUploadProgress(null);
-    }
-  };
+      if (disabled) {
+        notifyError("You cannot upload media while this project is read-only.");
+        return;
+      }
 
-  const handlePhotoSelect = (event) => {
-    const files = event.target.files;
-    event.target.value = "";
-    uploadFiles(files, { imagesOnly: true });
-  };
+      isUploadingRef.current = true;
+      setUploadProgress({ done: 0, total: list.length });
+
+      try {
+        await run({
+          message:
+            list.length === 1
+              ? "Uploading media..."
+              : "Uploading media files...",
+          successMessage:
+            list.length === 1
+              ? "Media uploaded"
+              : `${list.length} files uploaded`,
+          task: async ({ setProgress }) => {
+            let uploadedCount = 0;
+
+            for (let i = 0; i < list.length; i += 1) {
+              const file = list[i];
+              if (imagesOnly && isVideoFile(file)) {
+                notifyError(
+                  `Skipped ${file.name}: use the video section for videos.`,
+                );
+                continue;
+              }
+              if (imagesOnly && !isAllowedProjectImage(file)) {
+                notifyError(`Skipped ${file.name}: not a supported image.`);
+                continue;
+              }
+              if (videoOnly && !isVideoFile(file)) {
+                notifyError(`Skipped ${file.name}: choose a video file.`);
+                continue;
+              }
+              if (videoOnly && video) {
+                notifyError(
+                  "This project already has a video. Remove it before uploading another.",
+                );
+                break;
+              }
+
+              if (list.length > 1) {
+                setProgress(`Uploading ${i + 1} of ${list.length}...`);
+              }
+
+              const response = await buytlyApi.uploadProjectMedia(projectId, {
+                media: file,
+              });
+              const uploaded = unwrapUploadedMedia(response);
+              if (uploaded?.type === "image" && uploaded.url) {
+                setPhotoGallery((prev) => [
+                  ...prev,
+                  uploadedImageToGalleryItem(uploaded, prev.length),
+                ]);
+              }
+              uploadedCount += 1;
+              setUploadProgress({ done: i + 1, total: list.length });
+            }
+
+            if (uploadedCount === 0) {
+              throw new Error(
+                imagesOnly
+                  ? "No photos were uploaded. Try JPEG, PNG, or WebP."
+                  : "No media was uploaded.",
+              );
+            }
+
+            setPhotoGallery((prev) => {
+              const next = prev.filter((item) => item.type !== "pending");
+              clearPendingPreviews(prev);
+              return next;
+            });
+
+            await refresh();
+          },
+        });
+      } catch {
+        setPhotoGallery((prev) => {
+          clearPendingPreviews(prev);
+          return prev.filter((item) => item.type !== "pending");
+        });
+      } finally {
+        isUploadingRef.current = false;
+        setUploadProgress(null);
+      }
+    },
+    [clearPendingPreviews, disabled, projectId, refresh, run, video],
+  );
+
+  const openPhotoPicker = useCallback(() => {
+    if (disabled || isLocked || reordering || mediaActionBusy) {
+      return;
+    }
+    photoInputRef.current?.click();
+  }, [disabled, isLocked, mediaActionBusy, reordering]);
+
+  const handlePhotoSelect = useCallback(
+    (event) => {
+      const input = event.currentTarget;
+      const fileList = input.files;
+      input.value = "";
+
+      if (!fileList?.length) return;
+
+      const { accepted, rejected } = pickPhotoFiles(fileList);
+
+      if (rejected.length) {
+        notifyError(
+          rejected.length === 1
+            ? `${rejected[0]} is not a supported image. Use JPEG, PNG, or WebP.`
+            : `${rejected.length} file(s) were skipped (unsupported format).`,
+        );
+      }
+
+      if (!accepted.length) {
+        return;
+      }
+
+      setPhotoGallery((prev) => [
+        ...prev,
+        ...accepted.map((file) => createPendingGalleryItem(file)),
+      ]);
+
+      void uploadFiles(accepted, { imagesOnly: true });
+    },
+    [uploadFiles],
+  );
 
   const handleVideoSelect = (event) => {
-    const file = event.target.files?.[0];
-    event.target.value = "";
+    const file = event.currentTarget.files?.[0];
+    event.currentTarget.value = "";
     if (!file) return;
-    uploadFiles([file], { videoOnly: true });
+    void uploadFiles([file], { videoOnly: true });
   };
 
   const promptDeletePhoto = (item, index) => {
+    if (item.type === "pending") {
+      if (item.url?.startsWith("blob:")) {
+        URL.revokeObjectURL(item.url);
+      }
+      setPhotoGallery((prev) => prev.filter((_, i) => i !== index));
+      return;
+    }
+
     requestConfirm({
       ...projectMediaDeleteConfirmation(false),
       action: {
@@ -186,17 +385,12 @@ export default function ProjectMediaPanel({
     });
   };
 
-  const panelBusy =
-    disabled || isLocked || Boolean(uploadProgress) || reordering;
+  const panelBusy = disabled || isLocked || mediaActionBusy || reordering;
   const sortedImages = sortPropertyImages(media);
 
   return (
     <div className="project-edit-section project-edit-media overflow-hidden position-relative">
       <ConfirmDialog {...dialogProps} />
-      <AsyncActionOverlay
-        active={Boolean(overlayMessage)}
-        message={overlayMessage}
-      />
 
       <h4 className="project-edit-section__title mb5">Project gallery</h4>
       <p className="project-edit-section__lede mb25">
@@ -208,13 +402,18 @@ export default function ProjectMediaPanel({
       <div className="col-sm-12 px-0">
         <h5 className="fz17 mb15">Photos</h5>
         <div className="mb20">
-          <label className="heading-color ff-heading fw600 mb10">
+          <label
+            className="heading-color ff-heading fw600 mb10"
+            htmlFor={PHOTO_INPUT_ID}
+          >
             Upload photos
           </label>
           <input
+            ref={photoInputRef}
+            id={PHOTO_INPUT_ID}
             type="file"
             className="form-control"
-            accept="image/*"
+            accept="image/jpeg,image/png,image/webp,image/gif,image/heic,image/heif,image/*"
             multiple
             disabled={panelBusy}
             onChange={handlePhotoSelect}
@@ -233,19 +432,24 @@ export default function ProjectMediaPanel({
         {photoGallery.length > 0 ? (
           <PropertyPhotoGallery
             items={photoGallery}
-            disabled={panelBusy}
+            disabled={panelBusy || Boolean(uploadProgress)}
             onRemove={promptDeletePhoto}
             onSetCover={setGalleryCover}
             onMoveLeft={moveGalleryPhotoLeft}
             onMoveRight={moveGalleryPhotoRight}
           />
         ) : (
-          <div className="upload-img position-relative overflow-hidden bdrs12 text-center mb30 px-2 py-4 bgc-f7">
+          <button
+            type="button"
+            className="upload-img position-relative overflow-hidden bdrs12 text-center mb30 px-2 py-4 bgc-f7 w-100 border-0"
+            disabled={panelBusy}
+            onClick={openPhotoPicker}
+          >
             <div className="icon mb15">
               <span className="flaticon-upload" />
             </div>
-            <p className="text mb0">No project photos yet.</p>
-          </div>
+            <p className="text mb0">No project photos yet. Click to upload.</p>
+          </button>
         )}
       </div>
 
@@ -272,10 +476,9 @@ export default function ProjectMediaPanel({
           <div className="row profile-box position-relative d-md-flex align-items-end mb20">
             <div className="col-12 col-md-8 col-lg-6">
               <div className="profile-img mb20 position-relative">
-                <video
+                <VideoFilePlayer
                   className="w-100 bdrs12 cover"
                   src={video.url}
-                  controls
                   style={{ maxHeight: 280, objectFit: "cover" }}
                 />
                 <button

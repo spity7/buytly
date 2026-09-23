@@ -5,7 +5,6 @@ import Link from "next/link";
 import React from "react";
 import { Tooltip as ReactTooltip } from "react-tooltip";
 import { buytlyApi } from "@/api/generated";
-import AsyncActionOverlay from "@/components/common/AsyncActionOverlay";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
 import ApiPagination from "@/components/property/ApiPagination";
 import { useMyProperties } from "@/hooks/useMyProperties";
@@ -30,16 +29,28 @@ import DashboardTableEmptyState, {
   DashboardTableErrorState,
 } from "@/components/property/dashboard/DashboardTableEmptyState";
 import { getPropertiesTableEmptyState } from "@/lib/dashboard/tableEmptyStates";
+import { getPropertyTypeLabel } from "@/lib/dashboard/filterOptions";
+import {
+  isListingPubliclyPreviewable,
+  isUnitRestoreBlockedByParentProject,
+} from "@/lib/properties/mapProperty";
 
 const PLACEHOLDER = "/images/listings/list-1.jpg";
 
-const formatDate = (value) => {
-  if (!value) return "—";
-  return new Intl.DateTimeFormat(undefined, {
-    month: "long",
-    day: "numeric",
-    year: "numeric",
-  }).format(new Date(value));
+const getParentProjectCell = (property, card) => {
+  const projectRef = property.projectId;
+  const projectId =
+    typeof projectRef === "string"
+      ? projectRef
+      : projectRef?._id || projectRef?.id || null;
+  const title =
+    card?.projectTitle ||
+    (typeof projectRef === "object" ? projectRef?.title : null) ||
+    "—";
+  const projectInTrash =
+    typeof projectRef === "object" && Boolean(projectRef?.deletedAt);
+
+  return { projectId, title, projectInTrash };
 };
 
 const PropertyDataTable = ({
@@ -62,7 +73,7 @@ const PropertyDataTable = ({
     overlayMessage,
     dialogProps,
     pending,
-  } = useConfirmAction({ overlay: true });
+  } = useConfirmAction();
 
   const highlightId = useHighlightQueryParam();
   const { data, isFetching, isError } = useMyProperties(
@@ -158,7 +169,7 @@ const PropertyDataTable = ({
     <>
       {showTableSkeleton ? (
         <div className="packages_table table-responsive">
-          <DashboardTableSkeleton rows={5} columns={5} withThumbnail />
+          <DashboardTableSkeleton rows={5} columns={6} withThumbnail />
         </div>
       ) : !properties.length ? (
         <DashboardTableEmptyState {...emptyState} />
@@ -167,7 +178,8 @@ const PropertyDataTable = ({
           <thead className="t-head">
             <tr>
               <th scope="col">Listing title</th>
-              <th scope="col">{isTrash ? "Deleted" : "Date Published"}</th>
+              <th scope="col">Parent project</th>
+              <th scope="col">Property type</th>
               <th scope="col">Status</th>
               {!isTrash && <th scope="col">Views</th>}
               <th scope="col">Action</th>
@@ -178,6 +190,12 @@ const PropertyDataTable = ({
               const card = cards[index];
               const propertyId = property._id;
               const rowBusy = actingId === propertyId;
+              const restoreBlockedByParent =
+                isUnitRestoreBlockedByParentProject(property);
+              const publicPreview = isListingPubliclyPreviewable(
+                property.status,
+              );
+              const parentProject = getParentProjectCell(property, card);
 
               return (
                 <tr key={propertyId} {...getRowProps(propertyId)}>
@@ -194,7 +212,7 @@ const PropertyDataTable = ({
                       </div>
                       <div className="list-content py-0 p-0 mt-2 mt-xxl-0 ps-xxl-4">
                         <div className="h6 list-title">
-                          {isTrash ? (
+                          {isTrash || !publicPreview ? (
                             property.title
                           ) : (
                             <Link href={`/single-v1/${propertyId}`}>
@@ -210,10 +228,23 @@ const PropertyDataTable = ({
                     </div>
                   </th>
                   <td className="vam">
-                    {formatDate(
-                      isTrash ? property.deletedAt : property.createdAt,
+                    {parentProject.projectId ? (
+                      <Link
+                        href={`/dashboard-edit-project/${parentProject.projectId}`}
+                        className="text-reset"
+                      >
+                        {parentProject.title}
+                      </Link>
+                    ) : (
+                      parentProject.title
                     )}
+                    {parentProject.projectInTrash ? (
+                      <span className="d-block fz13 text-muted">
+                        Project in trash
+                      </span>
+                    ) : null}
                   </td>
+                  <td className="vam">{getPropertyTypeLabel(property.type)}</td>
                   <td className="vam">
                     <StatusBadge
                       {...getPropertyStatusBadgeProps(property, {
@@ -231,7 +262,14 @@ const PropertyDataTable = ({
                           <button
                             type="button"
                             className="ud-btn btn-thm btn-sm"
-                            disabled={rowBusy || tableBusy}
+                            disabled={
+                              rowBusy || tableBusy || restoreBlockedByParent
+                            }
+                            title={
+                              restoreBlockedByParent
+                                ? "Restore the parent project from Projects → Trash first"
+                                : undefined
+                            }
                             onClick={() => handleRestore(propertyId)}
                           >
                             Restore
@@ -304,7 +342,6 @@ const PropertyDataTable = ({
       )}
 
       <ConfirmDialog {...dialogProps} />
-      <AsyncActionOverlay message={overlayMessage} />
     </>
   );
 };

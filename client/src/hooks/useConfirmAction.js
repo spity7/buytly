@@ -9,7 +9,7 @@ import { useAsyncAction } from "./useAsyncAction";
  * Call `requestConfirm({ title, message, ..., action: { message, task, ... } })`
  * to open a dialog. On confirm, runs the nested action with loading toast/overlay.
  */
-export function useConfirmAction({ overlay = false } = {}) {
+export function useConfirmAction({ overlay = true } = {}) {
   const { run, isBusy, overlayMessage } = useAsyncAction({ overlay });
   const [pending, setPending] = useState(null);
 

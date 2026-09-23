@@ -135,7 +135,7 @@ export const getProperties = () => {
     );
   };
   /**
-   * Clears deletedAt and sets status to draft. Owner, assigned agent, or admin only.
+   * Clears deletedAt and sets status to draft when the parent project is not in trash. Owner, assigned agent, or admin only.
    * @summary Restore a soft-deleted property
    */
   const restoreProperty = (
@@ -216,7 +216,7 @@ export const getProperties = () => {
     );
   };
   /**
-   * Uploads a floor plan image and returns a gcsKey for use in the floorPlans array.
+   * Uploads a floor plan image and returns a gcsKey for use in the floorPlans array. Available for any property type.
    * @summary Upload floor plan image
    */
   const uploadFloorPlanImage = (

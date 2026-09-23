@@ -139,7 +139,7 @@ export const HERO_PROPERTY_TYPE_MAP = {
   Apartments: "apartment",
   Bungalow: "townhouse",
   Houses: "villa",
-  Office: "commercial",
+  Office: "office",
   TownHome: "townhouse",
   Villa: "villa",
 };

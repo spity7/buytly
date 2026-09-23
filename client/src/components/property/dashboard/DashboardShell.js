@@ -9,12 +9,14 @@ import { usePathname } from "next/navigation";
 
 const DashboardShell = ({ children }) => {
   const pathname = usePathname();
-  const isAddPropertyPage = pathname === "/dashboard-add-property";
+  const isUnitDashboardPage =
+    pathname === "/dashboard-add-property" ||
+    pathname.startsWith("/dashboard-edit-property/");
   const isProfilePage = pathname === "/dashboard-my-profile";
-  const wrapperClass = isAddPropertyPage
+  const wrapperClass = isUnitDashboardPage
     ? "dashboard dashboard_wrapper pr30 pr0-md"
     : "dashboard dashboard_wrapper pr30 pr0-xl";
-  const contentClass = isAddPropertyPage
+  const contentClass = isUnitDashboardPage
     ? "dashboard__content property-page bgc-f7"
     : "dashboard__content bgc-f7";
 
