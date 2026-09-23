@@ -90,7 +90,7 @@ const TopFilterBar = ({
                 data-bs-toggle="dropdown"
                 data-bs-auto-close="outside"
               >
-                Price <i className="fa fa-angle-down ms-2" />
+                Price From <i className="fa fa-angle-down ms-2" />
               </button>
 
               <div className="dropdown-menu dd3">

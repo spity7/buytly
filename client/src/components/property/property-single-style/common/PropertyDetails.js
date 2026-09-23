@@ -1,6 +1,7 @@
 "use client";
 
-import { getStatusLabel } from "@/lib/properties/mapProperty";
+import StatusBadge from "@/components/common/StatusBadge";
+import { PRICE_FROM_LABEL } from "@/lib/properties/formatPrice";
 import { usePropertySingle } from "@/providers/PropertySingleProvider";
 const PropertyDetails = () => {
   const { property, card } = usePropertySingle();
@@ -9,7 +10,7 @@ const PropertyDetails = () => {
 
   const columns = [
     [
-      { label: "Price", value: card.price },
+      { label: PRICE_FROM_LABEL, value: card.price },
       {
         label: "Property Size",
         value: property.area
@@ -31,7 +32,8 @@ const PropertyDetails = () => {
       },
       {
         label: "Property Status",
-        value: getStatusLabel(property.status),
+        status: property.status,
+        isStatus: true,
       },
     ],
   ];
@@ -53,7 +55,13 @@ const PropertyDetails = () => {
                 </p>
               </div>
               <div className="pd-list">
-                <p className="text mb10">{detail.value}</p>
+                <p className="text mb10">
+                  {detail.isStatus ? (
+                    <StatusBadge domain="listing" status={detail.status} />
+                  ) : (
+                    detail.value
+                  )}
+                </p>
               </div>
             </div>
           ))}

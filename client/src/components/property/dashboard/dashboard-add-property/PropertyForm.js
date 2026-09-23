@@ -3,6 +3,7 @@
 import { buytlyApi } from "@/api/generated";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
 import AsyncActionOverlay from "@/components/common/AsyncActionOverlay";
+import FormFieldError from "@/components/common/FormFieldError";
 import { DashboardFormSkeleton } from "@/components/property/dashboard/skeletons/DashboardSkeletons";
 import { useConfirmAction } from "@/hooks/useConfirmAction";
 import { getApiError } from "@/lib/auth/getApiError";
@@ -12,6 +13,8 @@ import {
   propertyPublishConfirmation,
 } from "@/lib/confirmations";
 import { notifyError } from "@/lib/toast";
+import { getVirtualTourUrlFieldError } from "@/lib/properties/fieldErrors";
+import { PRICE_FROM_LABEL } from "@/lib/properties/formatPrice";
 import { isPropertyTerminal } from "@/lib/properties/mapProperty";
 import PropertyFormNearbyPreview from "@/components/property/dashboard/dashboard-add-property/PropertyFormNearbyPreview";
 import PropertyLocationPicker from "@/components/property/dashboard/dashboard-add-property/PropertyLocationPicker";
@@ -35,7 +38,9 @@ import {
 import PropertyFormStatusBanner from "@/components/property/dashboard/dashboard-add-property/PropertyFormStatusBanner";
 import PropertyFormActions from "@/components/property/dashboard/dashboard-add-property/PropertyFormActions";
 import { getPropertyFormCancelHref } from "@/lib/properties/propertyFormActions";
+import { SINGLE_PROJECT_UNIT_TYPE } from "@/lib/properties/projectForm";
 import { invalidatePropertyQueries } from "@/lib/properties/invalidatePropertyQueries";
+import { useProject } from "@/hooks/useProjects";
 import { useAuth } from "@/providers/AuthProvider";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
@@ -164,23 +169,6 @@ function getOptionalWholeNumberFieldError(value, fieldLabel) {
   return "";
 }
 
-function getVirtualTourUrlFieldError(value) {
-  const trimmed = (value ?? "").trim();
-  if (!trimmed) return "";
-  if (trimmed.length > 2000) {
-    return "Virtual tour URL must be 2000 characters or less.";
-  }
-  try {
-    const parsed = new URL(trimmed);
-    if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
-      return "Enter a valid URL (including https://), or clear the field.";
-    }
-    return "";
-  } catch {
-    return "Enter a valid URL (including https://), or clear the field.";
-  }
-}
-
 function getMapLocationFieldError(latitude, longitude) {
   if (latLngStringsToGeoJsonCoordinates(longitude, latitude) == null) {
     return "Pin the property on the map.";
@@ -282,15 +270,6 @@ function fieldErrorsAreEmpty(errors) {
   );
 }
 
-function FormFieldError({ id, message }) {
-  if (!message) return null;
-  return (
-    <p className="property-form-field-error mb0" id={id} role="alert">
-      {message}
-    </p>
-  );
-}
-
 function blockWholeNumberKeyDown(event) {
   if (event.ctrlKey || event.metaKey || event.altKey) return;
 
@@ -386,7 +365,6 @@ const emptyForm = {
   amenities: [],
   virtualTourUrl: "",
   floorPlans: [],
-  unitLabel: "",
   sortOrder: "",
 };
 
@@ -409,7 +387,6 @@ function buildFormFromProperty(property) {
     status: property.status || "draft",
     amenities: property.amenities || [],
     virtualTourUrl: property.virtualTourUrl || "",
-    unitLabel: property.unitLabel || "",
     sortOrder:
       property.sortOrder != null && property.sortOrder !== ""
         ? String(property.sortOrder)
@@ -529,6 +506,12 @@ export default function PropertyForm({ propertyId, projectId: projectIdProp }) {
   const isAdmin = user?.role === "admin";
   const isEdit = Boolean(propertyId);
   const unitUnderProject = Boolean(projectIdProp);
+  const { data: parentProject } = useProject(projectIdProp, {
+    enabled: Boolean(projectIdProp && !isEdit),
+  });
+  const [parentProjectKind, setParentProjectKind] = useState(null);
+  const isSingleProjectUnit =
+    parentProject?.kind === "single" || parentProjectKind === "single";
   const { data: propertyTypes = [], isLoading: propertyTypesLoading } =
     useCatalogPropertyTypes();
   const { data: amenitiesCatalog = [], isLoading: amenitiesLoading } =
@@ -584,12 +567,24 @@ export default function PropertyForm({ propertyId, projectId: projectIdProp }) {
   useEffect(() => {
     if (isEdit || !propertyTypes.length) return;
     setForm((prev) => {
+      if (isSingleProjectUnit) {
+        return { ...prev, type: SINGLE_PROJECT_UNIT_TYPE };
+      }
       if (propertyTypes.some((type) => type.value === prev.type)) {
         return prev;
       }
       return { ...prev, type: propertyTypes[0].value };
     });
-  }, [isEdit, propertyTypes]);
+  }, [isEdit, isSingleProjectUnit, propertyTypes]);
+
+  useEffect(() => {
+    if (!isSingleProjectUnit) return;
+    setForm((prev) =>
+      prev.type === SINGLE_PROJECT_UNIT_TYPE
+        ? prev
+        : { ...prev, type: SINGLE_PROJECT_UNIT_TYPE },
+    );
+  }, [isSingleProjectUnit]);
 
   const handleLocationPick = useCallback(({ latitude, longitude }) => {
     setForm((prev) => ({
@@ -623,6 +618,7 @@ export default function PropertyForm({ propertyId, projectId: projectIdProp }) {
             viewCount: response.data?.viewCount ?? 0,
             type: response.data?.type,
           });
+          setParentProjectKind(response.data?.projectId?.kind || null);
           const { images, video } = splitMedia(response.data?.media || []);
           setPhotoGallery(mediaToSavedGalleryItems(images));
           setBaselinePhotoIds(images.map((item) => item._id));
@@ -1062,10 +1058,12 @@ export default function PropertyForm({ propertyId, projectId: projectIdProp }) {
     }
 
     if (unitUnderProject) {
-      const label = form.unitLabel?.trim();
-      if (label) payload.unitLabel = label;
       const order = parseOptionalWholeNumber(form.sortOrder);
       if (order != null) payload.sortOrder = order;
+    }
+
+    if (isSingleProjectUnit) {
+      payload.type = SINGLE_PROJECT_UNIT_TYPE;
     }
 
     return payload;
@@ -1155,38 +1153,25 @@ export default function PropertyForm({ propertyId, projectId: projectIdProp }) {
         style={{ border: "none", padding: 0, margin: 0 }}
       >
         <div className="row">
-          {unitUnderProject ? (
-            <>
-              <div className="col-sm-6">
-                <div className="mb20">
-                  <label className="heading-color ff-heading fw600 mb10">
-                    Unit label
-                  </label>
-                  <input
-                    type="text"
-                    className="form-control"
-                    placeholder="e.g. Villa A, Block 2"
-                    value={form.unitLabel}
-                    onChange={(e) => updateField("unitLabel", e.target.value)}
-                  />
-                </div>
+          {unitUnderProject && !isSingleProjectUnit ? (
+            <div className="col-sm-6">
+              <div className="mb20">
+                <label className="heading-color ff-heading fw600 mb10">
+                  Sort order
+                </label>
+                <input
+                  type="number"
+                  min={0}
+                  className="form-control"
+                  placeholder="0"
+                  value={form.sortOrder}
+                  onChange={(e) => updateField("sortOrder", e.target.value)}
+                />
+                <p className="text fz13 mt10 mb0">
+                  Lower numbers appear first on the project page.
+                </p>
               </div>
-              <div className="col-sm-6">
-                <div className="mb20">
-                  <label className="heading-color ff-heading fw600 mb10">
-                    Sort order
-                  </label>
-                  <input
-                    type="number"
-                    min={0}
-                    className="form-control"
-                    placeholder="0"
-                    value={form.sortOrder}
-                    onChange={(e) => updateField("sortOrder", e.target.value)}
-                  />
-                </div>
-              </div>
-            </>
+            </div>
           ) : null}
 
           <div className="col-sm-12">
@@ -1275,9 +1260,12 @@ export default function PropertyForm({ propertyId, projectId: projectIdProp }) {
                 }}
                 onBlur={() => syncTopLevelFieldError("type", form.type)}
                 required
+                disabled={isSingleProjectUnit}
                 aria-invalid={Boolean(fieldErrors.type)}
                 aria-describedby={
-                  fieldErrors.type ? "property-type-error" : undefined
+                  fieldErrors.type || isSingleProjectUnit
+                    ? "property-type-error"
+                    : undefined
                 }
               >
                 {propertyTypes.map((type) => (
@@ -1286,6 +1274,15 @@ export default function PropertyForm({ propertyId, projectId: projectIdProp }) {
                   </option>
                 ))}
               </select>
+              {isSingleProjectUnit ? (
+                <p className="text fz13 mt10 mb0">
+                  Single projects use one{" "}
+                  {propertyTypes.find(
+                    (t) => t.value === SINGLE_PROJECT_UNIT_TYPE,
+                  )?.label || "Villa"}{" "}
+                  unit — type is fixed.
+                </p>
+              ) : null}
               <FormFieldError
                 id="property-type-error"
                 message={fieldErrors.type}
@@ -1296,7 +1293,7 @@ export default function PropertyForm({ propertyId, projectId: projectIdProp }) {
           <div className="col-sm-6 col-xl-4">
             <div className="mb20">
               <label className="heading-color ff-heading fw600 mb10">
-                Price
+                {PRICE_FROM_LABEL}
               </label>
               <input
                 ref={priceInputRef}
@@ -1437,106 +1434,106 @@ export default function PropertyForm({ propertyId, projectId: projectIdProp }) {
 
           {!unitUnderProject ? (
             <>
-          <div className="col-sm-12">
-            <h4 className="fz17 mb20">Location</h4>
-          </div>
+              <div className="col-sm-12">
+                <h4 className="fz17 mb20">Location</h4>
+              </div>
 
-          <div className="col-sm-12">
-            <div className="mb20">
-              <label className="heading-color ff-heading fw600 mb10">
-                Address
-              </label>
-              <input
-                type="text"
-                className="form-control"
-                placeholder="Street address, building, unit"
-                value={form.address}
-                onChange={(e) => updateField("address", e.target.value)}
-              />
-            </div>
-          </div>
+              <div className="col-sm-12">
+                <div className="mb20">
+                  <label className="heading-color ff-heading fw600 mb10">
+                    Address
+                  </label>
+                  <input
+                    type="text"
+                    className="form-control"
+                    placeholder="Street address, building, unit"
+                    value={form.address}
+                    onChange={(e) => updateField("address", e.target.value)}
+                  />
+                </div>
+              </div>
 
-          <div className="col-sm-6 col-xl-4">
-            <div className="mb20">
-              <label className="heading-color ff-heading fw600 mb10">
-                City
-              </label>
-              <input
-                type="text"
-                className="form-control"
-                placeholder="e.g. Dubai"
-                value={form.city}
-                onChange={(e) => updateField("city", e.target.value)}
-              />
-            </div>
-          </div>
+              <div className="col-sm-6 col-xl-4">
+                <div className="mb20">
+                  <label className="heading-color ff-heading fw600 mb10">
+                    City
+                  </label>
+                  <input
+                    type="text"
+                    className="form-control"
+                    placeholder="e.g. Dubai"
+                    value={form.city}
+                    onChange={(e) => updateField("city", e.target.value)}
+                  />
+                </div>
+              </div>
 
-          <div className="col-sm-6 col-xl-4">
-            <div className="mb20">
-              <label className="heading-color ff-heading fw600 mb10">
-                Country
-              </label>
-              <input
-                type="text"
-                className="form-control"
-                placeholder="e.g. United Arab Emirates"
-                value={form.country}
-                onChange={(e) => updateField("country", e.target.value)}
-              />
-            </div>
-          </div>
+              <div className="col-sm-6 col-xl-4">
+                <div className="mb20">
+                  <label className="heading-color ff-heading fw600 mb10">
+                    Country
+                  </label>
+                  <input
+                    type="text"
+                    className="form-control"
+                    placeholder="e.g. United Arab Emirates"
+                    value={form.country}
+                    onChange={(e) => updateField("country", e.target.value)}
+                  />
+                </div>
+              </div>
 
-          <div className="col-sm-12">
-            <div className="mb20">
-              <label className="heading-color ff-heading fw600 mb10">
-                Map location
-              </label>
-              <div
-                ref={mapLocationRef}
-                tabIndex={-1}
-                className={
-                  fieldErrors.mapLocation
-                    ? "property-form-map-wrap property-form-map-wrap--invalid"
-                    : "property-form-map-wrap"
-                }
-                aria-invalid={Boolean(fieldErrors.mapLocation)}
-                aria-describedby={
-                  fieldErrors.mapLocation ? "property-map-error" : undefined
-                }
-              >
-                <PropertyLocationPicker
+              <div className="col-sm-12">
+                <div className="mb20">
+                  <label className="heading-color ff-heading fw600 mb10">
+                    Map location
+                  </label>
+                  <div
+                    ref={mapLocationRef}
+                    tabIndex={-1}
+                    className={
+                      fieldErrors.mapLocation
+                        ? "property-form-map-wrap property-form-map-wrap--invalid"
+                        : "property-form-map-wrap"
+                    }
+                    aria-invalid={Boolean(fieldErrors.mapLocation)}
+                    aria-describedby={
+                      fieldErrors.mapLocation ? "property-map-error" : undefined
+                    }
+                  >
+                    <PropertyLocationPicker
+                      latitude={form.latitude}
+                      longitude={form.longitude}
+                      onChange={handleLocationPick}
+                      disabled={isLocked}
+                    />
+                  </div>
+                  <FormFieldError
+                    id="property-map-error"
+                    message={fieldErrors.mapLocation}
+                  />
+                  <input
+                    type="hidden"
+                    name="latitude"
+                    value={form.latitude}
+                    required
+                  />
+                  <input
+                    type="hidden"
+                    name="longitude"
+                    value={form.longitude}
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="col-sm-12">
+                <PropertyFormNearbyPreview
+                  propertyId={propertyId}
                   latitude={form.latitude}
                   longitude={form.longitude}
-                  onChange={handleLocationPick}
-                  disabled={isLocked}
                 />
               </div>
-              <FormFieldError
-                id="property-map-error"
-                message={fieldErrors.mapLocation}
-              />
-              <input
-                type="hidden"
-                name="latitude"
-                value={form.latitude}
-                required
-              />
-              <input
-                type="hidden"
-                name="longitude"
-                value={form.longitude}
-                required
-              />
-            </div>
-          </div>
-
-          <div className="col-sm-12">
-            <PropertyFormNearbyPreview
-              propertyId={propertyId}
-              latitude={form.latitude}
-              longitude={form.longitude}
-            />
-          </div>
             </>
           ) : null}
 
@@ -1759,7 +1756,7 @@ export default function PropertyForm({ propertyId, projectId: projectIdProp }) {
                   <div className="col-sm-6 col-xl-4">
                     <div className="mb20">
                       <label className="heading-color ff-heading fw600 mb10">
-                        Price (optional)
+                        {PRICE_FROM_LABEL} (optional)
                       </label>
                       <input
                         id={`floor-plan-${index}-price`}

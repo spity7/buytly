@@ -146,6 +146,40 @@ describe.skipIf(!mongoAvailable)("catalog API", () => {
     expect(wifi?.listingCount).toBeGreaterThanOrEqual(1);
   });
 
+  it("protects villa type from delete and deactivation", async () => {
+    const app = await getApp();
+    const token = await loginAsAdmin(app, "catalog-villa-protect@example.com");
+
+    await request(app).get("/api/v1/catalog/property-types");
+
+    const types = await request(app)
+      .get("/api/v1/admin/catalog/property-types")
+      .set("Authorization", `Bearer ${token}`);
+
+    const villa = types.body.data.find((item) => item.value === "villa");
+    expect(villa).toBeTruthy();
+
+    const editLabel = await request(app)
+      .patch(`/api/v1/admin/catalog/property-types/${villa.id}`)
+      .set("Authorization", `Bearer ${token}`)
+      .send({ label: "Custom Villa" });
+
+    expect(editLabel.status).toBe(409);
+
+    const deactivate = await request(app)
+      .patch(`/api/v1/admin/catalog/property-types/${villa.id}`)
+      .set("Authorization", `Bearer ${token}`)
+      .send({ isActive: false });
+
+    expect(deactivate.status).toBe(409);
+
+    const del = await request(app)
+      .delete(`/api/v1/admin/catalog/property-types/${villa.id}`)
+      .set("Authorization", `Bearer ${token}`);
+
+    expect(del.status).toBe(409);
+  });
+
   it("rejects duplicate property type and amenity display names", async () => {
     const app = await getApp();
     const token = await loginAsAdmin(app, "catalog-dup-names@example.com");

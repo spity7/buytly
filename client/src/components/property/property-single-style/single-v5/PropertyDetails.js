@@ -1,7 +1,8 @@
 import listings from "@/data/listings";
+import { PRICE_FROM_LABEL } from "@/lib/properties/formatPrice";
 import React from "react";
 
-const PropertyDetails = ({id}) => {
+const PropertyDetails = ({ id }) => {
   const data = listings.filter((elm) => elm.id == id)[0] || listings[0];
   const columns = [
     [
@@ -10,8 +11,8 @@ const PropertyDetails = ({id}) => {
         value: "RT48",
       },
       {
-        label: "Price",
-        value:data.price,
+        label: PRICE_FROM_LABEL,
+        value: data.price,
       },
       {
         label: "Property Size",
@@ -45,7 +46,7 @@ const PropertyDetails = ({id}) => {
       },
       {
         label: "Property Status",
-        value: `For ${data.forRent ? 'rent':'sale'}`,
+        value: `For ${data.forRent ? "rent" : "sale"}`,
       },
     ],
   ];

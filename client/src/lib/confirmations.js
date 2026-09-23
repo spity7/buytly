@@ -8,6 +8,49 @@ export function propertyTrashConfirmation(title) {
   };
 }
 
+export function projectKindChangeConfirmation(nextKindLabel) {
+  const isSingle = nextKindLabel === "Single";
+  return {
+    title: "Change project type?",
+    message: isSingle
+      ? "Single projects hold exactly one sellable unit (Villa type). You cannot change the type after adding units."
+      : "Compound projects need at least one unit before you can publish. You cannot change the type after adding units.",
+    confirmLabel: "Change type",
+    confirmVariant: "default",
+    confirmingLabel: "Updating...",
+  };
+}
+
+export function projectTrashConfirmation(title) {
+  return {
+    title: "Move project to trash?",
+    message: `"${title}" and its active units will be hidden from the public site and removed from your main project list. Restore them anytime from the Trash tab on My Projects.`,
+    confirmLabel: "Move to trash",
+    confirmVariant: "danger",
+    confirmingLabel: "Moving to trash...",
+  };
+}
+
+export function projectPermanentDeleteConfirmation(title) {
+  return {
+    title: "Delete project permanently?",
+    message: `"${title}" and all of its units will be removed forever, including photos and reviews. This cannot be undone. Listings with visit bookings or purchase records cannot be deleted permanently.`,
+    confirmLabel: "Delete permanently",
+    confirmVariant: "danger",
+    confirmingLabel: "Deleting...",
+  };
+}
+
+export function propertyPermanentDeleteConfirmation(title) {
+  return {
+    title: "Delete unit permanently?",
+    message: `"${title}" will be removed forever, including photos, favorites, and reviews. This cannot be undone. Units with open visit bookings or purchase records cannot be deleted permanently.`,
+    confirmLabel: "Delete permanently",
+    confirmVariant: "danger",
+    confirmingLabel: "Deleting...",
+  };
+}
+
 export function savedSearchDeleteConfirmation(name) {
   return {
     title: "Delete saved search?",

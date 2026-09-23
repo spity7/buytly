@@ -15,7 +15,8 @@ import {
 import { useAdminProperties } from "@/hooks/useAdminProperties";
 import { useDebouncedSearch } from "@/hooks/useDebouncedSearch";
 import { useConfirmAction } from "@/hooks/useConfirmAction";
-import { getStatusClass, getStatusLabel } from "@/lib/properties/mapProperty";
+import StatusBadge from "@/components/common/StatusBadge";
+import { getStatusLabel } from "@/lib/properties/mapProperty";
 import {
   adminApproveListingConfirmation,
   adminArchiveListingConfirmation,
@@ -36,6 +37,10 @@ import { useResolveDashboardHighlight } from "@/hooks/useResolveDashboardHighlig
 import { getFreshQueryOptions } from "@/lib/dashboard/freshHighlightQueryOptions";
 import { invalidateNotificationQueries } from "@/lib/notifications/invalidateNotificationQueries";
 import { useQueryClient } from "@tanstack/react-query";
+import DashboardTableEmptyState, {
+  DashboardTableErrorState,
+} from "@/components/property/dashboard/DashboardTableEmptyState";
+import { getAdminPropertiesEmptyState } from "@/lib/dashboard/tableEmptyStates";
 
 const PAGE_SIZE = 20;
 
@@ -96,6 +101,17 @@ export default function AdminPropertiesTable() {
 
   const properties = data?.properties || [];
   const pagination = data?.pagination;
+  const hasActiveFilters = Boolean(
+    search.trim() || statusFilter || type || sort !== "createdAt:desc",
+  );
+
+  const resetFilters = () => {
+    setSearchInput("");
+    setStatusFilter("");
+    setPropertyType("");
+    setSort("createdAt:desc");
+    setPage(1);
+  };
 
   const resolveHighlight = useCallback(
     async ({ highlightId: id, findPage }) => {
@@ -211,11 +227,21 @@ export default function AdminPropertiesTable() {
       </DashboardFilterBar>
 
       {isError ? (
-        <p className="p-4 text-danger">Failed to load properties.</p>
+        <DashboardTableErrorState
+          title="Could not load listings"
+          onRetry={() =>
+            queryClient.invalidateQueries({ queryKey: ["admin-properties"] })
+          }
+        />
       ) : showTableSkeleton ? (
         <DashboardTableSkeleton rows={5} columns={5} />
       ) : !properties.length ? (
-        <p className="p-4 mb0">No listings match this filter.</p>
+        <DashboardTableEmptyState
+          {...getAdminPropertiesEmptyState({
+            hasActiveFilters,
+            onClearFilters: resetFilters,
+          })}
+        />
       ) : (
         <table className="table-style3 table at-savesearch admin-properties-table">
           <thead className="t-head">
@@ -249,9 +275,7 @@ export default function AdminPropertiesTable() {
                   </td>
                   <td className="vam">{formatDate(property.createdAt)}</td>
                   <td className="vam">
-                    <span className={getStatusClass(property.status)}>
-                      {getStatusLabel(property.status)}
-                    </span>
+                    <StatusBadge domain="listing" status={property.status} />
                   </td>
                   <td className="vam">
                     <div className="d-flex flex-wrap gap-2">

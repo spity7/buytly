@@ -9,11 +9,14 @@ import {
 } from "@/components/property/dashboard/DashboardFilterBar";
 import { useDebouncedSearch } from "@/hooks/useDebouncedSearch";
 import { useConfirmAction } from "@/hooks/useConfirmAction";
-import { getStatusLabel } from "@/lib/properties/mapProperty";
+import StatusBadge from "@/components/common/StatusBadge";
 import { notifyError } from "@/lib/toast";
 import { getApiError } from "@/lib/auth/getApiError";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import DashboardTableEmptyState from "@/components/property/dashboard/DashboardTableEmptyState";
+import { DashboardTableSkeleton } from "@/components/property/dashboard/skeletons/DashboardSkeletons";
+import { getAdminProjectsEmptyState } from "@/lib/dashboard/tableEmptyStates";
 
 const STATUS_FILTERS = [
   { value: "", label: "All statuses" },
@@ -66,9 +69,21 @@ export default function AdminProjectsTable() {
     load();
   }, [load]);
 
+  const hasActiveFilters = Boolean(
+    search.trim() || kindFilter || statusFilter !== "pending",
+  );
+
+  const resetFilters = () => {
+    setSearchInput("");
+    setStatusFilter("pending");
+    setKindFilter("");
+    setPage(1);
+  };
+
   const moderate = (id, title, status) => {
     requestConfirm({
-      title: status === "active" ? "Approve project?" : "Update project status?",
+      title:
+        status === "active" ? "Approve project?" : "Update project status?",
       message:
         status === "active"
           ? `"${title}" will go live and pending units will be published.`
@@ -124,7 +139,16 @@ export default function AdminProjectsTable() {
       </DashboardFilterBar>
 
       {loading && !projects.length ? (
-        <p>Loading projects...</p>
+        <DashboardTableSkeleton rows={5} columns={5} />
+      ) : !projects.length ? (
+        <DashboardTableEmptyState
+          {...getAdminProjectsEmptyState({
+            hasActiveFilters,
+            isPendingQueue:
+              statusFilter === "pending" && !search.trim() && !kindFilter,
+            onClearFilters: resetFilters,
+          })}
+        />
       ) : (
         <div className="table-responsive">
           <table className="table-style3 table at-savesearch">
@@ -144,7 +168,9 @@ export default function AdminProjectsTable() {
                   <tr key={id}>
                     <td>{project.title}</td>
                     <td className="text-capitalize">{project.kind}</td>
-                    <td>{getStatusLabel(project.status)}</td>
+                    <td>
+                      <StatusBadge domain="listing" status={project.status} />
+                    </td>
                     <td>
                       {project.ownerId?.email ||
                         project.ownerId?.firstName ||
@@ -158,7 +184,9 @@ export default function AdminProjectsTable() {
                             type="button"
                             className="btn btn-sm btn-success"
                             disabled={isLocked}
-                            onClick={() => moderate(id, project.title, "active")}
+                            onClick={() =>
+                              moderate(id, project.title, "active")
+                            }
                           >
                             Approve
                           </button>

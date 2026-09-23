@@ -341,7 +341,6 @@ export interface Property {
   description?: string;
   type?: PropertyType;
   projectId?: PropertyProjectId;
-  unitLabel?: string;
   sortOrder?: number;
   price?: number;
   currency?: string;
@@ -383,7 +382,6 @@ export interface CreatePropertyRequest {
   /** @minLength 10 */
   description: string;
   type: PropertyType;
-  unitLabel?: string;
   sortOrder?: number;
   /**
    * @minimum 0

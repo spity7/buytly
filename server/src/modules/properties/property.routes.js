@@ -421,6 +421,44 @@ router.patch(
 
 /**
  * @swagger
+ * /properties/{id}/permanent:
+ *   delete:
+ *     operationId: permanentlyDeleteProperty
+ *     summary: Permanently delete a trashed listing
+ *     description: Removes the unit, its media, favorites, reviews, and non-blocking bookings. Requires the listing to be in trash. Blocked when open visit bookings or purchase/transaction records exist.
+ *     tags: [Properties]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - $ref: '#/components/parameters/ObjectIdParam'
+ *     responses:
+ *       200:
+ *         description: Property permanently deleted
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/SuccessResponse'
+ *       400:
+ *         $ref: '#/components/responses/ValidationError'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ *       409:
+ *         $ref: '#/components/responses/Conflict'
+ */
+router.delete(
+  "/:id/permanent",
+  authenticate,
+  authorize(ROLES.SELLER, ROLES.AGENT, ROLES.ADMIN),
+  validateMultiple({ params: propertyIdSchema }),
+  asyncHandler(propertyController.permanentRemove),
+);
+
+/**
+ * @swagger
  * /properties/{id}/media:
  *   post:
  *     operationId: uploadPropertyMedia

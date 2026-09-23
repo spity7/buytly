@@ -61,6 +61,11 @@ export const projectController = {
     ApiResponse.success(res, project, "Project restored");
   },
 
+  permanentRemove: async (req, res) => {
+    await projectService.permanentDelete(req.params.id, req.user);
+    ApiResponse.success(res, null, "Project permanently deleted");
+  },
+
   uploadMedia: [
     upload.single("media"),
     async (req, res, next) => {

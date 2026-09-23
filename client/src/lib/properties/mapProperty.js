@@ -1,4 +1,5 @@
 import { formatPrice } from "./formatPrice";
+import { getListingStatusBadgeClassName } from "@/lib/statusBadges";
 
 const PLACEHOLDER_IMAGE = "/images/listings/list-1.jpg";
 
@@ -136,6 +137,25 @@ export function getStatusLabel(status) {
   return labels[status] || status || "—";
 }
 
+/** Dashboard row label — trashed listings use Trash, not the archived status flag alone. */
+export function getTrashedListingLabel() {
+  return "In trash";
+}
+
+export function getProjectDashboardStatusLabel(project, { isTrashView = false } = {}) {
+  if (isTrashView || project?.deletedAt) {
+    return getTrashedListingLabel();
+  }
+  return getStatusLabel(project?.status);
+}
+
+export function getPropertyDashboardStatusLabel(property, { isTrashView = false } = {}) {
+  if (isTrashView || property?.deletedAt) {
+    return getTrashedListingLabel();
+  }
+  return getStatusLabel(property?.status);
+}
+
 export function isPropertyTerminal(status) {
   return status === "sold" || status === "archived";
 }
@@ -145,18 +165,5 @@ export function isPropertyBookable(status) {
 }
 
 export function getStatusClass(status) {
-  switch (status) {
-    case "pending":
-      return "pending-style style1";
-    case "active":
-      return "pending-style style2";
-    case "draft":
-      return "pending-style style3";
-    case "sold":
-      return "pending-style style4";
-    case "archived":
-      return "pending-style style5";
-    default:
-      return "pending-style style1";
-  }
+  return getListingStatusBadgeClassName(status);
 }

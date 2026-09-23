@@ -1,6 +1,6 @@
 "use client";
 
-import { getStatusLabel } from "@/lib/properties/mapProperty";
+import StatusBadge from "@/components/common/StatusBadge";
 import { usePropertySingle } from "@/providers/PropertySingleProvider";
 import React from "react";
 
@@ -37,7 +37,8 @@ const OverView = () => {
     {
       icon: "flaticon-event",
       label: "Status",
-      value: getStatusLabel(property?.status),
+      status: property?.status,
+      isStatus: true,
     },
   ];
 
@@ -52,7 +53,13 @@ const OverView = () => {
             <span className={`icon ${item.icon}`} />
             <div className="ml15">
               <h6 className="mb-0">{item.label}</h6>
-              <p className="text mb-0 fz15">{item.value}</p>
+              <p className="text mb-0 fz15">
+                {item.isStatus ? (
+                  <StatusBadge domain="listing" status={item.status} />
+                ) : (
+                  item.value
+                )}
+              </p>
             </div>
           </div>
         </div>

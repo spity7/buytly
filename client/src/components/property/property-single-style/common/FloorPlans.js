@@ -1,6 +1,6 @@
 "use client";
 
-import { formatPrice } from "@/lib/properties/formatPrice";
+import { formatPrice, PRICE_FROM_LABEL } from "@/lib/properties/formatPrice";
 import { remoteImageProps } from "@/lib/images/remoteImage";
 import { usePropertySingle } from "@/providers/PropertySingleProvider";
 import Image from "next/image";
@@ -53,7 +53,7 @@ const FloorPlans = () => {
                       <span className="text">{floorPlan.bathrooms ?? "—"}</span>
                     </span>
                     <span>
-                      <span className="fw600">Price</span>
+                      <span className="fw600">{PRICE_FROM_LABEL}</span>
                       <span className="text">{priceLabel}</span>
                     </span>
                   </span>

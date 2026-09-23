@@ -11,7 +11,7 @@ export function mediaToSavedGalleryItems(
 ) {
   return sortPropertyImages(images).map((item, index) => ({
     type: "saved",
-    id: item._id,
+    id: item._id || item.id,
     url: item.url,
     name: item.gcsKey?.split("/").pop() || `${label} ${index + 1}`,
     media: item,

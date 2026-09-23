@@ -20,7 +20,17 @@ import {
   buildArchiveUpdate,
   buildRestoreUpdate,
 } from "../properties/property-status.js";
-import { assertPublishUnitCardinality } from "./project-cardinality.js";
+import {
+  assertProjectKindChange,
+  assertPublishUnitCardinality,
+  SINGLE_PROJECT_UNIT_TYPE,
+} from "./project-cardinality.js";
+import {
+  assertProjectPermanentlyDeletable,
+  collectProjectGcsKeys,
+  deleteGcsKeys,
+  purgePropertyRecord,
+} from "../../services/listing-purge.service.js";
 
 const EARTH_RADIUS_KM = 6378.1;
 
@@ -175,9 +185,15 @@ const maybeRependActiveProject = async (
 
 const buildProjectIdFilter = (id, user) => {
   const filter = { _id: id };
-  if (user?.role !== ROLES.ADMIN) {
+  if (!user) {
     filter.deletedAt = null;
+    return filter;
   }
+  if (user.role === ROLES.ADMIN) {
+    return filter;
+  }
+
+  filter.$or = [{ ownerId: user._id }, { agentId: user._id }];
   return filter;
 };
 
@@ -202,19 +218,37 @@ const applyProjectCatalogRules = async (payload) => {
   }
 };
 
-const enrichProjectDoc = async (project, statsMap) => {
+const enrichProjectDoc = async (project, statsMap, options = {}) => {
   const doc = await attachMediaUrls(project);
   const stats = statsMap?.get(String(project._id));
-  doc.unitCount = stats?.unitCount ?? 0;
+  const { forOwnerDashboard = false } = options;
+
+  if (forOwnerDashboard) {
+    if (project.deletedAt) {
+      doc.unitCount = await Property.countDocuments({
+        projectId: project._id,
+        deletedAt: project.deletedAt,
+      });
+    } else {
+      doc.unitCount = await countProjectUnits(project._id);
+    }
+  } else {
+    doc.unitCount = stats?.unitCount ?? 0;
+  }
+
   doc.priceMin = stats?.priceMin ?? null;
   doc.priceMax = stats?.priceMax ?? null;
   return doc;
 };
 
-const validatePublishIfNeeded = async (project, nextStatus) => {
+const validatePublishIfNeeded = async (project, nextStatus, nextKind) => {
   if (nextStatus !== "pending" && nextStatus !== "active") return;
-  const unitCount = await countProjectUnits(project._id);
-  assertPublishUnitCardinality(project.kind, unitCount);
+
+  const kind = nextKind ?? project.kind;
+  const unitCount = project._id
+    ? await countProjectUnits(project._id)
+    : 0;
+  assertPublishUnitCardinality(kind, unitCount);
 };
 
 export const projectService = {
@@ -232,7 +266,11 @@ export const projectService = {
       isCreate: true,
     });
 
-    await validatePublishIfNeeded({ kind: payload.kind }, payload.status);
+    await validatePublishIfNeeded(
+      { _id: null, kind: payload.kind },
+      payload.status,
+      payload.kind,
+    );
 
     const project = await Project.create({
       ...payload,
@@ -332,13 +370,16 @@ export const projectService = {
       throw new AppError("Project not found", 404);
     }
 
-    if (incrementView && project.status === "active") {
+    if (incrementView && project.status === "active" && !project.deletedAt) {
       project.viewCount += 1;
       await project.save({ validateBeforeSave: false });
     }
 
     const statsMap = await aggregateUnitStats([project._id]);
-    const doc = await enrichProjectDoc(project, statsMap);
+    const forOwnerDashboard = Boolean(user && canManageProject(project, user));
+    const doc = await enrichProjectDoc(project, statsMap, {
+      forOwnerDashboard,
+    });
 
     if (includeUnits) {
       const units = await Property.find(buildUnitsQuery(project, user))
@@ -392,9 +433,15 @@ export const projectService = {
       isCreate: false,
     });
 
+    if (patch.kind !== undefined && patch.kind !== project.kind) {
+      const unitCount = await countProjectUnits(project._id);
+      assertProjectKindChange(project, patch.kind, unitCount);
+    }
+
     if (normalizedStatus !== undefined) {
       patch.status = normalizedStatus;
-      await validatePublishIfNeeded(project, normalizedStatus);
+      const nextKind = patch.kind ?? project.kind;
+      await validatePublishIfNeeded(project, normalizedStatus, nextKind);
     } else {
       delete patch.status;
     }
@@ -413,6 +460,9 @@ export const projectService = {
       normalizedStatus === undefined &&
       hasMaterialChanges(project, patch);
 
+    const kindChangedToSingle =
+      patch.kind === "single" && patch.kind !== project.kind;
+
     Object.assign(project, patch);
 
     if (materialChanges) {
@@ -424,6 +474,13 @@ export const projectService = {
     }
 
     await project.save();
+
+    if (kindChangedToSingle) {
+      await Property.updateMany(
+        { projectId: project._id, deletedAt: null },
+        { $set: { type: SINGLE_PROJECT_UNIT_TYPE } },
+      );
+    }
 
     if (patch.location) {
       await Property.updateMany(
@@ -459,8 +516,15 @@ export const projectService = {
       throw new AppError("Not authorized to delete this project", 403);
     }
 
-    Object.assign(project, buildArchiveUpdate());
+    const deletedAt = new Date();
+    Object.assign(project, { status: "archived", deletedAt });
     await project.save();
+
+    await Property.updateMany(
+      { projectId: project._id, deletedAt: null },
+      { $set: { status: "archived", deletedAt } },
+    );
+
     await cacheService.invalidateListingCaches();
   },
 
@@ -476,11 +540,40 @@ export const projectService = {
       throw new AppError("Not authorized to restore this project", 403);
     }
 
+    const cascadeDeletedAt = project.deletedAt;
     Object.assign(project, buildRestoreUpdate());
     await project.save();
+
+    if (cascadeDeletedAt) {
+      await Property.updateMany(
+        { projectId: project._id, deletedAt: cascadeDeletedAt },
+        { $set: buildRestoreUpdate() },
+      );
+    }
+
     await cacheService.invalidateListingCaches();
 
     return attachMediaUrls(project);
+  },
+
+  async permanentDelete(id, user) {
+    const project = await findProjectById(id, user);
+    if (!project) throw new AppError("Project not found", 404);
+
+    if (!canManageProject(project, user)) {
+      throw new AppError("Not authorized to delete this project", 403);
+    }
+
+    assertProjectPermanentlyDeletable(project);
+
+    const units = await Property.find({ projectId: project._id });
+    for (const unit of units) {
+      await purgePropertyRecord(unit, { requireTrash: false });
+    }
+
+    await deleteGcsKeys(collectProjectGcsKeys(project));
+    await project.deleteOne();
+    await cacheService.invalidateListingCaches();
   },
 
   async listMine(user, query) {
@@ -517,7 +610,9 @@ export const projectService = {
 
     const statsMap = await aggregateUnitStats(projects.map((p) => p._id));
     const data = await Promise.all(
-      projects.map((p) => enrichProjectDoc(p, statsMap)),
+      projects.map((p) =>
+        enrichProjectDoc(p, statsMap, { forOwnerDashboard: true }),
+      ),
     );
 
     return {

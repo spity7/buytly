@@ -309,6 +309,44 @@ router.patch(
 
 /**
  * @swagger
+ * /projects/{id}/permanent:
+ *   delete:
+ *     operationId: permanentlyDeleteProject
+ *     summary: Permanently delete a trashed project
+ *     description: Removes the project, its units, media, and non-blocking related records. Requires the project to be in trash. Blocked when any unit has open bookings or transaction history.
+ *     tags: [Projects]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - $ref: '#/components/parameters/ObjectIdParam'
+ *     responses:
+ *       200:
+ *         description: Project permanently deleted
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/SuccessResponse'
+ *       400:
+ *         $ref: '#/components/responses/ValidationError'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ *       409:
+ *         $ref: '#/components/responses/Conflict'
+ */
+router.delete(
+  "/:id/permanent",
+  authenticate,
+  authorize(ROLES.SELLER, ROLES.AGENT, ROLES.ADMIN),
+  validate(projectIdSchema, "params"),
+  asyncHandler(projectController.permanentRemove),
+);
+
+/**
+ * @swagger
  * /projects/{id}/media:
  *   post:
  *     operationId: uploadProjectMedia

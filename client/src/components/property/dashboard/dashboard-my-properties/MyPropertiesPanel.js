@@ -1,7 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { buytlyApi } from "@/api/generated";
 import { useHighlightQueryParam } from "@/hooks/useDashboardRowHighlight";
 import { findPaginatedHighlightPage } from "@/lib/dashboard/findPaginatedHighlightPage";
@@ -58,6 +64,13 @@ export default function MyPropertiesPanel() {
   }, [page, sortBy, sortOrder, isTrash, status, type, search]);
 
   const resetPage = () => setPage(1);
+
+  const clearFilters = useCallback(() => {
+    setStatus("");
+    setPropertyType("");
+    setSearchInput("");
+    setPage(1);
+  }, [setSearchInput]);
 
   useEffect(() => {
     if (!highlightId) {
@@ -157,7 +170,7 @@ export default function MyPropertiesPanel() {
         <div className="col-xl-12">
           <div className="ps-widget bgc-white bdrs12 default-box-shadow2 p30 mb30 overflow-hidden position-relative">
             <div className="packages_table table-responsive">
-              <div className="mb20 d-flex flex-wrap gap-2">
+              <div className="mb10 d-flex flex-wrap gap-2">
                 <button
                   type="button"
                   className={`ud-btn btn-sm ${tab === "active" ? "btn-thm" : "btn-white"}`}
@@ -180,6 +193,11 @@ export default function MyPropertiesPanel() {
                   Trash
                 </button>
               </div>
+              <p className="fz14 text-muted mb20">
+                {isTrash
+                  ? "Trashed units are hidden from the public site. Restore to edit again, or delete permanently (not allowed when visit bookings or purchase records exist)."
+                  : "Units belonging to trashed projects are hidden here until the project is restored. Move units to trash before permanent deletion."}
+              </p>
 
               <DashboardFilterBar className="mb20">
                 <FilterSearch
@@ -229,9 +247,17 @@ export default function MyPropertiesPanel() {
                 pageSize={PAGE_SIZE}
                 onPageChange={setPage}
                 highlightResolving={highlightResolving}
-                hasActiveFilters={Boolean(
-                  search || status || type,
-                )}
+                hasActiveFilters={Boolean(search || status || type)}
+                onMovedToTrash={() => {
+                  setTab("trash");
+                  setPage(1);
+                  setStatus("");
+                }}
+                onClearFilters={clearFilters}
+                onShowActiveListings={() => {
+                  setTab("active");
+                  resetPage();
+                }}
               />
             </div>
           </div>

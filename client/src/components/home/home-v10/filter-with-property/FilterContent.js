@@ -89,7 +89,7 @@ const FilterContent = () => {
               <div className="col-md-4 col-xl-2 bdrr1 bdrrn-sm px20 pl15-sm">
                 <div className="mt-3 mt-md-0">
                   <div className="dropdown-lists">
-                    <label className="fz14 mb-1">Price</label>
+                    <label className="fz14 mb-1">Price From</label>
                     <div
                       className="btn open-btn text-start dropdown-toggle"
                       data-bs-toggle="dropdown"

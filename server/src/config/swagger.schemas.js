@@ -602,8 +602,6 @@
  *           oneOf:
  *             - $ref: '#/components/schemas/ObjectId'
  *             - $ref: '#/components/schemas/ProjectSummary'
- *         unitLabel:
- *           type: string
  *         sortOrder:
  *           type: integer
  *         price:
@@ -680,8 +678,6 @@
  *           example: Spacious apartment with city views.
  *         type:
  *           $ref: '#/components/schemas/PropertyType'
- *         unitLabel:
- *           type: string
  *         sortOrder:
  *           type: integer
  *         price:

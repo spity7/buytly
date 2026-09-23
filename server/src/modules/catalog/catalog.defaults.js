@@ -1,3 +1,8 @@
+import { SINGLE_PROJECT_UNIT_TYPE } from "../projects/project-cardinality.js";
+
+/** Property type slugs required by platform rules (always present & non-deletable). */
+export const PROTECTED_PROPERTY_TYPE_VALUES = [SINGLE_PROJECT_UNIT_TYPE];
+
 /** Default catalog entries bootstrapped when collections are empty. */
 export const DEFAULT_PROPERTY_TYPES = [
   { value: "apartment", label: "Apartment", sortOrder: 1 },

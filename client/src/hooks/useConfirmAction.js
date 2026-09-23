@@ -28,11 +28,17 @@ export function useConfirmAction({ overlay = false } = {}) {
       return;
     }
 
-    const { message, successMessage, errorMessage, task, onSuccess } =
-      pending.action;
+    const {
+      message,
+      successMessage,
+      errorMessage,
+      task,
+      onSuccess,
+      showToast,
+    } = pending.action;
 
     try {
-      await run({ message, successMessage, errorMessage, task });
+      await run({ message, successMessage, errorMessage, task, showToast });
       onSuccess?.();
       setPending(null);
     } catch {

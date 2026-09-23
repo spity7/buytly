@@ -1,55 +1,71 @@
 "use client";
 
-import PropertyLocationPicker from "@/components/property/dashboard/dashboard-add-property/PropertyLocationPicker";
+import ConfirmDialog from "@/components/common/ConfirmDialog";
+import ProjectFormFields from "@/components/property/dashboard/dashboard-projects/ProjectFormFields";
 import { useCatalogAmenities } from "@/hooks/useCatalog";
+import { useConfirmAction } from "@/hooks/useConfirmAction";
+import { projectKindChangeConfirmation } from "@/lib/confirmations";
+import { getProjectKindLabel } from "@/lib/properties/projectKindOptions";
 import {
-  coordinatesToLatLngStrings,
-  latLngStringsToGeoJsonCoordinates,
-} from "@/lib/geo/propertyCoordinates";
-import { useEffect, useState } from "react";
+  buildProjectPayload,
+  canChangeProjectKind,
+  countProjectUnitsForKind,
+  projectToFormState,
+} from "@/lib/properties/projectForm";
+import { useAuth } from "@/providers/AuthProvider";
+import { useEffect, useMemo, useState } from "react";
 
-export function projectToFormState(project) {
-  if (!project) {
-    return {
-      title: "",
-      description: "",
-      address: "",
-      city: "",
-      country: "",
-      latitude: "",
-      longitude: "",
-      amenities: [],
-      virtualTourUrl: "",
-    };
-  }
-
-  return {
-    title: project.title || "",
-    description: project.description || "",
-    address: project.location?.address || "",
-    city: project.location?.city || "",
-    country: project.location?.country || "",
-    ...coordinatesToLatLngStrings(project.location?.coordinates),
-    amenities: project.amenities || [],
-    virtualTourUrl: project.virtualTourUrl || "",
-  };
-}
+export { projectToFormState } from "@/lib/properties/projectForm";
 
 export default function ProjectDetailsForm({
   project,
   disabled = false,
+  hideSubmit = false,
   onSubmit,
   submitLabel = "Save project details",
 }) {
+  const { user } = useAuth();
   const { data: amenitiesCatalog = [] } = useCatalogAmenities();
   const [form, setForm] = useState(() => projectToFormState(project));
+  const { requestConfirm, dialogProps, isLocked } = useConfirmAction();
 
   useEffect(() => {
     setForm(projectToFormState(project));
   }, [project]);
 
-  const update = (field, value) => {
+  const unitCount = useMemo(() => countProjectUnitsForKind(project), [project]);
+
+  const kindMode = useMemo(() => {
+    if (!project) return "hidden";
+    if (!canChangeProjectKind(project, unitCount)) return "readonly";
+    return "editable";
+  }, [project, unitCount]);
+
+  const showAgentSelect = user?.role === "seller" || user?.role === "admin";
+  const formDisabled = disabled || isLocked;
+
+  const applyFieldUpdate = (field, value) => {
     setForm((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const update = (field, value) => {
+    if (field === "kind" && value !== form.kind) {
+      requestConfirm({
+        ...projectKindChangeConfirmation(getProjectKindLabel(value)),
+        action: {
+          showToast: false,
+          task: async () => {
+            applyFieldUpdate("kind", value);
+          },
+        },
+      });
+      return;
+    }
+    applyFieldUpdate(field, value);
+  };
+
+  const updateLocation = ({ latitude, longitude }) => {
+    setForm((prev) => ({ ...prev, latitude, longitude }));
   };
 
   const toggleAmenity = (value) => {
@@ -63,134 +79,49 @@ export default function ProjectDetailsForm({
 
   const handleSubmit = (event) => {
     event.preventDefault();
-    const coordinates = latLngStringsToGeoJsonCoordinates(
-      form.longitude,
-      form.latitude,
-    );
-    if (!coordinates) {
-      onSubmit({ error: "Pin the project on the map." });
+    const result = buildProjectPayload(form, {
+      includeKind: kindMode === "editable",
+      includeAgentId: showAgentSelect,
+    });
+    if (result.error) {
+      onSubmit({ error: result.error });
       return;
     }
-
-    onSubmit({
-      title: form.title.trim(),
-      description: form.description.trim(),
-      location: {
-        coordinates,
-        address: form.address.trim(),
-        city: form.city.trim(),
-        country: form.country.trim(),
-      },
-      amenities: form.amenities,
-      virtualTourUrl: form.virtualTourUrl.trim() || undefined,
-    });
+    onSubmit(result.payload);
   };
 
   return (
-    <form className="bdr1 bdrs12 p20 mb30" onSubmit={handleSubmit}>
-      <h4 className="mb20">Project details</h4>
-      <div className="row">
-        <div className="col-sm-12 mb20">
-          <label className="heading-color ff-heading fw600 mb10">Title</label>
-          <input
-            className="form-control"
-            value={form.title}
-            onChange={(e) => update("title", e.target.value)}
-            required
-            minLength={3}
-            disabled={disabled}
-          />
+    <form className="project-edit-section" onSubmit={handleSubmit}>
+      <ConfirmDialog {...dialogProps} />
+
+      <h4 className="project-edit-section__title mb5">Project details</h4>
+      <p className="project-edit-section__lede mb25">
+        Location, description, and amenities shared across all units on this
+        project page.
+      </p>
+
+      <ProjectFormFields
+        form={form}
+        onUpdate={update}
+        onLocationPick={updateLocation}
+        onToggleAmenity={toggleAmenity}
+        amenitiesCatalog={amenitiesCatalog}
+        disabled={formDisabled}
+        kindMode={kindMode}
+        showAgentSelect={showAgentSelect}
+      />
+
+      {!hideSubmit ? (
+        <div className="project-wizard-actions">
+          <button
+            type="submit"
+            className="ud-btn btn-thm project-wizard-actions__btn"
+            disabled={formDisabled}
+          >
+            {submitLabel}
+          </button>
         </div>
-        <div className="col-sm-12 mb20">
-          <label className="heading-color ff-heading fw600 mb10">
-            Description
-          </label>
-          <textarea
-            className="form-control"
-            rows={4}
-            value={form.description}
-            onChange={(e) => update("description", e.target.value)}
-            required
-            minLength={10}
-            disabled={disabled}
-          />
-        </div>
-        <div className="col-sm-12 mb20">
-          <label className="heading-color ff-heading fw600 mb10">Address</label>
-          <input
-            className="form-control"
-            value={form.address}
-            onChange={(e) => update("address", e.target.value)}
-            disabled={disabled}
-          />
-        </div>
-        <div className="col-sm-6 mb20">
-          <label className="heading-color ff-heading fw600 mb10">City</label>
-          <input
-            className="form-control"
-            value={form.city}
-            onChange={(e) => update("city", e.target.value)}
-            disabled={disabled}
-          />
-        </div>
-        <div className="col-sm-6 mb20">
-          <label className="heading-color ff-heading fw600 mb10">Country</label>
-          <input
-            className="form-control"
-            value={form.country}
-            onChange={(e) => update("country", e.target.value)}
-            disabled={disabled}
-          />
-        </div>
-        <div className="col-sm-12 mb20">
-          <label className="heading-color ff-heading fw600 mb10">Map</label>
-          <PropertyLocationPicker
-            latitude={form.latitude}
-            longitude={form.longitude}
-            onChange={({ latitude, longitude }) => {
-              update("latitude", latitude);
-              update("longitude", longitude);
-            }}
-            disabled={disabled}
-          />
-        </div>
-        <div className="col-sm-12 mb20">
-          <label className="heading-color ff-heading fw600 mb10">
-            Virtual tour URL
-          </label>
-          <input
-            className="form-control"
-            type="url"
-            value={form.virtualTourUrl}
-            onChange={(e) => update("virtualTourUrl", e.target.value)}
-            disabled={disabled}
-          />
-        </div>
-        <div className="col-sm-12 mb20">
-          <label className="heading-color ff-heading fw600 mb10">
-            Shared amenities
-          </label>
-          <div className="row">
-            {amenitiesCatalog.map((item) => (
-              <div className="col-sm-6 col-md-4" key={item.value}>
-                <label className="custom_checkbox">
-                  {item.label}
-                  <input
-                    type="checkbox"
-                    checked={form.amenities.includes(item.value)}
-                    onChange={() => toggleAmenity(item.value)}
-                    disabled={disabled}
-                  />
-                  <span className="checkmark" />
-                </label>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-      <button type="submit" className="ud-btn btn-white2" disabled={disabled}>
-        {submitLabel}
-      </button>
+      ) : null}
     </form>
   );
 }

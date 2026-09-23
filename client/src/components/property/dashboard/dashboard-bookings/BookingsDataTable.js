@@ -5,6 +5,7 @@ import React, { useCallback, useEffect, useState } from "react";
 import { buytlyApi } from "@/api/generated";
 import AsyncActionOverlay from "@/components/common/AsyncActionOverlay";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
+import StatusBadge from "@/components/common/StatusBadge";
 import ApiPagination from "@/components/property/ApiPagination";
 import { useAgentBookings, useMyBookings } from "@/hooks/useBookings";
 import { useConfirmAction } from "@/hooks/useConfirmAction";
@@ -30,6 +31,10 @@ import { useResolveDashboardHighlight } from "@/hooks/useResolveDashboardHighlig
 import { getFreshQueryOptions } from "@/lib/dashboard/freshHighlightQueryOptions";
 import { invalidateNotificationQueries } from "@/lib/notifications/invalidateNotificationQueries";
 import { useQueryClient } from "@tanstack/react-query";
+import DashboardTableEmptyState, {
+  DashboardTableErrorState,
+} from "@/components/property/dashboard/DashboardTableEmptyState";
+import { getBookingsEmptyState } from "@/lib/dashboard/tableEmptyStates";
 
 const formatDate = (value) => {
   if (!value) return "—";
@@ -73,16 +78,6 @@ function BookingRows({
   tableBusy,
   getRowProps,
 }) {
-  if (!bookings.length) {
-    return (
-      <tr>
-        <td colSpan={5} className="p-4">
-          No bookings found.
-        </td>
-      </tr>
-    );
-  }
-
   return bookings.map((booking) => {
     const property = booking.propertyId;
     const rowBusy = actingId === booking._id;
@@ -100,7 +95,9 @@ function BookingRows({
           </Link>
         </th>
         <td className="vam">{formatDate(booking.scheduledAt)}</td>
-        <td className="vam text-capitalize">{booking.status}</td>
+        <td className="vam">
+          <StatusBadge domain="booking" status={booking.status} />
+        </td>
         <td className="vam">{booking.message || "—"}</td>
         <td className="vam">
           {mode === "buyer" && booking.status === "pending" && (
@@ -296,6 +293,16 @@ export default function BookingsDataTable() {
 
   const tableBusy = isLocked;
   const actingId = pending?.targetId ?? null;
+  const hasActiveFilters = Boolean(statusFilter);
+  const clearFilters = () => {
+    setStatusFilter("");
+    setPage(1);
+  };
+  const emptyState = getBookingsEmptyState({
+    mode: tab === "agent" ? "agent" : "buyer",
+    hasActiveFilters,
+    onClearFilters: clearFilters,
+  });
 
   return (
     <>
@@ -344,7 +351,15 @@ export default function BookingsDataTable() {
       {activeQuery.isLoading || highlightResolving ? (
         <DashboardTableSkeleton rows={4} columns={5} />
       ) : activeQuery.isError ? (
-        <p className="text-danger">Failed to load bookings.</p>
+        <DashboardTableErrorState
+          title="Could not load bookings"
+          onRetry={() => {
+            queryClient.invalidateQueries({ queryKey: ["my-bookings"] });
+            queryClient.invalidateQueries({ queryKey: ["agent-bookings"] });
+          }}
+        />
+      ) : !bookings.length ? (
+        <DashboardTableEmptyState {...emptyState} />
       ) : (
         <table className="table-style3 table at-savesearch">
           <thead className="t-head">

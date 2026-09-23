@@ -1,7 +1,7 @@
 "use client";
 
+import StatusBadge from "@/components/common/StatusBadge";
 import {
-  getStatusLabel,
   isPropertyBookable,
   isPropertyTerminal,
 } from "@/lib/properties/mapProperty";
@@ -21,7 +21,7 @@ export default function PropertyStatusBanner() {
       className={`property-status-banner property-status-banner--${status} mb30`}
       role="status"
     >
-      <strong>{getStatusLabel(status)}</strong>
+      <StatusBadge domain="listing" status={status} />
       {status === "pending" && (
         <p className="mb0 mt-2">
           This listing is not public yet. Only the owner and admins can view it.

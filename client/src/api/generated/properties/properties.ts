@@ -148,6 +148,19 @@ export const getProperties = () => {
     );
   };
   /**
+   * Removes the unit, its media, favorites, reviews, and non-blocking bookings. Requires the listing to be in trash. Blocked when open visit bookings or purchase/transaction records exist.
+   * @summary Permanently delete a trashed listing
+   */
+  const permanentlyDeleteProperty = (
+    id: string,
+    options?: SecondParameter<typeof customInstance<SuccessResponse>>,
+  ) => {
+    return customInstance<SuccessResponse>(
+      { url: `/properties/${id}/permanent`, method: "DELETE" },
+      options,
+    );
+  };
+  /**
    * Uploads an image or a single listing video for a property (multipart/form-data field `media`). Each property may have many images but at most one video; uploading a second video returns 400.
    * @summary Upload property media
    */
@@ -233,6 +246,7 @@ export const getProperties = () => {
     updateProperty,
     deleteProperty,
     restoreProperty,
+    permanentlyDeleteProperty,
     uploadPropertyMedia,
     deletePropertyMedia,
     reorderPropertyMedia,
@@ -267,6 +281,11 @@ export type DeletePropertyResult = NonNullable<
 >;
 export type RestorePropertyResult = NonNullable<
   Awaited<ReturnType<ReturnType<typeof getProperties>["restoreProperty"]>>
+>;
+export type PermanentlyDeletePropertyResult = NonNullable<
+  Awaited<
+    ReturnType<ReturnType<typeof getProperties>["permanentlyDeleteProperty"]>
+  >
 >;
 export type UploadPropertyMediaResult = NonNullable<
   Awaited<ReturnType<ReturnType<typeof getProperties>["uploadPropertyMedia"]>>

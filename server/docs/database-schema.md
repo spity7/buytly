@@ -87,7 +87,9 @@
 
 **Indexes:** `location` 2dsphere; `{ kind, status }`; text on title/description
 
-**Publish rules:** `single` → exactly 1 unit; `compound` → ≥ 2 units (non-draft publish).
+**Publish rules:** `single` → exactly 1 unit; `compound` → ≥ 1 unit (non-draft publish). Units go `pending` with the project; admin unit `active` requires parent project `active` or `sold`. **`kind` is immutable** once the project is not `draft` or has any non-trashed units.
+
+**Trash:** Seller/agent `DELETE` sets `deletedAt` + `status: archived` and cascades the same timestamp to all non-trashed units on the project. Restore reverses the project and matching units to `draft`.
 
 ## properties
 
@@ -96,7 +98,7 @@ Sellable **units** under a project. All listings are for **sale** (no `listingTy
 ```javascript
 {
   projectId: ObjectId → projects (required),
-  unitLabel: String, sortOrder: Number,
+  sortOrder: Number,
   title, slug (unique), description: String,
   type: String (catalog slug),
   price: Number (whole USD), currency: String (USD),
@@ -210,7 +212,7 @@ Sellable **units** under a project. All listings are for **sale** (no `listingTy
 }
 ```
 
-Seeded from defaults when empty on first catalog API access.
+Seeded from defaults when empty on first catalog API access. The `villa` property type is always upserted as active and cannot be edited, deleted, or deactivated (required for single projects).
 
 ## Relationships
 

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { buytlyApi } from "@/api/generated";
+import StatusBadge from "@/components/common/StatusBadge";
 import ApiPagination from "@/components/property/ApiPagination";
 import {
   DashboardFilterBar,
@@ -166,11 +167,12 @@ export default function AdminUsersTable() {
                     </td>
                     <td>
                       {isDeleted ? (
-                        <span className="text-danger">Deleted</span>
-                      ) : user.isActive ? (
-                        "Active"
+                        <StatusBadge domain="account" isDeleted />
                       ) : (
-                        "Inactive"
+                        <StatusBadge
+                          domain="account"
+                          isActive={user.isActive}
+                        />
                       )}
                     </td>
                     <td>{formatDate(user.createdAt)}</td>

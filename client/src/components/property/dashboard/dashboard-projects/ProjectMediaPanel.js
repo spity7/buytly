@@ -170,14 +170,15 @@ export default function ProjectMediaPanel({
   };
 
   const promptDeleteVideo = () => {
-    if (!video?._id) return;
+    const videoId = video?._id || video?.id;
+    if (!videoId) return;
     requestConfirm({
       ...projectMediaDeleteConfirmation(true),
       action: {
         message: "Removing video...",
         successMessage: "Video removed",
         task: async () => {
-          await buytlyApi.deleteProjectMedia(projectId, video._id);
+          await buytlyApi.deleteProjectMedia(projectId, videoId);
           await refresh();
         },
         onError: (error) => notifyError(getApiError(error)),
@@ -190,15 +191,15 @@ export default function ProjectMediaPanel({
   const sortedImages = sortPropertyImages(media);
 
   return (
-    <div className="ps-widget bgc-white bdrs12 default-box-shadow2 p30 mb30 overflow-hidden position-relative">
+    <div className="project-edit-section project-edit-media overflow-hidden position-relative">
       <ConfirmDialog {...dialogProps} />
       <AsyncActionOverlay
         active={Boolean(overlayMessage)}
         message={overlayMessage}
       />
 
-      <h4 className="fz17 mb20">Project gallery</h4>
-      <p className="text mb25">
+      <h4 className="project-edit-section__title mb5">Project gallery</h4>
+      <p className="project-edit-section__lede mb25">
         Marketing photos and video for the project page and discovery cards. The
         first photo is the cover — use the star or arrows to reorder (same as
         unit listings).

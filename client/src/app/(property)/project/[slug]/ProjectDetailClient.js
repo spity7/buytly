@@ -145,9 +145,6 @@ export default function ProjectDetailClient({ slug }) {
                 return (
                   <div className="col-md-6 col-lg-4 mb20" key={id}>
                     <div className="bdr1 bdrs12 p20 h-100 bg-white">
-                      {unit.unitLabel ? (
-                        <div className="fz13 text-muted mb5">{unit.unitLabel}</div>
-                      ) : null}
                       <h5>{unit.title}</h5>
                       <p className="mb10">
                         {formatPrice(unit.price, unit.currency || "USD")}

@@ -14,6 +14,7 @@ import type {
   ObjectId,
   PaginatedProjectsResponse,
   ReorderProjectMediaBody,
+  SuccessResponse,
   UpdateProject200,
   UploadProjectMediaBody,
 } from "../buytly.schemas";
@@ -145,6 +146,19 @@ export const getProjects = () => {
     );
   };
   /**
+   * Removes the project, its units, media, and non-blocking related records. Requires the project to be in trash. Blocked when any unit has open bookings or transaction history.
+   * @summary Permanently delete a trashed project
+   */
+  const permanentlyDeleteProject = (
+    id: string,
+    options?: SecondParameter<typeof customInstance<SuccessResponse>>,
+  ) => {
+    return customInstance<SuccessResponse>(
+      { url: `/projects/${id}/permanent`, method: "DELETE" },
+      options,
+    );
+  };
+  /**
    * @summary Upload project media
    */
   const uploadProjectMedia = (
@@ -206,6 +220,7 @@ export const getProjects = () => {
     deleteProject,
     listProjectUnits,
     restoreProject,
+    permanentlyDeleteProject,
     uploadProjectMedia,
     deleteProjectMedia,
     reorderProjectMedia,
@@ -242,6 +257,11 @@ export type ListProjectUnitsResult = NonNullable<
 >;
 export type RestoreProjectResult = NonNullable<
   Awaited<ReturnType<ReturnType<typeof getProjects>["restoreProject"]>>
+>;
+export type PermanentlyDeleteProjectResult = NonNullable<
+  Awaited<
+    ReturnType<ReturnType<typeof getProjects>["permanentlyDeleteProject"]>
+  >
 >;
 export type UploadProjectMediaResult = NonNullable<
   Awaited<ReturnType<ReturnType<typeof getProjects>["uploadProjectMedia"]>>

@@ -5,6 +5,7 @@ import React, { useCallback, useState } from "react";
 import { buytlyApi } from "@/api/generated";
 import AsyncActionOverlay from "@/components/common/AsyncActionOverlay";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
+import StatusBadge from "@/components/common/StatusBadge";
 import ApiPagination from "@/components/property/ApiPagination";
 import { useMyTransactions } from "@/hooks/useTransactions";
 import { useConfirmAction } from "@/hooks/useConfirmAction";
@@ -32,6 +33,10 @@ import { useResolveDashboardHighlight } from "@/hooks/useResolveDashboardHighlig
 import { getFreshQueryOptions } from "@/lib/dashboard/freshHighlightQueryOptions";
 import { invalidateNotificationQueries } from "@/lib/notifications/invalidateNotificationQueries";
 import { useQueryClient } from "@tanstack/react-query";
+import DashboardTableEmptyState, {
+  DashboardTableErrorState,
+} from "@/components/property/dashboard/DashboardTableEmptyState";
+import { getTransactionsEmptyState } from "@/lib/dashboard/tableEmptyStates";
 
 const formatDate = (value) => {
   if (!value) return "—";
@@ -173,8 +178,26 @@ export default function TransactionsDataTable() {
     return <DashboardTableSkeleton rows={4} columns={6} />;
   }
 
+  const hasActiveFilters = Boolean(statusFilter || typeFilter);
+  const clearFilters = () => {
+    setStatusFilter("");
+    setTypeFilter("");
+    setPage(1);
+  };
+  const emptyState = getTransactionsEmptyState({
+    hasActiveFilters,
+    onClearFilters: clearFilters,
+  });
+
   if (isError) {
-    return <p className="text-danger">Failed to load transactions.</p>;
+    return (
+      <DashboardTableErrorState
+        title="Could not load transactions"
+        onRetry={() =>
+          queryClient.invalidateQueries({ queryKey: ["my-transactions"] })
+        }
+      />
+    );
   }
 
   return (
@@ -207,7 +230,7 @@ export default function TransactionsDataTable() {
       </DashboardFilterBar>
 
       {!transactions.length ? (
-        <p className="p-4 mb0">No transactions match your filters.</p>
+        <DashboardTableEmptyState {...emptyState} />
       ) : (
         <table className="table-style3 table at-savesearch">
           <thead className="t-head">
@@ -243,7 +266,9 @@ export default function TransactionsDataTable() {
                   <td className="vam">
                     {formatPrice(transaction.amount, transaction.currency)}
                   </td>
-                  <td className="vam text-capitalize">{transaction.status}</td>
+                  <td className="vam">
+                    <StatusBadge domain="transaction" status={transaction.status} />
+                  </td>
                   <td className="vam">{formatDate(transaction.createdAt)}</td>
                   <td className="vam">
                     {manageable && isPending && (

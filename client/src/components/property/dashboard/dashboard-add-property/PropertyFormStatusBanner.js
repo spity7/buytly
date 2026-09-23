@@ -1,6 +1,6 @@
 "use client";
 
-import { getStatusLabel } from "@/lib/properties/mapProperty";
+import StatusBadge from "@/components/common/StatusBadge";
 import { getListingStatusBannerContent } from "@/lib/properties/listingStatusBanner";
 
 export default function PropertyFormStatusBanner({
@@ -29,8 +29,9 @@ export default function PropertyFormStatusBanner({
       className={`property-form-status-banner property-form-status-banner--${status} mb20`}
       role="status"
     >
-      <div className="property-form-status-banner__header">
-        <strong>Current status:</strong> {getStatusLabel(status)}
+      <div className="property-form-status-banner__header d-flex flex-wrap align-items-center gap-2">
+        <strong>Current status:</strong>
+        <StatusBadge domain="listing" status={status} />
       </div>
 
       {message ? (

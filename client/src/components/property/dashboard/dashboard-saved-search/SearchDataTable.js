@@ -11,6 +11,10 @@ import { savedSearchDeleteConfirmation } from "@/lib/confirmations";
 import { useCallback, useEffect, useState } from "react";
 import { Tooltip as ReactTooltip } from "react-tooltip";
 import { DashboardTableSkeleton } from "@/components/property/dashboard/skeletons/DashboardSkeletons";
+import DashboardTableEmptyState, {
+  DashboardTableErrorState,
+} from "@/components/property/dashboard/DashboardTableEmptyState";
+import { getSavedSearchesEmptyState } from "@/lib/dashboard/tableEmptyStates";
 
 const formatSearchDate = (value) => {
   if (!value) {
@@ -78,26 +82,16 @@ const SearchDataTable = () => {
 
   if (error) {
     return (
-      <div>
-        <p className="text-danger mb10">{error}</p>
-        <button
-          type="button"
-          className="ud-btn btn-white2"
-          onClick={loadSearches}
-        >
-          Retry
-        </button>
-      </div>
+      <DashboardTableErrorState
+        title="Could not load saved searches"
+        description={error}
+        onRetry={loadSearches}
+      />
     );
   }
 
   if (!searches.length) {
-    return (
-      <p className="text mb0">
-        You have no saved searches yet. Save a search from the listings page to
-        see it here.
-      </p>
-    );
+    return <DashboardTableEmptyState {...getSavedSearchesEmptyState()} />;
   }
 
   return (

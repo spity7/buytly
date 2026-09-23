@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import StatusBadge from "@/components/common/StatusBadge";
 import { useAdminAnalytics } from "@/hooks/useAdminAnalytics";
 
 export default function AdminAnalyticsPanel() {
@@ -81,9 +82,16 @@ export default function AdminAnalyticsPanel() {
                 key={`${row._id?.type}-${row._id?.status}-${index}`}
                 className="d-flex justify-content-between mb10"
               >
-                <span>
-                  {(row._id?.type || "unknown").toString()} ·{" "}
-                  {(row._id?.status || "unknown").toString()}
+                <span className="d-inline-flex flex-wrap align-items-center gap-2">
+                  <span className="text-capitalize">
+                    {(row._id?.type || "unknown").toString()}
+                  </span>
+                  <StatusBadge
+                    domain="listing"
+                    status={row._id?.status}
+                    label={row._id?.status ? undefined : "Unknown"}
+                    tone={row._id?.status ? undefined : "muted"}
+                  />
                 </span>
                 <span className="fw600">{row.count || 0}</span>
               </li>

@@ -4,7 +4,8 @@ import { Project } from "../../src/modules/projects/project.model.js";
 
 export const projectPayload = (overrides = {}) => ({
   title: "Sunset Residences",
-  description: "A premium development with modern amenities and great location.",
+  description:
+    "A premium development with modern amenities and great location.",
   kind: "single",
   location: {
     coordinates: [55.2708, 25.2048],
@@ -22,7 +23,7 @@ export const propertyPayload = (projectId, overrides = {}) => ({
   title: "Modern Downtown Apartment",
   description:
     "A spacious apartment in the heart of downtown with great views.",
-  type: "apartment",
+  type: "villa",
   price: 350000,
   currency: "USD",
   bedrooms: 2,
@@ -57,7 +58,11 @@ export const buildPropertyBody = async (app, token, overrides = {}) => {
   return propertyPayload(projectRes.body.data._id, overrides);
 };
 
-export const createActiveProperty = async (app, sellerToken, overrides = {}) => {
+export const createActiveProperty = async (
+  app,
+  sellerToken,
+  overrides = {},
+) => {
   const projectRes = await createProject(app, sellerToken, {
     title: overrides.projectTitle || "Test Project",
     kind: "single",

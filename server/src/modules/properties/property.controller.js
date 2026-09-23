@@ -54,6 +54,11 @@ export const propertyController = {
     ApiResponse.success(res, property, "Property restored");
   },
 
+  permanentRemove: async (req, res) => {
+    await propertyService.permanentDelete(req.params.id, req.user);
+    ApiResponse.success(res, null, "Property permanently deleted");
+  },
+
   uploadMedia: [
     upload.single("media"),
     async (req, res, next) => {

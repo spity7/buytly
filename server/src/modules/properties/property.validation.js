@@ -38,7 +38,6 @@ export const createPropertySchema = z.object({
     .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/),
   price: z.number().int().positive(),
   currency: z.literal(DEFAULT_CURRENCY).optional(),
-  unitLabel: z.string().max(100).optional(),
   sortOrder: z.number().int().min(0).optional(),
   bedrooms: z.number().int().min(0).optional(),
   bathrooms: z.number().int().min(0).optional(),

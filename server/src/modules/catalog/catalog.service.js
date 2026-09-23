@@ -5,6 +5,7 @@ import { AmenityCatalog } from "./amenity.model.js";
 import {
   DEFAULT_AMENITIES,
   DEFAULT_PROPERTY_TYPES,
+  PROTECTED_PROPERTY_TYPE_VALUES,
 } from "./catalog.defaults.js";
 import { AppError } from "../../shared/AppError.js";
 import { nearbyService } from "../../services/nearby.service.js";
@@ -27,7 +28,35 @@ function labelMatchFilter(label, excludeId) {
   return filter;
 }
 
+const assertPropertyTypeNotProtected = (value, action) => {
+  if (PROTECTED_PROPERTY_TYPE_VALUES.includes(value)) {
+    throw new AppError(
+      `The "${value}" property type is required for single projects and cannot be ${action}.`,
+      409,
+    );
+  }
+};
+
 export const catalogService = {
+  async ensureRequiredPropertyTypes() {
+    for (const value of PROTECTED_PROPERTY_TYPE_VALUES) {
+      const entry = DEFAULT_PROPERTY_TYPES.find((item) => item.value === value);
+      if (!entry) continue;
+
+      await PropertyTypeCatalog.updateOne(
+        { value: entry.value },
+        {
+          $set: {
+            label: entry.label,
+            sortOrder: entry.sortOrder,
+            isActive: true,
+          },
+        },
+        { upsert: true },
+      );
+    }
+  },
+
   async ensureDefaults() {
     const [typeCount, amenityCount] = await Promise.all([
       PropertyTypeCatalog.countDocuments(),
@@ -41,6 +70,8 @@ export const catalogService = {
     if (amenityCount === 0) {
       await AmenityCatalog.insertMany(DEFAULT_AMENITIES);
     }
+
+    await this.ensureRequiredPropertyTypes();
   },
 
   async listPropertyTypes({ activeOnly = true } = {}) {
@@ -248,6 +279,17 @@ export const catalogService = {
     await this.ensureDefaults();
     const { value: _immutable, ...patch } = data;
 
+    const existing = await PropertyTypeCatalog.findById(id);
+    if (!existing) throw new AppError("Property type not found", 404);
+
+    if (PROTECTED_PROPERTY_TYPE_VALUES.includes(existing.value)) {
+      assertPropertyTypeNotProtected(existing.value, "edited");
+    }
+
+    if (patch.isActive === false) {
+      assertPropertyTypeNotProtected(existing.value, "deactivated");
+    }
+
     if (patch.label) {
       await this.assertUniquePropertyTypeLabel(patch.label, id);
     }
@@ -264,6 +306,8 @@ export const catalogService = {
     await this.ensureDefaults();
     const doc = await PropertyTypeCatalog.findById(id);
     if (!doc) throw new AppError("Property type not found", 404);
+
+    assertPropertyTypeNotProtected(doc.value, "deleted");
 
     const inUse = await Property.countDocuments({ type: doc.value });
     if (inUse > 0) {

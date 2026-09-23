@@ -76,7 +76,7 @@ const FilterItems = () => {
             data-bs-toggle="dropdown"
             data-bs-auto-close="outside"
           >
-            Price <i className="fas fa-caret-down float-end fz11" />
+            Price From <i className="fas fa-caret-down float-end fz11" />
           </div>
           <div className="dropdown-menu">
             <div className="widget-wrapper pb20 mb0 pl20 pr20">

@@ -10,6 +10,7 @@ import { getApiError } from "@/lib/auth/getApiError";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
+import StatusBadge from "@/components/common/StatusBadge";
 import { useConfirmAction } from "@/hooks/useConfirmAction";
 import {
   catalogItemDeactivateConfirmation,
@@ -22,8 +23,11 @@ import {
 import { DashboardTableSkeleton } from "@/components/property/dashboard/skeletons/DashboardSkeletons";
 import { Tooltip as ReactTooltip } from "react-tooltip";
 import ApiPagination from "@/components/property/ApiPagination";
+import { SINGLE_PROJECT_UNIT_TYPE } from "@/lib/properties/projectForm";
 
 const CATALOG_PAGE_SIZE = 10;
+
+const PROTECTED_PROPERTY_TYPE_VALUES = new Set([SINGLE_PROJECT_UNIT_TYPE]);
 
 const STATUS_FILTER_OPTIONS = [
   { value: "", label: "All statuses" },
@@ -74,20 +78,6 @@ function findDuplicateTypeValue(typeRows, value, editingId) {
 
   return (
     typeRows.find((row) => row.id !== editingId && row.value === value) ?? null
-  );
-}
-
-function StatusBadge({ isActive }) {
-  return (
-    <span
-      className={`catalog-admin__badge ${
-        isActive
-          ? "catalog-admin__badge--active"
-          : "catalog-admin__badge--inactive"
-      }`}
-    >
-      {isActive ? "Active" : "Inactive"}
-    </span>
   );
 }
 
@@ -278,11 +268,24 @@ function CatalogTable({
             const rowBusy = busyId === row.id;
             const isEditing = editingId === row.id;
             const listingCount = row.listingCount ?? 0;
-            const deleteBlocked = listingCount > 0;
-            const deleteTooltip = deleteBlocked
-              ? `Used on ${listingCount} listing${listingCount === 1 ? "" : "s"}. Deactivate instead.`
-              : "Delete";
+            const isProtectedType = PROTECTED_PROPERTY_TYPE_VALUES.has(
+              row.value,
+            );
+            const editBlocked = isProtectedType;
+            const deleteBlocked = listingCount > 0 || isProtectedType;
+            const deactivateBlocked = isProtectedType && row.isActive;
+            const editTooltip = editBlocked
+              ? "Required for single projects — cannot be edited."
+              : "Edit";
+            const deleteTooltip = isProtectedType
+              ? "Required for single projects — cannot be removed."
+              : deleteBlocked
+                ? `Used on ${listingCount} listing${listingCount === 1 ? "" : "s"}. Deactivate instead.`
+                : "Delete";
             const toggleLabel = row.isActive ? "Deactivate" : "Activate";
+            const toggleTooltip = deactivateBlocked
+              ? "Required for single projects — always stays active."
+              : toggleLabel;
             const editTooltipId = `catalog-edit-${row.id}`;
             const toggleTooltipId = `catalog-toggle-${row.id}`;
             const deleteTooltipId = `catalog-delete-${row.id}`;
@@ -302,7 +305,7 @@ function CatalogTable({
                     <button
                       type="button"
                       className="icon catalog-admin__action-btn catalog-admin__action-btn--edit"
-                      disabled={rowBusy}
+                      disabled={rowBusy || editBlocked}
                       data-tooltip-id={editTooltipId}
                       aria-label={`Edit ${row.label}`}
                       onClick={() => onEdit(row)}
@@ -316,7 +319,7 @@ function CatalogTable({
                           ? "catalog-admin__action-btn--deactivate"
                           : "catalog-admin__action-btn--activate"
                       }`}
-                      disabled={rowBusy}
+                      disabled={rowBusy || deactivateBlocked}
                       data-tooltip-id={toggleTooltipId}
                       aria-label={`${toggleLabel} ${row.label}`}
                       onClick={() => onToggleActive(row)}
@@ -341,12 +344,12 @@ function CatalogTable({
                     <ReactTooltip
                       id={editTooltipId}
                       place="top"
-                      content={rowBusy ? "Working..." : "Edit"}
+                      content={rowBusy ? "Working..." : editTooltip}
                     />
                     <ReactTooltip
                       id={toggleTooltipId}
                       place="top"
-                      content={rowBusy ? "Working..." : toggleLabel}
+                      content={rowBusy ? "Working..." : toggleTooltip}
                     />
                     <ReactTooltip
                       id={deleteTooltipId}
@@ -493,6 +496,15 @@ export default function AdminCatalogManager() {
       }
 
       if (editingTypeId) {
+        const editingRow = typeRows.find((row) => row.id === editingTypeId);
+        if (
+          editingRow &&
+          PROTECTED_PROPERTY_TYPE_VALUES.has(editingRow.value)
+        ) {
+          toast.error("This property type is required and cannot be edited.");
+          return;
+        }
+
         await customInstance({
           url: `/admin/catalog/property-types/${editingTypeId}`,
           method: "PATCH",
@@ -718,7 +730,9 @@ export default function AdminCatalogManager() {
       {
         key: "isActive",
         label: "Status",
-        render: (row) => <StatusBadge isActive={row.isActive} />,
+        render: (row) => (
+          <StatusBadge domain="account" isActive={row.isActive} />
+        ),
       },
     ],
     [],
@@ -735,7 +749,9 @@ export default function AdminCatalogManager() {
       {
         key: "isActive",
         label: "Status",
-        render: (row) => <StatusBadge isActive={row.isActive} />,
+        render: (row) => (
+          <StatusBadge domain="account" isActive={row.isActive} />
+        ),
       },
     ],
     [],
@@ -767,7 +783,9 @@ export default function AdminCatalogManager() {
 
       <p className="text mb25">
         Active options appear on listing forms and search filters. Deactivate
-        items instead of deleting when they are already used on properties.
+        items instead of deleting when they are already used on properties.{" "}
+        <strong>Villa</strong> is required for single projects and cannot be
+        edited, removed, or deactivated.
       </p>
 
       {isError ? (

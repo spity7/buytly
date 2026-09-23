@@ -1,7 +1,13 @@
 import { Property } from "./property.model.js";
 import { Project } from "../projects/project.model.js";
 import { projectService } from "../projects/project.service.js";
-import { assertPublishUnitCardinality } from "../projects/project-cardinality.js";
+import {
+  applySingleProjectUnitType,
+  assertCanAddUnitToProject,
+  assertParentProjectAllowsUnitStatus,
+  assertPublishUnitCardinality,
+  assertSingleProjectUnitType,
+} from "../projects/project-cardinality.js";
 import { gcsService } from "../../services/gcs.service.js";
 import { cacheService } from "../../services/cache.service.js";
 import { AppError } from "../../shared/AppError.js";
@@ -13,6 +19,7 @@ import { buildPropertyTextFilter } from "../../shared/search.js";
 import { slugify } from "../../utils/slugify.js";
 import { DEFAULT_CURRENCY, ROLES } from "../../shared/constants.js";
 import { catalogService } from "../catalog/catalog.service.js";
+import { purgePropertyRecord } from "../../services/listing-purge.service.js";
 import { User } from "../users/user.model.js";
 import { notificationService } from "../notifications/notification.service.js";
 import { nearbyService } from "../../services/nearby.service.js";
@@ -121,9 +128,15 @@ const maybeRependActiveListing = async (
 
 const buildPropertyIdFilter = (id, user) => {
   const filter = { _id: id };
-  if (user?.role !== ROLES.ADMIN) {
+  if (!user) {
     filter.deletedAt = null;
+    return filter;
   }
+  if (user.role === ROLES.ADMIN) {
+    return filter;
+  }
+
+  filter.$or = [{ ownerId: user._id }, { agentId: user._id }];
   return filter;
 };
 
@@ -140,13 +153,36 @@ const projectLocationSnapshot = (project) => {
   return { type: "Point", ...loc };
 };
 
-const validateUnitPublishForProject = async (project, nextStatus) => {
+const validateUnitPublishForProject = async (
+  project,
+  nextStatus,
+  { isAdmin },
+) => {
   if (nextStatus !== "pending" && nextStatus !== "active") return;
+  assertParentProjectAllowsUnitStatus(project, nextStatus, { isAdmin });
   const unitCount = await Property.countDocuments({
     projectId: project._id,
     deletedAt: null,
   });
   assertPublishUnitCardinality(project.kind, unitCount);
+};
+
+const PUBLIC_PARENT_PROJECT_STATUSES = ["active", "sold"];
+
+const assertPublicParentProject = async (property) => {
+  const populated = property.projectId;
+  const project =
+    populated?.status != null
+      ? populated
+      : await Project.findById(property.projectId).select("status deletedAt");
+
+  if (
+    !project ||
+    project.deletedAt ||
+    !PUBLIC_PARENT_PROJECT_STATUSES.includes(project.status)
+  ) {
+    throw new AppError("Property not found", 404);
+  }
 };
 
 const applyAdminStatusTransition = (property, normalizedStatus) => {
@@ -183,14 +219,13 @@ export const propertyService = {
       projectId: project._id,
       deletedAt: null,
     });
-    if (project.kind === "single" && existingUnits >= 1) {
-      throw new AppError("Single projects can only have one unit", 400);
-    }
+    assertCanAddUnitToProject(project, existingUnits);
 
     const slug = await buildUniqueSlug(data.title);
     const payload = { ...data };
     const isAdmin = user.role === ROLES.ADMIN;
 
+    applySingleProjectUnitType(project, payload);
     await applyListingCatalogRules(payload);
 
     payload.status = normalizeSellerStatus(payload.status, {
@@ -231,6 +266,12 @@ export const propertyService = {
 
     const { page, limit, skip } = parsePagination(query);
     const filter = { deletedAt: null };
+
+    const publicProjectIds = await Project.find({
+      deletedAt: null,
+      status: { $in: PUBLIC_PARENT_PROJECT_STATUSES },
+    }).distinct("_id");
+    filter.projectId = { $in: publicProjectIds };
 
     if (query.minPrice || query.maxPrice) {
       filter.price = {};
@@ -311,6 +352,13 @@ export const propertyService = {
       throw new AppError("Property not found", 404);
     }
 
+    if (
+      !canManageProperty(property, user) &&
+      PUBLIC_PARENT_PROJECT_STATUSES.includes(property.status)
+    ) {
+      await assertPublicParentProject(property);
+    }
+
     if (incrementView && property.status === "active") {
       property.viewCount += 1;
       await property.save({ validateBeforeSave: false });
@@ -372,18 +420,20 @@ export const propertyService = {
     const isAdmin = user.role === ROLES.ADMIN;
 
     if (!isAdmin && isPropertyTerminal(property.status)) {
-      throw new AppError(
-        "Sold or archived listings cannot be edited",
-        400,
-      );
+      throw new AppError("Sold or archived listings cannot be edited", 400);
     }
 
     const previousStatus = property.status;
     const patch = { ...data };
 
+    const project = await Project.findById(property.projectId);
+    if (!project) throw new AppError("Project not found", 404);
+
     if (patch.type !== undefined) {
+      assertSingleProjectUnitType(project, patch.type);
       await catalogService.assertValidPropertyType(patch.type);
     }
+    applySingleProjectUnitType(project, patch);
     if (patch.amenities !== undefined) {
       await catalogService.assertValidAmenities(patch.amenities);
     }
@@ -396,10 +446,9 @@ export const propertyService = {
 
     if (normalizedStatus !== undefined) {
       patch.status = normalizedStatus;
-      const project = await Project.findById(property.projectId);
-      if (project) {
-        await validateUnitPublishForProject(project, normalizedStatus);
-      }
+      await validateUnitPublishForProject(project, normalizedStatus, {
+        isAdmin,
+      });
     } else {
       delete patch.status;
     }
@@ -473,6 +522,18 @@ export const propertyService = {
     await cacheService.invalidateListingCaches();
 
     return attachMediaUrls(property);
+  },
+
+  async permanentDelete(id, user) {
+    const property = await findPropertyById(id, user);
+    if (!property) throw new AppError("Property not found", 404);
+
+    if (!canManageProperty(property, user)) {
+      throw new AppError("Not authorized to delete this property", 403);
+    }
+
+    await purgePropertyRecord(property, { requireTrash: true });
+    await cacheService.invalidateListingCaches();
   },
 
   async uploadMedia(id, file, user) {
@@ -623,6 +684,14 @@ export const propertyService = {
         ? { deletedAt: { $ne: null } }
         : { deletedAt: null },
     ];
+
+    if (query.trashed !== "true") {
+      const activeProjectIds = await Project.find({
+        $or: [{ ownerId: user._id }, { agentId: user._id }],
+        deletedAt: null,
+      }).distinct("_id");
+      conditions.push({ projectId: { $in: activeProjectIds } });
+    }
 
     if (query.status) conditions.push({ status: query.status });
     if (query.type) conditions.push({ type: query.type });

@@ -20,6 +20,10 @@ import {
   buildArchiveUpdate,
   buildUnarchiveUpdate,
 } from "../properties/property-status.js";
+import {
+  assertParentProjectAllowsUnitStatus,
+  assertPublishUnitCardinality,
+} from "../projects/project-cardinality.js";
 
 export const adminService = {
   async listUsers(query) {
@@ -156,6 +160,14 @@ export const adminService = {
     const existing = await Property.findById(propertyId);
     if (!existing) throw new AppError("Property not found", 404);
 
+    if (status === "active") {
+      const project = await Project.findById(existing.projectId);
+      if (!project || project.deletedAt) {
+        throw new AppError("Project not found", 404);
+      }
+      assertParentProjectAllowsUnitStatus(project, status, { isAdmin: true });
+    }
+
     const update =
       status === "archived"
         ? buildArchiveUpdate()
@@ -229,6 +241,14 @@ export const adminService = {
   async moderateProject(projectId, status) {
     const existing = await Project.findById(projectId);
     if (!existing) throw new AppError("Project not found", 404);
+
+    if (status === "active") {
+      const unitCount = await Property.countDocuments({
+        projectId: existing._id,
+        deletedAt: null,
+      });
+      assertPublishUnitCardinality(existing.kind, unitCount);
+    }
 
     const update =
       status === "archived"

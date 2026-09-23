@@ -10,8 +10,14 @@ import ConfirmDialog from "@/components/common/ConfirmDialog";
 import ApiPagination from "@/components/property/ApiPagination";
 import { useMyProperties } from "@/hooks/useMyProperties";
 import { useConfirmAction } from "@/hooks/useConfirmAction";
-import { propertyTrashConfirmation } from "@/lib/confirmations";
-import { getStatusClass, getStatusLabel } from "@/lib/properties/mapProperty";
+import {
+  propertyPermanentDeleteConfirmation,
+  propertyTrashConfirmation,
+} from "@/lib/confirmations";
+import { getApiError } from "@/lib/auth/getApiError";
+import { notifyError } from "@/lib/toast";
+import StatusBadge from "@/components/common/StatusBadge";
+import { getPropertyStatusBadgeProps } from "@/lib/statusBadges";
 import { DashboardTableSkeleton } from "@/components/property/dashboard/skeletons/DashboardSkeletons";
 import {
   useDashboardRowHighlight,
@@ -20,6 +26,10 @@ import {
 import { getFreshQueryOptions } from "@/lib/dashboard/freshHighlightQueryOptions";
 import { invalidateNotificationQueries } from "@/lib/notifications/invalidateNotificationQueries";
 import { useQueryClient } from "@tanstack/react-query";
+import DashboardTableEmptyState, {
+  DashboardTableErrorState,
+} from "@/components/property/dashboard/DashboardTableEmptyState";
+import { getPropertiesTableEmptyState } from "@/lib/dashboard/tableEmptyStates";
 
 const PLACEHOLDER = "/images/listings/list-1.jpg";
 
@@ -40,6 +50,9 @@ const PropertyDataTable = ({
   onPageChange,
   highlightResolving = false,
   hasActiveFilters = false,
+  onMovedToTrash,
+  onClearFilters,
+  onShowActiveListings,
 }) => {
   const queryClient = useQueryClient();
   const {
@@ -85,7 +98,24 @@ const PropertyDataTable = ({
         message: "Moving listing to trash...",
         successMessage: "Listing moved to trash",
         task: () => buytlyApi.deleteProperty(propertyId),
+        onSuccess: () => {
+          invalidate();
+          onMovedToTrash?.();
+        },
+      },
+    });
+  };
+
+  const promptPermanentDelete = (propertyId, title) => {
+    requestConfirm({
+      ...propertyPermanentDeleteConfirmation(title),
+      targetId: propertyId,
+      action: {
+        message: "Deleting listing permanently...",
+        successMessage: "Listing permanently deleted",
+        task: () => buytlyApi.permanentlyDeleteProperty(propertyId),
         onSuccess: invalidate,
+        onError: (error) => notifyError(getApiError(error)),
       },
     });
   };
@@ -107,8 +137,22 @@ const PropertyDataTable = ({
   const actingId = pending?.targetId ?? null;
 
   if (isError) {
-    return <p className="p-4 text-danger">Failed to load your properties.</p>;
+    return (
+      <DashboardTableErrorState
+        title="Could not load units"
+        onRetry={() =>
+          queryClient.invalidateQueries({ queryKey: ["my-properties"] })
+        }
+      />
+    );
   }
+
+  const emptyState = getPropertiesTableEmptyState({
+    isTrash,
+    hasActiveFilters,
+    onClearFilters,
+    onShowActiveListings,
+  });
 
   return (
     <>
@@ -117,20 +161,7 @@ const PropertyDataTable = ({
           <DashboardTableSkeleton rows={5} columns={5} withThumbnail />
         </div>
       ) : !properties.length ? (
-        <div className="p-4">
-          <p>
-            {isTrash
-              ? "Your trash is empty."
-              : hasActiveFilters
-                ? "No listings match your filters."
-                : "You have no listings yet."}
-          </p>
-          {!isTrash && !hasActiveFilters && (
-            <Link href="/dashboard-add-property" className="ud-btn btn-thm">
-              Add your first property
-            </Link>
-          )}
-        </div>
+        <DashboardTableEmptyState {...emptyState} />
       ) : (
         <table className="table-style3 table at-savesearch">
           <thead className="t-head">
@@ -184,9 +215,11 @@ const PropertyDataTable = ({
                     )}
                   </td>
                   <td className="vam">
-                    <span className={getStatusClass(property.status)}>
-                      {isTrash ? "In trash" : getStatusLabel(property.status)}
-                    </span>
+                    <StatusBadge
+                      {...getPropertyStatusBadgeProps(property, {
+                        isTrashView: isTrash,
+                      })}
+                    />
                   </td>
                   {!isTrash && (
                     <td className="vam">{property.viewCount ?? 0}</td>
@@ -194,14 +227,26 @@ const PropertyDataTable = ({
                   <td className="vam">
                     <div className="d-flex">
                       {isTrash ? (
-                        <button
-                          type="button"
-                          className="ud-btn btn-thm btn-sm"
-                          disabled={rowBusy || tableBusy}
-                          onClick={() => handleRestore(propertyId)}
-                        >
-                          Restore
-                        </button>
+                        <div className="d-flex flex-wrap align-items-center gap-2">
+                          <button
+                            type="button"
+                            className="ud-btn btn-thm btn-sm"
+                            disabled={rowBusy || tableBusy}
+                            onClick={() => handleRestore(propertyId)}
+                          >
+                            Restore
+                          </button>
+                          <button
+                            type="button"
+                            className="ud-btn btn-white2 btn-sm text-danger"
+                            disabled={rowBusy || tableBusy}
+                            onClick={() =>
+                              promptPermanentDelete(propertyId, property.title)
+                            }
+                          >
+                            Delete permanently
+                          </button>
+                        </div>
                       ) : (
                         <>
                           <Link
