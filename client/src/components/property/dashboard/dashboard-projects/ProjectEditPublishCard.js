@@ -1,6 +1,9 @@
 "use client";
 
 import StatusBadge from "@/components/common/StatusBadge";
+import DashboardBtnIcon, {
+  dashboardIcons,
+} from "@/components/property/dashboard/DashboardBtnIcon";
 import { getProjectStatusBadgeProps } from "@/lib/statusBadges";
 import { isProjectReadyToPublish } from "@/lib/properties/projectForm";
 
@@ -19,6 +22,10 @@ export default function ProjectEditPublishCard({
   canSubmit,
   isLocked,
   onSubmit,
+  submitLabel = "Submit for review",
+  submitIcon = dashboardIcons.submit,
+  submitDisabled = false,
+  submitDisabledTitle,
 }) {
   const unitsReady = isProjectReadyToPublish(unitCount);
   const progress =
@@ -43,7 +50,7 @@ export default function ProjectEditPublishCard({
           </span>
         </div>
         <p className="project-edit-publish__requirement">
-          At least {minUnits} unit required to publish
+          At least {minUnits} unit{minUnits === 1 ? "" : "s"} required to publish
         </p>
         <div
           className="project-edit-publish__bar"
@@ -59,7 +66,7 @@ export default function ProjectEditPublishCard({
             }`}
             style={{ width: `${progress}%` }}
           />
-        </p>
+        </div>
         <p
           className={`project-edit-publish__hint${
             unitsReady ? " project-edit-publish__hint--ready" : ""
@@ -84,10 +91,12 @@ export default function ProjectEditPublishCard({
         <button
           type="button"
           className="ud-btn btn-thm project-edit-publish__submit"
-          disabled={isLocked}
+          disabled={isLocked || submitDisabled}
+          title={submitDisabled ? submitDisabledTitle : undefined}
           onClick={onSubmit}
         >
-          Submit for review
+          <DashboardBtnIcon icon={submitIcon} />
+          {submitLabel}
         </button>
       ) : project.status === "pending" ? (
         <p className="project-edit-publish__footnote">
@@ -96,6 +105,11 @@ export default function ProjectEditPublishCard({
       ) : project.status === "active" ? (
         <p className="project-edit-publish__footnote">
           This project is live. Edit details or units as needed.
+        </p>
+      ) : project.status === "sold" ? (
+        <p className="project-edit-publish__footnote">
+          This project is sold. You can still view details; publishing actions
+          are not available.
         </p>
       ) : null}
     </div>

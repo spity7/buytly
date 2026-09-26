@@ -13,6 +13,9 @@ import StatusBadge from "@/components/common/StatusBadge";
 import { notifyError } from "@/lib/toast";
 import { getApiError } from "@/lib/auth/getApiError";
 import Link from "next/link";
+import DashboardBtnIcon, {
+  dashboardIcons,
+} from "@/components/property/dashboard/DashboardBtnIcon";
 import { useLiveSyncReload } from "@/hooks/useLiveSyncReload";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import DashboardTableEmptyState from "@/components/property/dashboard/DashboardTableEmptyState";
@@ -178,7 +181,13 @@ export default function AdminProjectsTable() {
                         "—"}
                     </td>
                     <td className="d-flex flex-wrap gap-2">
-                      <Link href={`/dashboard-edit-project/${id}`}>Review</Link>
+                      <Link
+                        href={`/dashboard-edit-project/${id}`}
+                        className="ud-btn btn-white2 btn-sm"
+                      >
+                        <DashboardBtnIcon icon={dashboardIcons.eye} />
+                        Review
+                      </Link>
                       {project.status === "pending" ? (
                         <>
                           <button
@@ -189,6 +198,7 @@ export default function AdminProjectsTable() {
                               moderate(id, project.title, "active")
                             }
                           >
+                            <DashboardBtnIcon icon={dashboardIcons.approve} />
                             Approve
                           </button>
                           <button
@@ -197,6 +207,7 @@ export default function AdminProjectsTable() {
                             disabled={isLocked}
                             onClick={() => moderate(id, project.title, "draft")}
                           >
+                            <DashboardBtnIcon icon={dashboardIcons.draft} />
                             Return to draft
                           </button>
                         </>
@@ -210,6 +221,7 @@ export default function AdminProjectsTable() {
                             moderate(id, project.title, "archived")
                           }
                         >
+                          <DashboardBtnIcon icon={dashboardIcons.archive} />
                           Archive
                         </button>
                       ) : null}
@@ -230,6 +242,7 @@ export default function AdminProjectsTable() {
             disabled={page <= 1 || isLocked}
             onClick={() => setPage((p) => Math.max(1, p - 1))}
           >
+            <DashboardBtnIcon icon={dashboardIcons.chevronLeft} />
             Previous
           </button>
           <button
@@ -239,6 +252,10 @@ export default function AdminProjectsTable() {
             onClick={() => setPage((p) => p + 1)}
           >
             Next
+            <DashboardBtnIcon
+              icon={dashboardIcons.chevronRight}
+              position="trail"
+            />
           </button>
         </div>
       ) : null}

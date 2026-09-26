@@ -1,5 +1,9 @@
 "use client";
 
+import DashboardBtnIcon, {
+  dashboardIcons,
+} from "@/components/property/dashboard/DashboardBtnIcon";
+
 import PasswordInput from "@/components/common/PasswordInput";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
 import { buytlyApi } from "@/api/generated";
@@ -104,6 +108,7 @@ const DeleteAccountForm = () => {
                   (!isGoogleAccount && !password)
                 }
               >
+                <DashboardBtnIcon icon={dashboardIcons.trash} />
                 {isLocked ? "Deleting account..." : "Delete my account"}
               </button>
             </div>

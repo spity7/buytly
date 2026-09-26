@@ -198,7 +198,9 @@ function SingleV1Content() {
 
                   <div className="agen-personal-info position-relative bgc-white default-box-shadow1 bdrs12 p30 mt30">
                     <div className="widget-wrapper mb-0">
-                      <h6 className="title fz17 mb30">Listing Contact</h6>
+                      <h6 className="title fz17 listing-contact-section__title">
+                        Listing Contact
+                      </h6>
                       <ContactWithAgent />
                     </div>
                   </div>

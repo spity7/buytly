@@ -2,6 +2,9 @@
 
 import { useNotifications } from "@/hooks/useNotifications";
 import Link from "next/link";
+import DashboardBtnIcon, {
+  dashboardIcons,
+} from "@/components/property/dashboard/DashboardBtnIcon";
 
 const formatWhen = (value) => {
   if (!value) return "";
@@ -49,8 +52,12 @@ export default function DashboardRecentActivities() {
       ))}
       <div className="d-grid">
         <Link href="/dashboard-notifications" className="ud-btn btn-white2">
-          View More
-          <i className="fal fa-arrow-right-long" />
+          <DashboardBtnIcon icon={dashboardIcons.bell} />
+          View more
+          <DashboardBtnIcon
+            icon={dashboardIcons.arrowRight}
+            position="trailArrow"
+          />
         </Link>
       </div>
     </>

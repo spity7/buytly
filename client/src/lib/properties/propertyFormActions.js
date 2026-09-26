@@ -144,6 +144,7 @@ export function getPropertyFormActionButtons(
     label: "Cancel",
     variant: "cancel",
     disabled: formBusy,
+    iconLead: "fal fa-ban",
   });
 
   if (canSaveChanges) {
@@ -156,6 +157,7 @@ export function getPropertyFormActionButtons(
       variant: primaryAction === "save" ? "primary" : "secondary",
       disabled: contentActionsDisabled,
       title: contentDisabledTitle,
+      iconLead: "fal fa-floppy-disk",
     });
   }
 
@@ -171,6 +173,7 @@ export function getPropertyFormActionButtons(
       variant: "secondary",
       disabled: draftDisabled,
       title: draftDisabledTitle,
+      iconLead: "fal fa-file-lines",
     });
   } else if (showSaveDraft) {
     buttons.push({
@@ -186,6 +189,7 @@ export function getPropertyFormActionButtons(
       variant: "secondary",
       disabled: draftDisabled,
       title: draftDisabledTitle,
+      iconLead: "fal fa-file-lines",
     });
   }
 
@@ -213,6 +217,7 @@ export function getPropertyFormActionButtons(
           : undefined
         : contentDisabledTitle,
       showArrow: true,
+      iconLead: isAdmin ? "fas fa-check" : "fal fa-paper-plane",
     });
   }
 

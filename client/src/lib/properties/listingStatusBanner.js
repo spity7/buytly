@@ -31,6 +31,12 @@ function getPropertyTypeLabel(type) {
   return PROPERTY_TYPE_LABELS[type] || type || "—";
 }
 
+/** Short label for public property detail headers. */
+export function getPublicListingStatusLabel(status) {
+  if (status === "sold") return "Sold";
+  return "For sale";
+}
+
 export function getListingStatusBannerContent({
   status,
   createdAt,

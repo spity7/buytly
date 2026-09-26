@@ -1,5 +1,9 @@
 "use client";
 
+import DashboardBtnIcon, {
+  dashboardIcons,
+} from "@/components/property/dashboard/DashboardBtnIcon";
+
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { buytlyApi } from "@/api/generated";
@@ -197,6 +201,13 @@ export default function AdminUsersTable() {
                           disabled={isBusy}
                           onClick={() => updateStatus(userId, !user.isActive)}
                         >
+                          <DashboardBtnIcon
+                            icon={
+                              user.isActive
+                                ? dashboardIcons.userDeactivate
+                                : dashboardIcons.userActivate
+                            }
+                          />
                           {user.isActive ? "Deactivate" : "Activate"}
                         </button>
                       ) : (

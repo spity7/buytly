@@ -1,4 +1,7 @@
 import React from "react";
+import DashboardBtnIcon, {
+  dashboardIcons,
+} from "@/components/property/dashboard/DashboardBtnIcon";
 
 const ChatBoxForm = () => {
   return (
@@ -11,8 +14,12 @@ const ChatBoxForm = () => {
         required
       />
       <button type="submit" className="btn ud-btn btn-thm">
-        Send Message
-        <i className="fal fa-arrow-right-long" />
+        <DashboardBtnIcon icon={dashboardIcons.send} />
+        Send message
+        <DashboardBtnIcon
+          icon={dashboardIcons.arrowRight}
+          position="trailArrow"
+        />
       </button>
     </form>
   );

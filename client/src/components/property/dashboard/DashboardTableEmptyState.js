@@ -1,6 +1,9 @@
 "use client";
 
 import Link from "next/link";
+import DashboardBtnIcon, {
+  dashboardIcons,
+} from "@/components/property/dashboard/DashboardBtnIcon";
 
 /**
  * @typedef {Object} DashboardEmptyAction
@@ -57,9 +60,15 @@ export default function DashboardTableEmptyState({
                     className={classNames}
                     aria-disabled={action.disabled}
                   >
+                    {action.icon ? (
+                      <DashboardBtnIcon icon={action.icon} />
+                    ) : null}
                     {action.label}
-                    {isPrimary && index === 0 ? (
-                      <i className="fal fa-arrow-right-long" />
+                    {isPrimary && index === 0 && !action.icon ? (
+                      <DashboardBtnIcon
+                        icon={dashboardIcons.arrowRight}
+                        position="trailArrow"
+                      />
                     ) : null}
                   </Link>
                 );
@@ -73,6 +82,11 @@ export default function DashboardTableEmptyState({
                   disabled={action.disabled}
                   onClick={action.onClick}
                 >
+                  {action.icon ? (
+                    <DashboardBtnIcon icon={action.icon} />
+                  ) : isPrimary ? (
+                    <DashboardBtnIcon icon={dashboardIcons.retry} />
+                  ) : null}
                   {action.label}
                 </button>
               );

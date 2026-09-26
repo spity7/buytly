@@ -31,6 +31,7 @@ import {
   cascadeRestoreProjectUnits,
   cascadeTrashProjectUnits,
 } from "../projects/project-trash-cascade.js";
+import { cascadeDemoteUnitsWhenProjectReturnedToDraft } from "../projects/project-draft-cascade.js";
 import { syncParentProjectSoldStatus } from "../projects/project-sold-sync.js";
 
 export const adminService = {
@@ -296,6 +297,10 @@ export const adminService = {
         { projectId: project._id, deletedAt: null, status: "pending" },
         { $set: { status: "active" } },
       );
+    }
+
+    if (status === "draft") {
+      await cascadeDemoteUnitsWhenProjectReturnedToDraft(project._id);
     }
 
     await cacheService.invalidateListingCaches();

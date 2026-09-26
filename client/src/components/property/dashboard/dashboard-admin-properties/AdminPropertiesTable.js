@@ -15,11 +15,16 @@ import { useAdminProperties } from "@/hooks/useAdminProperties";
 import { useDebouncedSearch } from "@/hooks/useDebouncedSearch";
 import { useConfirmAction } from "@/hooks/useConfirmAction";
 import StatusBadge from "@/components/common/StatusBadge";
+import DashboardBtnIcon, {
+  dashboardIcons,
+} from "@/components/property/dashboard/DashboardBtnIcon";
 import {
   canAdminApproveUnit,
   getStatusLabel,
-  isListingPubliclyPreviewable,
+  isUnitPublicOnMarket,
+  resolveParentProject,
 } from "@/lib/properties/mapProperty";
+import { getPropertyStatusBadgeProps } from "@/lib/statusBadges";
 import {
   adminApproveListingConfirmation,
   adminArchiveListingConfirmation,
@@ -93,8 +98,7 @@ export default function AdminPropertiesTable() {
     return params;
   }, [page, statusFilter, type, search, sortBy, sortOrder]);
 
-  const { requestConfirm, isLocked, dialogProps, pending } =
-    useConfirmAction();
+  const { requestConfirm, isLocked, dialogProps, pending } = useConfirmAction();
 
   const highlightId = useHighlightQueryParam();
   const { data, isFetching, isError } = useAdminProperties(
@@ -264,14 +268,16 @@ export default function AdminPropertiesTable() {
               const owner = property.ownerId;
               const rowBusy = moderatingId === propertyId;
               const canApprove = canAdminApproveUnit(property);
-              const publicPreview = isListingPubliclyPreviewable(
-                property.status,
+              const parentProjectRef = resolveParentProject(property);
+              const publicOnMarket = isUnitPublicOnMarket(
+                property,
+                parentProjectRef,
               );
 
               return (
                 <tr key={propertyId} {...getRowProps(propertyId)}>
                   <th scope="row">
-                    {publicPreview ? (
+                    {publicOnMarket ? (
                       <Link href={`/single-v1/${propertyId}`}>
                         {property.title}
                       </Link>
@@ -286,7 +292,11 @@ export default function AdminPropertiesTable() {
                   </td>
                   <td className="vam">{formatDate(property.createdAt)}</td>
                   <td className="vam">
-                    <StatusBadge domain="listing" status={property.status} />
+                    <StatusBadge
+                      {...getPropertyStatusBadgeProps(property, {
+                        parentProject: parentProjectRef,
+                      })}
+                    />
                   </td>
                   <td className="vam">
                     <div className="d-flex flex-wrap gap-2">
@@ -309,6 +319,7 @@ export default function AdminPropertiesTable() {
                               )
                             }
                           >
+                            <DashboardBtnIcon icon={dashboardIcons.approve} />
                             Approve
                           </button>
                           <button
@@ -323,6 +334,7 @@ export default function AdminPropertiesTable() {
                               )
                             }
                           >
+                            <DashboardBtnIcon icon={dashboardIcons.draft} />
                             Return to draft
                           </button>
                         </>
@@ -340,6 +352,7 @@ export default function AdminPropertiesTable() {
                             )
                           }
                         >
+                          <DashboardBtnIcon icon={dashboardIcons.archive} />
                           Archive
                         </button>
                       )}
@@ -349,6 +362,7 @@ export default function AdminPropertiesTable() {
                         aria-disabled={tableBusy}
                         tabIndex={tableBusy ? -1 : undefined}
                       >
+                        <DashboardBtnIcon icon={dashboardIcons.edit} />
                         View / edit
                       </Link>
                     </div>

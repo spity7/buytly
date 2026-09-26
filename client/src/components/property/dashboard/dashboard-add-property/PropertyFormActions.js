@@ -1,6 +1,9 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import DashboardBtnIcon, {
+  dashboardIcons,
+} from "@/components/property/dashboard/DashboardBtnIcon";
 import {
   getPropertyFormActionButtons,
   getPropertyFormActionConfig,
@@ -36,6 +39,7 @@ export default function PropertyFormActions({
           disabled={formBusy}
           onClick={() => router.push(cancelHref)}
         >
+          <DashboardBtnIcon icon={dashboardIcons.arrowLeft} />
           Back to listings
         </button>
       </div>
@@ -74,9 +78,15 @@ export default function PropertyFormActions({
               : () => onSubmitMode(button.submitMode)
           }
         >
+          {button.iconLead ? (
+            <DashboardBtnIcon icon={button.iconLead} />
+          ) : null}
           {button.label}
           {button.showArrow ? (
-            <i className="fal fa-arrow-right-long" aria-hidden="true" />
+            <DashboardBtnIcon
+              icon={dashboardIcons.arrowRight}
+              position="trailArrow"
+            />
           ) : null}
         </button>
       ))}

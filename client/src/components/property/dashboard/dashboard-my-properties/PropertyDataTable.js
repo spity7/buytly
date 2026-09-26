@@ -16,6 +16,9 @@ import {
 import { getApiError } from "@/lib/auth/getApiError";
 import { notifyError } from "@/lib/toast";
 import StatusBadge from "@/components/common/StatusBadge";
+import DashboardBtnIcon, {
+  dashboardIcons,
+} from "@/components/property/dashboard/DashboardBtnIcon";
 import { getPropertyStatusBadgeProps } from "@/lib/statusBadges";
 import { DashboardTableSkeleton } from "@/components/property/dashboard/skeletons/DashboardSkeletons";
 import {
@@ -31,9 +34,11 @@ import DashboardTableEmptyState, {
 import { getPropertiesTableEmptyState } from "@/lib/dashboard/tableEmptyStates";
 import { getPropertyTypeLabel } from "@/lib/dashboard/filterOptions";
 import {
-  isListingPubliclyPreviewable,
+  isUnitPublicOnMarket,
   isUnitRestoreBlockedByParentProject,
+  resolveParentProject,
 } from "@/lib/properties/mapProperty";
+import { remoteImageProps } from "@/lib/images/remoteImage";
 
 const PLACEHOLDER = "/images/listings/list-1.jpg";
 
@@ -192,8 +197,10 @@ const PropertyDataTable = ({
               const rowBusy = actingId === propertyId;
               const restoreBlockedByParent =
                 isUnitRestoreBlockedByParentProject(property);
-              const publicPreview = isListingPubliclyPreviewable(
-                property.status,
+              const parentProjectRef = resolveParentProject(property);
+              const publicOnMarket = isUnitPublicOnMarket(
+                property,
+                parentProjectRef,
               );
               const parentProject = getParentProjectCell(property, card);
 
@@ -205,14 +212,15 @@ const PropertyDataTable = ({
                         <Image
                           width={110}
                           height={94}
-                          className="w-100"
+                          className="w-100 dashboard-table-thumb-img"
                           src={card?.image || PLACEHOLDER}
                           alt="property"
+                          {...remoteImageProps(card?.image)}
                         />
                       </div>
                       <div className="list-content py-0 p-0 mt-2 mt-xxl-0 ps-xxl-4">
                         <div className="h6 list-title">
-                          {isTrash || !publicPreview ? (
+                          {isTrash || !publicOnMarket ? (
                             property.title
                           ) : (
                             <Link href={`/single-v1/${propertyId}`}>
@@ -249,6 +257,7 @@ const PropertyDataTable = ({
                     <StatusBadge
                       {...getPropertyStatusBadgeProps(property, {
                         isTrashView: isTrash,
+                        parentProject: parentProjectRef,
                       })}
                     />
                   </td>
@@ -272,6 +281,7 @@ const PropertyDataTable = ({
                             }
                             onClick={() => handleRestore(propertyId)}
                           >
+                            <DashboardBtnIcon icon={dashboardIcons.restore} />
                             Restore
                           </button>
                           <button
@@ -282,6 +292,7 @@ const PropertyDataTable = ({
                               promptPermanentDelete(propertyId, property.title)
                             }
                           >
+                            <DashboardBtnIcon icon={dashboardIcons.trash} />
                             Delete permanently
                           </button>
                         </div>

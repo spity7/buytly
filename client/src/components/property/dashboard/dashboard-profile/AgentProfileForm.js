@@ -1,5 +1,9 @@
 "use client";
 
+import DashboardBtnIcon, {
+  dashboardIcons,
+} from "@/components/property/dashboard/DashboardBtnIcon";
+
 import { buytlyApi } from "@/api/generated";
 import DashboardFormSubmit from "@/components/property/dashboard/dashboard-profile/DashboardFormSubmit";
 import ProfileFormSkeleton from "@/components/property/dashboard/dashboard-profile/ProfileFormSkeleton";
@@ -121,6 +125,7 @@ const AgentProfileForm = () => {
             className="ud-btn btn-white2"
             onClick={loadAgentProfile}
           >
+            <DashboardBtnIcon icon={dashboardIcons.retry} />
             Retry
           </button>
         </div>

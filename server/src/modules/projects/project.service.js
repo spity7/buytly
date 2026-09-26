@@ -1,5 +1,6 @@
 import { Project } from "./project.model.js";
 import { Property } from "../properties/property.model.js";
+import { attachPropertyMediaUrls } from "../properties/property.service.js";
 import { gcsService } from "../../services/gcs.service.js";
 import { cacheService } from "../../services/cache.service.js";
 import { AppError } from "../../shared/AppError.js";
@@ -401,10 +402,11 @@ export const projectService = {
     });
 
     if (includeUnits) {
-      const units = await Property.find(buildUnitsQuery(project, user))
-        .sort({ sortOrder: 1, createdAt: 1 })
-        .lean();
-      doc.units = units;
+      const units = await Property.find(buildUnitsQuery(project, user)).sort({
+        sortOrder: 1,
+        createdAt: 1,
+      });
+      doc.units = await Promise.all(units.map(attachPropertyMediaUrls));
     }
 
     return doc;

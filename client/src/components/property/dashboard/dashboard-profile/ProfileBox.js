@@ -1,5 +1,9 @@
 "use client";
 
+import DashboardBtnIcon, {
+  dashboardIcons,
+} from "@/components/property/dashboard/DashboardBtnIcon";
+
 import AccountSummary from "@/components/property/dashboard/dashboard-profile/AccountSummary";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
 import { buytlyApi } from "@/api/generated";
@@ -147,8 +151,12 @@ const ProfileBox = () => {
             disabled={isBusy}
           />
           <div className="ud-btn btn-white2 mb15">
+            <DashboardBtnIcon icon={dashboardIcons.add} />
             {hasCustomAvatar ? "Change photo" : "Upload photo"}
-            <i className="fal fa-arrow-right-long" />
+            <DashboardBtnIcon
+              icon={dashboardIcons.arrowRight}
+              position="trailArrow"
+            />
           </div>
         </label>
         <p className="text mb0">JPEG, PNG, or WebP. Maximum file size 10 MB.</p>

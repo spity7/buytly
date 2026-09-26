@@ -171,6 +171,51 @@ describe.skipIf(!mongoAvailable)("projects API", () => {
     expect(activeUnit.status).toBe("active");
   });
 
+  it("returning project to draft demotes active and pending units", async () => {
+    const app = await getApp();
+    const sellerToken = await registerAndGetToken(
+      app,
+      "draft-cascade-seller@example.com",
+    );
+    const adminEmail = "draft-cascade-admin@example.com";
+    await registerAndGetToken(app, adminEmail);
+    await User.findOneAndUpdate({ email: adminEmail }, { role: "admin" });
+    const adminLogin = await request(app).post("/api/v1/auth/login").send({
+      email: adminEmail,
+      password: "password123",
+    });
+    const adminToken = adminLogin.body.data.accessToken;
+
+    const created = await createProject(app, sellerToken);
+    const projectId = created.body.data._id;
+    await createPropertyForProject(app, sellerToken, projectId, {
+      status: "draft",
+    });
+
+    await request(app)
+      .patch(`/api/v1/projects/${projectId}`)
+      .set("Authorization", `Bearer ${sellerToken}`)
+      .send({ status: "active" });
+
+    await request(app)
+      .patch(`/api/v1/admin/projects/${projectId}/moderate`)
+      .set("Authorization", `Bearer ${adminToken}`)
+      .send({ status: "active" });
+
+    const { Property } =
+      await import("../src/modules/properties/property.model.js");
+    let unit = await Property.findOne({ projectId });
+    expect(unit.status).toBe("active");
+
+    await request(app)
+      .patch(`/api/v1/admin/projects/${projectId}/moderate`)
+      .set("Authorization", `Bearer ${adminToken}`)
+      .send({ status: "draft" });
+
+    unit = await Property.findOne({ projectId });
+    expect(unit.status).toBe("draft");
+  });
+
   it("trashes project and units together and lists them in mine trash", async () => {
     const app = await getApp();
     const token = await registerAndGetToken(app, "trash-flow@example.com");
@@ -458,10 +503,7 @@ describe.skipIf(!mongoAvailable)("projects API", () => {
 
   it("allows restoring a trashed unit when another live unit exists on the project", async () => {
     const app = await getApp();
-    const token = await registerAndGetToken(
-      app,
-      "multi-restore@example.com",
-    );
+    const token = await registerAndGetToken(app, "multi-restore@example.com");
 
     const created = await createProject(app, token);
     const projectId = created.body.data._id;

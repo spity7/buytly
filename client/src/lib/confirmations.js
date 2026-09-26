@@ -217,6 +217,41 @@ export function propertyPublishConfirmation(isEdit) {
   };
 }
 
+export function projectPublishConfirmation({ isAdmin, status } = {}) {
+  if (isAdmin) {
+    if (status === "pending") {
+      return {
+        title: "Approve and publish?",
+        message:
+          "This project and its pending units will go live on the marketplace immediately.",
+        confirmLabel: "Approve & publish",
+        confirmingLabel: "Approving...",
+        actionMessage: "Approving project...",
+        successMessage: "Project published",
+      };
+    }
+
+    return {
+      title: "Publish project?",
+      message: "This project will go live on the marketplace immediately.",
+      confirmLabel: "Publish project",
+      confirmingLabel: "Publishing...",
+      actionMessage: "Publishing project...",
+      successMessage: "Project published",
+    };
+  }
+
+  return {
+    title: "Submit project for review?",
+    message:
+      "This will submit the project and all draft units for admin review before anything goes public.",
+    confirmLabel: "Submit for review",
+    confirmingLabel: "Submitting...",
+    actionMessage: "Submitting project...",
+    successMessage: "Project and units submitted for review",
+  };
+}
+
 export function propertyAdminPublishConfirmation(status) {
   if (status === "pending") {
     return {

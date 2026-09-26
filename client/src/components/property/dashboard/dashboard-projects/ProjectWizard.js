@@ -1,5 +1,9 @@
 "use client";
 
+import DashboardBtnIcon, {
+  dashboardIcons,
+} from "@/components/property/dashboard/DashboardBtnIcon";
+
 import { buytlyApi } from "@/api/generated";
 import ProjectFormFields from "@/components/property/dashboard/dashboard-projects/ProjectFormFields";
 import { useCatalogAmenities } from "@/hooks/useCatalog";
@@ -93,7 +97,14 @@ export default function ProjectWizard() {
           className="ud-btn btn-thm project-wizard-actions__btn"
           disabled={busy}
         >
+          <DashboardBtnIcon icon={dashboardIcons.folderPlus} />
           {busy ? "Creating..." : "Create project & add units"}
+          {!busy ? (
+            <DashboardBtnIcon
+              icon={dashboardIcons.arrowRight}
+              position="trailArrow"
+            />
+          ) : null}
         </button>
       </div>
     </form>

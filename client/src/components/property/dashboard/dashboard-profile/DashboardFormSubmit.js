@@ -1,5 +1,9 @@
 "use client";
 
+import DashboardBtnIcon, {
+  dashboardIcons,
+} from "@/components/property/dashboard/DashboardBtnIcon";
+
 const DashboardFormSubmit = ({
   isDirty,
   isSubmitting,
@@ -16,8 +20,12 @@ const DashboardFormSubmit = ({
         disabled={isDisabled}
         aria-disabled={isDisabled}
       >
+        <DashboardBtnIcon icon={dashboardIcons.save} />
         {isSubmitting ? submittingLabel : idleLabel}
-        <i className="fal fa-arrow-right-long" />
+        <DashboardBtnIcon
+          icon={dashboardIcons.arrowRight}
+          position="trailArrow"
+        />
       </button>
     </div>
   );

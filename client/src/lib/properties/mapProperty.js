@@ -182,8 +182,34 @@ export function canAddUnitToProject(project) {
   return true;
 }
 
+/** Unit status alone — use {@link isUnitPublicOnMarket} for marketplace visibility. */
 export function isListingPubliclyPreviewable(status) {
   return status === "active" || status === "sold";
+}
+
+export function resolveParentProject(property, parentProject) {
+  if (parentProject) return parentProject;
+  const embedded = property?.projectId;
+  if (embedded && typeof embedded === "object") return embedded;
+  return null;
+}
+
+export function isParentProjectPublicOnMarket(project) {
+  if (!project || project.deletedAt) return false;
+  return PARENT_PROJECT_LIVE_STATUSES.includes(project.status);
+}
+
+/** True when anonymous buyers can see the unit on the public site. */
+export function isUnitPublicOnMarket(property, parentProject) {
+  if (!isListingPubliclyPreviewable(property?.status)) return false;
+  const project = resolveParentProject(property, parentProject);
+  if (!project) return false;
+  return isParentProjectPublicOnMarket(project);
+}
+
+/** Owner/agent dashboard preview while logged in (parent may still be draft). */
+export function canOwnerPreviewUnitListing(property) {
+  return isListingPubliclyPreviewable(property?.status);
 }
 
 export function partitionProjectUnits(units = []) {

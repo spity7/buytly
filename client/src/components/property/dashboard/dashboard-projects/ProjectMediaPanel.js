@@ -34,7 +34,7 @@ const ALLOWED_IMAGE_TYPES = new Set([
 ]);
 
 function isVideoFile(file) {
-  return file.type.startsWith("video/");
+  return (file.type || "").startsWith("video/");
 }
 
 function isAllowedProjectImage(file) {
@@ -76,11 +76,15 @@ function unwrapUploadedMedia(response) {
   return response;
 }
 
-function pickPhotoFiles(fileList) {
+function pickPhotoFiles(files) {
   const accepted = [];
   const rejected = [];
 
-  for (const file of Array.from(fileList || [])) {
+  for (const file of files) {
+    if (isVideoFile(file)) {
+      rejected.push(file.name);
+      continue;
+    }
     if (isAllowedProjectImage(file)) {
       accepted.push(file);
     } else {
@@ -100,7 +104,6 @@ export default function ProjectMediaPanel({
   const [photoGallery, setPhotoGallery] = useState([]);
   const [uploadProgress, setUploadProgress] = useState(null);
   const [reordering, setReordering] = useState(false);
-  const photoInputRef = useRef(null);
   const mediaRef = useRef(media);
   const isUploadingRef = useRef(false);
   mediaRef.current = media;
@@ -298,22 +301,32 @@ export default function ProjectMediaPanel({
     [clearPendingPreviews, disabled, projectId, refresh, run, video],
   );
 
-  const openPhotoPicker = useCallback(() => {
-    if (disabled || isLocked || reordering || mediaActionBusy) {
-      return;
-    }
-    photoInputRef.current?.click();
-  }, [disabled, isLocked, mediaActionBusy, reordering]);
+  const panelBusy = disabled || isLocked || mediaActionBusy || reordering;
 
   const handlePhotoSelect = useCallback(
     (event) => {
-      const input = event.currentTarget;
-      const fileList = input.files;
+      const input = event.target;
+      const selectedFiles = Array.from(input?.files || []);
       input.value = "";
 
-      if (!fileList?.length) return;
+      if (!selectedFiles.length) {
+        return;
+      }
 
-      const { accepted, rejected } = pickPhotoFiles(fileList);
+      if (panelBusy) {
+        notifyError("Please wait for the current action to finish.");
+        return;
+      }
+
+      let accepted = [];
+      let rejected = [];
+
+      try {
+        ({ accepted, rejected } = pickPhotoFiles(selectedFiles));
+      } catch (error) {
+        notifyError(getApiError(error));
+        return;
+      }
 
       if (rejected.length) {
         notifyError(
@@ -334,12 +347,13 @@ export default function ProjectMediaPanel({
 
       void uploadFiles(accepted, { imagesOnly: true });
     },
-    [uploadFiles],
+    [panelBusy, uploadFiles],
   );
 
   const handleVideoSelect = (event) => {
-    const file = event.currentTarget.files?.[0];
-    event.currentTarget.value = "";
+    const input = event.target;
+    const file = Array.from(input?.files || [])[0];
+    input.value = "";
     if (!file) return;
     void uploadFiles([file], { videoOnly: true });
   };
@@ -385,7 +399,6 @@ export default function ProjectMediaPanel({
     });
   };
 
-  const panelBusy = disabled || isLocked || mediaActionBusy || reordering;
   const sortedImages = sortPropertyImages(media);
 
   return (
@@ -409,11 +422,10 @@ export default function ProjectMediaPanel({
             Upload photos
           </label>
           <input
-            ref={photoInputRef}
             id={PHOTO_INPUT_ID}
             type="file"
             className="form-control"
-            accept="image/jpeg,image/png,image/webp,image/gif,image/heic,image/heif,image/*"
+            accept="image/*"
             multiple
             disabled={panelBusy}
             onChange={handlePhotoSelect}
@@ -439,17 +451,9 @@ export default function ProjectMediaPanel({
             onMoveRight={moveGalleryPhotoRight}
           />
         ) : (
-          <button
-            type="button"
-            className="upload-img position-relative overflow-hidden bdrs12 text-center mb30 px-2 py-4 bgc-f7 w-100 border-0"
-            disabled={panelBusy}
-            onClick={openPhotoPicker}
-          >
-            <div className="icon mb15">
-              <span className="flaticon-upload" />
-            </div>
-            <p className="text mb0">No project photos yet. Click to upload.</p>
-          </button>
+          <p className="text mb30">
+            No project photos yet. Use the file control above to upload.
+          </p>
         )}
       </div>
 

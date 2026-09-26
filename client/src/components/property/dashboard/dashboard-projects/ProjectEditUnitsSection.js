@@ -2,9 +2,15 @@
 
 import StatusBadge from "@/components/common/StatusBadge";
 import { formatPrice } from "@/lib/properties/formatPrice";
-import { isListingPubliclyPreviewable } from "@/lib/properties/mapProperty";
+import {
+  canOwnerPreviewUnitListing,
+  isUnitPublicOnMarket,
+} from "@/lib/properties/mapProperty";
 import { getPropertyStatusBadgeProps } from "@/lib/statusBadges";
 import Link from "next/link";
+import DashboardBtnIcon, {
+  dashboardIcons,
+} from "@/components/property/dashboard/DashboardBtnIcon";
 
 const PLACEHOLDER_IMAGE = "/images/listings/list-1.jpg";
 
@@ -49,6 +55,7 @@ export default function ProjectEditUnitsSection({
   units,
   minUnits,
   projectId,
+  project,
   canAddUnit,
   trashedUnitCount = 0,
 }) {
@@ -124,7 +131,7 @@ export default function ProjectEditUnitsSection({
             href={addUnitHref}
             className="ud-btn btn-thm project-edit-section__head-action project-edit-units__add-btn"
           >
-            <i className="fal fa-plus" aria-hidden="true" />
+            <DashboardBtnIcon icon={dashboardIcons.add} />
             Add unit
           </Link>
         ) : null}
@@ -149,7 +156,7 @@ export default function ProjectEditUnitsSection({
               href={addUnitHref}
               className="ud-btn btn-thm project-edit-units-placeholder__cta"
             >
-              <i className="fal fa-plus" aria-hidden="true" />
+              <DashboardBtnIcon icon={dashboardIcons.add} />
               Add unit
             </Link>
           ) : (
@@ -163,10 +170,10 @@ export default function ProjectEditUnitsSection({
           {units.map((unit) => {
             const id = unit._id || unit.id;
             const editHref = `/dashboard-edit-property/${id}`;
-            const publicPreview = isListingPubliclyPreviewable(unit.status);
+            const publicOnMarket = isUnitPublicOnMarket(unit, project);
+            const ownerPreview = canOwnerPreviewUnitListing(unit);
             const specs = formatUnitSpecs(unit);
-            const views =
-              unit.status === "active" ? (unit.viewCount ?? 0) : null;
+            const views = publicOnMarket ? (unit.viewCount ?? 0) : null;
 
             return (
               <li key={id} className="project-edit-unit-card">
@@ -188,7 +195,7 @@ export default function ProjectEditUnitsSection({
                       </h5>
                     </div>
                     <StatusBadge
-                      {...getPropertyStatusBadgeProps(unit)}
+                      {...getPropertyStatusBadgeProps(unit, { parentProject: project })}
                       className="project-edit-unit-card__badge"
                     />
                   </div>
@@ -213,20 +220,25 @@ export default function ProjectEditUnitsSection({
                       href={editHref}
                       className="ud-btn btn-thm btn-sm project-edit-unit-card__btn"
                     >
-                      <i className="fas fa-pen" aria-hidden="true" />
+                      <DashboardBtnIcon icon={dashboardIcons.edit} />
                       Edit unit
                     </Link>
-                    {publicPreview ? (
+                    {ownerPreview ? (
                       <Link
                         href={`/single-v1/${id}`}
                         className="ud-btn btn-white2 btn-sm project-edit-unit-card__btn"
                         target="_blank"
                         rel="noopener noreferrer"
+                        title={
+                          publicOnMarket
+                            ? undefined
+                            : "Preview only — not visible on the marketplace until the project is published"
+                        }
                       >
-                        View listing
-                        <i
-                          className="fal fa-external-link"
-                          aria-hidden="true"
+                        {publicOnMarket ? "View listing" : "Preview"}
+                        <DashboardBtnIcon
+                          icon={dashboardIcons.external}
+                          position="trail"
                         />
                       </Link>
                     ) : null}

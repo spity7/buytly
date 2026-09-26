@@ -1,6 +1,9 @@
 "use client";
 
 import Link from "next/link";
+import DashboardBtnIcon, {
+  dashboardIcons,
+} from "@/components/property/dashboard/DashboardBtnIcon";
 import StatusBadge from "@/components/common/StatusBadge";
 import { useAdminAnalytics } from "@/hooks/useAdminAnalytics";
 
@@ -44,7 +47,12 @@ export default function AdminAnalyticsPanel() {
           <h4 className="title fz17 mb20">Bookings This Month</h4>
           <p className="title mb0">{data.bookingsThisMonth || 0}</p>
           <Link href="/dashboard-bookings" className="ud-btn btn-white2 mt20">
+            <DashboardBtnIcon icon={dashboardIcons.review} />
             View bookings
+            <DashboardBtnIcon
+              icon={dashboardIcons.arrowRight}
+              position="trailArrow"
+            />
           </Link>
         </div>
       </div>

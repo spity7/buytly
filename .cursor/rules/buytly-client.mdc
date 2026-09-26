@@ -15,14 +15,24 @@ alwaysApply: false
 - Pass `{ overlay: false }` only for background refresh where a full-page block would be wrong.
 - Do not call `buytlyApi` / `customInstance` directly for user-triggered mutations (save forms, uploads, resend email, mark-all-read, etc.) — always wrap in `run()`.
 - While the global overlay is active, `AsyncActionOverlayProvider` registers `beforeunload` so tab close/reload shows the browser confirmation dialog.
-- Dashboard helpers in `client/src/lib/properties/mapProperty.js`: `canAdminApproveUnit`, `canAddUnitToProject`, `isListingPubliclyPreviewable`, `isUnitRestoreBlockedByParentProject`, `partitionProjectUnits` — use them to disable actions the API would reject and to render public project unit availability.
+- Dashboard `.ud-btn` icons: use `DashboardBtnIcon` + `dashboardIcons` from `client/src/components/property/dashboard/DashboardBtnIcon.js` (theme CSS rotates plain `<i>` inside `.ud-btn`, which breaks plus/check icons).
+- Dashboard helpers in `client/src/lib/properties/mapProperty.js`: `canAdminApproveUnit`, `canAddUnitToProject`, `isListingPubliclyPreviewable`, `isUnitPublicOnMarket`, `canOwnerPreviewUnitListing`, `resolveParentProject`, `isUnitRestoreBlockedByParentProject`, `partitionProjectUnits` — use them to disable actions the API would reject and to render public project unit availability (unit status alone is not enough when the parent project is still draft).
 - Owner project detail may include `trashedUnitCount` (archived units while the project is live). `ProjectEditUnitsSection` surfaces a link to My properties → Trash when trashed units exist.
 - Floor plans: any property type; each level is **title + image** (`gcsKey` / upload). The floor-plan section in `PropertyForm` is always available when editing a unit.
+- Project edit **Publishing** card (`ProjectEditPublishCard`): gate the CTA with `canShowProjectPublishAction` / `getProjectPublishButtonLabel` (`projectForm.js`); disable while `ProjectDetailsForm` is dirty; sellers submit with `updateProject({ status: "active" })` (API stores `pending`), admins publish with `adminModerateProject({ status: "active" })` (activates pending units). Copy helpers: `projectPublishConfirmation` in `confirmations.js`.
 
 ## API client
 
 - `custom-instance.ts` sends `Cache-Control: no-cache` on GET requests so the browser does not serve stale JSON (e.g. project media after upload) from `304` cache.
 - After project/property media mutations, invalidate the relevant React Query keys (`project`, `my-projects`, etc.) and refetch — see `ProjectEditPanel.refreshProject`.
+
+## Property single gallery
+
+- Live listing hero photos use `PropertySingleGalleryGrid` (`property-single-gallery` in `_custom-buytly.scss`): fixed-height 50/50 layout, 2×2 thumb grid with `object-fit: cover`, and `--thumbs-1` … `--thumbs-4` modifiers (three photos span the bottom row full width).
+
+## Property single — listing contact
+
+- Sidebar card: `ContactWithAgent` + `getListingContact` / `getListingContactCta` in `client/src/lib/properties/listingContact.js`; styles in `_custom-buytly.scss` (`.listing-contact`). Prefer assigned `agentId`, fall back to `ownerId`; CTA uses `tel:` / `mailto:` / agent profile when appropriate. Use `getListingContactViewerMode` so owners/agents previewing their own listing do not get buyer CTAs (self-contact → edit listing / dashboard; owner + assigned agent → preview hint + view agent).
 
 ## Live data sync (React Query)
 

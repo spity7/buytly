@@ -27,6 +27,34 @@ export function isProjectReadyToPublish(unitCount) {
   return unitCount >= minUnits;
 }
 
+/** Whether the publish / submit CTA should show on the project edit sidebar. */
+export function canShowProjectPublishAction(
+  project,
+  unitCount,
+  { isTrashed = false, isAdmin = false } = {},
+) {
+  if (isTrashed || !isProjectReadyToPublish(unitCount)) {
+    return false;
+  }
+
+  const status = project?.status;
+  if (isAdmin) {
+    return status !== "active" && status !== "sold";
+  }
+
+  return status !== "pending" && status !== "active" && status !== "sold";
+}
+
+export function getProjectPublishButtonLabel({ isAdmin, status } = {}) {
+  if (!isAdmin) {
+    return "Submit for review";
+  }
+  if (status === "pending") {
+    return "Approve & publish";
+  }
+  return "Publish project";
+}
+
 export function emptyProjectFormState() {
   return {
     title: "",

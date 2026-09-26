@@ -129,14 +129,32 @@ export function getListingStatusBadgeClassName(status, { trash = false } = {}) {
 
 export function getPropertyStatusBadgeProps(
   property,
-  { isTrashView = false } = {},
+  { isTrashView = false, parentProject } = {},
 ) {
   const trash = isTrashView || Boolean(property?.deletedAt);
+  const status = property?.status;
+
+  if (
+    !trash &&
+    status === "active" &&
+    parentProject &&
+    !parentProject.deletedAt &&
+    !["active", "sold"].includes(parentProject.status)
+  ) {
+    return {
+      domain: "listing",
+      status: "pending",
+      trash,
+      label: "Awaiting project",
+      tone: "pending",
+    };
+  }
+
   return {
     domain: "listing",
-    status: property?.status,
+    status,
     trash,
-    label: getStatusBadgeLabel(property?.status, { domain: "listing", trash }),
+    label: getStatusBadgeLabel(status, { domain: "listing", trash }),
   };
 }
 

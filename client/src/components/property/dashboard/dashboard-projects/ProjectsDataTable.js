@@ -1,5 +1,9 @@
 "use client";
 
+import DashboardBtnIcon, {
+  dashboardIcons,
+} from "@/components/property/dashboard/DashboardBtnIcon";
+
 import Image from "next/image";
 import Link from "next/link";
 import React from "react";
@@ -30,6 +34,7 @@ import DashboardTableEmptyState, {
 } from "@/components/property/dashboard/DashboardTableEmptyState";
 import { getProjectsTableEmptyState } from "@/lib/dashboard/tableEmptyStates";
 import { canAddUnitToProject } from "@/lib/properties/mapProperty";
+import { remoteImageProps } from "@/lib/images/remoteImage";
 
 const PLACEHOLDER = "/images/listings/list-1.jpg";
 
@@ -195,9 +200,10 @@ const ProjectsDataTable = ({
                         <Image
                           width={110}
                           height={94}
-                          className="w-100"
+                          className="w-100 dashboard-table-thumb-img"
                           src={card?.image || PLACEHOLDER}
                           alt=""
+                          {...remoteImageProps(card?.image)}
                         />
                       </div>
                       <div className="list-content py-0 p-0 mt-2 mt-xxl-0 ps-xxl-4">
@@ -239,6 +245,7 @@ const ProjectsDataTable = ({
                             disabled={rowBusy || tableBusy}
                             onClick={() => handleRestore(projectId)}
                           >
+                            <DashboardBtnIcon icon={dashboardIcons.restore} />
                             Restore
                           </button>
                           <Link

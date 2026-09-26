@@ -1,5 +1,9 @@
 "use client";
 
+import DashboardBtnIcon, {
+  dashboardIcons,
+} from "@/components/property/dashboard/DashboardBtnIcon";
+
 import React, { useLayoutEffect, useRef } from "react";
 
 export function DashboardFilterBar({ children, className = "" }) {
@@ -112,6 +116,7 @@ export function FilterClearButton({
       onClick={onClick}
       disabled={disabled}
     >
+      <DashboardBtnIcon icon={dashboardIcons.clear} />
       Clear filters
     </button>
   );

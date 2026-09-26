@@ -1,6 +1,9 @@
 "use client";
 
 import Link from "next/link";
+import DashboardBtnIcon, {
+  dashboardIcons,
+} from "@/components/property/dashboard/DashboardBtnIcon";
 import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { buytlyApi } from "@/api/generated";
@@ -149,11 +152,16 @@ export default function MyProjectsPanel() {
         <div className="col-auto">
           <div className="dashboard_search_meta d-flex flex-wrap align-items-center justify-content-end gap-2">
             <Link href="/dashboard-my-properties" className="ud-btn btn-white2">
+              <DashboardBtnIcon icon={dashboardIcons.list} />
               All units
             </Link>
             <Link href="/dashboard-add-project" className="ud-btn btn-thm">
+              <DashboardBtnIcon icon={dashboardIcons.folderPlus} />
               Add project
-              <i className="fal fa-arrow-right-long" />
+              <DashboardBtnIcon
+                icon={dashboardIcons.arrowRight}
+                position="trailArrow"
+              />
             </Link>
           </div>
         </div>
@@ -172,6 +180,7 @@ export default function MyProjectsPanel() {
                     resetPage();
                   }}
                 >
+                  <DashboardBtnIcon icon={dashboardIcons.building} />
                   My projects
                 </button>
                 <button
@@ -183,6 +192,7 @@ export default function MyProjectsPanel() {
                     setStatus("");
                   }}
                 >
+                  <DashboardBtnIcon icon={dashboardIcons.trash} />
                   Trash
                 </button>
               </div>

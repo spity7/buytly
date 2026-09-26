@@ -1,5 +1,9 @@
 "use client";
 
+import DashboardBtnIcon, {
+  dashboardIcons,
+} from "@/components/property/dashboard/DashboardBtnIcon";
+
 import { buytlyApi } from "@/api/generated";
 import { buildListingsHrefFromSavedFilters } from "@/lib/listings/listingSearchParams";
 import Link from "next/link";
@@ -124,6 +128,7 @@ const SearchDataTable = () => {
                       href={buildListingsHrefFromSavedFilters(search.filters)}
                       className="ud-btn btn-white2 btn-sm"
                     >
+                      <DashboardBtnIcon icon={dashboardIcons.eye} />
                       Run search
                     </Link>
                     <button

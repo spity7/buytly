@@ -11,7 +11,8 @@ const DashboardShell = ({ children }) => {
   const pathname = usePathname();
   const isUnitDashboardPage =
     pathname === "/dashboard-add-property" ||
-    pathname.startsWith("/dashboard-edit-property/");
+    pathname.startsWith("/dashboard-edit-property/") ||
+    pathname.startsWith("/dashboard-edit-project/");
   const isProfilePage = pathname === "/dashboard-my-profile";
   const wrapperClass = isUnitDashboardPage
     ? "dashboard dashboard_wrapper pr30 pr0-md"

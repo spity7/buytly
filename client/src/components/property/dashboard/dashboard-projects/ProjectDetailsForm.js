@@ -1,5 +1,9 @@
 "use client";
 
+import DashboardBtnIcon, {
+  dashboardIcons,
+} from "@/components/property/dashboard/DashboardBtnIcon";
+
 import ProjectFormFields from "@/components/property/dashboard/dashboard-projects/ProjectFormFields";
 import { useCatalogAmenities } from "@/hooks/useCatalog";
 import { useConfirmAction } from "@/hooks/useConfirmAction";
@@ -18,6 +22,7 @@ export default function ProjectDetailsForm({
   disabled = false,
   hideSubmit = false,
   onSubmit,
+  onDirtyChange,
   submitLabel = "Save project details",
 }) {
   const { user } = useAuth();
@@ -37,6 +42,10 @@ export default function ProjectDetailsForm({
     [baselineForm, form],
   );
   const saveDisabled = formDisabled || !isDirty;
+
+  useEffect(() => {
+    onDirtyChange?.(isDirty);
+  }, [isDirty, onDirtyChange]);
 
   const update = (field, value) => {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -97,6 +106,7 @@ export default function ProjectDetailsForm({
                 : undefined
             }
           >
+            <DashboardBtnIcon icon={dashboardIcons.save} />
             {submitLabel}
           </button>
           {!isDirty && !formDisabled ? (

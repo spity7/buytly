@@ -1,5 +1,9 @@
 "use client";
 
+import DashboardBtnIcon, {
+  dashboardIcons,
+} from "@/components/property/dashboard/DashboardBtnIcon";
+
 import Link from "next/link";
 import React, { useCallback, useEffect, useState } from "react";
 import { buytlyApi } from "@/api/generated";
@@ -106,6 +110,7 @@ function BookingRows({
               disabled={rowBusy || tableBusy}
               onClick={() => onAction(booking._id, "cancel")}
             >
+              <DashboardBtnIcon icon={dashboardIcons.cancel} />
               Cancel
             </button>
           )}
@@ -117,6 +122,7 @@ function BookingRows({
                 disabled={rowBusy || tableBusy}
                 onClick={() => onAction(booking._id, "approved")}
               >
+                <DashboardBtnIcon icon={dashboardIcons.approve} />
                 Approve
               </button>
               <button
@@ -125,6 +131,7 @@ function BookingRows({
                 disabled={rowBusy || tableBusy}
                 onClick={() => onAction(booking._id, "rejected")}
               >
+                <DashboardBtnIcon icon={dashboardIcons.reject} />
                 Reject
               </button>
             </div>
@@ -136,6 +143,7 @@ function BookingRows({
               disabled={rowBusy || tableBusy}
               onClick={() => onAction(booking._id, "completed")}
             >
+              <DashboardBtnIcon icon={dashboardIcons.complete} />
               Mark completed
             </button>
           )}
@@ -316,6 +324,7 @@ export default function BookingsDataTable() {
               setPage(1);
             }}
           >
+            <DashboardBtnIcon icon={dashboardIcons.review} />
             Incoming requests
           </button>
           <button
@@ -327,6 +336,7 @@ export default function BookingsDataTable() {
               setPage(1);
             }}
           >
+            <DashboardBtnIcon icon={dashboardIcons.eye} />
             My visits
           </button>
         </div>

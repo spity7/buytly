@@ -40,7 +40,7 @@ const PropertySingleSkeleton = () => (
         <div className="col-lg-4">
           <div className="single-property-content text-lg-end">
             <div className="property-single-skeleton__actions mb20">
-              {Array.from({ length: 4 }).map((_, index) => (
+              {Array.from({ length: 2 }).map((_, index) => (
                 <SkeletonBlock
                   key={index}
                   className="property-single-skeleton__action-icon"
@@ -54,16 +54,17 @@ const PropertySingleSkeleton = () => (
       </div>
 
       <div className="row mb30 mt30">
-        <div className="col-sm-6">
-          <SkeletonBlock className="property-single-skeleton__gallery-main" />
-        </div>
-        <div className="col-sm-6">
-          <div className="row">
-            {Array.from({ length: 4 }).map((_, index) => (
-              <div className="col-6 ps-sm-0" key={index}>
-                <SkeletonBlock className="property-single-skeleton__gallery-thumb" />
-              </div>
-            ))}
+        <div className="col-12">
+          <div className="property-single-gallery property-single-gallery--thumbs-4">
+            <SkeletonBlock className="property-single-skeleton__gallery-main property-single-gallery__main" />
+            <div className="property-single-gallery__side">
+              {Array.from({ length: 4 }).map((_, index) => (
+                <SkeletonBlock
+                  key={index}
+                  className="property-single-skeleton__gallery-thumb property-single-gallery__cell"
+                />
+              ))}
+            </div>
           </div>
         </div>
       </div>

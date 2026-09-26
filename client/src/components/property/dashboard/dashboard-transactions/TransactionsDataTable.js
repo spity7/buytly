@@ -1,5 +1,9 @@
 "use client";
 
+import DashboardBtnIcon, {
+  dashboardIcons,
+} from "@/components/property/dashboard/DashboardBtnIcon";
+
 import Link from "next/link";
 import React, { useCallback, useState } from "react";
 import { buytlyApi } from "@/api/generated";
@@ -280,6 +284,7 @@ export default function TransactionsDataTable() {
                             promptStatus(transaction._id, "approved")
                           }
                         >
+                          <DashboardBtnIcon icon={dashboardIcons.approve} />
                           Approve
                         </button>
                         <button
@@ -290,6 +295,7 @@ export default function TransactionsDataTable() {
                             promptStatus(transaction._id, "cancelled")
                           }
                         >
+                          <DashboardBtnIcon icon={dashboardIcons.cancel} />
                           Cancel
                         </button>
                       </div>
@@ -303,6 +309,7 @@ export default function TransactionsDataTable() {
                           promptStatus(transaction._id, "completed")
                         }
                       >
+                        <DashboardBtnIcon icon={dashboardIcons.complete} />
                         Complete
                       </button>
                     )}

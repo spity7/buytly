@@ -1,6 +1,9 @@
 "use client";
 
 import Link from "next/link";
+import DashboardBtnIcon, {
+  dashboardIcons,
+} from "@/components/property/dashboard/DashboardBtnIcon";
 import { useSearchParams } from "next/navigation";
 import React, {
   useCallback,
@@ -195,11 +198,16 @@ export default function MyPropertiesPanel() {
         <div className="col-auto">
           <div className="dashboard_search_meta d-flex flex-wrap align-items-center justify-content-end gap-2">
             <Link href="/dashboard-my-projects" className="ud-btn btn-white2">
+              <DashboardBtnIcon icon={dashboardIcons.building} />
               My projects
             </Link>
             <Link href="/dashboard-add-project" className="ud-btn btn-thm">
+              <DashboardBtnIcon icon={dashboardIcons.folderPlus} />
               Add project
-              <i className="fal fa-arrow-right-long" />
+              <DashboardBtnIcon
+                icon={dashboardIcons.arrowRight}
+                position="trailArrow"
+              />
             </Link>
           </div>
         </div>
@@ -218,6 +226,7 @@ export default function MyPropertiesPanel() {
                     resetPage();
                   }}
                 >
+                  <DashboardBtnIcon icon={dashboardIcons.list} />
                   My listings
                 </button>
                 <button
@@ -229,6 +238,7 @@ export default function MyPropertiesPanel() {
                     setStatus("");
                   }}
                 >
+                  <DashboardBtnIcon icon={dashboardIcons.trash} />
                   Trash
                 </button>
               </div>

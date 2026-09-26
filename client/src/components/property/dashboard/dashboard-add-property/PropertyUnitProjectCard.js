@@ -4,6 +4,9 @@ import StatusBadge from "@/components/common/StatusBadge";
 import { formatProjectTimestamp } from "@/lib/properties/projectForm";
 import { getProjectStatusBadgeProps } from "@/lib/statusBadges";
 import Link from "next/link";
+import DashboardBtnIcon, {
+  dashboardIcons,
+} from "@/components/property/dashboard/DashboardBtnIcon";
 
 function formatProjectLocation(project) {
   const parts = [
@@ -97,7 +100,12 @@ export default function PropertyUnitProjectCard({
       </p>
 
       <Link href={editHref} className="ud-btn btn-thm w-100 text-center">
+        <DashboardBtnIcon icon={dashboardIcons.building} />
         Open project
+        <DashboardBtnIcon
+          icon={dashboardIcons.arrowRight}
+          position="trailArrow"
+        />
       </Link>
     </aside>
   );

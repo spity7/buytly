@@ -4,6 +4,9 @@ import { useAdminAnalytics } from "@/hooks/useAdminAnalytics";
 import { useMyProperties } from "@/hooks/useMyProperties";
 import { canManageListings } from "@/lib/auth/roles";
 import Link from "next/link";
+import DashboardBtnIcon, {
+  dashboardIcons,
+} from "@/components/property/dashboard/DashboardBtnIcon";
 
 export default function DashboardInsights({ role }) {
   const isAdmin = role === "admin";
@@ -73,7 +76,12 @@ export default function DashboardInsights({ role }) {
         </div>
         <div className="mt20">
           <Link href="/dashboard-admin-analytics" className="ud-btn btn-white2">
+            <DashboardBtnIcon icon={dashboardIcons.chart} />
             View full analytics
+            <DashboardBtnIcon
+              icon={dashboardIcons.arrowRight}
+              position="trailArrow"
+            />
           </Link>
         </div>
       </div>
@@ -124,12 +132,15 @@ export default function DashboardInsights({ role }) {
       <h4 className="title fz17 mb20">Quick Links</h4>
       <div className="d-flex flex-wrap gap-2">
         <Link href="/listings" className="ud-btn btn-white2">
+          <DashboardBtnIcon icon={dashboardIcons.browse} />
           Browse listings
         </Link>
         <Link href="/dashboard-my-favourites" className="ud-btn btn-white2">
+          <DashboardBtnIcon icon={dashboardIcons.heart} />
           My favorites
         </Link>
         <Link href="/dashboard-saved-search" className="ud-btn btn-white2">
+          <DashboardBtnIcon icon={dashboardIcons.search} />
           Saved searches
         </Link>
       </div>

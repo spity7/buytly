@@ -106,8 +106,27 @@ const attachMediaUrls = async (property) => {
     );
   }
 
+  if (doc.agentId?.avatar?.gcsKey) {
+    doc.agentId = {
+      ...doc.agentId,
+      avatar: await gcsService.resolveAvatar(doc.agentId.avatar),
+    };
+  }
+
+  if (doc.ownerId?.avatar?.gcsKey) {
+    doc.ownerId = {
+      ...doc.ownerId,
+      avatar: await gcsService.resolveAvatar(doc.ownerId.avatar),
+    };
+  }
+
   return doc;
 };
+
+/** Signed URLs for unit/property media (e.g. embedded units on project detail). */
+export async function attachPropertyMediaUrls(property) {
+  return attachMediaUrls(property);
+}
 
 const applyFloorPlansOnWrite = async (property, patch) => {
   const nextType = patch.type ?? property?.type;
@@ -161,11 +180,14 @@ const buildPropertyIdFilter = (id, user) => {
   return filter;
 };
 
+const listingContactUserFields =
+  "firstName lastName email phone phoneCountryCode phoneNumber role avatar";
+
 const findPropertyById = (id, user) =>
   Property.findOne(buildPropertyIdFilter(id, user))
     .populate("projectId", "title slug status")
-    .populate("agentId", "firstName lastName email phone avatar")
-    .populate("ownerId", "firstName lastName email phone");
+    .populate("agentId", listingContactUserFields)
+    .populate("ownerId", listingContactUserFields);
 
 const projectLocationSnapshot = (project) => {
   const loc = project.location?.toObject
@@ -374,8 +396,8 @@ export const propertyService = {
     const [properties, total] = await Promise.all([
       Property.find(filter)
         .populate("projectId", "title slug status deletedAt")
-        .populate("agentId", "firstName lastName email phone avatar")
-        .populate("ownerId", "firstName lastName email")
+        .populate("agentId", listingContactUserFields)
+        .populate("ownerId", listingContactUserFields)
         .sort(sort)
         .skip(skip)
         .limit(limit),
@@ -795,8 +817,8 @@ export const propertyService = {
     const [properties, total] = await Promise.all([
       Property.find(filter)
         .populate("projectId", "title slug status deletedAt")
-        .populate("agentId", "firstName lastName email phone avatar")
-        .populate("ownerId", "firstName lastName email")
+        .populate("agentId", listingContactUserFields)
+        .populate("ownerId", listingContactUserFields)
         .sort(sort)
         .skip(skip)
         .limit(limit),
