@@ -1,5 +1,11 @@
 import Image from "next/image";
 import React from "react";
+import {
+  PLATFORM_SUPPORT_EMAIL,
+  getPlatformSupportPhoneDisplay,
+  getPlatformSupportWhatsAppUrl,
+  PLATFORM_SUPPORT_WHATSAPP_MESSAGE,
+} from "@/data/platformContact";
 
 const socialIcons = [
   { icon: "fab fa-facebook-f", url: "#" },
@@ -10,12 +16,12 @@ const socialIcons = [
 
 const contactInfo = {
   telephone: {
-    number: "29 110 987 654",
-    url: "tel:29110987654",
+    number: getPlatformSupportPhoneDisplay(),
+    url: getPlatformSupportWhatsAppUrl(PLATFORM_SUPPORT_WHATSAPP_MESSAGE),
   },
   email: {
-    address: "info@Buytly.com",
-    url: "mailto:info@Buytly.com",
+    address: PLATFORM_SUPPORT_EMAIL,
+    url: `mailto:${PLATFORM_SUPPORT_EMAIL}`,
   },
 };
 
@@ -23,7 +29,12 @@ const SidebarStickyBar = () => {
   return (
     <div className="home8-sidebar-wrapper d-none d-xxl-block">
       <div className="wrapper">
-        <a className="tel" href={contactInfo.telephone.url}>
+        <a
+          className="tel"
+          href={contactInfo.telephone.url || "#"}
+          target="_blank"
+          rel="noopener noreferrer"
+        >
           {contactInfo.telephone.number}
         </a>
         <a className="mail" href={contactInfo.email.url}>

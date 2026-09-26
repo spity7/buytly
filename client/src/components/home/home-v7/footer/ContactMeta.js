@@ -1,21 +1,34 @@
 import React from "react";
+import {
+  PLATFORM_SUPPORT_EMAIL,
+  getPlatformSupportPhoneDisplay,
+  getPlatformSupportWhatsAppUrl,
+  PLATFORM_SUPPORT_WHATSAPP_MESSAGE,
+} from "@/data/platformContact";
+import { isWhatsAppUrl } from "@/lib/phone/whatsapp";
+
+const supportPhoneDisplay = getPlatformSupportPhoneDisplay();
+const supportWhatsAppUrl = getPlatformSupportWhatsAppUrl(
+  PLATFORM_SUPPORT_WHATSAPP_MESSAGE,
+);
 
 const ContactMeta = () => {
   const contactInfoData = [
     {
       text: "Address",
       info: "329 Queensberry Street, North Melbourne VIC 3051, Australia.",
-      link: "#", // Empty link value for the first object
+      link: "#",
     },
     {
       text: "Total Free Customer Care",
-      info: "+(0) 123 050 945 02",
-      link: "tel:+012305094502",
+      info: supportPhoneDisplay,
+      link: supportWhatsAppUrl || "#",
+      external: Boolean(supportWhatsAppUrl),
     },
     {
       text: "Need Live Support?",
-      info: "hi@buytly.com",
-      link: "mailto:hi@buytly.com",
+      info: PLATFORM_SUPPORT_EMAIL,
+      link: `mailto:${PLATFORM_SUPPORT_EMAIL}`,
     },
   ];
 
@@ -30,7 +43,14 @@ const ContactMeta = () => {
             </h6>
           ) : (
             <h6 className="info-phone">
-              <a href={contact.link}>{contact.info}</a>
+              <a
+                href={contact.link}
+                {...(contact.external || isWhatsAppUrl(contact.link)
+                  ? { target: "_blank", rel: "noopener noreferrer" }
+                  : {})}
+              >
+                {contact.info}
+              </a>
             </h6>
           )}
         </div>

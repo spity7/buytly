@@ -4,6 +4,7 @@ import Image from "next/image";
 import { useAgent } from "@/hooks/useAgents";
 import { mapAgentDetail } from "@/lib/agents/mapAgent";
 import { isExternalImageSrc } from "@/lib/images/isExternalImageSrc";
+import { buildWhatsAppUrl } from "@/lib/phone/whatsapp";
 
 const SOCIAL_ICONS = {
   facebook: "fab fa-facebook-f",
@@ -27,6 +28,9 @@ const SingleAgentCta = ({ id }) => {
   const socialEntries = Object.entries(agent.social || {}).filter(
     ([, url]) => url,
   );
+  const whatsappHref = buildWhatsAppUrl(agent.phoneE164 || agent.phone, {
+    text: `Hi ${agent.name}, I found your profile on Buytly and would like to connect.`,
+  });
 
   return (
     <div className="agent-single d-sm-flex align-items-center">
@@ -55,11 +59,16 @@ const SingleAgentCta = ({ id }) => {
             <i className="flaticon-home pe-1" />
             {agent.listingsCount} listings
           </span>
-          {agent.phone ? (
-            <span className="text fz15 ps-2">
-              <i className="flaticon-call pe-1" />
+          {agent.phone && whatsappHref ? (
+            <a
+              className="text fz15 ps-2"
+              href={whatsappHref}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <i className="flaticon-whatsapp pe-1" />
               {agent.phone}
-            </span>
+            </a>
           ) : null}
         </div>
         {agent.bio ? <p className="text mb15">{agent.bio}</p> : null}

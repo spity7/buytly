@@ -85,15 +85,19 @@ export function buildListingsHref(filterState) {
   return qs ? `/listings?${qs}` : "/listings";
 }
 
-export function buildSavedSearchFilters(queryParams) {
+export function buildSavedSearchFilters(queryParams, { discoveryMode } = {}) {
   const filters = { ...queryParams };
   delete filters.page;
   delete filters.limit;
+  if (discoveryMode === "projects") {
+    filters.view = "projects";
+  }
   return filters;
 }
 
 export function buildListingsHrefFromSavedFilters(filters = {}) {
   const listingStatus = filters.status === "sold" ? "Sold" : "All";
+  const discoveryMode = filters.view === "projects" ? "projects" : "units";
 
   const sortEntry = Object.entries(LISTING_SORT_OPTIONS).find(
     ([, value]) =>
@@ -102,6 +106,7 @@ export function buildListingsHrefFromSavedFilters(filters = {}) {
 
   return buildListingsHref({
     listingStatus,
+    discoveryMode,
     propertyTypes: filters.type ? [filters.type] : [],
     priceRange: [
       Number(filters.minPrice) > 0 ? Number(filters.minPrice) : 0,
@@ -120,18 +125,30 @@ export function buildSavedSearchName({
   listingStatus = "All",
   location = "All Cities",
   searchQuery = "",
+  discoveryMode = "units",
 } = {}) {
   const parts = [];
 
-  if (listingStatus === "Sold") parts.push("Sold");
-  else parts.push("For sale");
+  if (discoveryMode === "projects") {
+    parts.push(
+      listingStatus === "Sold" ? "Sold projects" : "Projects for sale",
+    );
+  } else if (listingStatus === "Sold") {
+    parts.push("Sold");
+  } else {
+    parts.push("For sale");
+  }
 
   if (location && location !== "All Cities") parts.push(`in ${location}`);
 
   const trimmedSearch = searchQuery.trim();
   if (trimmedSearch) parts.push(`"${trimmedSearch}"`);
 
-  return parts.length ? parts.join(" ") : "All listings";
+  return parts.length
+    ? parts.join(" ")
+    : discoveryMode === "projects"
+      ? "All projects"
+      : "All listings";
 }
 
 /** Hero home search → API property type */

@@ -5,6 +5,7 @@ export const listingItems = [
     title: "Listings",
     submenu: [
       { label: "Browse Listings", href: "/listings" },
+      { label: "Browse Projects", href: "/listings?view=projects" },
       { label: "Map View", href: "/listings/map" },
     ],
   },

@@ -94,12 +94,12 @@ export function mapProjectToCard(project) {
     .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))[0];
   const image = firstImage?.url || PLACEHOLDER_IMAGE;
   const locationObj = project.location;
+  const coordinates = locationObj?.coordinates;
+  const lng = Array.isArray(coordinates) ? coordinates[0] : undefined;
+  const lat = Array.isArray(coordinates) ? coordinates[1] : undefined;
   const location = formatPropertyLocationLabel(locationObj, "—");
   const priceMin = project.priceMin;
-  const priceLabel =
-    priceMin != null
-      ? `From ${formatPrice(priceMin, project.currency || "USD")}`
-      : "Price on request";
+  const priceLabel = formatProjectPriceRange(project);
 
   return {
     id,
@@ -108,6 +108,8 @@ export function mapProjectToCard(project) {
     title: project.title || "Untitled",
     image,
     location,
+    lat,
+    lng,
     itemType: "project",
     unitCount: project.unitCount ?? 0,
     price: priceLabel,
@@ -121,6 +123,28 @@ export function mapProjectToCard(project) {
 
 export function mapProjectsToCards(projects = []) {
   return projects.map(mapProjectToCard).filter(Boolean);
+}
+
+export function formatProjectPriceRange(project, currency = "USD") {
+  if (!project) return "Price on request";
+  const min = project.priceMin;
+  const max = project.priceMax;
+  const code = project.currency || currency;
+  if (min == null) return "Price on request";
+  if (max != null && max !== min) {
+    return `${formatPrice(min, code)} – ${formatPrice(max, code)}`;
+  }
+  return `From ${formatPrice(min, code)}`;
+}
+
+/** Public detail URL for a listing grid/map card. */
+export function getPublicListingCardHref(listing) {
+  if (!listing) return "/listings";
+  const id = listing.id || listing._id;
+  if (listing.itemType === "project" && listing.slug) {
+    return `/project/${listing.slug}`;
+  }
+  return id ? `/single-v1/${id}` : "/listings";
 }
 
 export function getStatusLabel(status) {

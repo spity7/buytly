@@ -92,11 +92,13 @@ The Next.js client fetches the live OpenAPI spec from `/api/docs.json` for Orval
 
 **Docker Compose (repo root `.env`):** copy `.env.example` → `.env` at the repo root. Never commit `.env`. Required for client build/runtime:
 
-| Variable                          | Required                 | Description                                       |
-| --------------------------------- | ------------------------ | ------------------------------------------------- |
-| `NEXT_PUBLIC_API_URL`             | Yes                      | Public API base baked into the Next.js bundle     |
-| `NEXT_PUBLIC_GOOGLE_CLIENT_ID`    | Yes (for Google sign-in) | Same value as `GOOGLE_CLIENT_ID` in `server/.env` |
-| `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` | No                       | Google Maps JavaScript API key for map demo pages |
+| Variable                            | Required                 | Description                                                                 |
+| ----------------------------------- | ------------------------ | --------------------------------------------------------------------------- |
+| `NEXT_PUBLIC_API_URL`               | Yes                      | Public API base baked into the Next.js bundle                               |
+| `NEXT_PUBLIC_GOOGLE_CLIENT_ID`      | Yes (for Google sign-in) | Same value as `GOOGLE_CLIENT_ID` in `server/.env`                           |
+| `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`   | No                       | Google Maps JavaScript API key for map demo pages                           |
+| `NEXT_PUBLIC_SUPPORT_PHONE`         | No                       | E.164 support line for footer/mobile menu WhatsApp (default `+96171601751`) |
+| `NEXT_PUBLIC_SUPPORT_PHONE_DISPLAY` | No                       | Human-readable support number shown in UI (default `+961 71 601 751`)       |
 
 Production setup: copy `server/.env.example` → `.env` on the server, then comment local lines and uncomment the prod line below each pair. Default email is **SMTP** (Gmail); switch to **SendGrid** for higher volume.
 

@@ -3,6 +3,7 @@
 import PropertySectionEmptyState, {
   PropertyReviewsEmptyDecoration,
 } from "@/components/property/property-single-style/common/PropertySectionEmptyState";
+import PsWidgetTitle from "@/components/property/property-single-style/common/PsWidgetTitle";
 import {
   usePropertyReviewStatus,
   usePropertyReviews,
@@ -33,7 +34,12 @@ const AllReviews = () => {
   if (isLoading) {
     return (
       <div className="property-reviews col-12">
-        <h4 className="title fz17 mb20">Reviews</h4>
+        <PsWidgetTitle
+          icon="flaticon-review"
+          className="property-reviews__title"
+        >
+          Reviews
+        </PsWidgetTitle>
         <p className="property-reviews__loading text mb0">Loading reviews…</p>
       </div>
     );
@@ -47,7 +53,12 @@ const AllReviews = () => {
 
     return (
       <div className="property-reviews col-12">
-        <h4 className="title fz17 mb20">Reviews</h4>
+        <PsWidgetTitle
+          icon="flaticon-review"
+          className="property-reviews__title"
+        >
+          Reviews
+        </PsWidgetTitle>
         <PropertySectionEmptyState
           variant="embedded"
           icon="flaticon-review"
@@ -68,7 +79,9 @@ const AllReviews = () => {
 
   return (
     <div className="property-reviews col-12">
-      <h4 className="title fz17 mb20">Reviews</h4>
+      <PsWidgetTitle icon="flaticon-review" className="property-reviews__title">
+        Reviews
+      </PsWidgetTitle>
       <div className="property-reviews__toolbar">
         <div className="property-reviews__summary">
           <ReviewStarRating value={stats.averageRating} size="lg" />

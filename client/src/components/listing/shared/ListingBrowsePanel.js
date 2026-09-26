@@ -40,6 +40,7 @@ export default function ListingBrowsePanel({
     listingStatus,
     location,
     searchQuery,
+    discoveryMode,
   };
 
   return (
@@ -48,6 +49,7 @@ export default function ListingBrowsePanel({
         listingStatus={listingStatus}
         location={location}
         viewMode="grid"
+        discoveryMode={discoveryMode}
       />
 
       <section className="pt0 pb90 bgc-f7">
@@ -130,7 +132,8 @@ export default function ListingBrowsePanel({
 
           {isError && (
             <div className="alert alert-danger mb20">
-              Failed to load properties. Please try again.
+              Failed to load {discoveryMode === "projects" ? "projects" : "properties"}.
+              Please try again.
             </div>
           )}
 

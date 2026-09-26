@@ -47,19 +47,19 @@
 
 **Responsibility:** Admin-managed property types and amenities; public read for forms and filters; coordinate-based nearby preview before a listing exists.
 
-| Endpoint                          | Method | Auth   | Input                    | Output                         |
-| --------------------------------- | ------ | ------ | ------------------------ | ------------------------------ |
-| /catalog/property-types           | GET    | Public | —                        | active types                   |
-| /catalog/amenities                | GET    | Public | —                        | active amenities               |
-| /catalog/nearby                   | GET    | Public | lat, lng                 | nearby POI preview             |
-| /admin/catalog/property-types     | GET    | Admin  | —                        | all types + `listingCount`     |
-| /admin/catalog/property-types     | POST   | Admin  | value, label, sortOrder  | created type                   |
-| /admin/catalog/property-types/:id | PATCH  | Admin  | label, sortOrder, active | updated type                   |
-| /admin/catalog/property-types/:id | DELETE | Admin  | —                        | deleted (if unused)            |
-| /admin/catalog/amenities          | GET    | Admin  | —                        | all amenities + `listingCount` |
-| /admin/catalog/amenities          | POST   | Admin  | value, label, sortOrder  | created amenity                |
-| /admin/catalog/amenities/:id      | PATCH  | Admin  | label, sortOrder, active | updated amenity                |
-| /admin/catalog/amenities/:id      | DELETE | Admin  | —                        | deleted (if unused)            |
+| Endpoint                          | Method | Auth   | Input                    | Output                               |
+| --------------------------------- | ------ | ------ | ------------------------ | ------------------------------------ |
+| /catalog/property-types           | GET    | Public | —                        | active types + public `listingCount` |
+| /catalog/amenities                | GET    | Public | —                        | active amenities                     |
+| /catalog/nearby                   | GET    | Public | lat, lng                 | nearby POI preview                   |
+| /admin/catalog/property-types     | GET    | Admin  | —                        | all types + `listingCount`           |
+| /admin/catalog/property-types     | POST   | Admin  | value, label, sortOrder  | created type                         |
+| /admin/catalog/property-types/:id | PATCH  | Admin  | label, sortOrder, active | updated type                         |
+| /admin/catalog/property-types/:id | DELETE | Admin  | —                        | deleted (if unused)                  |
+| /admin/catalog/amenities          | GET    | Admin  | —                        | all amenities + `listingCount`       |
+| /admin/catalog/amenities          | POST   | Admin  | value, label, sortOrder  | created amenity                      |
+| /admin/catalog/amenities/:id      | PATCH  | Admin  | label, sortOrder, active | updated amenity                      |
+| /admin/catalog/amenities/:id      | DELETE | Admin  | —                        | deleted (if unused)                  |
 
 Default types and amenities are upserted automatically on the **first** catalog API access per server process (missing values only; safe under concurrent requests; not repeated on every read). Types can be deactivated or deleted when unused unless marked protected in catalog defaults. `npm run seed:reset` reloads the full demo catalog (defaults + demo-only amenities). Listing create/update validates `type` and `amenities` against active catalog entries. Catalog **`value` (slug / stored amenity string) is immutable** after creation — updates change label, sort order, and active flag only. Admin create/update rejects **duplicate display names** (case-insensitive) and duplicate property-type slugs on create. **`currency` is always stored as `USD`** on properties (client cannot override).
 

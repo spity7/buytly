@@ -4,6 +4,11 @@ import HeaderAuthLink from "@/components/auth/HeaderAuthLink";
 import AddPropertyLink from "@/components/auth/AddPropertyLink";
 import MainMenu from "@/components/common/MainMenu";
 import {
+  getPlatformSupportPhoneDisplay,
+  getPlatformSupportWhatsAppUrl,
+  PLATFORM_SUPPORT_WHATSAPP_MESSAGE,
+} from "@/data/platformContact";
+import {
   BRAND_LOGO_DARK,
   BRAND_LOGO_HEIGHT,
   BRAND_LOGO_WHITE,
@@ -74,10 +79,16 @@ const Header = () => {
                 <div className="d-flex align-items-center">
                   <a
                     className="login-info d-flex align-items-center me-3"
-                    href="tel:+012305094502"
+                    href={getPlatformSupportWhatsAppUrl(
+                      PLATFORM_SUPPORT_WHATSAPP_MESSAGE,
+                    )}
+                    target="_blank"
+                    rel="noopener noreferrer"
                   >
-                    <i className="far fa-phone fz16 me-2"></i>{" "}
-                    <span className="d-none d-xl-block">2 911 098 7654</span>
+                    <i className="flaticon-whatsapp fz16 me-2" />
+                    <span className="d-none d-xl-block">
+                      {getPlatformSupportPhoneDisplay()}
+                    </span>
                   </a>
                   <HeaderAuthLink className="login-info d-flex align-items-center" />
                   <AddPropertyLink className="ud-btn add-property menu-btn bdrs60 mx-2 mx-xl-4" />

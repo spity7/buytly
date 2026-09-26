@@ -890,11 +890,16 @@ export interface CatalogPropertyType {
   label: string;
   sortOrder: number;
   isActive: boolean;
+  /**
+   * Active public listings on live parent projects for this type
+   * @minimum 0
+   */
+  readonly listingCount?: number;
 }
 
 export type AdminCatalogPropertyTypeAllOf = {
   /**
-   * Number of listings using this type value
+   * Number of listings using this type value (all statuses)
    * @minimum 0
    */
   listingCount: number;

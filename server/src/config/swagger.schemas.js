@@ -1458,6 +1458,11 @@
  *           type: integer
  *         isActive:
  *           type: boolean
+ *         listingCount:
+ *           type: integer
+ *           minimum: 0
+ *           readOnly: true
+ *           description: Active public listings on live parent projects for this type
  *
  *     AdminCatalogPropertyType:
  *       allOf:
@@ -1468,7 +1473,7 @@
  *             listingCount:
  *               type: integer
  *               minimum: 0
- *               description: Number of listings using this type value
+ *               description: Number of listings using this type value (all statuses)
  *
  *     CatalogAmenity:
  *       type: object

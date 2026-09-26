@@ -49,3 +49,15 @@ export function useProject(id, options = {}) {
     ...options,
   });
 }
+
+export function useProjectBySlug(slug, options = {}) {
+  return useQuery({
+    queryKey: ["project", "slug", slug],
+    enabled: Boolean(slug),
+    queryFn: async () => {
+      const response = await buytlyApi.getProjectBySlug(slug);
+      return response.data;
+    },
+    ...options,
+  });
+}

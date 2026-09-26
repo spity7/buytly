@@ -1,6 +1,15 @@
 import React from "react";
+import {
+  getPlatformSupportPhoneDisplay,
+  getPlatformSupportWhatsAppUrl,
+  PLATFORM_SUPPORT_WHATSAPP_MESSAGE,
+} from "@/data/platformContact";
 
 const InvoiceFooter = () => {
+  const supportWhatsAppUrl = getPlatformSupportWhatsAppUrl(
+    PLATFORM_SUPPORT_WHATSAPP_MESSAGE,
+  );
+
   const footerData = [
     {
       text: "www.Buytly.com",
@@ -11,8 +20,9 @@ const InvoiceFooter = () => {
       link: "mailto:invoice@Buytly.com",
     },
     {
-      text: "(123) 123-456",
-      link: "tel:+1123123456",
+      text: getPlatformSupportPhoneDisplay(),
+      link: supportWhatsAppUrl || "#",
+      external: Boolean(supportWhatsAppUrl),
     },
   ];
 
@@ -21,7 +31,13 @@ const InvoiceFooter = () => {
       {footerData.map((data, index) => (
         <div className="col-auto" key={index}>
           <div className="invoice_footer_content text-center">
-            <a className="ff-heading" href={data.link}>
+            <a
+              className="ff-heading"
+              href={data.link}
+              {...(data.external
+                ? { target: "_blank", rel: "noopener noreferrer" }
+                : {})}
+            >
               {data.text}
             </a>
           </div>

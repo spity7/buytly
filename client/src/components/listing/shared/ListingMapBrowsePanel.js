@@ -36,6 +36,7 @@ export default function ListingMapBrowsePanel({
     listingStatus,
     location,
     searchQuery,
+    discoveryMode,
   };
 
   return (
@@ -44,6 +45,7 @@ export default function ListingMapBrowsePanel({
         listingStatus={listingStatus}
         location={location}
         viewMode="map"
+        discoveryMode={discoveryMode}
       />
 
       <section className="p-0 bgc-f7">
@@ -104,6 +106,12 @@ export default function ListingMapBrowsePanel({
                     Projects
                   </button>
                 </div>
+                {discoveryMode === "projects" ? (
+                  <p className="fz14 text-muted mb20">
+                    Project view uses location and search filters. Price,
+                    bedrooms, and property type apply to the Units tab.
+                  </p>
+                ) : null}
 
                 <div className="row align-items-center mb10">
                   <TopFilterBar
@@ -117,7 +125,9 @@ export default function ListingMapBrowsePanel({
 
                 {isError && (
                   <div className="alert alert-danger mb20">
-                    Failed to load properties. Please try again.
+                    Failed to load{" "}
+                    {discoveryMode === "projects" ? "projects" : "properties"}.
+                    Please try again.
                   </div>
                 )}
 

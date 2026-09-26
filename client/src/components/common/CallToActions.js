@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import PlatformSupportWhatsAppButton from "@/components/common/PlatformSupportWhatsAppButton";
 
 const CallToActions = () => {
   return (
@@ -23,7 +24,6 @@ const CallToActions = () => {
             alt="spinner"
           />
         </div>
-        {/* End image spinner */}
 
         <div className="container">
           <div className="row align-items-center">
@@ -35,7 +35,6 @@ const CallToActions = () => {
                 </p>
               </div>
             </div>
-            {/* End .col-lg-7 */}
 
             <div className="col-lg-5 col-xl-6 " data-aos="fade-left">
               <div className="cta-btns-style1 d-block d-sm-flex align-items-center justify-content-lg-end">
@@ -46,15 +45,10 @@ const CallToActions = () => {
                   Contact Us
                   <i className="fal fa-arrow-right-long" />
                 </Link>
-                <Link href="/contact" className="ud-btn btn-dark">
-                  <span className="flaticon-call vam pe-2" />
-                  920 851 9087
-                </Link>
+                <PlatformSupportWhatsAppButton />
               </div>
             </div>
-            {/* End col-lg-5 */}
           </div>
-          {/* End .row */}
         </div>
       </div>
     </section>

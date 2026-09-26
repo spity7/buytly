@@ -67,9 +67,17 @@ export function getListingPageRange(page, limit, total = 0) {
 export function getListingBrowseTitle({
   listingStatus = "All",
   location = "All Cities",
+  discoveryMode = "units",
 } = {}) {
   const cityLabel =
     location && location !== "All Cities" ? location : "All Areas";
+
+  if (discoveryMode === "projects") {
+    if (listingStatus === "Sold") {
+      return `Sold Projects in ${cityLabel}`;
+    }
+    return `Projects for Sale in ${cityLabel}`;
+  }
 
   if (listingStatus === "Sold") {
     return `Sold Properties in ${cityLabel}`;
@@ -81,7 +89,14 @@ export function getListingBrowseTitle({
 export function getListingBrowseCrumb({
   listingStatus = "All",
   location = "All Cities",
+  discoveryMode = "units",
 } = {}) {
+  if (discoveryMode === "projects") {
+    if (listingStatus === "Sold") return "Sold projects";
+    if (location && location !== "All Cities") return location;
+    return "Projects";
+  }
+
   if (listingStatus === "Sold") return "Sold";
   if (location && location !== "All Cities") return location;
   return "For Sale";

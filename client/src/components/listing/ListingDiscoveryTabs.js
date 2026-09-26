@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useProperties } from "@/hooks/useProperties";
 import { useProjects } from "@/hooks/useProjects";
+import { getPublicListingCardHref } from "@/lib/properties/mapProperty";
 import Link from "next/link";
 
 export default function ListingDiscoveryTabs({ limit = 6 }) {
@@ -56,13 +57,7 @@ export default function ListingDiscoveryTabs({ limit = 6 }) {
                 </div>
                 <div className="list-content p20">
                   <h6 className="list-title">
-                    <Link
-                      href={
-                        item.itemType === "project"
-                          ? `/project/${item.slug}`
-                          : `/single-v1/${item.id}`
-                      }
-                    >
+                    <Link href={getPublicListingCardHref(item)}>
                       {item.title}
                     </Link>
                   </h6>

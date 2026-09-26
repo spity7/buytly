@@ -14,6 +14,7 @@ export default function SaveSearchButton({
   listingStatus,
   location,
   searchQuery,
+  discoveryMode = "units",
 }) {
   const router = useRouter();
   const { isAuthenticated } = useAuth();
@@ -29,6 +30,7 @@ export default function SaveSearchButton({
       listingStatus,
       location,
       searchQuery,
+      discoveryMode,
     });
     const name = window.prompt("Name this saved search", defaultName);
     if (!name?.trim()) return;
@@ -40,7 +42,7 @@ export default function SaveSearchButton({
         task: () =>
           buytlyApi.addSavedSearch({
             name: name.trim(),
-            filters: buildSavedSearchFilters(queryParams),
+            filters: buildSavedSearchFilters(queryParams, { discoveryMode }),
           }),
       });
     } catch {

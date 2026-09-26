@@ -1,3 +1,5 @@
+import { buildFullPhone } from "@/lib/phone/parsePhone";
+
 const PLACEHOLDER_AVATAR = "/images/team/agent-1.png";
 
 export function getAgentUserId(agent) {
@@ -47,6 +49,16 @@ export function mapAgentDetail(detail) {
   const name =
     [user.firstName, user.lastName].filter(Boolean).join(" ") || "Agent";
 
+  const phoneE164 =
+    buildFullPhone(user.phoneCountryCode, user.phoneNumber) ||
+    user.phone?.trim() ||
+    "";
+  const phoneDisplay = phoneE164
+    ? user.phoneNumber
+      ? `${user.phoneCountryCode || ""} ${user.phoneNumber}`.trim()
+      : phoneE164
+    : "";
+
   return {
     id: user._id || user.id,
     name,
@@ -57,9 +69,8 @@ export function mapAgentDetail(detail) {
     rating: profile.rating ?? 0,
     reviewCount: profile.reviewCount ?? 0,
     listingsCount: detail.listingsCount ?? 0,
-    phone: user.phoneNumber
-      ? `${user.phoneCountryCode || ""} ${user.phoneNumber}`.trim()
-      : "",
+    phone: phoneDisplay,
+    phoneE164,
     email: user.email || "",
     social: user.socialLinks || {},
   };

@@ -6,16 +6,28 @@ import {
   getListingBrowseCrumb,
   getListingBrowseTitle,
 } from "@/lib/listings/listingFilters";
+import { discoveryModeFromParams } from "@/lib/listings/listingSearchParams";
 
 export default function ListingBrowseHeader({
   listingStatus,
   location,
   viewMode = "grid",
+  discoveryMode: discoveryModeProp,
 }) {
   const searchParams = useSearchParams();
   const query = searchParams.toString();
-  const title = getListingBrowseTitle({ listingStatus, location });
-  const crumb = getListingBrowseCrumb({ listingStatus, location });
+  const discoveryMode =
+    discoveryModeProp ?? discoveryModeFromParams(searchParams);
+  const title = getListingBrowseTitle({
+    listingStatus,
+    location,
+    discoveryMode,
+  });
+  const crumb = getListingBrowseCrumb({
+    listingStatus,
+    location,
+    discoveryMode,
+  });
   const gridHref = query ? `/listings?${query}` : "/listings";
   const mapHref = query ? `/listings/map?${query}` : "/listings/map";
 
@@ -44,8 +56,17 @@ export default function ListingBrowseHeader({
               </div>
               <div className="breadcumb-list">
                 <Link href="/">Home</Link>
-                <Link href="/listings">Listings</Link>
-                <span>{crumb}</span>
+                {discoveryMode === "projects" ? (
+                  <>
+                    <Link href="/listings?view=projects">Projects</Link>
+                    <span>{crumb}</span>
+                  </>
+                ) : (
+                  <>
+                    <Link href="/listings">Listings</Link>
+                    <span>{crumb}</span>
+                  </>
+                )}
               </div>
               <a
                 className="filter-btn-left mobile-filter-btn d-block d-lg-none"

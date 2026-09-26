@@ -1,4 +1,5 @@
 import { isExternalImageSrc } from "@/lib/images/isExternalImageSrc";
+import { buildWhatsAppUrl, getPublicSiteOrigin } from "@/lib/phone/whatsapp";
 import {
   formatUserDisplayName,
   formatUserRole,
@@ -50,7 +51,12 @@ export function isUserListingManager(property, userId) {
  * - self-contact: viewer is the person shown in the card
  * - owner-preview-agent: owner previewing the assigned agent buyers will see
  */
-export function getListingContactViewerMode(property, viewerUser, contact) {
+export function getListingContactViewerMode(
+  property,
+  viewerUser,
+  contact,
+  { manageEditBase = "/dashboard-edit-property" } = {},
+) {
   const viewerId = getPopulatedUserId(viewerUser);
   if (!viewerId || !contact) {
     return { mode: "public" };
@@ -68,7 +74,7 @@ export function getListingContactViewerMode(property, viewerUser, contact) {
       isManager,
       manageHref:
         isManager && propertyId
-          ? `/dashboard-edit-property/${propertyId}`
+          ? `${manageEditBase}/${propertyId}`
           : "/dashboard-my-profile",
     };
   }
@@ -150,7 +156,64 @@ export function getListingContact(property) {
   return mapPopulatedListingContact(property.ownerId, "owner");
 }
 
-export function getListingContactCta(contact, viewerMode = { mode: "public" }) {
+export function getListingContactWhatsAppContext(listing) {
+  if (!listing) {
+    return null;
+  }
+
+  const title = listing.title?.trim() || "this listing";
+  const slug = listing.slug?.trim();
+  let listingPath = null;
+
+  if (slug) {
+    listingPath = `/project/${slug}`;
+  } else {
+    const id = getPropertyId(listing);
+    if (id) {
+      listingPath = `/single-v1/${id}`;
+    }
+  }
+
+  return { title, listingPath };
+}
+
+export function buildListingContactWhatsAppMessage(
+  context,
+  siteOrigin = getPublicSiteOrigin(),
+) {
+  if (!context) {
+    return undefined;
+  }
+
+  const lines = [`Hi, I'm interested in "${context.title}" on Buytly.`];
+  if (context.listingPath) {
+    const origin = siteOrigin?.replace(/\/$/, "");
+    lines.push(
+      origin ? `${origin}${context.listingPath}` : context.listingPath,
+    );
+  }
+
+  return lines.join("\n");
+}
+
+function buildListingWhatsAppCta(contact, message, label) {
+  const href = buildWhatsAppUrl(contact.phone, { text: message });
+  if (!href) {
+    return null;
+  }
+
+  return {
+    href,
+    label,
+    external: true,
+  };
+}
+
+export function getListingContactCta(
+  contact,
+  viewerMode = { mode: "public" },
+  { selfManageLabel = "Edit listing", listingContext = null } = {},
+) {
   if (!contact) {
     return null;
   }
@@ -161,9 +224,11 @@ export function getListingContactCta(contact, viewerMode = { mode: "public" }) {
     }
     return {
       href: viewerMode.manageHref,
-      label: viewerMode.isOwner ? "Edit listing" : "Go to dashboard",
+      label: viewerMode.isOwner ? selfManageLabel : "Go to dashboard",
     };
   }
+
+  const whatsappMessage = buildListingContactWhatsAppMessage(listingContext);
 
   if (viewerMode.mode === "owner-preview-agent") {
     if (contact.profileHref) {
@@ -172,20 +237,19 @@ export function getListingContactCta(contact, viewerMode = { mode: "public" }) {
         label: "View assigned agent",
       };
     }
-    if (contact.phone) {
-      return {
-        href: `tel:${contact.phone}`,
-        label: "Call assigned agent",
-      };
-    }
-    return null;
+    return buildListingWhatsAppCta(
+      contact,
+      whatsappMessage,
+      "WhatsApp assigned agent",
+    );
   }
 
   if (contact.phone) {
-    return {
-      href: `tel:${contact.phone}`,
-      label: contact.kind === "agent" ? "Contact Agent" : "Contact listing",
-    };
+    return buildListingWhatsAppCta(
+      contact,
+      whatsappMessage,
+      contact.kind === "agent" ? "WhatsApp Agent" : "WhatsApp listing contact",
+    );
   }
 
   if (contact.profileHref) {

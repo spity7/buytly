@@ -34,6 +34,8 @@ describe.skipIf(!mongoAvailable)("catalog API", () => {
     const types = await request(app).get("/api/v1/catalog/property-types");
     expect(types.status).toBe(200);
     expect(types.body.data.length).toBeGreaterThan(0);
+    expect(types.body.data[0]).toHaveProperty("listingCount");
+    expect(typeof types.body.data[0].listingCount).toBe("number");
 
     const amenities = await request(app).get("/api/v1/catalog/amenities");
     expect(amenities.status).toBe(200);

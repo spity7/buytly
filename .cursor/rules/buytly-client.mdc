@@ -29,10 +29,18 @@ alwaysApply: false
 ## Property single gallery
 
 - Live listing hero photos use `PropertySingleGalleryGrid` (`property-single-gallery` in `_custom-buytly.scss`): fixed-height 50/50 layout, 2×2 thumb grid with `object-fit: cover`, and `--thumbs-1` … `--thumbs-4` modifiers (three photos span the bottom row full width).
+- Detail widget headings: `PsWidgetTitle` (`ps-widget-title` in `_custom-buytly.scss`) — theme-tinted icon box + title; use on project/property `ps-widget` sections (`size="compact"` for sidebar contact headings).
 
 ## Property single — listing contact
 
-- Sidebar card: `ContactWithAgent` + `getListingContact` / `getListingContactCta` in `client/src/lib/properties/listingContact.js`; styles in `_custom-buytly.scss` (`.listing-contact`). Prefer assigned `agentId`, fall back to `ownerId`; CTA uses `tel:` / `mailto:` / agent profile when appropriate. Use `getListingContactViewerMode` so owners/agents previewing their own listing do not get buyer CTAs (self-contact → edit listing / dashboard; owner + assigned agent → preview hint + view agent).
+- Sidebar card: `ListingContactCard` (shared UI) via `ContactWithAgent` (units) or `ProjectListingContact` (projects) + `getListingContact` / `getListingContactCta` in `client/src/lib/properties/listingContact.js`; styles in `_custom-buytly.scss` (`.listing-contact`). Prefer assigned `agentId`, fall back to `ownerId`; buyer CTAs open **WhatsApp** via `buildWhatsAppUrl` in `client/src/lib/phone/whatsapp.js` with a prefilled listing message (`getListingContactWhatsAppContext` / `buildListingContactWhatsAppMessage`). **Platform** support phone/WhatsApp: `client/src/data/platformContact.js` (`NEXT_PUBLIC_SUPPORT_PHONE*`) — reuse `PlatformSupportWhatsAppButton`, `PlatformSupportContactMeta`, and `PlatformSupportContactRow` in footers, `CallToActions`, headers, and contact page (not listing agent phones). Use `getListingContactViewerMode` with `manageEditBase: "/dashboard-edit-project"` for project pages so owners previewing get **Edit project** (units default to `/dashboard-edit-property`).
+
+## Public projects (buyer discovery)
+
+- Browse: `/listings?view=projects` (alias redirect `/projects`). Grid/map cards and map info windows link via `getPublicListingCardHref` → `/project/{slug}`.
+- Home **Explore property types**: `ExplorePropertyTypesSection` + `ExplorePropertyTypesCarousel` — `GET /catalog/property-types` (`listingCount`, icons via `propertyTypePresentation.js`), links to `/listings?type={value}`.
+- Detail: `/project/[slug]` — `ProjectSingleProvider` + `useProjectBySlug`; layout mirrors property single (gallery grid, status banner for non-active, sidebar contact, unit cards → `/single-v1/{id}`). Address and virtual tour use the same **`PropertyLocationMap`** / **`VirtualTour360`** embeds as unit singles (pass `location` + map marker card, or `virtualTourUrl`).
+- Nav: **Listings → Browse Projects** in `client/src/data/navItems.js`. Saved searches store `filters.view = "projects"` when saved from the projects tab (`buildSavedSearchFilters`).
 
 ## Live data sync (React Query)
 

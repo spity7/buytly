@@ -17,7 +17,7 @@ export default function PropertyProjectBreadcrumb() {
       <nav aria-label="Project breadcrumb" className="breadcumb-style1">
         <div className="breadcumb-list">
           <Link href="/">Home</Link>
-          <Link href="/listings">Listings</Link>
+          <Link href="/listings?view=projects">Projects</Link>
           {slug ? (
             <Link href={`/project/${slug}`}>{title}</Link>
           ) : (

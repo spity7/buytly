@@ -1,5 +1,6 @@
 import mongoose from "mongoose";
 import { Property } from "../properties/property.model.js";
+import { Project } from "../projects/project.model.js";
 import { PropertyTypeCatalog } from "./property-type.model.js";
 import { AmenityCatalog } from "./amenity.model.js";
 import {
@@ -10,6 +11,16 @@ import {
 import { AppError } from "../../shared/AppError.js";
 import { nearbyService } from "../../services/nearby.service.js";
 import { cacheService } from "../../services/cache.service.js";
+
+/** Matches public property list browse (active units on live parent projects). */
+const PUBLIC_PARENT_PROJECT_STATUSES = ["active", "sold"];
+
+async function getPublicBrowseProjectIds() {
+  return Project.find({
+    deletedAt: null,
+    status: { $in: PUBLIC_PARENT_PROJECT_STATUSES },
+  }).distinct("_id");
+}
 
 function escapeRegExp(value) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -124,7 +135,14 @@ export const catalogService = {
       sortOrder: 1,
       label: 1,
     });
-    return items.map((item) => item.toPublicJSON());
+    const values = items.map((item) => item.value);
+    const listingCounts =
+      await this.countPublicListingsByPropertyTypeValues(values);
+
+    return items.map((item) => ({
+      ...item.toPublicJSON(),
+      listingCount: listingCounts.get(item.value) ?? 0,
+    }));
   },
 
   async listAmenities({ activeOnly = true } = {}) {
@@ -142,6 +160,26 @@ export const catalogService = {
 
     const rows = await Property.aggregate([
       { $match: { type: { $in: values } } },
+      { $group: { _id: "$type", count: { $sum: 1 } } },
+    ]);
+
+    return new Map(rows.map((row) => [row._id, row.count]));
+  },
+
+  async countPublicListingsByPropertyTypeValues(values = []) {
+    if (!values.length) return new Map();
+
+    const publicProjectIds = await getPublicBrowseProjectIds();
+
+    const rows = await Property.aggregate([
+      {
+        $match: {
+          deletedAt: null,
+          status: "active",
+          projectId: { $in: publicProjectIds },
+          type: { $in: values },
+        },
+      },
       { $group: { _id: "$type", count: { $sum: 1 } } },
     ]);
 

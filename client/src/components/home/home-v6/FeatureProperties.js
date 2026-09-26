@@ -1,6 +1,7 @@
 "use client";
 import Image from "next/image";
 import Link from "next/link";
+import PlatformSupportContactRow from "@/components/common/PlatformSupportContactRow";
 import { Navigation, Pagination } from "swiper/modules";
 import { Swiper, SwiperSlide } from "swiper/react";
 
@@ -114,31 +115,7 @@ const FeatureProperties = () => {
                       {/* End list-meta */}
 
                       <div className="row mb20">
-                        <div className="col-auto">
-                          <div className="contact-info">
-                            <p className="info-title ff-heading mb-2">
-                              Total Free Customer Care
-                            </p>
-                            <h6 className="info-phone">
-                              <a href="tel:+012305094502">
-                                +(0) 123 050 945 02
-                              </a>
-                            </h6>
-                          </div>
-                        </div>
-                        {/* End .col-auto */}
-
-                        <div className="col-auto">
-                          <div className="contact-info">
-                            <p className="info-title ff-heading mb-2">
-                              Need Live Support?
-                            </p>
-                            <h6 className="info-mail">
-                              <a href="mailto:hi@buytly.com">hi@buytly.com</a>
-                            </h6>
-                          </div>
-                        </div>
-                        {/* End .col-auto */}
+                        <PlatformSupportContactRow />
                       </div>
                       {/* End .row */}
 

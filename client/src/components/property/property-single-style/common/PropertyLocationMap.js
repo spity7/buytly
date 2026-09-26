@@ -22,9 +22,12 @@ function hasMapMarker(card) {
 export default function PropertyLocationMap({
   className = "position-relative bdrs12 mt30 overflow-hidden h250 w-100",
   title = "Property location",
+  location: locationProp,
+  marker: markerProp,
 }) {
-  const { card, property } = usePropertySingle();
-  const location = property?.location;
+  const single = usePropertySingle();
+  const location = locationProp ?? single?.property?.location;
+  const card = markerProp ?? single?.card;
 
   if (!hasPropertyMapCoordinates(location)) return null;
 

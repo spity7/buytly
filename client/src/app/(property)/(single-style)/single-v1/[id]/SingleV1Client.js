@@ -23,6 +23,7 @@ import ScheduleTour from "@/components/property/property-single-style/sidebar/Sc
 import StartTransaction from "@/components/property/property-single-style/sidebar/StartTransaction";
 import PropertyGallery from "@/components/property/property-single-style/single-v1/PropertyGallery";
 import PropertySingleShell from "@/components/property/property-single-style/PropertySingleShell";
+import PsWidgetTitle from "@/components/property/property-single-style/common/PsWidgetTitle";
 import { usePropertyReviewStatus } from "@/hooks/usePropertyReviews";
 import { isPropertyBookable } from "@/lib/properties/mapProperty";
 import {
@@ -36,7 +37,7 @@ function FloorPlansSection() {
 
   return (
     <div className="ps-widget bgc-white bdrs12 default-box-shadow2 p30 mb30 overflow-hidden position-relative">
-      <h4 className="title fz17 mb30">Floor Plans</h4>
+      <PsWidgetTitle icon="flaticon-door">Floor Plans</PsWidgetTitle>
       <div className="row">
         <div className="col-md-12">
           <div className="accordion-style1 style2">
@@ -57,7 +58,7 @@ function PropertyVideoSection() {
 
   return (
     <div className="ps-widget bgc-white bdrs12 default-box-shadow2 p30 mb30">
-      <h4 className="title fz17 mb30">Video</h4>
+      <PsWidgetTitle icon="flaticon-play">Video</PsWidgetTitle>
       <div className="row">
         <PropertyVideo />
       </div>
@@ -71,7 +72,9 @@ function VirtualTourSection() {
 
   return (
     <div className="ps-widget bgc-white bdrs12 default-box-shadow2 p30 mb30 overflow-hidden position-relative">
-      <h4 className="title fz17 mb30">360° Virtual Tour</h4>
+      <PsWidgetTitle icon="flaticon-fullscreen-1">
+        360° Virtual Tour
+      </PsWidgetTitle>
       <div className="row">
         <VirtualTour360 />
       </div>
@@ -86,7 +89,7 @@ function PropertyNearbySection() {
 
   return (
     <div className="ps-widget bgc-white bdrs12 default-box-shadow2 p30 mb30 overflow-hidden position-relative">
-      <h4 className="title fz17 mb30">What&apos;s Nearby?</h4>
+      <PsWidgetTitle icon="flaticon-walking">What&apos;s Nearby?</PsWidgetTitle>
       <div className="row">
         <PropertyNearby />
       </div>
@@ -103,7 +106,7 @@ function LeaveReviewSection() {
 
   return (
     <div className="ps-widget bgc-white bdrs12 default-box-shadow2 p30 mb30 overflow-hidden position-relative">
-      <h4 className="title fz17 mb30">Leave A Review</h4>
+      <PsWidgetTitle icon="flaticon-review">Leave A Review</PsWidgetTitle>
       <div className="row">
         <ReviewBoxForm />
       </div>
@@ -140,30 +143,40 @@ function SingleV1Content() {
             <div className="row wrap">
               <div className="col-lg-8">
                 <div className="ps-widget bgc-white bdrs12 default-box-shadow2 p30 mb30 overflow-hidden position-relative">
-                  <h4 className="title fz17 mb30">Overview</h4>
+                  <PsWidgetTitle icon="flaticon-discovery">
+                    Overview
+                  </PsWidgetTitle>
                   <div className="row">
                     <OverView />
                   </div>
                 </div>
 
                 <div className="ps-widget bgc-white bdrs12 default-box-shadow2 p30 mb30 overflow-hidden position-relative">
-                  <h4 className="title fz17 mb30">Property Description</h4>
+                  <PsWidgetTitle icon="flaticon-chat">
+                    Property Description
+                  </PsWidgetTitle>
                   <ProperytyDescriptions />
-                  <h4 className="title fz17 mb30 mt50">Property Details</h4>
+                  <PsWidgetTitle icon="flaticon-house-key" className="mt50">
+                    Property Details
+                  </PsWidgetTitle>
                   <div className="row">
                     <PropertyDetails />
                   </div>
                 </div>
 
                 <div className="ps-widget bgc-white bdrs12 default-box-shadow2 p30 mb30 overflow-hidden position-relative">
-                  <h4 className="title fz17 mb30 mt30">Address</h4>
+                  <PsWidgetTitle icon="flaticon-map" className="mt30">
+                    Address
+                  </PsWidgetTitle>
                   <div className="row">
                     <PropertyAddress />
                   </div>
                 </div>
 
                 <div className="ps-widget bgc-white bdrs12 default-box-shadow2 p30 mb30 overflow-hidden position-relative">
-                  <h4 className="title fz17 mb30">Features &amp; Amenities</h4>
+                  <PsWidgetTitle icon="flaticon-garden">
+                    Features &amp; Amenities
+                  </PsWidgetTitle>
                   <div className="row">
                     <PropertyFeaturesAminites />
                   </div>
@@ -198,9 +211,13 @@ function SingleV1Content() {
 
                   <div className="agen-personal-info position-relative bgc-white default-box-shadow1 bdrs12 p30 mt30">
                     <div className="widget-wrapper mb-0">
-                      <h6 className="title fz17 listing-contact-section__title">
+                      <PsWidgetTitle
+                        icon="flaticon-call"
+                        size="compact"
+                        className="listing-contact-section__title"
+                      >
                         Listing Contact
-                      </h6>
+                      </PsWidgetTitle>
                       <ContactWithAgent />
                     </div>
                   </div>

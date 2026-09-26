@@ -11,6 +11,7 @@ import { useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { remoteImageProps } from "@/lib/images/remoteImage";
+import { getPublicListingCardHref } from "@/lib/properties/mapProperty";
 
 const DEFAULT_CENTER = { lat: 25.2048, lng: 55.2708 };
 
@@ -232,11 +233,17 @@ function ListingMapContent({ googleMapsApiKey, markers }) {
               </div>
               <div className="list-content">
                 <h6 className="list-title">
-                  <Link href={`/single-v1/${activeMarker.id}`}>
+                  <Link href={getPublicListingCardHref(activeMarker)}>
                     {activeMarker.title}
                   </Link>
                 </h6>
                 <p className="list-text mb-0">{activeMarker.location}</p>
+                {activeMarker.itemType === "project" ? (
+                  <p className="fz14 text-muted mb-0">
+                    {activeMarker.unitCount ?? 0} unit
+                    {activeMarker.unitCount === 1 ? "" : "s"}
+                  </p>
+                ) : null}
               </div>
             </div>
           </div>

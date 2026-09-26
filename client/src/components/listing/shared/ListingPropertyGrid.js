@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import FavoriteButton from "@/components/property/FavoriteButton";
-
+import { getPublicListingCardHref } from "@/lib/properties/mapProperty";
 const PLACEHOLDER = "/images/listings/list-1.jpg";
 
 const LAYOUT_COLUMNS = {
@@ -24,14 +24,6 @@ const LAYOUT_COLUMNS = {
   },
 };
 
-function listingHref(listing) {
-  const id = listing.id || listing._id;
-  if (listing.itemType === "project" && listing.slug) {
-    return `/project/${listing.slug}`;
-  }
-  return `/single-v1/${id}`;
-}
-
 export default function ListingPropertyGrid({
   data = [],
   colstyle = false,
@@ -41,8 +33,7 @@ export default function ListingPropertyGrid({
 }) {
   const columns = LAYOUT_COLUMNS[layout] || LAYOUT_COLUMNS["full-4"];
   const columnClass = colstyle ? columns.list : columns.grid;
-  const emptyLabel =
-    discoveryMode === "projects" ? "projects" : "properties";
+  const emptyLabel = discoveryMode === "projects" ? "projects" : "properties";
 
   if (isLoading) {
     return (
@@ -67,7 +58,7 @@ export default function ListingPropertyGrid({
       {data.map((listing) => {
         const id = listing.id || listing._id;
         const image = listing.image || PLACEHOLDER;
-        const href = listingHref(listing);
+        const href = getPublicListingCardHref(listing);
         const isProject =
           listing.itemType === "project" || discoveryMode === "projects";
 
@@ -89,12 +80,14 @@ export default function ListingPropertyGrid({
                   src={image}
                   alt={listing.title || "listing"}
                 />
-                <div className="sale-sticker-wrap">
-                  <div className="list-tag fz12">
-                    <span className="flaticon-electricity me-2" />
-                    FEATURED
+                {!isProject ? (
+                  <div className="sale-sticker-wrap">
+                    <div className="list-tag fz12">
+                      <span className="flaticon-electricity me-2" />
+                      FEATURED
+                    </div>
                   </div>
-                </div>
+                ) : null}
 
                 <div className="list-price">{listing.price}</div>
               </div>

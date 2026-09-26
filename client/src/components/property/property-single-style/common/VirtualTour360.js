@@ -3,9 +3,9 @@
 import { usePropertySingle } from "@/providers/PropertySingleProvider";
 import React from "react";
 
-const VirtualTour360 = () => {
-  const { property } = usePropertySingle();
-  const tourUrl = property?.virtualTourUrl;
+const VirtualTour360 = ({ virtualTourUrl: virtualTourUrlProp }) => {
+  const single = usePropertySingle();
+  const tourUrl = virtualTourUrlProp ?? single?.property?.virtualTourUrl;
 
   if (!tourUrl) return null;
 
