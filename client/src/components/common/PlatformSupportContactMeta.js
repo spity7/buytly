@@ -1,5 +1,6 @@
 import {
-  PLATFORM_SUPPORT_EMAIL,
+  getPlatformSupportEmail,
+  getPlatformSupportMailtoUrl,
   getPlatformSupportPhoneDisplay,
   getPlatformSupportWhatsAppUrl,
   PLATFORM_SUPPORT_WHATSAPP_MESSAGE,
@@ -17,6 +18,8 @@ export default function PlatformSupportContactMeta({
   const supportWhatsAppUrl = getPlatformSupportWhatsAppUrl(
     PLATFORM_SUPPORT_WHATSAPP_MESSAGE,
   );
+  const supportEmail = getPlatformSupportEmail();
+  const supportMailto = getPlatformSupportMailtoUrl();
 
   const contactInfoList = [
     {
@@ -26,8 +29,8 @@ export default function PlatformSupportContactMeta({
     },
     {
       title: "Need Live Support?",
-      mail: PLATFORM_SUPPORT_EMAIL,
-      mailLink: `mailto:${PLATFORM_SUPPORT_EMAIL}`,
+      mail: supportEmail,
+      mailLink: supportMailto,
     },
   ];
 
@@ -48,7 +51,7 @@ export default function PlatformSupportContactMeta({
                 </a>
               </h6>
             ) : null}
-            {contact.mail ? (
+            {contact.mail && contact.mailLink ? (
               <h6 className={mailHeadingClassName}>
                 <a href={contact.mailLink}>{contact.mail}</a>
               </h6>

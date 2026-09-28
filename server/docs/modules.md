@@ -21,6 +21,20 @@
 
 ---
 
+## contact
+
+**Responsibility:** Public contact form — delivers inquiries to the support inbox.
+
+| Endpoint | Method | Auth   | Input                               | Output  |
+| -------- | ------ | ------ | ----------------------------------- | ------- |
+| /contact | POST   | Public | firstName, lastName, email, message | success |
+
+Rate limit: 10 requests / hour / IP. Email to `CONTACT_INBOX_EMAIL` with Reply-To set to the submitter; auto-reply sent to the submitter.
+
+**Dependencies:** email.service
+
+---
+
 ## users
 
 **Responsibility:** Profile management, preferences, saved searches, avatar upload.

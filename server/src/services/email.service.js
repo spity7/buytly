@@ -31,12 +31,14 @@ const ensureSendgrid = () => {
 const renderTemplate = (template, data) =>
   emailTemplates[template]?.(data) || emailTemplates.generic(data);
 
-const deliver = async (to, tpl) => {
+const deliver = async (to, tpl, options = {}) => {
+  const { replyTo } = options;
   if (env.EMAIL_PROVIDER === "sendgrid") {
     ensureSendgrid();
     await sgMail.send({
       to,
       from: env.SMTP_FROM,
+      replyTo: replyTo || undefined,
       subject: tpl.subject,
       text: tpl.text,
       html: tpl.html,
@@ -48,6 +50,7 @@ const deliver = async (to, tpl) => {
   await transport.sendMail({
     from: env.SMTP_FROM,
     to,
+    replyTo: replyTo || undefined,
     subject: tpl.subject,
     text: tpl.text,
     html: tpl.html,
@@ -55,7 +58,7 @@ const deliver = async (to, tpl) => {
 };
 
 export const emailService = {
-  async send(to, template, data) {
+  async send(to, template, data, options = {}) {
     const tpl = renderTemplate(template, data);
 
     if (env.NODE_ENV === "test") {
@@ -66,7 +69,7 @@ export const emailService = {
       console.log(`[Email] To: ${to} | Subject: ${tpl.subject}`);
     }
 
-    await deliver(to, tpl);
+    await deliver(to, tpl, options);
   },
 
   async sendPasswordReset(to, data) {
@@ -87,5 +90,25 @@ export const emailService = {
 
   async sendTransactionUpdate(to, data) {
     return this.send(to, "transactionUpdate", data);
+  },
+
+  async sendContactInquiry(inbox, data) {
+    const tpl = renderTemplate("contactInquiry", data);
+
+    if (env.NODE_ENV === "test") {
+      return;
+    }
+
+    if (env.NODE_ENV === "development") {
+      console.log(
+        `[Email] Contact inquiry To: ${inbox} | Reply-To: ${data.email} | Subject: ${tpl.subject}`,
+      );
+    }
+
+    await deliver(inbox, tpl, { replyTo: data.email });
+  },
+
+  async sendContactAutoReply(to, data) {
+    return this.send(to, "contactAutoReply", data);
   },
 };

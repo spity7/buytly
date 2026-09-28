@@ -23,3 +23,14 @@ export const authRateLimiter = rateLimit({
     message: "Too many authentication attempts, please try again later",
   },
 });
+
+export const contactRateLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: isTestEnv ? 10_000 : 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    success: false,
+    message: "Too many contact requests, please try again later",
+  },
+});

@@ -228,4 +228,32 @@ export const emailTemplates = {
       cta: optionalCta(ctaUrl, ctaLabel),
       footer: `You received this notification from ${APP_NAME}.`,
     }),
+
+  contactInquiry: ({ fullName, email, message, sourceUrl }) =>
+    buildBrandedEmail({
+      subject: `Buytly contact form — ${fullName}`,
+      preheader: `New message from ${email}`,
+      greeting: "Hello,",
+      paragraphs: [
+        `You received a new message via the Buytly contact form.`,
+        `From: ${fullName}`,
+        `Reply-To email: ${email}`,
+        sourceUrl ? `Site: ${sourceUrl}` : null,
+        "",
+        message,
+      ].filter((line) => line != null && line !== ""),
+      footer: `Reply directly to this email to reach ${fullName}.`,
+    }),
+
+  contactAutoReply: ({ name }) =>
+    buildBrandedEmail({
+      subject: "We received your message — Buytly",
+      preheader: "Thanks for contacting Buytly.",
+      greeting: `Hi ${name || "there"},`,
+      paragraphs: [
+        "Thank you for reaching out. We have received your message and will get back to you as soon as possible.",
+        "If your inquiry is urgent, you can also reach us on WhatsApp from our website.",
+      ],
+      footer: `You received this email because you submitted the contact form on ${APP_NAME}.`,
+    }),
 };

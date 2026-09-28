@@ -1,5 +1,7 @@
 import React from "react";
 import {
+  getPlatformSupportEmail,
+  getPlatformSupportMailtoUrl,
   getPlatformSupportPhoneDisplay,
   getPlatformSupportWhatsAppUrl,
   PLATFORM_SUPPORT_WHATSAPP_MESSAGE,
@@ -9,6 +11,8 @@ const InvoiceFooter = () => {
   const supportWhatsAppUrl = getPlatformSupportWhatsAppUrl(
     PLATFORM_SUPPORT_WHATSAPP_MESSAGE,
   );
+  const supportEmail = getPlatformSupportEmail();
+  const supportMailto = getPlatformSupportMailtoUrl();
 
   const footerData = [
     {
@@ -16,8 +20,8 @@ const InvoiceFooter = () => {
       link: "https://www.Buytly.com",
     },
     {
-      text: "invoice@Buytly.com",
-      link: "mailto:invoice@Buytly.com",
+      text: supportEmail,
+      link: supportMailto || "#",
     },
     {
       text: getPlatformSupportPhoneDisplay(),

@@ -35,6 +35,11 @@ const envSchema = z
     SMTP_USER: z.string().optional(),
     SMTP_PASS: z.string().optional(),
     SMTP_FROM: z.string().email(),
+    /** Public contact form submissions are delivered here */
+    CONTACT_INBOX_EMAIL: z
+      .string()
+      .email()
+      .default("buytlyonline@gmail.com"),
     REDIS_URL: z.string().optional(),
     APP_URL: z.string().url().default("http://localhost:3000"),
     /** Public API base URL (e.g. https://api.buytly.com/api/v1) — Swagger servers + startup logs */

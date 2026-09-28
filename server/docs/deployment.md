@@ -84,6 +84,7 @@ The Next.js client fetches the live OpenAPI spec from `/api/docs.json` for Orval
 | SMTP_USER              | Cond.    | Required when `EMAIL_PROVIDER=smtp`                                               |
 | SMTP_PASS              | Cond.    | Required when `EMAIL_PROVIDER=smtp`                                               |
 | SMTP_FROM              | Yes      | From email address (verified sender for SendGrid)                                 |
+| CONTACT_INBOX_EMAIL    | No       | Receives `/contact` form submissions (default `buytlyonline@gmail.com`)           |
 | GCS_ORPHAN_GRACE_HOURS | No       | Grace period for `npm run cleanup:gcs` (default 48)                               |
 | REDIS_URL              | No       | Redis connection URL (optional)                                                   |
 | OVERPASS_URL           | No       | Primary Overpass API URL for What's Nearby (falls back to public mirrors)         |
@@ -99,6 +100,7 @@ The Next.js client fetches the live OpenAPI spec from `/api/docs.json` for Orval
 | `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`   | No                       | Google Maps JavaScript API key for map demo pages                           |
 | `NEXT_PUBLIC_SUPPORT_PHONE`         | No                       | E.164 support line for footer/mobile menu WhatsApp (default `+96171601751`) |
 | `NEXT_PUBLIC_SUPPORT_PHONE_DISPLAY` | No                       | Human-readable support number shown in UI (default `+961 71 601 751`)       |
+| `NEXT_PUBLIC_SUPPORT_EMAIL`         | No                       | Support email in footer and mailto links (default `buytlyonline@gmail.com`) |
 
 Production setup: copy `server/.env.example` → `.env` on the server, then comment local lines and uncomment the prod line below each pair. Default email is **SMTP** (Gmail); switch to **SendGrid** for higher volume.
 

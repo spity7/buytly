@@ -1,6 +1,7 @@
 import React from "react";
 import {
-  PLATFORM_SUPPORT_EMAIL,
+  getPlatformSupportEmail,
+  getPlatformSupportMailtoUrl,
   getPlatformSupportPhoneDisplay,
   getPlatformSupportWhatsAppUrl,
   PLATFORM_SUPPORT_WHATSAPP_MESSAGE,
@@ -11,6 +12,8 @@ const supportPhoneDisplay = getPlatformSupportPhoneDisplay();
 const supportWhatsAppUrl = getPlatformSupportWhatsAppUrl(
   PLATFORM_SUPPORT_WHATSAPP_MESSAGE,
 );
+const supportEmail = getPlatformSupportEmail();
+const supportMailto = getPlatformSupportMailtoUrl();
 
 const ContactMeta = () => {
   const contactInfoData = [
@@ -27,8 +30,8 @@ const ContactMeta = () => {
     },
     {
       text: "Need Live Support?",
-      info: PLATFORM_SUPPORT_EMAIL,
-      link: `mailto:${PLATFORM_SUPPORT_EMAIL}`,
+      info: supportEmail,
+      link: supportMailto || "#",
     },
   ];
 

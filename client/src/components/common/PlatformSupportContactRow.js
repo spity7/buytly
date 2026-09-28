@@ -1,6 +1,6 @@
-import React from "react";
 import {
-  PLATFORM_SUPPORT_EMAIL,
+  getPlatformSupportEmail,
+  getPlatformSupportMailtoUrl,
   getPlatformSupportPhoneDisplay,
   getPlatformSupportWhatsAppUrl,
   PLATFORM_SUPPORT_WHATSAPP_MESSAGE,
@@ -17,6 +17,8 @@ export default function PlatformSupportContactRow({
     PLATFORM_SUPPORT_WHATSAPP_MESSAGE,
   );
   const supportPhoneDisplay = getPlatformSupportPhoneDisplay();
+  const supportEmail = getPlatformSupportEmail();
+  const supportMailto = getPlatformSupportMailtoUrl();
 
   return (
     <>
@@ -39,11 +41,11 @@ export default function PlatformSupportContactRow({
       <div className="col-auto">
         <div className="contact-info">
           <p className={mailTitleClassName}>Need Live Support?</p>
-          <h6 className="info-mail">
-            <a href={`mailto:${PLATFORM_SUPPORT_EMAIL}`}>
-              {PLATFORM_SUPPORT_EMAIL}
-            </a>
-          </h6>
+          {supportEmail && supportMailto ? (
+            <h6 className="info-mail">
+              <a href={supportMailto}>{supportEmail}</a>
+            </h6>
+          ) : null}
         </div>
       </div>
     </>

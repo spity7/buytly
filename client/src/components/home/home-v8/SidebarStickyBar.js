@@ -1,7 +1,8 @@
 import Image from "next/image";
 import React from "react";
 import {
-  PLATFORM_SUPPORT_EMAIL,
+  getPlatformSupportEmail,
+  getPlatformSupportMailtoUrl,
   getPlatformSupportPhoneDisplay,
   getPlatformSupportWhatsAppUrl,
   PLATFORM_SUPPORT_WHATSAPP_MESSAGE,
@@ -20,8 +21,8 @@ const contactInfo = {
     url: getPlatformSupportWhatsAppUrl(PLATFORM_SUPPORT_WHATSAPP_MESSAGE),
   },
   email: {
-    address: PLATFORM_SUPPORT_EMAIL,
-    url: `mailto:${PLATFORM_SUPPORT_EMAIL}`,
+    address: getPlatformSupportEmail(),
+    url: getPlatformSupportMailtoUrl(),
   },
 };
 

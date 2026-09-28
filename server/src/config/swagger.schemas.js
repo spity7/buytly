@@ -1655,6 +1655,28 @@
  *             $ref: '#/components/schemas/Project'
  *         pagination:
  *           $ref: '#/components/schemas/PaginationMeta'
+ *
+ *     SubmitContactRequest:
+ *       type: object
+ *       required: [firstName, lastName, email, message]
+ *       properties:
+ *         firstName:
+ *           type: string
+ *           maxLength: 80
+ *           example: Jane
+ *         lastName:
+ *           type: string
+ *           maxLength: 80
+ *           example: Smith
+ *         email:
+ *           type: string
+ *           format: email
+ *           example: jane@example.com
+ *         message:
+ *           type: string
+ *           minLength: 10
+ *           maxLength: 5000
+ *           example: I would like help finding a property in Beirut.
  */
 
 export {};

@@ -10,6 +10,7 @@ import transactionRoutes from "../modules/transactions/transaction.routes.js";
 import adminRoutes from "../modules/admin/admin.routes.js";
 import notificationRoutes from "../modules/notifications/notification.routes.js";
 import catalogRoutes from "../modules/catalog/catalog.routes.js";
+import contactRoutes from "../modules/contact/contact.routes.js";
 import { isDBConnected } from "../config/db.js";
 import { getRedisStatus } from "../config/redis.js";
 import { ApiResponse } from "../shared/ApiResponse.js";
@@ -84,5 +85,6 @@ router.use("/transactions", transactionRoutes);
 router.use("/admin", adminRoutes);
 router.use("/notifications", notificationRoutes);
 router.use("/catalog", catalogRoutes);
+router.use("/contact", contactRoutes);
 
 export default router;

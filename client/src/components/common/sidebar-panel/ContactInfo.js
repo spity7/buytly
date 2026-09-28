@@ -1,6 +1,7 @@
 import React from "react";
 import {
-  PLATFORM_SUPPORT_EMAIL,
+  getPlatformSupportEmail,
+  getPlatformSupportMailtoUrl,
   getPlatformSupportPhoneDisplay,
   getPlatformSupportWhatsAppUrl,
   PLATFORM_SUPPORT_WHATSAPP_MESSAGE,
@@ -10,6 +11,8 @@ const ContactInfo = () => {
   const supportWhatsAppUrl = getPlatformSupportWhatsAppUrl(
     PLATFORM_SUPPORT_WHATSAPP_MESSAGE,
   );
+  const supportEmail = getPlatformSupportEmail();
+  const supportMailto = getPlatformSupportMailtoUrl();
 
   const contactInfo = [
     {
@@ -21,8 +24,8 @@ const ContactInfo = () => {
     {
       id: 2,
       title: "Need Live Support?",
-      email: PLATFORM_SUPPORT_EMAIL,
-      emailHref: `mailto:${PLATFORM_SUPPORT_EMAIL}`,
+      email: supportEmail,
+      emailHref: supportMailto,
     },
   ];
 
@@ -43,7 +46,7 @@ const ContactInfo = () => {
                 </a>
               </h6>
             ) : null}
-            {info.email ? (
+            {info.email && info.emailHref ? (
               <h6 className="info-mail dark-color">
                 <a href={info.emailHref}>{info.email}</a>
               </h6>

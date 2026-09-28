@@ -1006,6 +1006,19 @@ export interface PaginatedProjectsResponse {
   pagination?: PaginationMeta;
 }
 
+export interface SubmitContactRequest {
+  /** @maxLength 80 */
+  firstName: string;
+  /** @maxLength 80 */
+  lastName: string;
+  email: string;
+  /**
+   * @minLength 10
+   * @maxLength 5000
+   */
+  message: string;
+}
+
 /**
  * Request validation failed
  */
