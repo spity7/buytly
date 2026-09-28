@@ -9,6 +9,7 @@
     "generate-secrets": "node scripts/generate-secrets.js",
     "seed": "node scripts/seed.js",
     "seed:reset": "node scripts/seed.js --reset",
+    "catalog:prune-legacy-types": "node scripts/prune-legacy-property-types.js",
     "dev": "nodemon src/server.js",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",

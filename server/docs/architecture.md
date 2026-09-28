@@ -121,7 +121,7 @@ Test env skips network send entirely.
 
 ## GCS orphan cleanup
 
-Media keys live in MongoDB (`users.avatar`, `properties.media`, `properties.floorPlans`). Orphaned bucket objects are removed by `scripts/gcs-orphan-cleanup.js` (`npm run cleanup:gcs`, `--dry-run` supported). Objects under `avatars/` and `properties/` that are not referenced and older than `GCS_ORPHAN_GRACE_HOURS` (default 48) are deleted.
+Media keys live in MongoDB (`users.avatar`, `properties.media`, `properties.floorPlans`, `projects.media`). Orphaned bucket objects are removed by `scripts/gcs-orphan-cleanup.js` (`npm run cleanup:gcs`, `--dry-run` supported). Objects under `avatars/`, `properties/` (including `properties/floor-plans/`), and `projects/` that are not referenced and older than `GCS_ORPHAN_GRACE_HOURS` (default 48) are deleted.
 
 ## Scalability Considerations
 

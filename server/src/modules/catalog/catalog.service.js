@@ -94,12 +94,9 @@ export const catalogService = {
 
   async ensureDefaults() {
     if (defaultsBootstrapped) {
-      const [typeCount, amenityCount] = await Promise.all([
-        PropertyTypeCatalog.estimatedDocumentCount(),
-        AmenityCatalog.estimatedDocumentCount(),
-      ]);
+      const amenityCount = await AmenityCatalog.estimatedDocumentCount();
 
-      if (typeCount > 0 && amenityCount > 0) {
+      if (amenityCount > 0) {
         await this.ensureRequiredPropertyTypes();
         return;
       }
@@ -120,10 +117,6 @@ export const catalogService = {
   },
 
   async _ensureDefaults() {
-    await upsertDefaultCatalogEntries(
-      PropertyTypeCatalog,
-      DEFAULT_PROPERTY_TYPES,
-    );
     await upsertDefaultCatalogEntries(AmenityCatalog, DEFAULT_AMENITIES);
     await this.ensureRequiredPropertyTypes();
   },

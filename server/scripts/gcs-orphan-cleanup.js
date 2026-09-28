@@ -2,6 +2,7 @@ import mongoose from "mongoose";
 import { connectDB, disconnectDB } from "../src/config/db.js";
 import { User } from "../src/modules/users/user.model.js";
 import { Property } from "../src/modules/properties/property.model.js";
+import { Project } from "../src/modules/projects/project.model.js";
 import { gcsService } from "../src/services/gcs.service.js";
 import {
   GCS_ORPHAN_PREFIXES,
@@ -13,15 +14,16 @@ const GRACE_HOURS = Number(process.env.GCS_ORPHAN_GRACE_HOURS || 48);
 const dryRun = process.argv.includes("--dry-run");
 
 async function loadReferencedKeys() {
-  const [users, properties] = await Promise.all([
+  const [users, properties, projects] = await Promise.all([
     User.find(
       { "avatar.gcsKey": { $exists: true, $ne: null } },
       { avatar: 1 },
     ).lean(),
     Property.find({}, { media: 1, floorPlans: 1 }).lean(),
+    Project.find({}, { media: 1 }).lean(),
   ]);
 
-  return collectReferencedGcsKeys({ users, properties });
+  return collectReferencedGcsKeys({ users, properties, projects });
 }
 
 async function main() {
@@ -29,7 +31,9 @@ async function main() {
 
   const referenced = await loadReferencedKeys();
   const bucketObjects = (
-    await Promise.all(GCS_ORPHAN_PREFIXES.map((prefix) => gcsService.listObjects(prefix)))
+    await Promise.all(
+      GCS_ORPHAN_PREFIXES.map((prefix) => gcsService.listObjects(prefix)),
+    )
   ).flat();
 
   const orphans = findOrphanObjectKeys({

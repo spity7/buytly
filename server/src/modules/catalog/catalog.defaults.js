@@ -1,19 +1,22 @@
 /** Property type slugs that cannot be edited, deleted, or deactivated (platform rules). */
 export const PROTECTED_PROPERTY_TYPE_VALUES = [];
 
-/** Default catalog entries bootstrapped when collections are empty. */
-export const DEFAULT_PROPERTY_TYPES = [
-  { value: "apartment", label: "Apartment", sortOrder: 1 },
-  { value: "villa", label: "Villa", sortOrder: 2 },
-  { value: "duplex", label: "Duplex", sortOrder: 3 },
-  { value: "penthouse", label: "Penthouse", sortOrder: 4 },
-  { value: "townhouse", label: "Townhouse", sortOrder: 5 },
-  { value: "office", label: "Office", sortOrder: 6 },
-  { value: "shop", label: "Shop", sortOrder: 7 },
-  { value: "building", label: "Building", sortOrder: 8 },
-  { value: "land", label: "Land", sortOrder: 9 },
-  { value: "chalet", label: "Chalet", sortOrder: 10 },
+/** Legacy defaults — no longer auto-inserted; kept for one-off prune script reference only. */
+export const LEGACY_BOOTSTRAP_PROPERTY_TYPE_VALUES = [
+  "apartment",
+  "villa",
+  "duplex",
+  "penthouse",
+  "townhouse",
+  "office",
+  "shop",
+  "building",
+  "land",
+  "chalet",
 ];
+
+/** Property types are admin- or seed-managed only (empty bootstrap). */
+export const DEFAULT_PROPERTY_TYPES = [];
 
 export const DEFAULT_AMENITIES = [
   { value: "Parking", label: "Parking", sortOrder: 1 },

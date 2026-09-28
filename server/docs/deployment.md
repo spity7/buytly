@@ -46,7 +46,7 @@ npm run seed:reset    # wipe collections first, then seed
 
 Demo logins: `admin@buytly.demo`, `seller@buytly.demo`, `agent@buytly.demo`, `buyer@buytly.demo` (see seed output for full list). Includes land and archived listings, seller2 reviews, and cache invalidation when Redis is connected.
 
-**`npm run seed:reset`** (recommended) wipes users, listings, and the **listing catalog** collections, then reloads property types, amenities, and demo data. All demo listing prices use **`currency: USD`**, consistent with the API (create/update always store USD). Use **`npm run seed`** without reset only to append users when emails are new; catalog rows are skipped if types already exist (demo amenities are upserted).
+**`npm run seed:reset`** (recommended) wipes users, listings, and the **listing catalog** collections, then reloads demo property types (only those used by sample listings), amenities, and demo data. All demo listing prices use **`currency: USD`**, consistent with the API (create/update always store USD). Use **`npm run seed`** without reset only to append users when emails are new; catalog rows are skipped if types already exist (demo amenities are upserted).
 
 **Development only** — never seed production without intent.
 
@@ -148,7 +148,7 @@ Alternatively, SendGrid SMTP relay works with `EMAIL_PROVIDER=smtp`, `SMTP_HOST=
 
 ## GCS orphan cleanup
 
-Uploaded media keys are stored in MongoDB; orphaned objects can remain when uploads fail or floor plans are replaced. Run periodically on the VPS:
+Uploaded media keys are stored in MongoDB (`users.avatar`, property/project media and floor plans); orphaned objects can remain when uploads fail or media is replaced. Run periodically on the VPS:
 
 ```bash
 cd server

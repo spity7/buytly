@@ -6,7 +6,7 @@ import {
 } from "../src/services/gcs-orphan.service.js";
 
 describe("gcs-orphan.service", () => {
-  it("collectReferencedGcsKeys gathers avatar, media, and floor plan keys", () => {
+  it("collectReferencedGcsKeys gathers avatar, listing, and project media keys", () => {
     const keys = collectReferencedGcsKeys({
       users: [{ avatar: { gcsKey: "avatars/u1.jpg" } }],
       properties: [
@@ -15,12 +15,14 @@ describe("gcs-orphan.service", () => {
           floorPlans: [{ gcsKey: "properties/floor-plans/fp1.jpg" }],
         },
       ],
+      projects: [{ media: [{ gcsKey: "projects/pr1.jpg" }] }],
     });
 
     expect([...keys]).toEqual([
       "avatars/u1.jpg",
       "properties/p1.jpg",
       "properties/floor-plans/fp1.jpg",
+      "projects/pr1.jpg",
     ]);
   });
 
@@ -43,8 +45,14 @@ describe("gcs-orphan.service", () => {
       graceHours: 48,
       now,
       bucketObjects: [
-        { name: "properties/keep.jpg", timeCreated: "2026-01-01T00:00:00.000Z" },
-        { name: "properties/stale.jpg", timeCreated: "2026-01-01T00:00:00.000Z" },
+        {
+          name: "properties/keep.jpg",
+          timeCreated: "2026-01-01T00:00:00.000Z",
+        },
+        {
+          name: "properties/stale.jpg",
+          timeCreated: "2026-01-01T00:00:00.000Z",
+        },
         {
           name: "properties/fresh.jpg",
           timeCreated: "2026-01-10T11:00:00.000Z",

@@ -28,14 +28,12 @@ const loginAsAdmin = async (app, email = "catalog-admin@example.com") => {
 };
 
 describe.skipIf(!mongoAvailable)("catalog API", () => {
-  it("bootstraps and lists property types and amenities publicly", async () => {
+  it("bootstraps amenities and lists catalog publicly", async () => {
     const app = await getApp();
 
     const types = await request(app).get("/api/v1/catalog/property-types");
     expect(types.status).toBe(200);
-    expect(types.body.data.length).toBeGreaterThan(0);
-    expect(types.body.data[0]).toHaveProperty("listingCount");
-    expect(typeof types.body.data[0].listingCount).toBe("number");
+    expect(Array.isArray(types.body.data)).toBe(true);
 
     const amenities = await request(app).get("/api/v1/catalog/amenities");
     expect(amenities.status).toBe(200);
@@ -54,8 +52,10 @@ describe.skipIf(!mongoAvailable)("catalog API", () => {
 
     for (const res of responses) {
       expect(res.status).toBe(200);
-      expect(res.body.data.length).toBeGreaterThan(0);
     }
+
+    expect(responses[1].body.data.length).toBeGreaterThan(0);
+    expect(responses[3].body.data.length).toBeGreaterThan(0);
   });
 
   it("allows admin to create and deactivate a property type", async () => {
@@ -109,6 +109,15 @@ describe.skipIf(!mongoAvailable)("catalog API", () => {
   it("includes listingCount on admin catalog lists", async () => {
     const app = await getApp();
     const token = await loginAsAdmin(app, "catalog-listing-count@example.com");
+
+    await request(app)
+      .post("/api/v1/admin/catalog/property-types")
+      .set("Authorization", `Bearer ${token}`)
+      .send({
+        value: "apartment",
+        label: "Apartment",
+        sortOrder: 1,
+      });
 
     const seller = await request(app).post("/api/v1/auth/register").send({
       email: "catalog-count-seller@example.com",
@@ -168,6 +177,15 @@ describe.skipIf(!mongoAvailable)("catalog API", () => {
   it("rejects duplicate property type and amenity display names", async () => {
     const app = await getApp();
     const token = await loginAsAdmin(app, "catalog-dup-names@example.com");
+
+    await request(app)
+      .post("/api/v1/admin/catalog/property-types")
+      .set("Authorization", `Bearer ${token}`)
+      .send({
+        value: "apartment",
+        label: "Apartment",
+        sortOrder: 1,
+      });
 
     const dupType = await request(app)
       .post("/api/v1/admin/catalog/property-types")

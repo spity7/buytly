@@ -1,6 +1,10 @@
-export const GCS_ORPHAN_PREFIXES = ["avatars/", "properties/"];
+export const GCS_ORPHAN_PREFIXES = ["avatars/", "properties/", "projects/"];
 
-export function collectReferencedGcsKeys({ users = [], properties = [] } = {}) {
+export function collectReferencedGcsKeys({
+  users = [],
+  properties = [],
+  projects = [],
+} = {}) {
   const keys = new Set();
 
   for (const user of users) {
@@ -13,6 +17,12 @@ export function collectReferencedGcsKeys({ users = [], properties = [] } = {}) {
     }
     for (const plan of property.floorPlans || []) {
       if (plan?.gcsKey) keys.add(plan.gcsKey);
+    }
+  }
+
+  for (const project of projects) {
+    for (const item of project.media || []) {
+      if (item?.gcsKey) keys.add(item.gcsKey);
     }
   }
 
@@ -33,7 +43,8 @@ export function findOrphanObjectKeys({
   now = Date.now(),
   prefixes = GCS_ORPHAN_PREFIXES,
 }) {
-  const referenced = referencedKeys instanceof Set ? referencedKeys : new Set(referencedKeys);
+  const referenced =
+    referencedKeys instanceof Set ? referencedKeys : new Set(referencedKeys);
   const orphans = [];
 
   for (const prefix of prefixes) {

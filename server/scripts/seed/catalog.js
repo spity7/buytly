@@ -126,6 +126,30 @@ export const SEED_DEMO_AMENITIES = [
   { value: "Utility Ready", label: "Utility Ready", sortOrder: 31 },
 ];
 
+/** Labels for types referenced by demo listings (seed only — not API bootstrap). */
+const SEED_PROPERTY_TYPE_LABELS = {
+  apartment: "Apartment",
+  villa: "Villa",
+  duplex: "Duplex",
+  townhouse: "Townhouse",
+  land: "Land",
+  penthouse: "Penthouse",
+};
+
+/** Catalog rows required by demo seed (listings + buyer preferences). */
+export function buildSeedPropertyTypes() {
+  const fromListings = SEED_PROPERTIES.map((row) => row.type);
+  const fromPreferences = SEED_USERS.flatMap(
+    (user) => user.preferences?.propertyTypes ?? [],
+  );
+  const values = [...new Set([...fromListings, ...fromPreferences])];
+  return values.map((value, index) => ({
+    value,
+    label: SEED_PROPERTY_TYPE_LABELS[value] ?? value,
+    sortOrder: index + 1,
+  }));
+}
+
 export const SEED_PROPERTIES = [
   {
     ownerKey: "seller",
@@ -582,7 +606,7 @@ export const SEED_SAVED_SEARCHES = [
 export const SEED_EXPECTED_COUNTS = {
   users: SEED_USERS.length,
   agentProfiles: SEED_AGENT_PROFILES.length,
-  propertyTypes: 10,
+  propertyTypes: buildSeedPropertyTypes().length,
   amenities: 27,
   properties: SEED_PROPERTIES.length + 2,
   reviews: SEED_REVIEWS.length,

@@ -48,6 +48,8 @@ afterEach(async () => {
   for (const collection of Object.values(collections)) {
     await collection.deleteMany({});
   }
+  const { ensureTestCatalog } = await import("./helpers/catalogFixtures.js");
+  await ensureTestCatalog();
 });
 
 afterAll(async () => {

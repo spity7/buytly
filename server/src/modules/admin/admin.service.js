@@ -170,10 +170,12 @@ export const adminService = {
     const existing = await Property.findById(propertyId);
     if (!existing) throw new AppError("Property not found", 404);
 
+    let project;
     if (status !== "archived") {
-      const project = await Project.findById(existing.projectId);
+      project = await Project.findById(existing.projectId);
       assertParentProjectAllowsUnitRestore(project);
-      if (status === "active") {
+      const unarchivingUnit = Boolean(existing.deletedAt);
+      if (status === "active" && !unarchivingUnit) {
         assertParentProjectAllowsUnitStatus(project, status, { isAdmin: true });
       }
       if (existing.deletedAt) {
@@ -198,6 +200,22 @@ export const adminService = {
 
     if (status === "archived") {
       await maybeDemoteProjectWithoutLiveUnits(existing.projectId);
+    }
+
+    if (status === "active" && existing.deletedAt && project) {
+      const liveUnitCount = await Property.countDocuments({
+        projectId: existing.projectId,
+        deletedAt: null,
+      });
+      if (
+        liveUnitCount > 0 &&
+        !project.deletedAt &&
+        project.status === "draft"
+      ) {
+        await Project.findByIdAndUpdate(existing.projectId, {
+          status: "active",
+        });
+      }
     }
 
     await cacheService.invalidateListingCaches();

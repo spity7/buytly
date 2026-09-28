@@ -211,11 +211,11 @@ Sellable **units** under a project. All listings are for **sale** (no `listingTy
 }
 ```
 
-Seeded from `catalog.defaults.js` on first catalog API access: missing default rows are upserted (`$setOnInsert` only, so existing admin edits are kept). Bootstrap is single-flight per server process to avoid duplicate-key races under parallel requests.
-
-**Default property types:** apartment, villa, duplex, penthouse, townhouse, office, shop, building, land, chalet.
+Seeded from `catalog.defaults.js` on first catalog API access: **default amenities** are upserted when missing (`$setOnInsert` only). **Property types are not auto-created** — admins manage them via the catalog API (demo `npm run seed:reset` inserts only types used by sample listings).
 
 **Default amenities:** Parking, Elevator, Balcony, Terrace, Garden, Swimming Pool, Gym, Security, Generator, Central AC, Furnished, Sea View, Mountain View, Smart Home, Pet Friendly.
+
+To remove unused legacy auto-bootstrapped property types from an existing database, run `npm run catalog:prune-legacy-types` (deletes only types with zero listings).
 
 Protected property types (if any) cannot be edited, deleted, or deactivated via the admin catalog API.
 

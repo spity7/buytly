@@ -118,7 +118,11 @@ sequenceDiagram
 - On first Google sign-in, account linking, or later sign-in when the user has no avatar yet, the API downloads the Google profile photo from the ID token `picture` claim, stores it in GCS under `avatars/`, and sets `users.avatar` (existing custom avatars are not overwritten)
 - Google-only accounts cannot change password until a password is set via reset; after reset, `authProvider` becomes `both` and password login/change-password are available
 
-**Env:** `GOOGLE_CLIENT_ID` (server) and `NEXT_PUBLIC_GOOGLE_CLIENT_ID` (client) must match the OAuth Web client ID. Add the app origin (e.g. `http://localhost:3000`) under **Authorized JavaScript origins** in Google Cloud Console.
+**Env:** `GOOGLE_CLIENT_ID` (server) and `NEXT_PUBLIC_GOOGLE_CLIENT_ID` (client) must match the OAuth Web client ID. Add every site origin you serve under **Authorized JavaScript origins** in Google Cloud Console (e.g. `http://localhost:3000`, `https://buytly.com`, `https://www.buytly.com`).
+
+**Client build:** `NEXT_PUBLIC_GOOGLE_CLIENT_ID` is inlined at **Docker/Next build time** (repo root `.env` → `docker compose` build args). Changing it on the server alone without rebuilding the client image leaves an empty or stale client ID in the browser bundle.
+
+**Button UX:** The login modal renders a custom “Continue with Google” control with the GIS iframe sized to the button width (200–400px). If the Google script is blocked, the UI shows a warning instead of a dead button. Until Google returns an ID token, DevTools will not show `POST /auth/google` — only Google (`accounts.google.com`) traffic.
 
 ## Refresh Token Rotation
 

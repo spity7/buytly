@@ -21,13 +21,11 @@ import {
   SEED_REVIEWS,
   SEED_SAVED_SEARCHES,
   SEED_USERS,
+  buildSeedPropertyTypes,
 } from "./catalog.js";
 import { PropertyTypeCatalog } from "../../src/modules/catalog/property-type.model.js";
 import { AmenityCatalog } from "../../src/modules/catalog/amenity.model.js";
-import {
-  DEFAULT_AMENITIES,
-  DEFAULT_PROPERTY_TYPES,
-} from "../../src/modules/catalog/catalog.defaults.js";
+import { DEFAULT_AMENITIES } from "../../src/modules/catalog/catalog.defaults.js";
 
 const SALT_ROUNDS = 12;
 
@@ -66,7 +64,7 @@ async function ensureSeedCatalog(reset) {
   const typeCount = await PropertyTypeCatalog.countDocuments();
 
   if (reset || typeCount === 0) {
-    await PropertyTypeCatalog.insertMany(DEFAULT_PROPERTY_TYPES);
+    await PropertyTypeCatalog.insertMany(buildSeedPropertyTypes());
 
     const amenityByValue = new Map();
     for (const item of [...DEFAULT_AMENITIES, ...SEED_DEMO_AMENITIES]) {
