@@ -78,6 +78,12 @@ const ensureDefaultsPromiseBySite = new Map();
 const siteKey = (siteId) => String(siteId);
 
 export const catalogService = {
+  /** Test-only: clear in-memory bootstrap flags after DB wipe. */
+  resetBootstrapCache() {
+    defaultsBootstrappedBySite.clear();
+    ensureDefaultsPromiseBySite.clear();
+  },
+
   async ensureRequiredPropertyTypes(siteId = getRequestSiteId()) {
     for (const value of PROTECTED_PROPERTY_TYPE_VALUES) {
       const entry = DEFAULT_PROPERTY_TYPES.find((item) => item.value === value);
@@ -126,7 +132,11 @@ export const catalogService = {
   },
 
   async _ensureDefaults(siteId) {
-    await upsertDefaultCatalogEntries(AmenityCatalog, DEFAULT_AMENITIES, siteId);
+    await upsertDefaultCatalogEntries(
+      AmenityCatalog,
+      DEFAULT_AMENITIES,
+      siteId,
+    );
     await this.ensureRequiredPropertyTypes(siteId);
   },
 

@@ -52,12 +52,20 @@ afterEach(async () => {
   await ensureTestCatalog();
   const { siteService } = await import("../src/modules/sites/site.service.js");
   siteService.invalidateCache();
+  const { catalogService } =
+    await import("../src/modules/catalog/catalog.service.js");
+  catalogService.resetBootstrapCache();
 });
 
 beforeEach(async () => {
   if (!mongoAvailable) return;
   const { ensureTestSites } = await import("./helpers/siteFixtures.js");
   await ensureTestSites();
+  const { ensureTestCatalog } = await import("./helpers/catalogFixtures.js");
+  await ensureTestCatalog();
+  const { catalogService } =
+    await import("../src/modules/catalog/catalog.service.js");
+  catalogService.resetBootstrapCache();
 });
 
 afterAll(async () => {

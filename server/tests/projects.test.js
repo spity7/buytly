@@ -26,7 +26,7 @@ describe.skipIf(!mongoAvailable)("projects API", () => {
     const unitRes = await createPropertyForProject(app, token, projectId, {
       status: "draft",
     });
-    expect(unitRes.status).toBe(201);
+    expect(unitRes.status, unitRes.body?.message).toBe(201);
 
     await Project.findByIdAndUpdate(projectId, { status: "active" });
 
