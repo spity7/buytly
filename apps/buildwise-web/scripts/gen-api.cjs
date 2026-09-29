@@ -2,7 +2,7 @@ const { spawnSync } = require("child_process");
 const fs = require("fs");
 const http = require("http");
 const path = require("path");
-const { requireEnv, clientDir } = require("./load-env.cjs");
+const { requireEnv, clientDir, resolvePackageBin } = require("./load-env.cjs");
 
 const specUrl = requireEnv("OPENAPI_URL");
 
@@ -29,15 +29,7 @@ async function waitForServer(maxAttempts = 15, delayMs = 500) {
 }
 
 function resolveOrvalBin() {
-  const candidates = [
-    path.join(clientDir, "node_modules", "orval", "dist", "bin", "orval.js"),
-    path.join(clientDir, "node_modules", "orval", "dist", "bin", "orval.mjs"),
-  ];
-  const found = candidates.find((p) => fs.existsSync(p));
-  if (!found) {
-    throw new Error("Orval binary not found — run npm install in client/");
-  }
-  return found;
+  return resolvePackageBin(clientDir, "orval");
 }
 
 function runOrval() {

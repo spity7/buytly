@@ -1,8 +1,7 @@
 const { spawn } = require("child_process");
 const path = require("path");
 const { main } = require("./gen-api.cjs");
-
-const clientDir = path.join(__dirname, "..");
+const { clientDir, resolvePackageBin } = require("./load-env.cjs");
 
 async function start() {
   try {
@@ -14,22 +13,8 @@ async function start() {
     );
   }
 
-  const concurrentlyBin = path.join(
-    clientDir,
-    "node_modules",
-    "concurrently",
-    "dist",
-    "bin",
-    "index.js",
-  );
-  const nextBin = path.join(
-    clientDir,
-    "node_modules",
-    "next",
-    "dist",
-    "bin",
-    "next",
-  );
+  const concurrentlyBin = resolvePackageBin(clientDir, "concurrently");
+  const nextBin = resolvePackageBin(clientDir, "next");
   const watchCmd = `"${process.execPath}" scripts/watch-api.cjs --skip-initial`;
   const nextCmd = `"${process.execPath}" "${nextBin}" dev`;
 
