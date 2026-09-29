@@ -1,4 +1,5 @@
 import { describe, it, expect } from "vitest";
+import { api } from "./helpers/http.js";
 import request from "supertest";
 import { mongoAvailable } from "./setup.js";
 import { User } from "../src/modules/users/user.model.js";
@@ -15,7 +16,7 @@ describe.skipIf(!mongoAvailable)("auth password recovery", () => {
     const email = "reset-user@example.com";
     const oldPassword = "password123";
 
-    await request(app)
+    await api(app)
       .post("/api/v1/auth/register")
       .send({
         email,
@@ -34,19 +35,19 @@ describe.skipIf(!mongoAvailable)("auth password recovery", () => {
       },
     );
 
-    const resetRes = await request(app)
+    const resetRes = await api(app)
       .post("/api/v1/auth/reset-password")
       .send({ token, password: "newpassword123" });
 
     expect(resetRes.status).toBe(200);
 
-    const oldLogin = await request(app)
+    const oldLogin = await api(app)
       .post("/api/v1/auth/login")
       .send({ email, password: oldPassword });
 
     expect(oldLogin.status).toBe(401);
 
-    const newLogin = await request(app)
+    const newLogin = await api(app)
       .post("/api/v1/auth/login")
       .send({ email, password: "newpassword123" });
 
@@ -56,7 +57,7 @@ describe.skipIf(!mongoAvailable)("auth password recovery", () => {
   it("returns a generic message for forgot-password", async () => {
     const app = await getApp();
 
-    const res = await request(app)
+    const res = await api(app)
       .post("/api/v1/auth/forgot-password")
       .send({ email: "missing-user@example.com" });
 
@@ -70,7 +71,7 @@ describe.skipIf(!mongoAvailable)("auth password recovery", () => {
     const app = await getApp();
     const email = "logout-user@example.com";
 
-    const registered = await request(app)
+    const registered = await api(app)
       .post("/api/v1/auth/register")
       .send({
         email,
@@ -81,13 +82,13 @@ describe.skipIf(!mongoAvailable)("auth password recovery", () => {
 
     const refreshToken = registered.body.data.refreshToken;
 
-    const logoutRes = await request(app)
+    const logoutRes = await api(app)
       .post("/api/v1/auth/logout")
       .send({ refreshToken });
 
     expect(logoutRes.status).toBe(200);
 
-    const refreshRes = await request(app)
+    const refreshRes = await api(app)
       .post("/api/v1/auth/refresh")
       .send({ refreshToken });
 

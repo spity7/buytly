@@ -1,3 +1,4 @@
+# Used when build context is ./client (not repo root). docker compose uses root .dockerignore.
 node_modules
 .next
 out

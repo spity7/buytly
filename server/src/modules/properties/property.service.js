@@ -9,8 +9,8 @@ import {
   assertParentProjectAllowsUnitStatus,
   assertPublishUnitCardinality,
 } from "../projects/project-cardinality.js";
-import { gcsService } from "../../services/gcs.service.js";
-import { cacheService } from "../../services/cache.service.js";
+import { buildSiteFolder, gcsService } from "../../services/gcs.service.js";
+import { getRequestSiteId } from "../../shared/requestContext.js";
 import { AppError } from "../../shared/AppError.js";
 import {
   parsePagination,
@@ -53,7 +53,9 @@ const canViewNonActiveProperty = (property, user) =>
   canManageProperty(property, user);
 
 const notifyAdminsOfPendingListing = async (property) => {
+  const siteId = property.siteId ?? getRequestSiteId();
   const admins = await User.find({
+    siteId,
     role: ROLES.ADMIN,
     deletedAt: null,
     isActive: true,
@@ -139,15 +141,15 @@ const applyFloorPlansOnWrite = async (property, patch) => {
   }
 };
 
-const buildUniqueSlug = async (title) => {
+const buildUniqueSlug = async ({ siteId, title }) => {
   let slug = slugify(title);
   let counter = 0;
-  let exists = await Property.findOne({ slug });
+  let exists = await Property.findOne({ siteId, slug });
 
   while (exists) {
     counter += 1;
     slug = `${slugify(title)}-${counter}`;
-    exists = await Property.findOne({ slug });
+    exists = await Property.findOne({ siteId, slug });
   }
 
   return slug;
@@ -167,7 +169,7 @@ const maybeRependActiveListing = async (
 };
 
 const buildPropertyIdFilter = (id, user) => {
-  const filter = { _id: id };
+  const filter = { _id: id, siteId: getRequestSiteId() };
   if (!user) {
     filter.deletedAt = null;
     return filter;
@@ -225,9 +227,11 @@ const assertPropertyContentMutationAllowed = async (property, user) => {
     throw new AppError("Sold or archived listings cannot be edited", 400);
   }
 
-  const project = await Project.findById(property.projectId).select(
-    "deletedAt status",
-  );
+  const siteId = getRequestSiteId();
+  const project = await Project.findOne({
+    _id: property.projectId,
+    siteId,
+  }).select("deletedAt status");
   if (!project) throw new AppError("Project not found", 404);
   assertSellerUnitMutationAllowed(project, user);
 };
@@ -237,7 +241,10 @@ const assertPublicParentProject = async (property) => {
   const project =
     populated?.status != null
       ? populated
-      : await Project.findById(property.projectId).select("status deletedAt");
+      : await Project.findOne({
+          _id: property.projectId,
+          siteId: getRequestSiteId(),
+        }).select("status deletedAt");
 
   if (
     !project ||
@@ -268,8 +275,10 @@ const applyListingCatalogRules = async (payload) => {
 
 export const propertyService = {
   async create(data, user) {
+    const siteId = getRequestSiteId();
     const project = await Project.findOne({
       _id: data.projectId,
+      siteId,
       deletedAt: null,
     });
     if (!project) throw new AppError("Project not found", 404);
@@ -284,7 +293,7 @@ export const propertyService = {
     });
     assertCanAddUnitToProject(project);
 
-    const slug = await buildUniqueSlug(data.title);
+    const slug = await buildUniqueSlug({ siteId, title: data.title });
     const payload = { ...data };
     delete payload.location;
     const isAdmin = user.role === ROLES.ADMIN;
@@ -309,6 +318,7 @@ export const propertyService = {
 
     const property = await Property.create({
       ...payload,
+      siteId: project.siteId ?? siteId,
       slug,
       projectId: project._id,
       ownerId: project.ownerId,
@@ -324,20 +334,16 @@ export const propertyService = {
       await notifyAdminsOfPendingListing(property);
     }
 
-    await cacheService.invalidateListingCaches();
-
     return attachMediaUrls(property);
   },
 
   async list(query) {
-    const cacheKey = cacheService.buildKey("properties", query);
-    const cached = await cacheService.get(cacheKey);
-    if (cached) return cached;
-
+    const siteId = getRequestSiteId();
     const { page, limit, skip } = parsePagination(query);
-    const filter = { deletedAt: null };
+    const filter = { siteId, deletedAt: null };
 
     const publicProjectIds = await Project.find({
+      siteId,
       deletedAt: null,
       status: { $in: PUBLIC_PARENT_PROJECT_STATUSES },
     }).distinct("_id");
@@ -406,13 +412,10 @@ export const propertyService = {
 
     const data = await Promise.all(properties.map(attachMediaUrls));
 
-    const result = {
+    return {
       properties: data,
       pagination: buildPaginationMeta(total, page, limit),
     };
-
-    await cacheService.set(cacheKey, result, 300);
-    return result;
   },
 
   async getById(id, { incrementView = true, user } = {}) {
@@ -469,16 +472,8 @@ export const propertyService = {
       return { categories: [], source: null };
     }
 
-    const cacheKey = cacheService.buildKey("nearby", {
-      lat: Number(lat).toFixed(3),
-      lng: Number(lng).toFixed(3),
-    });
-    const cached = await cacheService.get(cacheKey);
-    if (cached) return cached;
-
     try {
       const result = await nearbyService.fetchNearbyPlaces(lat, lng);
-      await cacheService.set(cacheKey, result, 86400);
       return result;
     } catch {
       return {
@@ -511,7 +506,10 @@ export const propertyService = {
     const previousStatus = property.status;
     const patch = { ...data };
 
-    const project = await Project.findById(property.projectId);
+    const project = await Project.findOne({
+      _id: property.projectId,
+      siteId: getRequestSiteId(),
+    });
     if (!project) throw new AppError("Project not found", 404);
     assertSellerUnitMutationAllowed(project, user);
 
@@ -538,7 +536,10 @@ export const propertyService = {
     }
 
     if (patch.title && patch.title !== property.title) {
-      patch.slug = await buildUniqueSlug(patch.title);
+      patch.slug = await buildUniqueSlug({
+        siteId: property.siteId,
+        title: patch.title,
+      });
     }
 
     delete patch.location;
@@ -581,13 +582,15 @@ export const propertyService = {
       await notifyAdminsOfPendingListing(property);
     }
 
-    await cacheService.invalidateListingCaches();
-
     return attachMediaUrls(property);
   },
 
   async softDelete(id, user) {
-    const property = await Property.findOne({ _id: id, deletedAt: null });
+    const property = await Property.findOne({
+      _id: id,
+      siteId: getRequestSiteId(),
+      deletedAt: null,
+    });
     if (!property) throw new AppError("Property not found", 404);
 
     const canDelete = canManageProperty(property, user);
@@ -598,12 +601,12 @@ export const propertyService = {
     Object.assign(property, buildArchiveUpdate());
     await property.save();
     await maybeDemoteProjectWithoutLiveUnits(property.projectId);
-    await cacheService.invalidateListingCaches();
   },
 
   async restore(id, user) {
     const property = await Property.findOne({
       _id: id,
+      siteId: getRequestSiteId(),
       deletedAt: { $ne: null },
     });
 
@@ -613,17 +616,16 @@ export const propertyService = {
       throw new AppError("Not authorized to restore this property", 403);
     }
 
-    const project = await Project.findById(property.projectId).select(
-      "deletedAt status",
-    );
+    const project = await Project.findOne({
+      _id: property.projectId,
+      siteId: getRequestSiteId(),
+    }).select("deletedAt status");
     assertParentProjectAllowsUnitRestore(project);
 
     assertCanAddUnitToProject(project);
 
     Object.assign(property, buildRestoreUpdate());
     await property.save();
-    await cacheService.invalidateListingCaches();
-
     return attachMediaUrls(property);
   },
 
@@ -638,7 +640,6 @@ export const propertyService = {
     const projectId = property.projectId;
     await purgePropertyRecord(property, { requireTrash: true });
     await maybeDemoteProjectWithoutLiveUnits(projectId);
-    await cacheService.invalidateListingCaches();
   },
 
   async uploadMedia(id, file, user) {
@@ -660,7 +661,7 @@ export const propertyService = {
     }
 
     const uploaded = await gcsService.uploadFile(file.buffer, {
-      folder: "properties",
+      folder: buildSiteFolder("properties"),
       mimeType: file.mimetype,
       originalName: file.originalname,
     });
@@ -680,8 +681,6 @@ export const propertyService = {
     await property.save();
 
     await maybeRependActiveListing(property, { isAdmin, previousStatus });
-    await cacheService.invalidateListingCaches();
-
     const media = property.media[property.media.length - 1];
     return {
       ...media.toObject(),
@@ -702,7 +701,7 @@ export const propertyService = {
     }
 
     const uploaded = await gcsService.uploadFile(file.buffer, {
-      folder: "properties/floor-plans",
+      folder: buildSiteFolder("properties/floor-plans"),
       mimeType: file.mimetype,
       originalName: file.originalname,
     });
@@ -733,7 +732,6 @@ export const propertyService = {
     await property.save();
 
     await maybeRependActiveListing(property, { isAdmin, previousStatus });
-    await cacheService.invalidateListingCaches();
   },
 
   async reorderMedia(id, { imageIds }, user) {
@@ -780,8 +778,6 @@ export const propertyService = {
     await property.save();
 
     await maybeRependActiveListing(property, { isAdmin, previousStatus });
-    await cacheService.invalidateListingCaches();
-
     return attachMediaUrls(property);
   },
 
@@ -794,7 +790,11 @@ export const propertyService = {
         : { deletedAt: null },
     ];
 
+    const siteId = getRequestSiteId();
+    conditions.push({ siteId });
+
     const activeProjectIds = await Project.find({
+      siteId,
       $or: [{ ownerId: user._id }, { agentId: user._id }],
       deletedAt: null,
     }).distinct("_id");
@@ -835,12 +835,15 @@ export const propertyService = {
 
   async getByAgent(agentId, query) {
     const { page, limit, skip } = parsePagination(query);
+    const siteId = getRequestSiteId();
     const publicProjectIds = await Project.find({
+      siteId,
       deletedAt: null,
       status: { $in: PUBLIC_PARENT_PROJECT_STATUSES },
     }).distinct("_id");
 
     const filter = {
+      siteId,
       agentId,
       deletedAt: null,
       status: "active",

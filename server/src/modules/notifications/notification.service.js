@@ -11,6 +11,7 @@ import {
   buildHref as buildEventHref,
 } from "./notification.catalog.js";
 import { shouldDeliverNotification } from "./notification.preferences.js";
+import { getRequestSiteId } from "../../shared/requestContext.js";
 
 const isDeliverableUser = (user) =>
   user && user.deletedAt == null && user.isActive;
@@ -35,7 +36,12 @@ export const notificationService = {
     emailData = {},
     preferenceKey,
   }) {
-    const user = await User.findById(userId);
+    let user;
+    try {
+      user = await User.findOne({ _id: userId, siteId: getRequestSiteId() });
+    } catch {
+      user = await User.findById(userId);
+    }
     if (!isDeliverableUser(user)) {
       return null;
     }

@@ -11,8 +11,8 @@ import adminRoutes from "../modules/admin/admin.routes.js";
 import notificationRoutes from "../modules/notifications/notification.routes.js";
 import catalogRoutes from "../modules/catalog/catalog.routes.js";
 import contactRoutes from "../modules/contact/contact.routes.js";
+import platformRoutes from "../modules/platform/platform.routes.js";
 import { isDBConnected } from "../config/db.js";
-import { getRedisStatus } from "../config/redis.js";
 import { ApiResponse } from "../shared/ApiResponse.js";
 
 const router = Router();
@@ -23,7 +23,7 @@ const router = Router();
  *   get:
  *     operationId: getHealth
  *     summary: Health check
- *     description: Returns service health status including MongoDB and Redis connectivity. Returns 503 when MongoDB is disconnected.
+ *     description: Returns service health status including MongoDB connectivity. Returns 503 when MongoDB is disconnected.
  *     tags: [Health]
  *     responses:
  *       200:
@@ -40,7 +40,6 @@ const router = Router();
  *                 timestamp: '2026-07-05T09:00:00.000Z'
  *                 services:
  *                   mongodb: connected
- *                   redis: not_configured
  *       503:
  *         description: Service degraded (MongoDB disconnected)
  *         content:
@@ -55,7 +54,6 @@ const router = Router();
  *                 timestamp: '2026-07-05T09:00:00.000Z'
  *                 services:
  *                   mongodb: disconnected
- *                   redis: not_configured
  */
 router.get("/health", (req, res) => {
   const dbConnected = isDBConnected();
@@ -66,7 +64,6 @@ router.get("/health", (req, res) => {
       timestamp: new Date().toISOString(),
       services: {
         mongodb: dbConnected ? "connected" : "disconnected",
-        redis: getRedisStatus(),
       },
     },
     dbConnected ? "Service is healthy" : "Service degraded",
@@ -86,5 +83,6 @@ router.use("/admin", adminRoutes);
 router.use("/notifications", notificationRoutes);
 router.use("/catalog", catalogRoutes);
 router.use("/contact", contactRoutes);
+router.use("/platform", platformRoutes);
 
 export default router;

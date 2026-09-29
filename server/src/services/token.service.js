@@ -6,10 +6,15 @@ import { env } from "../config/env.js";
 export const hashToken = (token) =>
   crypto.createHash("sha256").update(token).digest("hex");
 
-export const generateAccessToken = (userId, role) =>
-  jwt.sign({ sub: userId.toString(), role }, env.JWT_ACCESS_SECRET, {
+export const generateAccessToken = (userId, role, siteId) => {
+  const payload = { sub: userId.toString(), role };
+  if (siteId) {
+    payload.siteId = siteId.toString();
+  }
+  return jwt.sign(payload, env.JWT_ACCESS_SECRET, {
     expiresIn: env.JWT_ACCESS_EXPIRES_IN,
   });
+};
 
 export const generateRefreshToken = () => uuidv4();
 

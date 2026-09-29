@@ -1,6 +1,6 @@
-import request from "supertest";
 import { Property } from "../../src/modules/properties/property.model.js";
 import { Project } from "../../src/modules/projects/project.model.js";
+import { api } from "./http.js";
 
 export const projectPayload = (overrides = {}) => ({
   title: "Sunset Residences",
@@ -33,7 +33,7 @@ export const propertyPayload = (projectId, overrides = {}) => ({
 });
 
 export const createProject = async (app, token, overrides = {}) => {
-  const res = await request(app)
+  const res = await api(app)
     .post("/api/v1/projects")
     .set("Authorization", `Bearer ${token}`)
     .send(projectPayload(overrides));
@@ -46,7 +46,7 @@ export const createPropertyForProject = async (
   projectId,
   overrides = {},
 ) => {
-  return request(app)
+  return api(app)
     .post("/api/v1/properties")
     .set("Authorization", `Bearer ${token}`)
     .send(propertyPayload(projectId, overrides));

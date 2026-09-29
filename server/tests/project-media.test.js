@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import { api } from "./helpers/http.js";
 import request from "supertest";
 import { mongoAvailable } from "./setup.js";
 import {
@@ -34,7 +35,7 @@ const registerAndGetToken = async (
   app,
   email = "project-media@example.com",
 ) => {
-  const res = await request(app).post("/api/v1/auth/register").send({
+  const res = await api(app).post("/api/v1/auth/register").send({
     email,
     password: "password123",
     confirmPassword: "password123",
@@ -60,7 +61,7 @@ describe.skipIf(!mongoAvailable)("project media uploads", () => {
     expect(created.status).toBe(201);
     const projectId = created.body.data._id;
 
-    const upload = await request(app)
+    const upload = await api(app)
       .post(`/api/v1/projects/${projectId}/media`)
       .set("Authorization", `Bearer ${token}`)
       .attach("media", Buffer.from("fake-image"), {
@@ -72,7 +73,7 @@ describe.skipIf(!mongoAvailable)("project media uploads", () => {
     expect(upload.body.data.type).toBe("image");
     expect(upload.body.data.url).toMatch(/^https:\/\//);
 
-    const detail = await request(app)
+    const detail = await api(app)
       .get(`/api/v1/projects/${projectId}?includeUnits=true`)
       .set("Authorization", `Bearer ${token}`);
 
@@ -90,7 +91,7 @@ describe.skipIf(!mongoAvailable)("project media uploads", () => {
     });
     const projectId = created.body.data._id;
 
-    await request(app)
+    await api(app)
       .post(`/api/v1/projects/${projectId}/media`)
       .set("Authorization", `Bearer ${token}`)
       .attach("media", Buffer.from("img-a"), {
@@ -98,7 +99,7 @@ describe.skipIf(!mongoAvailable)("project media uploads", () => {
         contentType: "image/jpeg",
       });
 
-    await request(app)
+    await api(app)
       .post(`/api/v1/projects/${projectId}/media`)
       .set("Authorization", `Bearer ${token}`)
       .attach("media", Buffer.from("img-b"), {
@@ -106,7 +107,7 @@ describe.skipIf(!mongoAvailable)("project media uploads", () => {
         contentType: "image/jpeg",
       });
 
-    const detail = await request(app)
+    const detail = await api(app)
       .get(`/api/v1/projects/${projectId}`)
       .set("Authorization", `Bearer ${token}`);
 
@@ -116,7 +117,7 @@ describe.skipIf(!mongoAvailable)("project media uploads", () => {
     expect(images.length).toBe(2);
 
     const reordered = [images[1]._id, images[0]._id];
-    const orderRes = await request(app)
+    const orderRes = await api(app)
       .put(`/api/v1/projects/${projectId}/media/order`)
       .set("Authorization", `Bearer ${token}`)
       .send({ imageIds: reordered });
@@ -145,7 +146,7 @@ describe.skipIf(!mongoAvailable)("project media uploads", () => {
     });
     const unitId = unitRes.body.data._id;
 
-    const upload = await request(app)
+    const upload = await api(app)
       .post(`/api/v1/properties/${unitId}/media`)
       .set("Authorization", `Bearer ${token}`)
       .attach("media", Buffer.from("unit-photo"), {
@@ -155,7 +156,7 @@ describe.skipIf(!mongoAvailable)("project media uploads", () => {
 
     expect(upload.status).toBe(201);
 
-    const detail = await request(app)
+    const detail = await api(app)
       .get(`/api/v1/projects/${projectId}?includeUnits=true`)
       .set("Authorization", `Bearer ${token}`);
 

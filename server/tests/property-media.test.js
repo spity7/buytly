@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import { api } from "./helpers/http.js";
 import request from "supertest";
 import { mongoAvailable } from "./setup.js";
 import { Property } from "../src/modules/properties/property.model.js";
@@ -27,7 +28,7 @@ const getApp = async () => {
 };
 
 const registerAndGetToken = async (app, email = "media-seller@example.com") => {
-  const res = await request(app).post("/api/v1/auth/register").send({
+  const res = await api(app).post("/api/v1/auth/register").send({
     email,
     password: "password123",
     confirmPassword: "password123",
@@ -47,7 +48,7 @@ describe.skipIf(!mongoAvailable)("property media uploads", () => {
     const app = await getApp();
     const token = await registerAndGetToken(app);
 
-    const created = await request(app)
+    const created = await api(app)
       .post("/api/v1/properties")
       .set("Authorization", `Bearer ${token}`)
       .send(
@@ -60,7 +61,7 @@ describe.skipIf(!mongoAvailable)("property media uploads", () => {
 
     const propertyId = created.body.data._id;
 
-    const firstVideo = await request(app)
+    const firstVideo = await api(app)
       .post(`/api/v1/properties/${propertyId}/media`)
       .set("Authorization", `Bearer ${token}`)
       .attach("media", Buffer.from("fake-video"), {
@@ -71,7 +72,7 @@ describe.skipIf(!mongoAvailable)("property media uploads", () => {
     expect(firstVideo.status).toBe(201);
     expect(firstVideo.body.data.type).toBe("video");
 
-    const secondVideo = await request(app)
+    const secondVideo = await api(app)
       .post(`/api/v1/properties/${propertyId}/media`)
       .set("Authorization", `Bearer ${token}`)
       .attach("media", Buffer.from("another-video"), {
@@ -92,7 +93,7 @@ describe.skipIf(!mongoAvailable)("property media uploads", () => {
     const app = await getApp();
     const token = await registerAndGetToken(app, "reorder-seller@example.com");
 
-    const created = await request(app)
+    const created = await api(app)
       .post("/api/v1/properties")
       .set("Authorization", `Bearer ${token}`)
       .send(
@@ -105,7 +106,7 @@ describe.skipIf(!mongoAvailable)("property media uploads", () => {
 
     const propertyId = created.body.data._id;
 
-    const first = await request(app)
+    const first = await api(app)
       .post(`/api/v1/properties/${propertyId}/media`)
       .set("Authorization", `Bearer ${token}`)
       .attach("media", Buffer.from("image-a"), {
@@ -113,7 +114,7 @@ describe.skipIf(!mongoAvailable)("property media uploads", () => {
         contentType: "image/jpeg",
       });
 
-    const second = await request(app)
+    const second = await api(app)
       .post(`/api/v1/properties/${propertyId}/media`)
       .set("Authorization", `Bearer ${token}`)
       .attach("media", Buffer.from("image-b"), {
@@ -127,7 +128,7 @@ describe.skipIf(!mongoAvailable)("property media uploads", () => {
     const idA = first.body.data._id;
     const idB = second.body.data._id;
 
-    const reordered = await request(app)
+    const reordered = await api(app)
       .put(`/api/v1/properties/${propertyId}/media/order`)
       .set("Authorization", `Bearer ${token}`)
       .send({ imageIds: [idB, idA] });

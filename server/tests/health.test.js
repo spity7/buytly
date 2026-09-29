@@ -2,13 +2,6 @@ import { describe, it, expect, vi } from "vitest";
 import request from "supertest";
 import { mongoAvailable } from "./setup.js";
 
-describe("getRedisStatus", () => {
-  it("returns not_configured when REDIS_URL is unset", async () => {
-    const { getRedisStatus } = await import("../src/config/redis.js");
-    expect(getRedisStatus()).toBe("not_configured");
-  });
-});
-
 describe.skipIf(!mongoAvailable)("GET /api/v1/health", () => {
   it("returns healthy status when MongoDB is connected", async () => {
     const { default: app } = await import("../src/app.js");
@@ -22,7 +15,6 @@ describe.skipIf(!mongoAvailable)("GET /api/v1/health", () => {
         status: "ok",
         services: {
           mongodb: "connected",
-          redis: "not_configured",
         },
       },
     });
@@ -44,7 +36,6 @@ describe.skipIf(!mongoAvailable)("GET /api/v1/health", () => {
         status: "degraded",
         services: {
           mongodb: "disconnected",
-          redis: "not_configured",
         },
       },
     });

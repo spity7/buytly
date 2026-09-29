@@ -6,8 +6,9 @@ import { applyPhoneFields } from "../../shared/phone.js";
 import { normalizeNotificationPreferences } from "../notifications/notification.preferences.js";
 import bcrypt from "bcrypt";
 import crypto from "crypto";
-import { cacheService } from "../../services/cache.service.js";
 import { catalogService } from "../catalog/catalog.service.js";
+import { getRequestSiteId } from "../../shared/requestContext.js";
+import { buildSiteFolder } from "../../services/gcs.service.js";
 
 export const userService = {
   async getMe(userId) {
@@ -125,7 +126,7 @@ export const userService = {
     }
 
     const uploaded = await gcsService.uploadFile(file.buffer, {
-      folder: "avatars",
+      folder: buildSiteFolder("avatars"),
       mimeType: file.mimetype,
       originalName: file.originalname,
     });
@@ -153,6 +154,7 @@ export const userService = {
   async getPublicProfile(userId) {
     const user = await User.findOne({
       _id: userId,
+      siteId: getRequestSiteId(),
       deletedAt: null,
       isActive: true,
     }).select("firstName lastName role avatar createdAt");
@@ -224,8 +226,6 @@ export const userService = {
       { userId: user._id },
       { revokedAt: new Date() },
     );
-
-    await cacheService.invalidateAnalytics();
 
     return { message: "Account deleted successfully" };
   },

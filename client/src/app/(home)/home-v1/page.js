@@ -13,6 +13,7 @@ import Blog from "@/components/common/Blog";
 import PopulerProperty from "@/components/home/home-v1/PopulerProperty";
 import FeaturedProjects from "@/components/home/home-v1/FeaturedProjects";
 import ExplorePropertyTypesSection from "@/components/home/ExplorePropertyTypesSection";
+import PartnerFeaturedListingsSection from "@/components/home/PartnerFeaturedListingsSection";
 
 export const metadata = {
   title: "Home v1",
@@ -42,6 +43,7 @@ const Home_V1 = () => {
 
       <PopulerProperty />
       <FeaturedProjects />
+      <PartnerFeaturedListingsSection />
 
       {/* Our Testimonials */}
       <section className="pb100 pb50-md bgc-thm-light">

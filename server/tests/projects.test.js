@@ -1,4 +1,5 @@
 import { describe, it, expect } from "vitest";
+import { api } from "./helpers/http.js";
 import request from "supertest";
 import { mongoAvailable } from "./setup.js";
 import {
@@ -15,7 +16,7 @@ const getApp = async () => {
 };
 
 const registerAndGetToken = async (app, email) => {
-  const res = await request(app).post("/api/v1/auth/register").send({
+  const res = await api(app).post("/api/v1/auth/register").send({
     email,
     password: "password123",
     confirmPassword: "password123",
@@ -41,7 +42,7 @@ describe.skipIf(!mongoAvailable)("projects API", () => {
 
     await Project.findByIdAndUpdate(projectId, { status: "active" });
 
-    const list = await request(app).get("/api/v1/projects");
+    const list = await api(app).get("/api/v1/projects");
     expect(list.status).toBe(200);
     expect(list.body.data.length).toBeGreaterThanOrEqual(1);
   });
@@ -57,7 +58,7 @@ describe.skipIf(!mongoAvailable)("projects API", () => {
 
     await createPropertyForProject(app, token, projectId);
 
-    const publish = await request(app)
+    const publish = await api(app)
       .patch(`/api/v1/projects/${projectId}`)
       .set("Authorization", `Bearer ${token}`)
       .send({ status: "active" });
@@ -75,7 +76,7 @@ describe.skipIf(!mongoAvailable)("projects API", () => {
     });
     const projectId = created.body.data._id;
 
-    const publish = await request(app)
+    const publish = await api(app)
       .patch(`/api/v1/projects/${projectId}`)
       .set("Authorization", `Bearer ${token}`)
       .send({ status: "active" });
@@ -99,7 +100,7 @@ describe.skipIf(!mongoAvailable)("projects API", () => {
     await Project.findByIdAndUpdate(projectId, { status: "active" });
 
     const slug = created.body.data.slug;
-    const bySlug = await request(app).get(`/api/v1/projects/slug/${slug}`);
+    const bySlug = await api(app).get(`/api/v1/projects/slug/${slug}`);
     expect(bySlug.status).toBe(200);
     expect(bySlug.body.data.units).toEqual([]);
   });
@@ -115,17 +116,17 @@ describe.skipIf(!mongoAvailable)("projects API", () => {
     await createPropertyForProject(app, token, projectId, { status: "draft" });
     await Project.findByIdAndUpdate(projectId, { status: "active" });
 
-    const publicView = await request(app).get(`/api/v1/projects/slug/${slug}`);
+    const publicView = await api(app).get(`/api/v1/projects/slug/${slug}`);
     expect(publicView.status).toBe(200);
     const afterPublic = publicView.body.data.viewCount;
 
-    const ownerView = await request(app)
+    const ownerView = await api(app)
       .get(`/api/v1/projects/slug/${slug}`)
       .set("Authorization", `Bearer ${token}`);
     expect(ownerView.status).toBe(200);
     expect(ownerView.body.data.viewCount).toBe(afterPublic);
 
-    const secondPublic = await request(app).get(
+    const secondPublic = await api(app).get(
       `/api/v1/projects/slug/${slug}`,
     );
     expect(secondPublic.body.data.viewCount).toBe(afterPublic + 1);
@@ -140,7 +141,7 @@ describe.skipIf(!mongoAvailable)("projects API", () => {
     const adminEmail = "cascade-admin@example.com";
     await registerAndGetToken(app, adminEmail);
     await User.findOneAndUpdate({ email: adminEmail }, { role: "admin" });
-    const adminLogin = await request(app).post("/api/v1/auth/login").send({
+    const adminLogin = await api(app).post("/api/v1/auth/login").send({
       email: adminEmail,
       password: "password123",
     });
@@ -152,7 +153,7 @@ describe.skipIf(!mongoAvailable)("projects API", () => {
       status: "draft",
     });
 
-    await request(app)
+    await api(app)
       .patch(`/api/v1/projects/${projectId}`)
       .set("Authorization", `Bearer ${sellerToken}`)
       .send({ status: "active" });
@@ -162,7 +163,7 @@ describe.skipIf(!mongoAvailable)("projects API", () => {
     const pendingUnit = await Property.findOne({ projectId });
     expect(pendingUnit.status).toBe("pending");
 
-    await request(app)
+    await api(app)
       .patch(`/api/v1/admin/projects/${projectId}/moderate`)
       .set("Authorization", `Bearer ${adminToken}`)
       .send({ status: "active" });
@@ -180,7 +181,7 @@ describe.skipIf(!mongoAvailable)("projects API", () => {
     const adminEmail = "draft-cascade-admin@example.com";
     await registerAndGetToken(app, adminEmail);
     await User.findOneAndUpdate({ email: adminEmail }, { role: "admin" });
-    const adminLogin = await request(app).post("/api/v1/auth/login").send({
+    const adminLogin = await api(app).post("/api/v1/auth/login").send({
       email: adminEmail,
       password: "password123",
     });
@@ -192,12 +193,12 @@ describe.skipIf(!mongoAvailable)("projects API", () => {
       status: "draft",
     });
 
-    await request(app)
+    await api(app)
       .patch(`/api/v1/projects/${projectId}`)
       .set("Authorization", `Bearer ${sellerToken}`)
       .send({ status: "active" });
 
-    await request(app)
+    await api(app)
       .patch(`/api/v1/admin/projects/${projectId}/moderate`)
       .set("Authorization", `Bearer ${adminToken}`)
       .send({ status: "active" });
@@ -207,7 +208,7 @@ describe.skipIf(!mongoAvailable)("projects API", () => {
     let unit = await Property.findOne({ projectId });
     expect(unit.status).toBe("active");
 
-    await request(app)
+    await api(app)
       .patch(`/api/v1/admin/projects/${projectId}/moderate`)
       .set("Authorization", `Bearer ${adminToken}`)
       .send({ status: "draft" });
@@ -225,17 +226,17 @@ describe.skipIf(!mongoAvailable)("projects API", () => {
 
     await createPropertyForProject(app, token, projectId, { status: "draft" });
 
-    const del = await request(app)
+    const del = await api(app)
       .delete(`/api/v1/projects/${projectId}`)
       .set("Authorization", `Bearer ${token}`);
     expect(del.status).toBe(200);
 
-    const activeList = await request(app)
+    const activeList = await api(app)
       .get("/api/v1/projects/mine")
       .set("Authorization", `Bearer ${token}`);
     expect(activeList.body.data.some((p) => p._id === projectId)).toBe(false);
 
-    const trashList = await request(app)
+    const trashList = await api(app)
       .get("/api/v1/projects/mine?trashed=true")
       .set("Authorization", `Bearer ${token}`);
     expect(trashList.body.data.some((p) => p._id === projectId)).toBe(true);
@@ -246,7 +247,7 @@ describe.skipIf(!mongoAvailable)("projects API", () => {
     expect(trashedUnit.deletedAt).toBeTruthy();
     expect(trashedUnit.status).toBe("archived");
 
-    const restore = await request(app)
+    const restore = await api(app)
       .patch(`/api/v1/projects/${projectId}/restore`)
       .set("Authorization", `Bearer ${token}`);
     expect(restore.status).toBe(200);
@@ -268,7 +269,7 @@ describe.skipIf(!mongoAvailable)("projects API", () => {
 
     await createPropertyForProject(app, token, projectId, { status: "draft" });
 
-    await request(app)
+    await api(app)
       .delete(`/api/v1/projects/${projectId}`)
       .set("Authorization", `Bearer ${token}`);
 
@@ -277,14 +278,14 @@ describe.skipIf(!mongoAvailable)("projects API", () => {
     const trashedUnit = await Property.findOne({ projectId });
     expect(trashedUnit.deletedAt).toBeTruthy();
 
-    const restoreUnit = await request(app)
+    const restoreUnit = await api(app)
       .patch(`/api/v1/properties/${trashedUnit._id}/restore`)
       .set("Authorization", `Bearer ${token}`);
 
     expect(restoreUnit.status).toBe(400);
     expect(restoreUnit.body.message).toMatch(/parent project/i);
 
-    const mineTrash = await request(app)
+    const mineTrash = await api(app)
       .get("/api/v1/properties/mine?trashed=true")
       .set("Authorization", `Bearer ${token}`);
 
@@ -304,11 +305,11 @@ describe.skipIf(!mongoAvailable)("projects API", () => {
     const projectId = created.body.data._id;
     await createPropertyForProject(app, token, projectId, { status: "draft" });
 
-    await request(app)
+    await api(app)
       .delete(`/api/v1/projects/${projectId}`)
       .set("Authorization", `Bearer ${token}`);
 
-    const permanent = await request(app)
+    const permanent = await api(app)
       .delete(`/api/v1/projects/${projectId}/permanent`)
       .set("Authorization", `Bearer ${token}`);
     expect(permanent.status).toBe(200);
@@ -330,7 +331,7 @@ describe.skipIf(!mongoAvailable)("projects API", () => {
     const adminEmail = "unit-before-project-admin@example.com";
     await registerAndGetToken(app, adminEmail);
     await User.findOneAndUpdate({ email: adminEmail }, { role: "admin" });
-    const adminLogin = await request(app).post("/api/v1/auth/login").send({
+    const adminLogin = await api(app).post("/api/v1/auth/login").send({
       email: adminEmail,
       password: "password123",
     });
@@ -348,7 +349,7 @@ describe.skipIf(!mongoAvailable)("projects API", () => {
     );
     const unitId = unitRes.body.data._id;
 
-    const moderate = await request(app)
+    const moderate = await api(app)
       .patch(`/api/v1/admin/properties/${unitId}/moderate`)
       .set("Authorization", `Bearer ${adminToken}`)
       .send({ status: "active" });
@@ -365,7 +366,7 @@ describe.skipIf(!mongoAvailable)("projects API", () => {
     const adminEmail = "admin-archive-cascade-admin@example.com";
     await registerAndGetToken(app, adminEmail);
     await User.findOneAndUpdate({ email: adminEmail }, { role: "admin" });
-    const adminLogin = await request(app).post("/api/v1/auth/login").send({
+    const adminLogin = await api(app).post("/api/v1/auth/login").send({
       email: adminEmail,
       password: "password123",
     });
@@ -378,7 +379,7 @@ describe.skipIf(!mongoAvailable)("projects API", () => {
     });
     await Project.findByIdAndUpdate(projectId, { status: "active" });
 
-    const archive = await request(app)
+    const archive = await api(app)
       .patch(`/api/v1/admin/projects/${projectId}/moderate`)
       .set("Authorization", `Bearer ${adminToken}`)
       .send({ status: "archived" });
@@ -408,15 +409,15 @@ describe.skipIf(!mongoAvailable)("projects API", () => {
     });
     const unitAId = unitA.body.data._id;
 
-    await request(app)
+    await api(app)
       .delete(`/api/v1/properties/${unitAId}`)
       .set("Authorization", `Bearer ${token}`);
 
-    await request(app)
+    await api(app)
       .delete(`/api/v1/projects/${projectId}`)
       .set("Authorization", `Bearer ${token}`);
 
-    const restore = await request(app)
+    const restore = await api(app)
       .patch(`/api/v1/projects/${projectId}/restore`)
       .set("Authorization", `Bearer ${token}`);
     expect(restore.status).toBe(200);
@@ -438,7 +439,7 @@ describe.skipIf(!mongoAvailable)("projects API", () => {
     const created = await createProject(app, token);
     const projectId = created.body.data._id;
 
-    const permanent = await request(app)
+    const permanent = await api(app)
       .delete(`/api/v1/projects/${projectId}/permanent`)
       .set("Authorization", `Bearer ${token}`);
     expect(permanent.status).toBe(400);
@@ -462,7 +463,7 @@ describe.skipIf(!mongoAvailable)("projects API", () => {
 
     await Project.findByIdAndUpdate(projectId, { status: "active" });
 
-    const deleteUnit = await request(app)
+    const deleteUnit = await api(app)
       .delete(`/api/v1/properties/${unitId}`)
       .set("Authorization", `Bearer ${token}`);
     expect(deleteUnit.status).toBe(200);
@@ -487,11 +488,11 @@ describe.skipIf(!mongoAvailable)("projects API", () => {
     });
     const unitId = unitRes.body.data._id;
 
-    await request(app)
+    await api(app)
       .delete(`/api/v1/properties/${unitId}`)
       .set("Authorization", `Bearer ${token}`);
 
-    const detail = await request(app)
+    const detail = await api(app)
       .get(`/api/v1/projects/${projectId}?includeUnits=true`)
       .set("Authorization", `Bearer ${token}`);
 
@@ -514,7 +515,7 @@ describe.skipIf(!mongoAvailable)("projects API", () => {
     });
     const firstId = first.body.data._id;
 
-    await request(app)
+    await api(app)
       .delete(`/api/v1/properties/${firstId}`)
       .set("Authorization", `Bearer ${token}`);
 
@@ -524,7 +525,7 @@ describe.skipIf(!mongoAvailable)("projects API", () => {
     });
     expect(replacement.status).toBe(201);
 
-    const restoreUnit = await request(app)
+    const restoreUnit = await api(app)
       .patch(`/api/v1/properties/${firstId}/restore`)
       .set("Authorization", `Bearer ${token}`);
 

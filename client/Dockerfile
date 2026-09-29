@@ -1,25 +1,27 @@
 # syntax=docker.io/docker/dockerfile:1
+# Build from repo root: docker compose build client
 
 FROM node:20-alpine AS base
 
 FROM base AS deps
 RUN apk add --no-cache libc6-compat
-WORKDIR /app
-
-COPY package.json yarn.lock* package-lock.json* pnpm-lock.yaml* .npmrc* ./
-RUN \
-    if [ -f yarn.lock ]; then yarn --frozen-lockfile; \
-    elif [ -f package-lock.json ]; then npm ci; \
-    elif [ -f pnpm-lock.yaml ]; then corepack enable pnpm && pnpm i --frozen-lockfile; \
-    else echo "Lockfile not found." && exit 1; \
-    fi
+WORKDIR /app/client
+COPY client/package.json client/package-lock.json ./
+RUN --mount=type=cache,target=/root/.npm \
+    npm config set fetch-retries 5 && \
+    npm config set fetch-retry-mintimeout 20000 && \
+    npm config set fetch-retry-maxtimeout 120000 && \
+    npm config set fetch-timeout 600000 && \
+    npm ci --no-audit --no-fund
 
 FROM base AS builder
-WORKDIR /app
-COPY --from=deps /app/node_modules ./node_modules
-COPY . .
+WORKDIR /app/client
+COPY --from=deps /app/client/node_modules ./node_modules
+COPY client/ .
 
 ARG NEXT_PUBLIC_API_URL=https://api.buytly.com/api/v1
+ARG NEXT_PUBLIC_SITE_SLUG=buytly
+ARG NEXT_PUBLIC_SITE_NAME=Buytly
 ARG NEXT_PUBLIC_GOOGLE_CLIENT_ID=
 ARG NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=
 ARG NEXT_PUBLIC_SUPPORT_PHONE=+96171601751
@@ -27,18 +29,15 @@ ARG NEXT_PUBLIC_SUPPORT_PHONE_DISPLAY=+961 71 601 751
 ARG NEXT_PUBLIC_SUPPORT_EMAIL=buytlyonline@gmail.com
 
 ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
+ENV NEXT_PUBLIC_SITE_SLUG=${NEXT_PUBLIC_SITE_SLUG}
+ENV NEXT_PUBLIC_SITE_NAME=${NEXT_PUBLIC_SITE_NAME}
 ENV NEXT_PUBLIC_GOOGLE_CLIENT_ID=${NEXT_PUBLIC_GOOGLE_CLIENT_ID}
 ENV NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=${NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}
 ENV NEXT_PUBLIC_SUPPORT_PHONE=${NEXT_PUBLIC_SUPPORT_PHONE}
 ENV NEXT_PUBLIC_SUPPORT_PHONE_DISPLAY=${NEXT_PUBLIC_SUPPORT_PHONE_DISPLAY}
 ENV NEXT_PUBLIC_SUPPORT_EMAIL=${NEXT_PUBLIC_SUPPORT_EMAIL}
 
-RUN \
-    if [ -f yarn.lock ]; then yarn run build; \
-    elif [ -f package-lock.json ]; then npm run build; \
-    elif [ -f pnpm-lock.yaml ]; then corepack enable pnpm && pnpm run build; \
-    else echo "Lockfile not found." && exit 1; \
-    fi
+RUN npm run build
 
 FROM base AS runner
 WORKDIR /app
@@ -48,9 +47,9 @@ ENV NODE_ENV=production
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
-COPY --from=builder /app/public ./public
-COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
-COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+COPY --from=builder /app/client/public ./public
+COPY --from=builder --chown=nextjs:nodejs /app/client/.next/standalone ./
+COPY --from=builder --chown=nextjs:nodejs /app/client/.next/static ./.next/static
 
 USER nextjs
 

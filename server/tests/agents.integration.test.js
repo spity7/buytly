@@ -1,4 +1,5 @@
 import { describe, it, expect } from "vitest";
+import { api } from "./helpers/http.js";
 import request from "supertest";
 import { mongoAvailable } from "./setup.js";
 import { AgentProfile } from "../src/modules/agents/agent.model.js";
@@ -13,7 +14,7 @@ describe.skipIf(!mongoAvailable)("agents API", () => {
     const app = await getApp();
     const email = "agent-list@example.com";
 
-    const registered = await request(app)
+    const registered = await api(app)
       .post("/api/v1/auth/register")
       .send({
         email,
@@ -33,13 +34,13 @@ describe.skipIf(!mongoAvailable)("agents API", () => {
       { upsert: true },
     );
 
-    const listRes = await request(app).get("/api/v1/agents?city=Dubai");
+    const listRes = await api(app).get("/api/v1/agents?city=Dubai");
 
     expect(listRes.status).toBe(200);
     expect(listRes.body.success).toBe(true);
     expect(listRes.body.data.length).toBeGreaterThanOrEqual(1);
 
-    const detailRes = await request(app).get(`/api/v1/agents/${agentId}`);
+    const detailRes = await api(app).get(`/api/v1/agents/${agentId}`);
 
     expect(detailRes.status).toBe(200);
     expect(detailRes.body.data.user.firstName).toBe("Agent");

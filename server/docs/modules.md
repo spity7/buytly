@@ -77,7 +77,7 @@ Rate limit: 10 requests / hour / IP. Email to `CONTACT_INBOX_EMAIL` with Reply-T
 
 Default **amenities** are upserted on the first catalog API access per server process (missing values only). **Property types are admin- or seed-managed only** — they are not auto-created on catalog reads. Types can be deactivated or deleted when unused unless marked protected in catalog defaults. `npm run seed:reset` loads demo listing types plus demo amenities. Run `npm run catalog:prune-legacy-types` to drop unused legacy bootstrap types from an existing DB. Listing create/update validates `type` and `amenities` against active catalog entries. Catalog **`value` (slug / stored amenity string) is immutable** after creation — updates change label, sort order, and active flag only. Admin create/update rejects **duplicate display names** (case-insensitive) and duplicate property-type slugs on create. **`currency` is always stored as `USD`** on properties (client cannot override).
 
-**Dependencies:** nearby.service, cache.service (nearby preview)
+**Dependencies:** nearby.service
 
 ---
 
@@ -103,7 +103,7 @@ Publish rules: ≥ 1 **live** (non-trashed) unit when status is `pending` or `ac
 
 **Permanent delete:** `DELETE /projects/:id/permanent` removes a **trashed** project, all its units, GCS media, favorites, reviews, and non-blocking bookings/transactions. Blocked (409) when any unit has open visit bookings or purchase/transaction records. `DELETE /properties/:id/permanent` applies the same rules to a single trashed unit.
 
-**Dependencies:** properties (units), gcs.service, cache.service, notifications
+**Dependencies:** properties (units), gcs.service, notifications
 
 ---
 
@@ -146,7 +146,7 @@ Public `GET /properties` defaults to `status=active` and only includes units who
 
 Pending unit submissions notify all active admins (includes `projectId` / `projectTitle` when available). Admin moderation notifies the listing owner.
 
-**Dependencies:** gcs.service, image.service (via gcs upload), cache.service, notifications
+**Dependencies:** gcs.service, image.service (via gcs upload), notifications
 
 ---
 
@@ -211,7 +211,7 @@ POST returns 404 if the property is not active.
 
 Completing a transaction sets the property to `sold`, then sets the parent project to `sold` when every non-trashed unit on that project is sold. Admin property moderation or `PATCH` to `sold` triggers the same parent sync. The project owner is notified via `project.status_changed` when the project auto-transitions to `sold`. Listing caches are invalidated. Public project detail by slug/id is available for `active` and `sold` projects; unit lists on the project page separate available (`active`) and `sold` units.
 
-**Dependencies:** properties, notifications, cache.service
+**Dependencies:** properties, notifications
 
 ---
 
@@ -233,7 +233,23 @@ Completing a transaction sets the property to `sold`, then sets the parent proje
 
 Moderation notifies the listing owner (in-app + email).
 
-**Dependencies:** users, properties, bookings, transactions, cache.service, notifications
+**Dependencies:** users, properties, bookings, transactions, notifications
+
+Platform admins (`platformPermissions` on Buytly `admin` users) may pass `?siteId=` on list/analytics endpoints to moderate partner tenants.
+
+---
+
+## platform
+
+**Responsibility:** Buytly-only cross-site discovery (partner listings).
+
+| Endpoint                    | Method | Auth | Input       | Output                                     |
+| --------------------------- | ------ | ---- | ----------- | ------------------------------------------ |
+| /platform/featured-listings | GET    | —    | page, limit | Partner properties + `sourceSite` metadata |
+
+Requires resolved site `kind: platform` (Buytly Origin / `X-Site-Slug: buytly`). Returns opt-in listings from tenant sites (`visibleOnPlatform` + site policy).
+
+**Dependencies:** properties, projects, sites
 
 ---
 

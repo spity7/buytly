@@ -6,6 +6,7 @@ import {
   parsePagination,
   buildPaginationMeta,
 } from "../../shared/pagination.js";
+import { getRequestSiteId } from "../../shared/requestContext.js";
 
 export const favoriteService = {
   async list(userId, query) {
@@ -48,6 +49,7 @@ export const favoriteService = {
   async add(userId, propertyId) {
     const property = await Property.findOne({
       _id: propertyId,
+      siteId: getRequestSiteId(),
       deletedAt: null,
       status: "active",
     });

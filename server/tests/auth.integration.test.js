@@ -1,4 +1,5 @@
 import { describe, it, expect } from "vitest";
+import { api } from "./helpers/http.js";
 import request from "supertest";
 import { mongoAvailable } from "./setup.js";
 import { User } from "../src/modules/users/user.model.js";
@@ -22,7 +23,7 @@ const registerPayload = (overrides = {}) => ({
 describe.skipIf(!mongoAvailable)("auth API", () => {
   it("registers a new user and returns tokens", async () => {
     const app = await getApp();
-    const res = await request(app)
+    const res = await api(app)
       .post("/api/v1/auth/register")
       .send(registerPayload({ email: "buyer@example.com" }));
 
@@ -36,7 +37,7 @@ describe.skipIf(!mongoAvailable)("auth API", () => {
 
   it("rejects registration when passwords do not match", async () => {
     const app = await getApp();
-    const res = await request(app).post("/api/v1/auth/register").send({
+    const res = await api(app).post("/api/v1/auth/register").send({
       email: "mismatch@example.com",
       password: "password123",
       confirmPassword: "different123",
@@ -50,8 +51,8 @@ describe.skipIf(!mongoAvailable)("auth API", () => {
     const app = await getApp();
     const payload = registerPayload({ email: "dup@example.com" });
 
-    await request(app).post("/api/v1/auth/register").send(payload);
-    const res = await request(app).post("/api/v1/auth/register").send(payload);
+    await api(app).post("/api/v1/auth/register").send(payload);
+    const res = await api(app).post("/api/v1/auth/register").send(payload);
 
     expect(res.status).toBe(409);
     expect(res.body.success).toBe(false);
@@ -59,7 +60,7 @@ describe.skipIf(!mongoAvailable)("auth API", () => {
 
   it("creates agent profile when registering as agent", async () => {
     const app = await getApp();
-    const res = await request(app)
+    const res = await api(app)
       .post("/api/v1/auth/register")
       .send(
         registerPayload({
@@ -79,7 +80,7 @@ describe.skipIf(!mongoAvailable)("auth API", () => {
     const email = "verify@example.com";
     const plainToken = "test-verification-token-hex-value";
 
-    await request(app)
+    await api(app)
       .post("/api/v1/auth/register")
       .send(registerPayload({ email }));
 
@@ -90,7 +91,7 @@ describe.skipIf(!mongoAvailable)("auth API", () => {
     user.emailVerificationExpires = new Date(Date.now() + 60 * 60 * 1000);
     await user.save();
 
-    const res = await request(app)
+    const res = await api(app)
       .post("/api/v1/auth/verify-email")
       .send({ token: plainToken });
 
@@ -103,16 +104,16 @@ describe.skipIf(!mongoAvailable)("auth API", () => {
     const email = "reregister@example.com";
     const password = "password123";
 
-    const first = await request(app)
+    const first = await api(app)
       .post("/api/v1/auth/register")
       .send(registerPayload({ email, password }));
 
-    await request(app)
+    await api(app)
       .delete("/api/v1/users/me")
       .set("Authorization", `Bearer ${first.body.data.accessToken}`)
       .send({ password });
 
-    const second = await request(app)
+    const second = await api(app)
       .post("/api/v1/auth/register")
       .send(registerPayload({ email, password, firstName: "New" }));
 
@@ -126,11 +127,11 @@ describe.skipIf(!mongoAvailable)("auth API", () => {
     const email = "login@example.com";
     const password = "password123";
 
-    await request(app)
+    await api(app)
       .post("/api/v1/auth/register")
       .send(registerPayload({ email, password }));
 
-    const res = await request(app)
+    const res = await api(app)
       .post("/api/v1/auth/login")
       .send({ email, password });
 
@@ -144,20 +145,20 @@ describe.skipIf(!mongoAvailable)("auth API", () => {
     const email = "refresh@example.com";
     const password = "password123";
 
-    const register = await request(app)
+    const register = await api(app)
       .post("/api/v1/auth/register")
       .send(registerPayload({ email, password }));
 
     const oldRefresh = register.body.data.refreshToken;
 
-    const refresh = await request(app)
+    const refresh = await api(app)
       .post("/api/v1/auth/refresh")
       .send({ refreshToken: oldRefresh });
 
     expect(refresh.status).toBe(200);
     expect(refresh.body.data.refreshToken).not.toBe(oldRefresh);
 
-    const replay = await request(app)
+    const replay = await api(app)
       .post("/api/v1/auth/refresh")
       .send({ refreshToken: oldRefresh });
 
@@ -170,13 +171,13 @@ describe.skipIf(!mongoAvailable)("auth API", () => {
     const password = "password123";
     const newPassword = "newpassword456";
 
-    const register = await request(app)
+    const register = await api(app)
       .post("/api/v1/auth/register")
       .send(registerPayload({ email, password }));
 
     const token = register.body.data.accessToken;
 
-    const change = await request(app)
+    const change = await api(app)
       .post("/api/v1/auth/change-password")
       .set("Authorization", `Bearer ${token}`)
       .send({
@@ -187,12 +188,12 @@ describe.skipIf(!mongoAvailable)("auth API", () => {
 
     expect(change.status).toBe(200);
 
-    const oldLogin = await request(app)
+    const oldLogin = await api(app)
       .post("/api/v1/auth/login")
       .send({ email, password });
     expect(oldLogin.status).toBe(401);
 
-    const newLogin = await request(app)
+    const newLogin = await api(app)
       .post("/api/v1/auth/login")
       .send({ email, password: newPassword });
     expect(newLogin.status).toBe(200);
@@ -203,13 +204,13 @@ describe.skipIf(!mongoAvailable)("auth API", () => {
     const email = "social@example.com";
     const password = "password123";
 
-    const register = await request(app)
+    const register = await api(app)
       .post("/api/v1/auth/register")
       .send(registerPayload({ email, password }));
 
     const token = register.body.data.accessToken;
 
-    const update = await request(app)
+    const update = await api(app)
       .patch("/api/v1/users/me/social-links")
       .set("Authorization", `Bearer ${token}`)
       .send({
@@ -229,13 +230,13 @@ describe.skipIf(!mongoAvailable)("auth API", () => {
     const email = "phone@example.com";
     const password = "password123";
 
-    const register = await request(app)
+    const register = await api(app)
       .post("/api/v1/auth/register")
       .send(registerPayload({ email, password }));
 
     const token = register.body.data.accessToken;
 
-    const update = await request(app)
+    const update = await api(app)
       .patch("/api/v1/users/me")
       .set("Authorization", `Bearer ${token}`)
       .send({
@@ -253,13 +254,13 @@ describe.skipIf(!mongoAvailable)("auth API", () => {
     const email = "phone-clear@example.com";
     const password = "password123";
 
-    const register = await request(app)
+    const register = await api(app)
       .post("/api/v1/auth/register")
       .send(registerPayload({ email, password }));
 
     const token = register.body.data.accessToken;
 
-    await request(app)
+    await api(app)
       .patch("/api/v1/users/me")
       .set("Authorization", `Bearer ${token}`)
       .send({
@@ -267,7 +268,7 @@ describe.skipIf(!mongoAvailable)("auth API", () => {
         phoneNumber: "501234567",
       });
 
-    const clear = await request(app)
+    const clear = await api(app)
       .patch("/api/v1/users/me")
       .set("Authorization", `Bearer ${token}`)
       .send({ phoneNumber: "" });

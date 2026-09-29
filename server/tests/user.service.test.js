@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
 import { mongoAvailable } from "./setup.js";
+import { getTestSiteId } from "./helpers/runWithTestSite.js";
 import { User } from "../src/modules/users/user.model.js";
 import { Property } from "../src/modules/properties/property.model.js";
 import { Project } from "../src/modules/projects/project.model.js";
@@ -30,7 +31,9 @@ describe.skipIf(!mongoAvailable)("user.service", () => {
     const { userService } =
       await import("../src/modules/users/user.service.js");
 
+    const siteId = await getTestSiteId();
     const user = await User.create({
+      siteId,
       email: "avatar-profile@example.com",
       passwordHash: "hash",
       avatar: {
@@ -57,7 +60,9 @@ describe.skipIf(!mongoAvailable)("user.service", () => {
     const { Property } =
       await import("../src/modules/properties/property.model.js");
 
+    const siteId = await getTestSiteId();
     const user = await User.create({
+      siteId,
       email: "delete-retention@example.com",
       passwordHash: await (
         await import("bcrypt")
@@ -70,6 +75,7 @@ describe.skipIf(!mongoAvailable)("user.service", () => {
     });
 
     const project = await Project.create({
+      siteId,
       title: "Live project",
       slug: "live-project-delete-test",
       description: "Should stay active",
@@ -84,6 +90,7 @@ describe.skipIf(!mongoAvailable)("user.service", () => {
     });
 
     await Property.create({
+      siteId,
       title: "Live listing",
       slug: "live-listing-delete-test",
       description: "Should stay active",

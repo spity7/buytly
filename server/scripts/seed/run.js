@@ -1,7 +1,6 @@
 import bcrypt from "bcrypt";
 import { connectDB, disconnectDB, isDBConnected } from "../../src/config/db.js";
 import { buildArchiveUpdate } from "../../src/modules/properties/property-status.js";
-import { cacheService } from "../../src/services/cache.service.js";
 import { User } from "../../src/modules/users/user.model.js";
 import { AgentProfile } from "../../src/modules/agents/agent.model.js";
 import { Property } from "../../src/modules/properties/property.model.js";
@@ -26,18 +25,30 @@ import {
 import { PropertyTypeCatalog } from "../../src/modules/catalog/property-type.model.js";
 import { AmenityCatalog } from "../../src/modules/catalog/amenity.model.js";
 import { DEFAULT_AMENITIES } from "../../src/modules/catalog/catalog.defaults.js";
+import { siteService } from "../../src/modules/sites/site.service.js";
+import { Site } from "../../src/modules/sites/site.model.js";
+import { PLATFORM_PERMISSIONS } from "../../src/modules/sites/site.constants.js";
 
 const SALT_ROUNDS = 12;
+let seedSiteId = null;
+
+async function getSeedSiteId() {
+  if (seedSiteId) return seedSiteId;
+  await siteService.ensureDefaultSites();
+  seedSiteId = (await Site.findOne({ slug: "buytly" }))._id;
+  return seedSiteId;
+}
 
 async function buildUniqueSlug(title, Model = Property) {
+  const siteId = await getSeedSiteId();
   let slug = slugify(title);
   let counter = 0;
-  let exists = await Model.findOne({ slug });
+  let exists = await Model.findOne({ siteId, slug });
 
   while (exists) {
     counter += 1;
     slug = `${slugify(title)}-${counter}`;
-    exists = await Model.findOne({ slug });
+    exists = await Model.findOne({ siteId, slug });
   }
 
   return slug;
@@ -61,14 +72,17 @@ async function clearDatabase() {
 }
 
 async function ensureSeedCatalog(reset) {
-  const typeCount = await PropertyTypeCatalog.countDocuments();
+  const siteId = await getSeedSiteId();
+  const typeCount = await PropertyTypeCatalog.countDocuments({ siteId });
 
   if (reset || typeCount === 0) {
-    await PropertyTypeCatalog.insertMany(buildSeedPropertyTypes());
+    await PropertyTypeCatalog.insertMany(
+      buildSeedPropertyTypes().map((entry) => ({ ...entry, siteId })),
+    );
 
     const amenityByValue = new Map();
     for (const item of [...DEFAULT_AMENITIES, ...SEED_DEMO_AMENITIES]) {
-      amenityByValue.set(item.value, item);
+      amenityByValue.set(item.value, { ...item, siteId });
     }
     await AmenityCatalog.insertMany([...amenityByValue.values()]);
     return;
@@ -76,8 +90,8 @@ async function ensureSeedCatalog(reset) {
 
   for (const item of SEED_DEMO_AMENITIES) {
     await AmenityCatalog.updateOne(
-      { value: item.value },
-      { $setOnInsert: item },
+      { siteId, value: item.value },
+      { $setOnInsert: { ...item, siteId } },
       { upsert: true },
     );
   }
@@ -86,9 +100,18 @@ async function ensureSeedCatalog(reset) {
 async function seedUsers(password) {
   const passwordHash = await bcrypt.hash(password, SALT_ROUNDS);
   const usersByKey = {};
+  const siteId = await getSeedSiteId();
 
   for (const def of SEED_USERS) {
+    const platformPermissions =
+      def.role === "admin"
+        ? [
+            PLATFORM_PERMISSIONS.CROSS_SITE_READ,
+            PLATFORM_PERMISSIONS.CROSS_SITE_MODERATE,
+          ]
+        : [];
     const user = await User.create({
+      siteId,
       email: def.email,
       passwordHash,
       role: def.role,
@@ -101,6 +124,7 @@ async function seedUsers(password) {
       isEmailVerified: true,
       isActive: true,
       authProvider: "local",
+      platformPermissions,
     });
     usersByKey[def.key] = user;
   }
@@ -126,6 +150,7 @@ async function seedAgentProfiles(usersByKey) {
 
 async function seedProperties(usersByKey) {
   const propertiesByTitle = {};
+  const siteId = await getSeedSiteId();
 
   for (const def of SEED_PROPERTIES) {
     const projectSlug = await buildUniqueSlug(`${def.title} Project`, Project);
@@ -140,6 +165,7 @@ async function seedProperties(usersByKey) {
     };
 
     const project = await Project.create({
+      siteId,
       title: def.title,
       slug: projectSlug,
       description: def.description,
@@ -154,6 +180,7 @@ async function seedProperties(usersByKey) {
     });
 
     const property = await Property.create({
+      siteId,
       title: def.title,
       slug: unitSlug,
       description: def.description,
@@ -186,6 +213,7 @@ async function seedProperties(usersByKey) {
 async function seedMultiUnitPartialDemo(usersByKey) {
   const owner = usersByKey.seller;
   const agent = usersByKey.agent;
+  const siteId = await getSeedSiteId();
   const projectSlug = await buildUniqueSlug(
     "JVC Residences Project",
     Project,
@@ -200,6 +228,7 @@ async function seedMultiUnitPartialDemo(usersByKey) {
   };
 
   const project = await Project.create({
+    siteId,
     title: "JVC Residences",
     slug: projectSlug,
     description:
@@ -235,6 +264,7 @@ async function seedMultiUnitPartialDemo(usersByKey) {
   for (const def of unitDefs) {
     const unitSlug = await buildUniqueSlug(def.title);
     await Property.create({
+      siteId,
       title: def.title,
       slug: unitSlug,
       description: def.title,
@@ -479,11 +509,6 @@ export async function runSeed({ reset = false, password, disconnect = true }) {
 
   console.log("[seed] Creating notifications...");
   await seedNotifications(usersByKey, propertiesByTitle);
-
-  if (cacheService.isEnabled()) {
-    console.log("[seed] Invalidating listing caches...");
-    await cacheService.invalidateListingCaches();
-  }
 
   printSummary(password);
 

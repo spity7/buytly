@@ -1,4 +1,5 @@
 import { describe, it, expect } from "vitest";
+import { api } from "./helpers/http.js";
 import request from "supertest";
 import { mongoAvailable } from "./setup.js";
 import { createActiveProperty } from "./helpers/listingFixtures.js";
@@ -9,7 +10,7 @@ const getApp = async () => {
 };
 
 const register = async (app, overrides = {}) => {
-  const res = await request(app)
+  const res = await api(app)
     .post("/api/v1/auth/register")
     .send({
       email: "buyer@example.com",
@@ -40,34 +41,34 @@ describe.skipIf(!mongoAvailable)("favorites API", () => {
       price: 250000,
     });
 
-    const addRes = await request(app)
+    const addRes = await api(app)
       .post("/api/v1/favorites")
       .set("Authorization", `Bearer ${buyerToken}`)
       .send({ propertyId });
 
     expect(addRes.status).toBe(201);
 
-    const checkRes = await request(app)
+    const checkRes = await api(app)
       .get(`/api/v1/favorites/check/${propertyId}`)
       .set("Authorization", `Bearer ${buyerToken}`);
 
     expect(checkRes.status).toBe(200);
     expect(checkRes.body.data.isFavorite).toBe(true);
 
-    const listRes = await request(app)
+    const listRes = await api(app)
       .get("/api/v1/favorites")
       .set("Authorization", `Bearer ${buyerToken}`);
 
     expect(listRes.status).toBe(200);
     expect(listRes.body.data.length).toBe(1);
 
-    const removeRes = await request(app)
+    const removeRes = await api(app)
       .delete(`/api/v1/favorites/${propertyId}`)
       .set("Authorization", `Bearer ${buyerToken}`);
 
     expect(removeRes.status).toBe(200);
 
-    const checkAfterRemove = await request(app)
+    const checkAfterRemove = await api(app)
       .get(`/api/v1/favorites/check/${propertyId}`)
       .set("Authorization", `Bearer ${buyerToken}`);
 

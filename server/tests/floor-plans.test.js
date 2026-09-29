@@ -1,4 +1,5 @@
 import { describe, it, expect } from "vitest";
+import { api } from "./helpers/http.js";
 import request from "supertest";
 import { mongoAvailable } from "./setup.js";
 import {
@@ -18,7 +19,7 @@ const getApp = async () => {
 };
 
 const registerAndGetToken = async (app, email) => {
-  const res = await request(app).post("/api/v1/auth/register").send({
+  const res = await api(app).post("/api/v1/auth/register").send({
     email,
     password: "password123",
     confirmPassword: "password123",
@@ -70,7 +71,7 @@ describe.skipIf(!mongoAvailable)("floor-plans API", () => {
       floorPlans: [sampleFloorPlan],
     });
 
-    const res = await request(app)
+    const res = await api(app)
       .post("/api/v1/properties")
       .set("Authorization", `Bearer ${token}`)
       .send(body);
@@ -90,7 +91,7 @@ describe.skipIf(!mongoAvailable)("floor-plans API", () => {
       floorPlans: [{ title: "Level 1", area: 120, bedrooms: 2 }],
     });
 
-    const res = await request(app)
+    const res = await api(app)
       .post("/api/v1/properties")
       .set("Authorization", `Bearer ${token}`)
       .send(body);
@@ -132,7 +133,7 @@ describe.skipIf(!mongoAvailable)("floor-plans API", () => {
     expect(created.status).toBe(201);
     const id = created.body.data._id;
 
-    const updated = await request(app)
+    const updated = await api(app)
       .patch(`/api/v1/properties/${id}`)
       .set("Authorization", `Bearer ${token}`)
       .send({ type: "apartment" });

@@ -22,8 +22,14 @@ const floorPlanSchema = new mongoose.Schema(
 
 const propertySchema = new mongoose.Schema(
   {
+    siteId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Site",
+      required: true,
+      index: true,
+    },
     title: { type: String, required: true, trim: true },
-    slug: { type: String, required: true, unique: true, lowercase: true },
+    slug: { type: String, required: true, lowercase: true },
     description: { type: String, required: true },
     type: { type: String, required: true, trim: true, lowercase: true },
     projectId: {
@@ -63,11 +69,13 @@ const propertySchema = new mongoose.Schema(
       required: true,
     },
     viewCount: { type: Number, default: 0 },
+    visibleOnPlatform: { type: Boolean, default: false },
     deletedAt: { type: Date, default: null },
   },
   { timestamps: true },
 );
 
+propertySchema.index({ siteId: 1, slug: 1 }, { unique: true });
 propertySchema.index({ location: "2dsphere" });
 propertySchema.index({ price: 1 });
 propertySchema.index({ type: 1 });

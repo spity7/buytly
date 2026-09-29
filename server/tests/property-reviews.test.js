@@ -1,4 +1,5 @@
 import { describe, it, expect } from "vitest";
+import { api } from "./helpers/http.js";
 import request from "supertest";
 import { mongoAvailable } from "./setup.js";
 import { Property } from "../src/modules/properties/property.model.js";
@@ -29,7 +30,7 @@ const reviewPropertyExtras = {
 };
 
 const registerAndGetToken = async (app, overrides = {}) => {
-  const res = await request(app)
+  const res = await api(app)
     .post("/api/v1/auth/register")
     .send(
       registerPayload({
@@ -49,7 +50,7 @@ describe.skipIf(!mongoAvailable)("property reviews API", () => {
 
     const propertyId = await createActiveProperty(app, sellerToken);
 
-    await request(app)
+    await api(app)
       .post(`/api/v1/properties/${propertyId}/reviews`)
       .set("Authorization", `Bearer ${buyerToken}`)
       .send({
@@ -59,7 +60,7 @@ describe.skipIf(!mongoAvailable)("property reviews API", () => {
       })
       .expect(201);
 
-    const res = await request(app)
+    const res = await api(app)
       .get(`/api/v1/properties/${propertyId}/reviews`)
       .expect(200);
 
@@ -76,7 +77,7 @@ describe.skipIf(!mongoAvailable)("property reviews API", () => {
 
     const propertyId = await createActiveProperty(app, sellerToken);
 
-    await request(app)
+    await api(app)
       .post(`/api/v1/properties/${propertyId}/reviews`)
       .set("Authorization", `Bearer ${buyerToken}`)
       .send({
@@ -86,7 +87,7 @@ describe.skipIf(!mongoAvailable)("property reviews API", () => {
       })
       .expect(201);
 
-    const duplicate = await request(app)
+    const duplicate = await api(app)
       .post(`/api/v1/properties/${propertyId}/reviews`)
       .set("Authorization", `Bearer ${buyerToken}`)
       .send({
@@ -105,14 +106,14 @@ describe.skipIf(!mongoAvailable)("property reviews API", () => {
 
     const propertyId = await createActiveProperty(app, sellerToken);
 
-    const before = await request(app)
+    const before = await api(app)
       .get(`/api/v1/properties/${propertyId}/reviews/check`)
       .set("Authorization", `Bearer ${buyerToken}`)
       .expect(200);
 
     expect(before.body.data.hasReviewed).toBe(false);
 
-    await request(app)
+    await api(app)
       .post(`/api/v1/properties/${propertyId}/reviews`)
       .set("Authorization", `Bearer ${buyerToken}`)
       .send({
@@ -122,7 +123,7 @@ describe.skipIf(!mongoAvailable)("property reviews API", () => {
       })
       .expect(201);
 
-    const after = await request(app)
+    const after = await api(app)
       .get(`/api/v1/properties/${propertyId}/reviews/check`)
       .set("Authorization", `Bearer ${buyerToken}`)
       .expect(200);
@@ -136,7 +137,7 @@ describe.skipIf(!mongoAvailable)("property reviews API", () => {
     const app = await getApp();
     const buyerToken = await registerAndGetToken(app, { role: "buyer" });
 
-    const res = await request(app)
+    const res = await api(app)
       .get("/api/v1/properties/mine/reviews")
       .set("Authorization", `Bearer ${buyerToken}`);
 
@@ -151,7 +152,7 @@ describe.skipIf(!mongoAvailable)("property reviews API", () => {
       title: "No Reviews Yet Property",
     });
 
-    const res = await request(app)
+    const res = await api(app)
       .get("/api/v1/properties/mine/reviews")
       .set("Authorization", `Bearer ${sellerToken}`)
       .expect(200);
@@ -169,7 +170,7 @@ describe.skipIf(!mongoAvailable)("property reviews API", () => {
       title: "Review Test Apartment",
     });
 
-    await request(app)
+    await api(app)
       .post(`/api/v1/properties/${propertyId}/reviews`)
       .set("Authorization", `Bearer ${buyerToken}`)
       .send({
@@ -179,7 +180,7 @@ describe.skipIf(!mongoAvailable)("property reviews API", () => {
       })
       .expect(201);
 
-    const res = await request(app)
+    const res = await api(app)
       .get("/api/v1/properties/mine/reviews")
       .set("Authorization", `Bearer ${sellerToken}`)
       .expect(200);
@@ -199,7 +200,7 @@ describe.skipIf(!mongoAvailable)("property reviews API", () => {
 
     const propertyId = await createActiveProperty(app, sellerToken);
 
-    const created = await request(app)
+    const created = await api(app)
       .post(`/api/v1/properties/${propertyId}/reviews`)
       .set("Authorization", `Bearer ${buyerToken}`)
       .send({
@@ -211,12 +212,12 @@ describe.skipIf(!mongoAvailable)("property reviews API", () => {
 
     const reviewId = created.body.data._id;
 
-    await request(app)
+    await api(app)
       .delete(`/api/v1/properties/${propertyId}/reviews/${reviewId}`)
       .set("Authorization", `Bearer ${buyerToken}`)
       .expect(200);
 
-    const list = await request(app)
+    const list = await api(app)
       .get(`/api/v1/properties/${propertyId}/reviews`)
       .expect(200);
 
@@ -230,7 +231,7 @@ describe.skipIf(!mongoAvailable)("property reviews API", () => {
     const agentToken = await registerAndGetToken(app, { role: "agent" });
     const buyerToken = await registerAndGetToken(app, { role: "buyer" });
 
-    const agentProfile = await request(app)
+    const agentProfile = await api(app)
       .get("/api/v1/users/me")
       .set("Authorization", `Bearer ${agentToken}`)
       .expect(200);
@@ -242,7 +243,7 @@ describe.skipIf(!mongoAvailable)("property reviews API", () => {
 
     await Property.findByIdAndUpdate(propertyId, { agentId });
 
-    await request(app)
+    await api(app)
       .post(`/api/v1/properties/${propertyId}/reviews`)
       .set("Authorization", `Bearer ${buyerToken}`)
       .send({
@@ -252,7 +253,7 @@ describe.skipIf(!mongoAvailable)("property reviews API", () => {
       })
       .expect(201);
 
-    const res = await request(app)
+    const res = await api(app)
       .get("/api/v1/properties/mine/reviews")
       .set("Authorization", `Bearer ${agentToken}`)
       .expect(200);
@@ -267,7 +268,7 @@ describe.skipIf(!mongoAvailable)("property reviews API", () => {
     const app = await getApp();
     const sellerToken = await registerAndGetToken(app, { role: "seller" });
 
-    const created = await request(app)
+    const created = await api(app)
       .post("/api/v1/properties")
       .set("Authorization", `Bearer ${sellerToken}`)
       .send(
@@ -279,7 +280,7 @@ describe.skipIf(!mongoAvailable)("property reviews API", () => {
 
     const propertyId = created.body.data._id;
 
-    const res = await request(app)
+    const res = await api(app)
       .get(`/api/v1/properties/${propertyId}/reviews`)
       .set("Authorization", `Bearer ${sellerToken}`)
       .expect(200);
@@ -294,7 +295,7 @@ describe.skipIf(!mongoAvailable)("property extended fields", () => {
     const app = await getApp();
     const token = await registerAndGetToken(app, { role: "seller" });
 
-    const created = await request(app)
+    const created = await api(app)
       .post("/api/v1/properties")
       .set("Authorization", `Bearer ${token}`)
       .send(

@@ -68,5 +68,38 @@ jobs:
         run: npm run build
         env:
           NEXT_PUBLIC_API_URL: http://localhost:5025/api/v1
+          NEXT_PUBLIC_SITE_SLUG: buytly
+          NEXT_PUBLIC_SITE_NAME: Buytly
+          NEXT_PUBLIC_GOOGLE_CLIENT_ID: ""
+          NEXT_PUBLIC_GOOGLE_MAPS_API_KEY: ""
+
+  buildwise-web:
+    name: Buildwise web (build)
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: apps/buildwise-web
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: apps/buildwise-web/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+        env:
+          NEXT_PUBLIC_API_URL: http://localhost:5025/api/v1
+          NEXT_PUBLIC_SITE_SLUG: buildwise
+          NEXT_PUBLIC_SITE_NAME: Buildwise Engineering
           NEXT_PUBLIC_GOOGLE_CLIENT_ID: ""
           NEXT_PUBLIC_GOOGLE_MAPS_API_KEY: ""

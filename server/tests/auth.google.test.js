@@ -4,6 +4,7 @@ import { AppError } from "../src/shared/AppError.js";
 import { User } from "../src/modules/users/user.model.js";
 import { AgentProfile } from "../src/modules/agents/agent.model.js";
 import { generatePasswordResetToken } from "../src/services/token.service.js";
+import { runWithTestSite, getTestSiteId } from "./helpers/runWithTestSite.js";
 
 vi.mock("../src/services/google.service.js", () => ({
   googleService: {
@@ -43,10 +44,12 @@ describe.skipIf(!mongoAvailable)("authService.googleAuth", () => {
   });
 
   it("creates a new Google user and returns tokens", async () => {
-    const result = await authService.googleAuth({
-      idToken: "valid-id-token",
-      role: "buyer",
-    });
+    const result = await runWithTestSite(() =>
+      authService.googleAuth({
+        idToken: "valid-id-token",
+        role: "buyer",
+      }),
+    );
 
     expect(result.accessToken).toBeTypeOf("string");
     expect(result.refreshToken).toBeTypeOf("string");
@@ -62,10 +65,12 @@ describe.skipIf(!mongoAvailable)("authService.googleAuth", () => {
   });
 
   it("creates an agent profile for new Google agent sign-ups", async () => {
-    const result = await authService.googleAuth({
-      idToken: "valid-id-token",
-      role: "agent",
-    });
+    const result = await runWithTestSite(() =>
+      authService.googleAuth({
+        idToken: "valid-id-token",
+        role: "agent",
+      }),
+    );
 
     expect(result.user.role).toBe("agent");
     const profile = await AgentProfile.findOne({ userId: result.user.id });
@@ -73,30 +78,38 @@ describe.skipIf(!mongoAvailable)("authService.googleAuth", () => {
   });
 
   it("logs in an existing Google-linked user", async () => {
+    const siteId = await getTestSiteId();
     await User.create({
+      siteId,
       email: googleProfile.email,
       googleId: googleProfile.googleId,
       authProvider: "google",
       isEmailVerified: true,
     });
 
-    const result = await authService.googleAuth({
-      idToken: "valid-id-token",
-    });
+    const result = await runWithTestSite(() =>
+      authService.googleAuth({
+        idToken: "valid-id-token",
+      }),
+    );
 
     expect(result.user.email).toBe(googleProfile.email);
     expect(await User.countDocuments({ email: googleProfile.email })).toBe(1);
   });
 
   it("links Google to an existing password account and auto-verifies email", async () => {
+    const siteId = await getTestSiteId();
     await User.create({
+      siteId,
       email: googleProfile.email,
       passwordHash: "hashed-password",
       authProvider: "local",
       isEmailVerified: false,
     });
 
-    const result = await authService.googleAuth({ idToken: "valid-id-token" });
+    const result = await runWithTestSite(() =>
+      authService.googleAuth({ idToken: "valid-id-token" }),
+    );
 
     expect(result.user.email).toBe(googleProfile.email);
     expect(result.user.authProvider).toBe("both");
@@ -111,7 +124,9 @@ describe.skipIf(!mongoAvailable)("authService.googleAuth", () => {
   });
 
   it("rejects Google sign-in when email is linked to a different Google account", async () => {
+    const siteId = await getTestSiteId();
     await User.create({
+      siteId,
       email: googleProfile.email,
       passwordHash: "hashed-password",
       googleId: "other-google-sub",
@@ -120,7 +135,9 @@ describe.skipIf(!mongoAvailable)("authService.googleAuth", () => {
     });
 
     await expect(
-      authService.googleAuth({ idToken: "valid-id-token" }),
+      runWithTestSite(() =>
+        authService.googleAuth({ idToken: "valid-id-token" }),
+      ),
     ).rejects.toMatchObject({
       statusCode: 409,
     });
@@ -133,14 +150,18 @@ describe.skipIf(!mongoAvailable)("authService.googleAuth", () => {
     });
 
     await expect(
-      authService.googleAuth({ idToken: "valid-id-token" }),
+      runWithTestSite(() =>
+        authService.googleAuth({ idToken: "valid-id-token" }),
+      ),
     ).rejects.toBeInstanceOf(AppError);
   });
 
   it("sets authProvider to both when a Google-only user resets password", async () => {
     const { token, hashed, expires } = generatePasswordResetToken();
 
+    const siteId = await getTestSiteId();
     await User.create({
+      siteId,
       email: googleProfile.email,
       googleId: googleProfile.googleId,
       authProvider: "google",
@@ -149,7 +170,9 @@ describe.skipIf(!mongoAvailable)("authService.googleAuth", () => {
       passwordResetExpires: expires,
     });
 
-    await authService.resetPassword(token, "newpassword123");
+    await runWithTestSite(() =>
+      authService.resetPassword(token, "newpassword123"),
+    );
 
     const stored = await User.findOne({ email: googleProfile.email }).select(
       "+passwordHash +googleId",

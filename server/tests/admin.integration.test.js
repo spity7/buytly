@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
-import request from "supertest";
 import { mongoAvailable } from "./setup.js";
+import { api } from "./helpers/http.js";
+import { getTestSiteId } from "./helpers/runWithTestSite.js";
 import { User } from "../src/modules/users/user.model.js";
 import { Property } from "../src/modules/properties/property.model.js";
 import { Project } from "../src/modules/projects/project.model.js";
@@ -20,13 +21,14 @@ const registerPayload = (overrides = {}) => ({
 });
 
 const loginAsAdmin = async (app, email = "admin-users@example.com") => {
-  await request(app)
+  await api(app)
     .post("/api/v1/auth/register")
     .send(registerPayload({ email, role: "buyer" }));
 
-  await User.findOneAndUpdate({ email }, { role: "admin" });
+  const siteId = await getTestSiteId();
+  await User.findOneAndUpdate({ siteId, email }, { role: "admin" });
 
-  const login = await request(app)
+  const login = await api(app)
     .post("/api/v1/auth/login")
     .send({ email, password: "password123" });
 
@@ -39,14 +41,16 @@ describe.skipIf(!mongoAvailable)("admin users API", () => {
     const email = "deleted-user-admin@example.com";
     const password = "password123";
 
-    const registered = await request(app)
+    const registered = await api(app)
       .post("/api/v1/auth/register")
       .send(registerPayload({ email, password, role: "seller" }));
 
     const userId = registered.body.data.user.id;
     const accessToken = registered.body.data.accessToken;
+    const siteId = await getTestSiteId();
 
     const project = await Project.create({
+      siteId,
       title: "Seller project",
       slug: "seller-project-admin-test",
       description: "Stays live after delete",
@@ -61,6 +65,7 @@ describe.skipIf(!mongoAvailable)("admin users API", () => {
     });
 
     await Property.create({
+      siteId,
       title: "Seller listing",
       slug: "seller-listing-admin-test",
       description: "Stays live after delete",
@@ -72,14 +77,14 @@ describe.skipIf(!mongoAvailable)("admin users API", () => {
       status: "active",
     });
 
-    await request(app)
+    await api(app)
       .delete("/api/v1/users/me")
       .set("Authorization", `Bearer ${accessToken}`)
       .send({ password });
 
     const adminToken = await loginAsAdmin(app);
 
-    const activeList = await request(app)
+    const activeList = await api(app)
       .get("/api/v1/admin/users")
       .set("Authorization", `Bearer ${adminToken}`);
 
@@ -88,7 +93,7 @@ describe.skipIf(!mongoAvailable)("admin users API", () => {
       activeList.body.data.some((user) => user.id === userId),
     ).toBe(false);
 
-    const deletedList = await request(app)
+    const deletedList = await api(app)
       .get("/api/v1/admin/users?deleted=true")
       .set("Authorization", `Bearer ${adminToken}`);
 
@@ -98,7 +103,7 @@ describe.skipIf(!mongoAvailable)("admin users API", () => {
     expect(deletedUser.isDeleted).toBe(true);
     expect(deletedUser.deletedEmail).toBe(email);
 
-    const detail = await request(app)
+    const detail = await api(app)
       .get(`/api/v1/admin/users/${userId}`)
       .set("Authorization", `Bearer ${adminToken}`);
 

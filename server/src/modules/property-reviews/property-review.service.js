@@ -9,6 +9,7 @@ import {
   buildPaginationMeta,
 } from "../../shared/pagination.js";
 import { ROLES } from "../../shared/constants.js";
+import { getRequestSiteId } from "../../shared/requestContext.js";
 
 const canViewNonActiveProperty = (property, user) =>
   Boolean(
@@ -34,6 +35,7 @@ const attachUserAvatarUrl = async (review) => {
 
 const getManagedPropertyIds = async (userId) =>
   Property.find({
+    siteId: getRequestSiteId(),
     deletedAt: null,
     $or: [{ ownerId: userId }, { agentId: userId }],
   }).distinct("_id");
@@ -43,7 +45,11 @@ const getViewableProperty = async (
   user,
   { requireActive = false } = {},
 ) => {
-  const property = await Property.findOne({ _id: propertyId, deletedAt: null });
+  const property = await Property.findOne({
+    _id: propertyId,
+    siteId: getRequestSiteId(),
+    deletedAt: null,
+  });
   if (!property) throw new AppError("Property not found", 404);
 
   if (requireActive && property.status !== "active") {

@@ -1,14 +1,14 @@
 import app from "./app.js";
 import { env, isSwaggerEnabled } from "./config/env.js";
 import { connectDB, disconnectDB } from "./config/db.js";
-import { connectRedis, disconnectRedis } from "./config/redis.js";
+import { siteService } from "./modules/sites/site.service.js";
 
 const publicBaseUrl = env.API_URL.replace(/\/api\/v1\/?$/, "");
 
 const startServer = async () => {
   try {
     await connectDB();
-    await connectRedis();
+    await siteService.ensureDefaultSites();
 
     const server = app.listen(env.PORT, () => {
       console.log(`Buytly API running on port ${env.PORT} [${env.NODE_ENV}]`);
@@ -20,7 +20,6 @@ const startServer = async () => {
     const shutdown = async (signal) => {
       console.log(`${signal} received. Shutting down gracefully...`);
       server.close(async () => {
-        await disconnectRedis();
         await disconnectDB();
         process.exit(0);
       });

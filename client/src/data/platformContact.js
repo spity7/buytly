@@ -1,8 +1,12 @@
 import { buildWhatsAppUrl } from "@/lib/phone/whatsapp";
 
-export const PLATFORM_SUPPORT_WHATSAPP_MESSAGE = "Hi, I need help with Buytly.";
+function getSiteDisplayName() {
+  return process.env.NEXT_PUBLIC_SITE_NAME?.trim() || "Buytly";
+}
 
-export const PLATFORM_SUPPORT_MAILTO_SUBJECT = "Buytly support request";
+export const PLATFORM_SUPPORT_WHATSAPP_MESSAGE = `Hi, I need help with ${getSiteDisplayName()}.`;
+
+export const PLATFORM_SUPPORT_MAILTO_SUBJECT = `${getSiteDisplayName()} support request`;
 
 const DEFAULT_SUPPORT_EMAIL = "buytlyonline@gmail.com";
 const DEFAULT_SUPPORT_PHONE = "+96171601751";

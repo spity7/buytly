@@ -1061,17 +1061,12 @@
  *           example: '2026-07-05T09:00:00.000Z'
  *         services:
  *           type: object
- *           required: [mongodb, redis]
+ *           required: [mongodb]
  *           properties:
  *             mongodb:
  *               type: string
  *               enum: [connected, disconnected]
  *               example: connected
- *             redis:
- *               type: string
- *               enum: [connected, not_configured, disconnected]
- *               description: not_configured when REDIS_URL is unset; disconnected when configured but unreachable
- *               example: not_configured
  *
  *     HealthSuccessResponse:
  *       allOf:

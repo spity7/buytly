@@ -1,4 +1,9 @@
-export const GCS_ORPHAN_PREFIXES = ["avatars/", "properties/", "projects/"];
+export const GCS_ORPHAN_PREFIXES = [
+  "avatars/",
+  "properties/",
+  "projects/",
+  "sites/",
+];
 
 export function collectReferencedGcsKeys({
   users = [],

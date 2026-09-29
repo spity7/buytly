@@ -28,6 +28,8 @@ const envSchema = z
     GCS_BUCKET: z.string().min(1),
     GCS_KEY_FILE: z.string().optional(),
     CORS_ORIGIN: z.string().default("http://localhost:3000"),
+    /** Fallback tenant when Origin/X-Site-Slug is missing (tests, server-to-server) */
+    DEFAULT_SITE_SLUG: z.string().optional(),
     EMAIL_PROVIDER: z.enum(["smtp", "sendgrid"]).default("smtp"),
     SENDGRID_API_KEY: z.string().optional(),
     SMTP_HOST: z.string().optional(),
@@ -40,7 +42,6 @@ const envSchema = z
       .string()
       .email()
       .default("buytlyonline@gmail.com"),
-    REDIS_URL: z.string().optional(),
     APP_URL: z.string().url().default("http://localhost:3000"),
     /** Public API base URL (e.g. https://api.buytly.com/api/v1) — Swagger servers + startup logs */
     API_URL: z.string().url(),

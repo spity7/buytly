@@ -14,8 +14,14 @@ const mediaSchema = new mongoose.Schema(
 
 const projectSchema = new mongoose.Schema(
   {
+    siteId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Site",
+      required: true,
+      index: true,
+    },
     title: { type: String, required: true, trim: true },
-    slug: { type: String, required: true, unique: true, lowercase: true },
+    slug: { type: String, required: true, lowercase: true },
     description: { type: String, required: true },
     location: {
       type: { type: String, enum: ["Point"], default: "Point" },
@@ -40,11 +46,13 @@ const projectSchema = new mongoose.Schema(
       required: true,
     },
     viewCount: { type: Number, default: 0 },
+    visibleOnPlatform: { type: Boolean, default: false },
     deletedAt: { type: Date, default: null },
   },
   { timestamps: true },
 );
 
+projectSchema.index({ siteId: 1, slug: 1 }, { unique: true });
 projectSchema.index({ location: "2dsphere" });
 projectSchema.index({ status: 1, createdAt: -1 });
 projectSchema.index({ title: "text", description: "text" });

@@ -24,7 +24,7 @@ See also: [auth-flow.md](./auth-flow.md) for JWT lifecycle and the summary permi
 
 ### JWT
 
-Access token payload includes `sub` (user ID) and `role`. On each request, `authenticate` reloads the user from MongoDB by `sub` and sets `req.user`.
+Access token payload includes `sub` (user ID), `role`, and `siteId` (tenant). On each request, `authenticate` reloads the user from MongoDB by `sub`, verifies `user.siteId` matches the resolved request site, and sets `req.user`.
 
 **Authorization uses `req.user.role` from the database**, not the JWT claim. Admin role changes take effect on the next authenticated request.
 
@@ -59,7 +59,7 @@ When a user registers (or first Google sign-up) as **`agent`**, an `AgentProfile
 
 | Area           | What buyers can do                                                    |
 | -------------- | --------------------------------------------------------------------- |
-| Browse         | View public active/sold listings and projects                       |
+| Browse         | View public active/sold listings and projects                         |
 | Favorites      | Add/remove favorites (any authenticated user)                         |
 | Saved searches | Manage saved searches on profile                                      |
 | Bookings       | Create visit requests, view own bookings, cancel pending ones         |
@@ -164,7 +164,9 @@ Same buyer-route restrictions as seller (cannot create bookings or initiate tran
 
 **Cannot self-register.** Must be seeded or promoted by another admin.
 
-All `/admin/*` routes require `authenticate` + `authorize(ROLES.ADMIN)`.
+All `/admin/*` routes require `authenticate` + `authorize(ROLES.ADMIN)` on the **current site**.
+
+**Platform admins** (Buytly site `admin` users with `platformPermissions`: `cross_site_read`, `cross_site_moderate`) may list or moderate partner tenant data via optional `?siteId=` on admin list/analytics endpoints.
 
 ### Admin-only capabilities
 

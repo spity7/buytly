@@ -9,8 +9,8 @@ process.env.MONGODB_URI =
   process.env.MONGODB_URI || "mongodb://127.0.0.1:27017/buytly-test";
 process.env.APP_URL = "http://localhost:3000";
 process.env.CORS_ORIGIN = "http://localhost:3000";
+process.env.DEFAULT_SITE_SLUG = "buytly";
 process.env.API_URL = "http://localhost:5099/api/v1";
-process.env.REDIS_URL = "";
 
 process.env.JWT_ACCESS_SECRET = "test-access-secret-minimum-32-chars!!";
 process.env.JWT_REFRESH_SECRET = "test-refresh-secret-minimum-32-chars!";
@@ -50,6 +50,8 @@ afterEach(async () => {
   }
   const { ensureTestCatalog } = await import("./helpers/catalogFixtures.js");
   await ensureTestCatalog();
+  const { siteService } = await import("../src/modules/sites/site.service.js");
+  siteService.invalidateCache();
 });
 
 afterAll(async () => {

@@ -9,6 +9,7 @@ import {
   buildPaginationMeta,
 } from "../../shared/pagination.js";
 import { ROLES } from "../../shared/constants.js";
+import { getRequestSiteId } from "../../shared/requestContext.js";
 
 export const agentService = {
   async list(query) {
@@ -17,6 +18,16 @@ export const agentService = {
 
     if (query.city) filter.city = new RegExp(query.city, "i");
     if (query.specialty) filter.specialties = query.specialty;
+
+    const siteId = getRequestSiteId();
+    const siteAgentIds = await User.find({
+      siteId,
+      role: ROLES.AGENT,
+      deletedAt: null,
+      isActive: true,
+    }).distinct("_id");
+
+    filter.userId = { $in: siteAgentIds };
 
     const [agents, total] = await Promise.all([
       AgentProfile.find(filter)
@@ -35,6 +46,7 @@ export const agentService = {
           user.avatar = await gcsService.resolveAvatar(user.avatar);
         }
         const listingsCount = await Property.countDocuments({
+          siteId,
           agentId: user._id,
           status: "active",
           deletedAt: null,
@@ -54,8 +66,10 @@ export const agentService = {
   },
 
   async getById(id) {
+    const siteId = getRequestSiteId();
     const user = await User.findOne({
       _id: id,
+      siteId,
       role: ROLES.AGENT,
       deletedAt: null,
       isActive: true,
@@ -69,6 +83,7 @@ export const agentService = {
     }
 
     const listingsCount = await Property.countDocuments({
+      siteId,
       agentId: id,
       status: "active",
       deletedAt: null,
@@ -88,7 +103,11 @@ export const agentService = {
   },
 
   async updateMyProfile(userId, data) {
-    const user = await User.findOne({ _id: userId, role: ROLES.AGENT });
+    const user = await User.findOne({
+      _id: userId,
+      siteId: getRequestSiteId(),
+      role: ROLES.AGENT,
+    });
     if (!user) throw new AppError("Agent profile not found", 404);
 
     const profile = await AgentProfile.findOneAndUpdate({ userId }, data, {
@@ -103,6 +122,7 @@ export const agentService = {
   async getAgentProperties(agentId, query) {
     const user = await User.findOne({
       _id: agentId,
+      siteId: getRequestSiteId(),
       role: ROLES.AGENT,
       deletedAt: null,
     });

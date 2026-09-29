@@ -10,6 +10,8 @@ import routes from "./routes/index.js";
 import { globalRateLimiter } from "./middleware/rateLimit.js";
 import { sanitizeInput } from "./middleware/sanitize.js";
 import { errorHandler, notFoundHandler } from "./middleware/errorHandler.js";
+import { resolveSite } from "./middleware/resolveSite.js";
+import { siteService } from "./modules/sites/site.service.js";
 
 const app = express();
 
@@ -20,7 +22,18 @@ if (env.TRUST_PROXY) {
 app.use(helmet());
 app.use(
   cors({
-    origin: env.CORS_ORIGIN.split(",").map((o) => o.trim()),
+    origin: async (origin, callback) => {
+      try {
+        const allowed = await siteService.getCorsOrigins();
+        if (!origin || allowed.includes(origin)) {
+          callback(null, true);
+          return;
+        }
+        callback(new Error(`CORS blocked for origin: ${origin}`));
+      } catch (error) {
+        callback(error);
+      }
+    },
     credentials: true,
   }),
 );
@@ -50,6 +63,7 @@ if (isSwaggerEnabled) {
   });
 }
 
+app.use(resolveSite);
 app.use("/api/v1", routes);
 
 app.use(notFoundHandler);

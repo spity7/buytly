@@ -10,13 +10,14 @@ import {
 } from "./catalog.defaults.js";
 import { AppError } from "../../shared/AppError.js";
 import { nearbyService } from "../../services/nearby.service.js";
-import { cacheService } from "../../services/cache.service.js";
+import { getRequestSiteId } from "../../shared/requestContext.js";
 
 /** Matches public property list browse (active units on live parent projects). */
 const PUBLIC_PARENT_PROJECT_STATUSES = ["active", "sold"];
 
-async function getPublicBrowseProjectIds() {
+async function getPublicBrowseProjectIds(siteId) {
   return Project.find({
+    siteId,
     deletedAt: null,
     status: { $in: PUBLIC_PARENT_PROJECT_STATUSES },
   }).distinct("_id");
@@ -26,9 +27,10 @@ function escapeRegExp(value) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
-function labelMatchFilter(label, excludeId) {
+function labelMatchFilter(siteId, label, excludeId) {
   const trimmed = label.trim();
   const filter = {
+    siteId,
     label: { $regex: new RegExp(`^${escapeRegExp(trimmed)}$`, "i") },
   };
 
@@ -48,13 +50,14 @@ const assertPropertyTypeNotProtected = (value, action) => {
   }
 };
 
-async function upsertDefaultCatalogEntries(Model, entries) {
+async function upsertDefaultCatalogEntries(Model, entries, siteId) {
   await Promise.all(
     entries.map((entry) =>
       Model.updateOne(
-        { value: entry.value },
+        { siteId, value: entry.value },
         {
           $setOnInsert: {
+            siteId,
             label: entry.label,
             sortOrder: entry.sortOrder,
             isActive: true,
@@ -66,64 +69,71 @@ async function upsertDefaultCatalogEntries(Model, entries) {
   );
 }
 
-/** After first successful bootstrap, skip repeated default upserts on every catalog read. */
-let defaultsBootstrapped = false;
+/** After first successful bootstrap per site, skip repeated default upserts on every catalog read. */
+const defaultsBootstrappedBySite = new Map();
 
-/** One bootstrap at a time per process (parallel catalog reads share the same work). */
-let ensureDefaultsPromise = null;
+/** One bootstrap at a time per site (parallel catalog reads share the same work). */
+const ensureDefaultsPromiseBySite = new Map();
+
+const siteKey = (siteId) => String(siteId);
 
 export const catalogService = {
-  async ensureRequiredPropertyTypes() {
+  async ensureRequiredPropertyTypes(siteId = getRequestSiteId()) {
     for (const value of PROTECTED_PROPERTY_TYPE_VALUES) {
       const entry = DEFAULT_PROPERTY_TYPES.find((item) => item.value === value);
       if (!entry) continue;
 
       await PropertyTypeCatalog.updateOne(
-        { value: entry.value },
+        { siteId, value: entry.value },
         {
           $set: {
             label: entry.label,
             sortOrder: entry.sortOrder,
             isActive: true,
           },
+          $setOnInsert: { siteId },
         },
         { upsert: true },
       );
     }
   },
 
-  async ensureDefaults() {
-    if (defaultsBootstrapped) {
-      const amenityCount = await AmenityCatalog.estimatedDocumentCount();
+  async ensureDefaults(siteId = getRequestSiteId()) {
+    const key = siteKey(siteId);
+
+    if (defaultsBootstrappedBySite.get(key)) {
+      const amenityCount = await AmenityCatalog.countDocuments({ siteId });
 
       if (amenityCount > 0) {
-        await this.ensureRequiredPropertyTypes();
+        await this.ensureRequiredPropertyTypes(siteId);
         return;
       }
 
-      defaultsBootstrapped = false;
+      defaultsBootstrappedBySite.set(key, false);
     }
 
-    if (!ensureDefaultsPromise) {
-      ensureDefaultsPromise = this._ensureDefaults()
+    if (!ensureDefaultsPromiseBySite.get(key)) {
+      const promise = this._ensureDefaults(siteId)
         .then(() => {
-          defaultsBootstrapped = true;
+          defaultsBootstrappedBySite.set(key, true);
         })
         .finally(() => {
-          ensureDefaultsPromise = null;
+          ensureDefaultsPromiseBySite.delete(key);
         });
+      ensureDefaultsPromiseBySite.set(key, promise);
     }
-    return ensureDefaultsPromise;
+    return ensureDefaultsPromiseBySite.get(key);
   },
 
-  async _ensureDefaults() {
-    await upsertDefaultCatalogEntries(AmenityCatalog, DEFAULT_AMENITIES);
-    await this.ensureRequiredPropertyTypes();
+  async _ensureDefaults(siteId) {
+    await upsertDefaultCatalogEntries(AmenityCatalog, DEFAULT_AMENITIES, siteId);
+    await this.ensureRequiredPropertyTypes(siteId);
   },
 
   async listPropertyTypes({ activeOnly = true } = {}) {
-    await this.ensureDefaults();
-    const filter = activeOnly ? { isActive: true } : {};
+    const siteId = getRequestSiteId();
+    await this.ensureDefaults(siteId);
+    const filter = { siteId, ...(activeOnly ? { isActive: true } : {}) };
     const items = await PropertyTypeCatalog.find(filter).sort({
       sortOrder: 1,
       label: 1,
@@ -139,8 +149,9 @@ export const catalogService = {
   },
 
   async listAmenities({ activeOnly = true } = {}) {
-    await this.ensureDefaults();
-    const filter = activeOnly ? { isActive: true } : {};
+    const siteId = getRequestSiteId();
+    await this.ensureDefaults(siteId);
+    const filter = { siteId, ...(activeOnly ? { isActive: true } : {}) };
     const items = await AmenityCatalog.find(filter).sort({
       sortOrder: 1,
       label: 1,
@@ -151,8 +162,9 @@ export const catalogService = {
   async countListingsByPropertyTypeValues(values = []) {
     if (!values.length) return new Map();
 
+    const siteId = getRequestSiteId();
     const rows = await Property.aggregate([
-      { $match: { type: { $in: values } } },
+      { $match: { siteId, type: { $in: values } } },
       { $group: { _id: "$type", count: { $sum: 1 } } },
     ]);
 
@@ -162,11 +174,13 @@ export const catalogService = {
   async countPublicListingsByPropertyTypeValues(values = []) {
     if (!values.length) return new Map();
 
-    const publicProjectIds = await getPublicBrowseProjectIds();
+    const siteId = getRequestSiteId();
+    const publicProjectIds = await getPublicBrowseProjectIds(siteId);
 
     const rows = await Property.aggregate([
       {
         $match: {
+          siteId,
           deletedAt: null,
           status: "active",
           projectId: { $in: publicProjectIds },
@@ -182,8 +196,9 @@ export const catalogService = {
   async countListingsByAmenityValues(values = []) {
     if (!values.length) return new Map();
 
+    const siteId = getRequestSiteId();
     const rows = await Property.aggregate([
-      { $match: { amenities: { $in: values } } },
+      { $match: { siteId, amenities: { $in: values } } },
       { $unwind: "$amenities" },
       { $match: { amenities: { $in: values } } },
       { $group: { _id: "$amenities", count: { $sum: 1 } } },
@@ -193,8 +208,9 @@ export const catalogService = {
   },
 
   async listPropertyTypesForAdmin() {
-    await this.ensureDefaults();
-    const items = await PropertyTypeCatalog.find({}).sort({
+    const siteId = getRequestSiteId();
+    await this.ensureDefaults(siteId);
+    const items = await PropertyTypeCatalog.find({ siteId }).sort({
       sortOrder: 1,
       label: 1,
     });
@@ -208,8 +224,9 @@ export const catalogService = {
   },
 
   async listAmenitiesForAdmin() {
-    await this.ensureDefaults();
-    const items = await AmenityCatalog.find({}).sort({
+    const siteId = getRequestSiteId();
+    await this.ensureDefaults(siteId);
+    const items = await AmenityCatalog.find({ siteId }).sort({
       sortOrder: 1,
       label: 1,
     });
@@ -233,8 +250,10 @@ export const catalogService = {
   },
 
   async assertValidPropertyType(value) {
-    await this.ensureDefaults();
+    const siteId = getRequestSiteId();
+    await this.ensureDefaults(siteId);
     const exists = await PropertyTypeCatalog.exists({
+      siteId,
       value,
       isActive: true,
     });
@@ -274,8 +293,9 @@ export const catalogService = {
   async assertUniquePropertyTypeLabel(label, excludeId = null) {
     if (!label?.trim()) return;
 
+    const siteId = getRequestSiteId();
     const existing = await PropertyTypeCatalog.findOne(
-      labelMatchFilter(label, excludeId),
+      labelMatchFilter(siteId, label, excludeId),
     );
     if (existing) {
       throw new AppError(
@@ -288,7 +308,8 @@ export const catalogService = {
   async assertUniquePropertyTypeValue(value, excludeId = null) {
     if (!value?.trim()) return;
 
-    const filter = { value: value.trim().toLowerCase() };
+    const siteId = getRequestSiteId();
+    const filter = { siteId, value: value.trim().toLowerCase() };
     if (excludeId) {
       filter._id = { $ne: new mongoose.Types.ObjectId(excludeId) };
     }
@@ -305,8 +326,9 @@ export const catalogService = {
   async assertUniqueAmenityLabel(label, excludeId = null) {
     if (!label?.trim()) return;
 
+    const siteId = getRequestSiteId();
     const existing = await AmenityCatalog.findOne(
-      labelMatchFilter(label, excludeId),
+      labelMatchFilter(siteId, label, excludeId),
     );
     if (existing) {
       throw new AppError(
@@ -319,7 +341,8 @@ export const catalogService = {
   async assertUniqueAmenityValue(value, excludeId = null) {
     if (!value?.trim()) return;
 
-    const filter = { value: value.trim() };
+    const siteId = getRequestSiteId();
+    const filter = { siteId, value: value.trim() };
     if (excludeId) {
       filter._id = { $ne: new mongoose.Types.ObjectId(excludeId) };
     }
@@ -336,7 +359,10 @@ export const catalogService = {
     await this.assertUniquePropertyTypeValue(data.value);
 
     try {
-      const doc = await PropertyTypeCatalog.create(data);
+      const doc = await PropertyTypeCatalog.create({
+        ...data,
+        siteId: getRequestSiteId(),
+      });
       return doc.toPublicJSON();
     } catch (error) {
       if (error.code === 11000) {
@@ -353,7 +379,8 @@ export const catalogService = {
     await this.ensureDefaults();
     const { value: _immutable, ...patch } = data;
 
-    const existing = await PropertyTypeCatalog.findById(id);
+    const siteId = getRequestSiteId();
+    const existing = await PropertyTypeCatalog.findOne({ _id: id, siteId });
     if (!existing) throw new AppError("Property type not found", 404);
 
     if (PROTECTED_PROPERTY_TYPE_VALUES.includes(existing.value)) {
@@ -368,22 +395,27 @@ export const catalogService = {
       await this.assertUniquePropertyTypeLabel(patch.label, id);
     }
 
-    const doc = await PropertyTypeCatalog.findByIdAndUpdate(id, patch, {
-      new: true,
-      runValidators: true,
-    });
+    const doc = await PropertyTypeCatalog.findOneAndUpdate(
+      { _id: id, siteId },
+      patch,
+      {
+        new: true,
+        runValidators: true,
+      },
+    );
     if (!doc) throw new AppError("Property type not found", 404);
     return doc.toPublicJSON();
   },
 
   async deletePropertyType(id) {
-    await this.ensureDefaults();
-    const doc = await PropertyTypeCatalog.findById(id);
+    const siteId = getRequestSiteId();
+    await this.ensureDefaults(siteId);
+    const doc = await PropertyTypeCatalog.findOne({ _id: id, siteId });
     if (!doc) throw new AppError("Property type not found", 404);
 
     assertPropertyTypeNotProtected(doc.value, "deleted");
 
-    const inUse = await Property.countDocuments({ type: doc.value });
+    const inUse = await Property.countDocuments({ siteId, type: doc.value });
     if (inUse > 0) {
       throw new AppError(
         "Cannot delete a property type that is used by existing listings. Deactivate it instead.",
@@ -400,7 +432,10 @@ export const catalogService = {
     await this.assertUniqueAmenityValue(data.value);
 
     try {
-      const doc = await AmenityCatalog.create(data);
+      const doc = await AmenityCatalog.create({
+        ...data,
+        siteId: getRequestSiteId(),
+      });
       return doc.toPublicJSON();
     } catch (error) {
       if (error.code === 11000) {
@@ -418,20 +453,29 @@ export const catalogService = {
       await this.assertUniqueAmenityLabel(patch.label, id);
     }
 
-    const doc = await AmenityCatalog.findByIdAndUpdate(id, patch, {
-      new: true,
-      runValidators: true,
-    });
+    const siteId = getRequestSiteId();
+    const doc = await AmenityCatalog.findOneAndUpdate(
+      { _id: id, siteId },
+      patch,
+      {
+        new: true,
+        runValidators: true,
+      },
+    );
     if (!doc) throw new AppError("Amenity not found", 404);
     return doc.toPublicJSON();
   },
 
   async deleteAmenity(id) {
-    await this.ensureDefaults();
-    const doc = await AmenityCatalog.findById(id);
+    const siteId = getRequestSiteId();
+    await this.ensureDefaults(siteId);
+    const doc = await AmenityCatalog.findOne({ _id: id, siteId });
     if (!doc) throw new AppError("Amenity not found", 404);
 
-    const inUse = await Property.countDocuments({ amenities: doc.value });
+    const inUse = await Property.countDocuments({
+      siteId,
+      amenities: doc.value,
+    });
     if (inUse > 0) {
       throw new AppError(
         "Cannot delete an amenity that is used by existing listings. Deactivate it instead.",
@@ -443,16 +487,8 @@ export const catalogService = {
   },
 
   async getNearbyPreview(lat, lng) {
-    const cacheKey = cacheService.buildKey("nearby", {
-      lat: Number(lat).toFixed(3),
-      lng: Number(lng).toFixed(3),
-    });
-    const cached = await cacheService.get(cacheKey);
-    if (cached) return cached;
-
     try {
       const result = await nearbyService.fetchNearbyPlaces(lat, lng);
-      await cacheService.set(cacheKey, result, 86400);
       return result;
     } catch {
       // Do not cache failures — Overpass mirrors recover; cached "unavailable"

@@ -1,8 +1,8 @@
 import { Project } from "./project.model.js";
 import { Property } from "../properties/property.model.js";
 import { attachPropertyMediaUrls } from "../properties/property.service.js";
-import { gcsService } from "../../services/gcs.service.js";
-import { cacheService } from "../../services/cache.service.js";
+import { buildSiteFolder, gcsService } from "../../services/gcs.service.js";
+import { getRequestSiteId } from "../../shared/requestContext.js";
 import { AppError } from "../../shared/AppError.js";
 import {
   parsePagination,
@@ -72,7 +72,9 @@ const buildUnitsQuery = (project, user) => {
 };
 
 const notifyAdminsOfPendingUnit = async (property, project) => {
+  const siteId = project.siteId ?? getRequestSiteId();
   const admins = await User.find({
+    siteId,
     role: ROLES.ADMIN,
     deletedAt: null,
     isActive: true,
@@ -105,7 +107,9 @@ const submitDraftUnitsForReview = async (project) => {
 };
 
 const notifyAdminsOfPendingProject = async (project) => {
+  const siteId = project.siteId ?? getRequestSiteId();
   const admins = await User.find({
+    siteId,
     role: ROLES.ADMIN,
     deletedAt: null,
     isActive: true,
@@ -145,15 +149,15 @@ const attachMediaUrls = async (project) => {
   return doc;
 };
 
-const buildUniqueSlug = async (title) => {
+const buildUniqueSlug = async ({ siteId, title }) => {
   let slug = slugify(title);
   let counter = 0;
-  let exists = await Project.findOne({ slug });
+  let exists = await Project.findOne({ siteId, slug });
 
   while (exists) {
     counter += 1;
     slug = `${slugify(title)}-${counter}`;
-    exists = await Project.findOne({ slug });
+    exists = await Project.findOne({ siteId, slug });
   }
 
   return slug;
@@ -200,7 +204,7 @@ const maybeRependActiveProject = async (
 };
 
 const buildProjectIdFilter = (id, user) => {
-  const filter = { _id: id };
+  const filter = { _id: id, siteId: getRequestSiteId() };
   if (!user) {
     filter.deletedAt = null;
     return filter;
@@ -273,7 +277,8 @@ export const projectService = {
   canManageProject,
 
   async create(data, user) {
-    const slug = await buildUniqueSlug(data.title);
+    const siteId = getRequestSiteId();
+    const slug = await buildUniqueSlug({ siteId, title: data.title });
     const payload = { ...data };
     const isAdmin = user.role === ROLES.ADMIN;
 
@@ -288,6 +293,7 @@ export const projectService = {
 
     const project = await Project.create({
       ...payload,
+      siteId,
       slug,
       ownerId: user._id,
       agentId:
@@ -299,18 +305,13 @@ export const projectService = {
       await notifyAdminsOfPendingProject(project);
     }
 
-    await cacheService.invalidateListingCaches();
-
     return attachMediaUrls(project);
   },
 
   async list(query) {
-    const cacheKey = cacheService.buildKey("projects", query);
-    const cached = await cacheService.get(cacheKey);
-    if (cached) return cached;
-
+    const siteId = getRequestSiteId();
     const { page, limit, skip } = parsePagination(query);
-    const filter = { deletedAt: null };
+    const filter = { siteId, deletedAt: null };
 
     filter.status = resolvePublicListStatus(query.status);
     if (query.city) filter["location.city"] = new RegExp(query.city, "i");
@@ -362,13 +363,10 @@ export const projectService = {
       projects.map((p) => enrichProjectDoc(p, statsMap)),
     );
 
-    const result = {
+    return {
       projects: data,
       pagination: buildPaginationMeta(total, page, limit),
     };
-
-    await cacheService.set(cacheKey, result, 300);
-    return result;
   },
 
   async getById(id, { incrementView = true, user, includeUnits = false } = {}) {
@@ -414,6 +412,7 @@ export const projectService = {
 
   async getBySlug(slug, options = {}) {
     const project = await Project.findOne({
+      siteId: getRequestSiteId(),
       slug: slug.toLowerCase(),
       deletedAt: null,
     })
@@ -462,7 +461,10 @@ export const projectService = {
     }
 
     if (patch.title && patch.title !== project.title) {
-      patch.slug = await buildUniqueSlug(patch.title);
+      patch.slug = await buildUniqueSlug({
+        siteId: project.siteId,
+        title: patch.title,
+      });
     }
 
     if (patch.location) {
@@ -507,14 +509,16 @@ export const projectService = {
       await notifyAdminsOfPendingProject(project);
     }
 
-    await cacheService.invalidateListingCaches();
-
     const statsMap = await aggregateUnitStats([project._id]);
     return enrichProjectDoc(project, statsMap);
   },
 
   async softDelete(id, user) {
-    const project = await Project.findOne({ _id: id, deletedAt: null });
+    const project = await Project.findOne({
+      _id: id,
+      siteId: getRequestSiteId(),
+      deletedAt: null,
+    });
     if (!project) throw new AppError("Project not found", 404);
 
     if (!canManageProject(project, user)) {
@@ -527,12 +531,12 @@ export const projectService = {
 
     await cascadeTrashProjectUnits(project._id, deletedAt);
 
-    await cacheService.invalidateListingCaches();
   },
 
   async restore(id, user) {
     const project = await Project.findOne({
       _id: id,
+      siteId: getRequestSiteId(),
       deletedAt: { $ne: null },
     });
 
@@ -547,8 +551,6 @@ export const projectService = {
     await project.save();
 
     await cascadeRestoreProjectUnits(project._id, cascadeDeletedAt);
-
-    await cacheService.invalidateListingCaches();
 
     return attachMediaUrls(project);
   },
@@ -570,12 +572,13 @@ export const projectService = {
 
     await deleteGcsKeys(collectProjectGcsKeys(project));
     await project.deleteOne();
-    await cacheService.invalidateListingCaches();
   },
 
   async listMine(user, query) {
     const { page, limit, skip } = parsePagination(query);
+    const siteId = getRequestSiteId();
     const conditions = [
+      { siteId },
       { $or: [{ ownerId: user._id }, { agentId: user._id }] },
       query.trashed === "true"
         ? { deletedAt: { $ne: null } }
@@ -652,7 +655,7 @@ export const projectService = {
     }
 
     const uploaded = await gcsService.uploadFile(file.buffer, {
-      folder: "projects",
+      folder: buildSiteFolder("projects"),
       mimeType: file.mimetype,
       originalName: file.originalname,
     });
@@ -672,8 +675,6 @@ export const projectService = {
     await project.save();
 
     await maybeRependActiveProject(project, { isAdmin, previousStatus });
-    await cacheService.invalidateListingCaches();
-
     const media = project.media[project.media.length - 1];
     return {
       ...media.toObject(),
@@ -701,7 +702,6 @@ export const projectService = {
     await project.save();
 
     await maybeRependActiveProject(project, { isAdmin, previousStatus });
-    await cacheService.invalidateListingCaches();
   },
 
   async reorderMedia(id, { imageIds }, user) {
@@ -748,8 +748,6 @@ export const projectService = {
     await project.save();
 
     await maybeRependActiveProject(project, { isAdmin, previousStatus });
-    await cacheService.invalidateListingCaches();
-
     return attachMediaUrls(project);
   },
 };

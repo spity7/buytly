@@ -2,10 +2,15 @@ import mongoose from "mongoose";
 
 const propertyTypeSchema = new mongoose.Schema(
   {
+    siteId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Site",
+      required: true,
+      index: true,
+    },
     value: {
       type: String,
       required: true,
-      unique: true,
       lowercase: true,
       trim: true,
     },
@@ -15,6 +20,8 @@ const propertyTypeSchema = new mongoose.Schema(
   },
   { timestamps: true },
 );
+
+propertyTypeSchema.index({ siteId: 1, value: 1 }, { unique: true });
 
 propertyTypeSchema.methods.toPublicJSON = function () {
   return {

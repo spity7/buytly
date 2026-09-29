@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
-import request from "supertest";
 import { mongoAvailable } from "./setup.js";
+import { api } from "./helpers/http.js";
 import { Property } from "../src/modules/properties/property.model.js";
 import { Project } from "../src/modules/projects/project.model.js";
 import { User } from "../src/modules/users/user.model.js";
@@ -26,7 +26,7 @@ const registerPayload = (overrides = {}) => ({
 });
 
 const registerAndGetToken = async (app, overrides = {}) => {
-  const res = await request(app)
+  const res = await api(app)
     .post("/api/v1/auth/register")
     .send(registerPayload(overrides));
   return res.body.data.accessToken;
@@ -35,13 +35,13 @@ const registerAndGetToken = async (app, overrides = {}) => {
 describe.skipIf(!mongoAvailable)("property status rules", () => {
   it("rejects public list with draft status filter", async () => {
     const app = await getApp();
-    const res = await request(app).get("/api/v1/properties?status=draft");
+    const res = await api(app).get("/api/v1/properties?status=draft");
     expect(res.status).toBe(400);
   });
 
   it("rejects public list with pending status filter", async () => {
     const app = await getApp();
-    const res = await request(app).get("/api/v1/properties?status=pending");
+    const res = await api(app).get("/api/v1/properties?status=pending");
     expect(res.status).toBe(400);
   });
 
@@ -55,7 +55,7 @@ describe.skipIf(!mongoAvailable)("property status rules", () => {
     });
     await Property.findByIdAndUpdate(id, { status: "sold" });
 
-    const res = await request(app).get("/api/v1/properties?status=sold");
+    const res = await api(app).get("/api/v1/properties?status=sold");
     expect(res.status).toBe(200);
     expect(res.body.data.some((p) => p._id === id)).toBe(true);
   });
@@ -70,7 +70,7 @@ describe.skipIf(!mongoAvailable)("property status rules", () => {
     });
     await Property.findByIdAndUpdate(id, { status: "sold" });
 
-    const res = await request(app).get(`/api/v1/properties/${id}`);
+    const res = await api(app).get(`/api/v1/properties/${id}`);
     expect(res.status).toBe(200);
     expect(res.body.data.status).toBe("sold");
   });
@@ -84,7 +84,7 @@ describe.skipIf(!mongoAvailable)("property status rules", () => {
       title: "Bypass Sold Property",
     });
 
-    const res = await request(app)
+    const res = await api(app)
       .patch(`/api/v1/properties/${id}`)
       .set("Authorization", `Bearer ${token}`)
       .send({ status: "sold" });
@@ -101,7 +101,7 @@ describe.skipIf(!mongoAvailable)("property status rules", () => {
       title: "Active No Status Change",
     });
 
-    const res = await request(app)
+    const res = await api(app)
       .patch(`/api/v1/properties/${id}`)
       .set("Authorization", `Bearer ${token}`)
       .send({ currency: "USD" });
@@ -120,7 +120,7 @@ describe.skipIf(!mongoAvailable)("property status rules", () => {
       title: "Resubmit Review Property",
     });
 
-    const res = await request(app)
+    const res = await api(app)
       .patch(`/api/v1/properties/${id}`)
       .set("Authorization", `Bearer ${token}`)
       .send({ status: "active" });
@@ -139,7 +139,7 @@ describe.skipIf(!mongoAvailable)("property status rules", () => {
       role: "buyer",
     });
 
-    const created = await request(app)
+    const created = await api(app)
       .post("/api/v1/properties")
       .set("Authorization", `Bearer ${sellerToken}`)
       .send(
@@ -149,7 +149,7 @@ describe.skipIf(!mongoAvailable)("property status rules", () => {
         }),
       );
 
-    const res = await request(app)
+    const res = await api(app)
       .post("/api/v1/favorites")
       .set("Authorization", `Bearer ${buyerToken}`)
       .send({ propertyId: created.body.data._id });
@@ -163,7 +163,7 @@ describe.skipIf(!mongoAvailable)("property status rules", () => {
       email: "mod-seller@example.com",
     });
 
-    const created = await request(app)
+    const created = await api(app)
       .post("/api/v1/properties")
       .set("Authorization", `Bearer ${sellerToken}`)
       .send(
@@ -179,7 +179,7 @@ describe.skipIf(!mongoAvailable)("property status rules", () => {
       status: "active",
     });
 
-    const adminRegister = await request(app)
+    const adminRegister = await api(app)
       .post("/api/v1/auth/register")
       .send(
         registerPayload({
@@ -192,11 +192,11 @@ describe.skipIf(!mongoAvailable)("property status rules", () => {
       role: "admin",
     });
 
-    const adminLogin = await request(app)
+    const adminLogin = await api(app)
       .post("/api/v1/auth/login")
       .send({ email: "mod-admin@example.com", password: "password123" });
 
-    const res = await request(app)
+    const res = await api(app)
       .patch(`/api/v1/admin/properties/${created.body.data._id}/moderate`)
       .set("Authorization", `Bearer ${adminLogin.body.data.accessToken}`)
       .send({ status: "active" });
@@ -219,7 +219,7 @@ describe.skipIf(!mongoAvailable)("property status rules", () => {
       title: "Transaction Sold Property",
     });
 
-    const txn = await request(app)
+    const txn = await api(app)
       .post("/api/v1/transactions")
       .set("Authorization", `Bearer ${buyerToken}`)
       .send({
@@ -230,7 +230,7 @@ describe.skipIf(!mongoAvailable)("property status rules", () => {
 
     expect(txn.status).toBe(201);
 
-    const complete = await request(app)
+    const complete = await api(app)
       .patch(`/api/v1/transactions/${txn.body.data._id}/status`)
       .set("Authorization", `Bearer ${sellerToken}`)
       .send({ status: "completed" });
@@ -271,13 +271,13 @@ describe.skipIf(!mongoAvailable)("property status rules", () => {
     await Project.findByIdAndUpdate(projectId, { status: "active" });
 
     const completeSale = async (propertyId) => {
-      const txn = await request(app)
+      const txn = await api(app)
         .post("/api/v1/transactions")
         .set("Authorization", `Bearer ${buyerToken}`)
         .send({ propertyId, type: "buy", amount: 350000 });
       expect(txn.status).toBe(201);
 
-      const complete = await request(app)
+      const complete = await api(app)
         .patch(`/api/v1/transactions/${txn.body.data._id}/status`)
         .set("Authorization", `Bearer ${sellerToken}`)
         .send({ status: "completed" });
@@ -304,7 +304,7 @@ describe.skipIf(!mongoAvailable)("property status rules", () => {
       title: "Soft Delete Property",
     });
 
-    const deleteRes = await request(app)
+    const deleteRes = await api(app)
       .delete(`/api/v1/properties/${id}`)
       .set("Authorization", `Bearer ${token}`);
 
@@ -314,13 +314,13 @@ describe.skipIf(!mongoAvailable)("property status rules", () => {
     expect(property.status).toBe("archived");
     expect(property.deletedAt).toBeTruthy();
 
-    const mineRes = await request(app)
+    const mineRes = await api(app)
       .get("/api/v1/properties/mine")
       .set("Authorization", `Bearer ${token}`);
 
     expect(mineRes.body.data.some((p) => p._id === id)).toBe(false);
 
-    const trashRes = await request(app)
+    const trashRes = await api(app)
       .get("/api/v1/properties/mine?trashed=true")
       .set("Authorization", `Bearer ${token}`);
 
@@ -336,7 +336,7 @@ describe.skipIf(!mongoAvailable)("property status rules", () => {
       title: "Admin Archived Listing",
     });
 
-    const adminRegister = await request(app)
+    const adminRegister = await api(app)
       .post("/api/v1/auth/register")
       .send(
         registerPayload({
@@ -349,13 +349,13 @@ describe.skipIf(!mongoAvailable)("property status rules", () => {
       role: "admin",
     });
 
-    const adminLogin = await request(app)
+    const adminLogin = await api(app)
       .post("/api/v1/auth/login")
       .send({ email: "admin-list-admin@example.com", password: "password123" });
 
     const adminToken = adminLogin.body.data.accessToken;
 
-    const archiveRes = await request(app)
+    const archiveRes = await api(app)
       .patch(`/api/v1/admin/properties/${id}/moderate`)
       .set("Authorization", `Bearer ${adminToken}`)
       .send({ status: "archived" });
@@ -363,21 +363,21 @@ describe.skipIf(!mongoAvailable)("property status rules", () => {
     expect(archiveRes.status).toBe(200);
     expect(archiveRes.body.data.status).toBe("archived");
 
-    const allRes = await request(app)
+    const allRes = await api(app)
       .get("/api/v1/admin/properties")
       .set("Authorization", `Bearer ${adminToken}`);
 
     expect(allRes.status).toBe(200);
     expect(allRes.body.data.some((p) => p._id === id)).toBe(true);
 
-    const archivedRes = await request(app)
+    const archivedRes = await api(app)
       .get("/api/v1/admin/properties?status=archived")
       .set("Authorization", `Bearer ${adminToken}`);
 
     expect(archivedRes.status).toBe(200);
     expect(archivedRes.body.data.some((p) => p._id === id)).toBe(true);
 
-    const activeRes = await request(app)
+    const activeRes = await api(app)
       .get("/api/v1/admin/properties?status=active")
       .set("Authorization", `Bearer ${adminToken}`);
 
@@ -394,7 +394,7 @@ describe.skipIf(!mongoAvailable)("property status rules", () => {
       title: "Admin Archived Edit Listing",
     });
 
-    const adminRegister = await request(app)
+    const adminRegister = await api(app)
       .post("/api/v1/auth/register")
       .send(
         registerPayload({
@@ -407,14 +407,14 @@ describe.skipIf(!mongoAvailable)("property status rules", () => {
       role: "admin",
     });
 
-    const adminLogin = await request(app).post("/api/v1/auth/login").send({
+    const adminLogin = await api(app).post("/api/v1/auth/login").send({
       email: "admin-archived-edit-admin@example.com",
       password: "password123",
     });
 
     const adminToken = adminLogin.body.data.accessToken;
 
-    await request(app)
+    await api(app)
       .patch(`/api/v1/admin/properties/${id}/moderate`)
       .set("Authorization", `Bearer ${adminToken}`)
       .send({ status: "archived" });
@@ -423,21 +423,21 @@ describe.skipIf(!mongoAvailable)("property status rules", () => {
     expect(archivedProperty.status).toBe("archived");
     expect(archivedProperty.deletedAt).toBeTruthy();
 
-    const getRes = await request(app)
+    const getRes = await api(app)
       .get(`/api/v1/properties/${id}`)
       .set("Authorization", `Bearer ${adminToken}`);
 
     expect(getRes.status).toBe(200);
     expect(getRes.body.data.status).toBe("archived");
 
-    const sellerGetRes = await request(app)
+    const sellerGetRes = await api(app)
       .get(`/api/v1/properties/${id}`)
       .set("Authorization", `Bearer ${sellerToken}`);
 
     expect(sellerGetRes.status).toBe(200);
     expect(sellerGetRes.body.data.status).toBe("archived");
 
-    const restoreRes = await request(app)
+    const restoreRes = await api(app)
       .patch(`/api/v1/admin/properties/${id}/moderate`)
       .set("Authorization", `Bearer ${adminToken}`)
       .send({ status: "active" });
@@ -460,11 +460,11 @@ describe.skipIf(!mongoAvailable)("property status rules", () => {
       title: "Restore Property",
     });
 
-    await request(app)
+    await api(app)
       .delete(`/api/v1/properties/${id}`)
       .set("Authorization", `Bearer ${token}`);
 
-    const restoreRes = await request(app)
+    const restoreRes = await api(app)
       .patch(`/api/v1/properties/${id}/restore`)
       .set("Authorization", `Bearer ${token}`);
 
@@ -482,7 +482,7 @@ describe.skipIf(!mongoAvailable)("property status rules", () => {
       title: "Material Change Property",
     });
 
-    const res = await request(app)
+    const res = await api(app)
       .patch(`/api/v1/properties/${id}`)
       .set("Authorization", `Bearer ${token}`)
       .send({ price: 999999 });

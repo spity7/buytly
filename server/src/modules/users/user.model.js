@@ -1,5 +1,6 @@
 import mongoose from "mongoose";
 import { ROLES } from "../../shared/constants.js";
+import { PLATFORM_PERMISSIONS } from "../sites/site.constants.js";
 import { normalizeNotificationPreferences } from "../notifications/notification.preferences.js";
 
 const channelPreferenceSchema = {
@@ -20,6 +21,12 @@ const savedSearchSchema = new mongoose.Schema(
 
 const userSchema = new mongoose.Schema(
   {
+    siteId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Site",
+      required: true,
+      index: true,
+    },
     email: {
       type: String,
       required: true,
@@ -43,6 +50,10 @@ const userSchema = new mongoose.Schema(
       type: String,
       enum: Object.values(ROLES),
       default: ROLES.BUYER,
+    },
+    platformPermissions: {
+      type: [{ type: String, enum: Object.values(PLATFORM_PERMISSIONS) }],
+      default: [],
     },
     firstName: { type: String, trim: true },
     lastName: { type: String, trim: true },
@@ -89,11 +100,11 @@ const userSchema = new mongoose.Schema(
 userSchema.index({ role: 1 });
 userSchema.index({ deletedAt: 1 });
 userSchema.index(
-  { email: 1 },
+  { siteId: 1, email: 1 },
   { unique: true, partialFilterExpression: { deletedAt: null } },
 );
 userSchema.index(
-  { googleId: 1 },
+  { siteId: 1, googleId: 1 },
   {
     unique: true,
     partialFilterExpression: { deletedAt: null, googleId: { $type: "string" } },

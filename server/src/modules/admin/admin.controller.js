@@ -3,12 +3,12 @@ import { ApiResponse } from "../../shared/ApiResponse.js";
 
 export const adminController = {
   listUsers: async (req, res) => {
-    const result = await adminService.listUsers(req.query);
+    const result = await adminService.listUsers(req.query, req.user);
     ApiResponse.paginated(res, result.users, result.pagination);
   },
 
   getUserById: async (req, res) => {
-    const result = await adminService.getUserById(req.params.id);
+    const result = await adminService.getUserById(req.params.id, req.user);
     ApiResponse.success(res, result);
   },
 
@@ -16,6 +16,7 @@ export const adminController = {
     const user = await adminService.updateUserStatus(
       req.params.id,
       req.body.isActive,
+      req.user,
     );
     ApiResponse.success(res, user, "User status updated");
   },
@@ -24,12 +25,13 @@ export const adminController = {
     const user = await adminService.updateUserRole(
       req.params.id,
       req.body.role,
+      req.user,
     );
     ApiResponse.success(res, user, "User role updated");
   },
 
   listProperties: async (req, res) => {
-    const result = await adminService.listProperties(req.query);
+    const result = await adminService.listProperties(req.query, req.user);
     ApiResponse.paginated(res, result.properties, result.pagination);
   },
 
@@ -37,12 +39,13 @@ export const adminController = {
     const property = await adminService.moderateProperty(
       req.params.id,
       req.body.status,
+      req.user,
     );
     ApiResponse.success(res, property, "Property moderated");
   },
 
   listProjects: async (req, res) => {
-    const result = await adminService.listProjects(req.query);
+    const result = await adminService.listProjects(req.query, req.user);
     ApiResponse.paginated(res, result.projects, result.pagination);
   },
 
@@ -50,12 +53,13 @@ export const adminController = {
     const project = await adminService.moderateProject(
       req.params.id,
       req.body.status,
+      req.user,
     );
     ApiResponse.success(res, project, "Project moderated");
   },
 
   getAnalytics: async (req, res) => {
-    const analytics = await adminService.getAnalytics();
+    const analytics = await adminService.getAnalytics(req.query, req.user);
     ApiResponse.success(res, analytics);
   },
 };

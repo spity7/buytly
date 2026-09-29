@@ -1,4 +1,5 @@
 import { describe, it, expect } from "vitest";
+import { api } from "./helpers/http.js";
 import request from "supertest";
 import { mongoAvailable } from "./setup.js";
 import { createActiveProperty } from "./helpers/listingFixtures.js";
@@ -9,7 +10,7 @@ const getApp = async () => {
 };
 
 const register = async (app, overrides = {}) => {
-  const res = await request(app)
+  const res = await api(app)
     .post("/api/v1/auth/register")
     .send({
       email: "buyer@example.com",
@@ -36,7 +37,7 @@ describe.skipIf(!mongoAvailable)("bookings API", () => {
 
     const propertyId = await createActiveProperty(app, sellerToken);
 
-    const bookingRes = await request(app)
+    const bookingRes = await api(app)
       .post("/api/v1/bookings")
       .set("Authorization", `Bearer ${buyerToken}`)
       .send({
@@ -48,7 +49,7 @@ describe.skipIf(!mongoAvailable)("bookings API", () => {
     expect(bookingRes.status).toBe(201);
     const bookingId = bookingRes.body.data._id;
 
-    const cancelRes = await request(app)
+    const cancelRes = await api(app)
       .patch(`/api/v1/bookings/${bookingId}/cancel`)
       .set("Authorization", `Bearer ${buyerToken}`);
 

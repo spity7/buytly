@@ -13,10 +13,13 @@ Buytly uses a dual-token authentication system:
 {
   "sub": "userId",
   "role": "buyer",
+  "siteId": "tenantSiteObjectId",
   "iat": 1234567890,
   "exp": 1234568790
 }
 ```
+
+Access and refresh flows are scoped to the resolved request site (`resolveSite` middleware). Register/login lookups match `email` + `siteId`; `authenticate` rejects tokens whose `siteId` does not match the current site or user record. Refresh tokens are stored with `siteId` and rotated within the same tenant.
 
 ## Register Flow
 

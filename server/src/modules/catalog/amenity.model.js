@@ -2,10 +2,15 @@ import mongoose from "mongoose";
 
 const amenitySchema = new mongoose.Schema(
   {
+    siteId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Site",
+      required: true,
+      index: true,
+    },
     value: {
       type: String,
       required: true,
-      unique: true,
       trim: true,
     },
     label: { type: String, required: true, trim: true },
@@ -14,6 +19,8 @@ const amenitySchema = new mongoose.Schema(
   },
   { timestamps: true },
 );
+
+amenitySchema.index({ siteId: 1, value: 1 }, { unique: true });
 
 amenitySchema.methods.toPublicJSON = function () {
   return {

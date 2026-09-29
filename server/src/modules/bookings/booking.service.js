@@ -7,12 +7,13 @@ import {
   buildPaginationMeta,
 } from "../../shared/pagination.js";
 import { ROLES } from "../../shared/constants.js";
-import { cacheService } from "../../services/cache.service.js";
+import { getRequestSiteId } from "../../shared/requestContext.js";
 
 export const bookingService = {
   async create(buyerId, data) {
     const property = await Property.findOne({
       _id: data.propertyId,
+      siteId: getRequestSiteId(),
       deletedAt: null,
       status: "active",
     });
@@ -47,8 +48,6 @@ export const bookingService = {
       .catch((err) =>
         console.error("Booking notification failed:", err.message),
       );
-
-    await cacheService.invalidateAnalytics();
 
     return populated;
   },
@@ -123,8 +122,6 @@ export const bookingService = {
         console.error("Booking notification failed:", err.message),
       );
 
-    await cacheService.invalidateAnalytics();
-
     return booking;
   },
 
@@ -153,8 +150,6 @@ export const bookingService = {
       .catch((err) =>
         console.error("Booking notification failed:", err.message),
       );
-
-    await cacheService.invalidateAnalytics();
 
     return booking;
   },

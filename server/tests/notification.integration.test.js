@@ -1,4 +1,5 @@
 import { describe, it, expect } from "vitest";
+import { api } from "./helpers/http.js";
 import request from "supertest";
 import { mongoAvailable } from "./setup.js";
 import { notificationService } from "../src/modules/notifications/notification.service.js";
@@ -11,7 +12,7 @@ const getApp = async () => {
 };
 
 const registerUser = async (app, email) => {
-  const res = await request(app).post("/api/v1/auth/register").send({
+  const res = await api(app).post("/api/v1/auth/register").send({
     email,
     password: "password123",
     confirmPassword: "password123",
@@ -46,7 +47,7 @@ describe.skipIf(!mongoAvailable)("notifications API", () => {
       await read.save();
     }
 
-    const res = await request(app)
+    const res = await api(app)
       .get("/api/v1/notifications?unread=true")
       .set("Authorization", `Bearer ${token}`);
 
@@ -73,7 +74,7 @@ describe.skipIf(!mongoAvailable)("notifications API", () => {
     created.readAt = new Date();
     await created.save();
 
-    const res = await request(app)
+    const res = await api(app)
       .get("/api/v1/notifications?unread=false")
       .set("Authorization", `Bearer ${token}`);
 
@@ -93,7 +94,7 @@ describe.skipIf(!mongoAvailable)("notifications API", () => {
       message: "Test",
     });
 
-    const first = await request(app)
+    const first = await api(app)
       .patch(`/api/v1/notifications/${notification._id}/read`)
       .set("Authorization", `Bearer ${token}`);
 
@@ -102,7 +103,7 @@ describe.skipIf(!mongoAvailable)("notifications API", () => {
     expect(first.body.data.readAt).toBeTruthy();
     const firstReadAt = first.body.data.readAt;
 
-    const second = await request(app)
+    const second = await api(app)
       .patch(`/api/v1/notifications/${notification._id}/read`)
       .set("Authorization", `Bearer ${token}`);
 
@@ -122,7 +123,7 @@ describe.skipIf(!mongoAvailable)("notifications API", () => {
       message: "Test",
     });
 
-    const res = await request(app)
+    const res = await api(app)
       .patch(`/api/v1/notifications/${notification._id}/read`)
       .set("Authorization", `Bearer ${userB.token}`);
 
@@ -146,7 +147,7 @@ describe.skipIf(!mongoAvailable)("notifications API", () => {
       message: "Test",
     });
 
-    const res = await request(app)
+    const res = await api(app)
       .patch("/api/v1/notifications/read-all")
       .set("Authorization", `Bearer ${token}`);
 
@@ -163,7 +164,7 @@ describe.skipIf(!mongoAvailable)("notifications API", () => {
       "unread-count@example.com",
     );
 
-    const before = await request(app)
+    const before = await api(app)
       .get("/api/v1/notifications/unread-count")
       .set("Authorization", `Bearer ${token}`);
 
@@ -174,7 +175,7 @@ describe.skipIf(!mongoAvailable)("notifications API", () => {
       message: "Test",
     });
 
-    const after = await request(app)
+    const after = await api(app)
       .get("/api/v1/notifications/unread-count")
       .set("Authorization", `Bearer ${token}`);
 
@@ -229,7 +230,7 @@ describe.skipIf(!mongoAvailable)("notifications API", () => {
       message: "Test",
     });
 
-    const res = await request(app)
+    const res = await api(app)
       .get("/api/v1/notifications?type=booking")
       .set("Authorization", `Bearer ${token}`);
 
@@ -254,7 +255,7 @@ describe.skipIf(!mongoAvailable)("notifications API", () => {
       message: "Test",
     });
 
-    const res = await request(app)
+    const res = await api(app)
       .delete(`/api/v1/notifications/${notification._id}`)
       .set("Authorization", `Bearer ${token}`);
 
@@ -277,7 +278,7 @@ describe.skipIf(!mongoAvailable)("notifications API", () => {
       message: "Test",
     });
 
-    const res = await request(app)
+    const res = await api(app)
       .delete(`/api/v1/notifications/${notification._id}`)
       .set("Authorization", `Bearer ${userB.token}`);
 
@@ -319,7 +320,7 @@ describe.skipIf(!mongoAvailable)("notifications API", () => {
     const app = await getApp();
     const { token } = await registerUser(app, "pref-api@example.com");
 
-    const res = await request(app)
+    const res = await api(app)
       .patch("/api/v1/users/me/notification-preferences")
       .set("Authorization", `Bearer ${token}`)
       .send({ email: { booking: false } });

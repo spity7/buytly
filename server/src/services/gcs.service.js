@@ -1,7 +1,16 @@
 import { Storage } from "@google-cloud/storage";
 import { env } from "../config/env.js";
 import { AppError } from "../shared/AppError.js";
+import { getRequestSite } from "../shared/requestContext.js";
 import { mimeToExtension, prepareImageBuffer } from "./image.service.js";
+
+export function buildSiteFolder(folder, siteSlug) {
+  const slug = siteSlug ?? getRequestSite()?.slug;
+  if (!slug) {
+    throw new AppError("Site context is required for uploads", 500);
+  }
+  return `sites/${slug}/${folder}`;
+}
 
 let storage = null;
 let bucket = null;

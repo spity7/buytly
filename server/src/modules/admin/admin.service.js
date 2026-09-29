@@ -5,10 +5,6 @@ import { Booking } from "../bookings/booking.model.js";
 import { Transaction } from "../transactions/transaction.model.js";
 import { PropertyReview } from "../property-reviews/property-review.model.js";
 import { Favorite } from "../favorites/favorite.model.js";
-import {
-  ANALYTICS_CACHE_KEY,
-  cacheService,
-} from "../../services/cache.service.js";
 import { AppError } from "../../shared/AppError.js";
 import {
   parsePagination,
@@ -33,11 +29,27 @@ import {
 } from "../projects/project-trash-cascade.js";
 import { cascadeDemoteUnitsWhenProjectReturnedToDraft } from "../projects/project-draft-cascade.js";
 import { syncParentProjectSoldStatus } from "../projects/project-sold-sync.js";
+import mongoose from "mongoose";
+import { getRequestSiteId } from "../../shared/requestContext.js";
+import { isPlatformAdmin } from "../../shared/siteAccess.js";
+
+const resolveListSiteId = (query, user) => {
+  const requestSiteId = getRequestSiteId();
+  if (query.siteId && isPlatformAdmin(user)) {
+    return new mongoose.Types.ObjectId(query.siteId);
+  }
+  return requestSiteId;
+};
+
+const siteScope = (query, user, extra = {}) => ({
+  siteId: resolveListSiteId(query, user),
+  ...extra,
+});
 
 export const adminService = {
-  async listUsers(query) {
+  async listUsers(query, user) {
     const { page, limit, skip } = parsePagination(query);
-    const filter = {};
+    const filter = siteScope(query, user);
 
     if (query.deleted === "true") {
       filter.deletedAt = { $ne: null };
@@ -64,8 +76,11 @@ export const adminService = {
     };
   },
 
-  async getUserById(userId) {
-    const user = await User.findById(userId).select("-passwordHash");
+  async getUserById(userId, actor) {
+    const siteId = resolveListSiteId({}, actor);
+    const user = await User.findOne({ _id: userId, siteId }).select(
+      "-passwordHash",
+    );
     if (!user) throw new AppError("User not found", 404);
 
     const uid = user._id;
@@ -79,10 +94,12 @@ export const adminService = {
       favorites,
     ] = await Promise.all([
       Property.countDocuments({
+        siteId,
         $or: [{ ownerId: uid }, { agentId: uid }],
         deletedAt: null,
       }),
       Property.countDocuments({
+        siteId,
         $or: [{ ownerId: uid }, { agentId: uid }],
         deletedAt: null,
         status: "active",
@@ -110,33 +127,33 @@ export const adminService = {
     };
   },
 
-  async updateUserStatus(userId, isActive) {
+  async updateUserStatus(userId, isActive, actor) {
+    const siteId = resolveListSiteId({}, actor);
     const user = await User.findOneAndUpdate(
-      { _id: userId, deletedAt: null },
+      { _id: userId, siteId, deletedAt: null },
       { isActive },
       { new: true },
     );
 
     if (!user) throw new AppError("User not found", 404);
-    await cacheService.invalidateAnalytics();
     return user.toPublicJSON();
   },
 
-  async updateUserRole(userId, role) {
+  async updateUserRole(userId, role, actor) {
+    const siteId = resolveListSiteId({}, actor);
     const user = await User.findOneAndUpdate(
-      { _id: userId, deletedAt: null },
+      { _id: userId, siteId, deletedAt: null },
       { role },
       { new: true },
     );
 
     if (!user) throw new AppError("User not found", 404);
-    await cacheService.invalidateAnalytics();
     return user.toPublicJSON();
   },
 
-  async listProperties(query) {
+  async listProperties(query, user) {
     const { page, limit, skip } = parsePagination(query);
-    const conditions = [];
+    const conditions = [siteScope(query, user)];
 
     if (query.status) conditions.push({ status: query.status });
 
@@ -166,13 +183,14 @@ export const adminService = {
     return { properties, pagination: buildPaginationMeta(total, page, limit) };
   },
 
-  async moderateProperty(propertyId, status) {
-    const existing = await Property.findById(propertyId);
+  async moderateProperty(propertyId, status, actor) {
+    const siteId = resolveListSiteId({}, actor);
+    const existing = await Property.findOne({ _id: propertyId, siteId });
     if (!existing) throw new AppError("Property not found", 404);
 
     let project;
     if (status !== "archived") {
-      project = await Project.findById(existing.projectId);
+      project = await Project.findOne({ _id: existing.projectId, siteId });
       assertParentProjectAllowsUnitRestore(project);
       const unarchivingUnit = Boolean(existing.deletedAt);
       if (status === "active" && !unarchivingUnit) {
@@ -218,8 +236,6 @@ export const adminService = {
       }
     }
 
-    await cacheService.invalidateListingCaches();
-
     const statusMessages = {
       active: "Your listing has been approved and is now live.",
       draft: "Your listing was returned for edits.",
@@ -248,9 +264,9 @@ export const adminService = {
     return property;
   },
 
-  async listProjects(query) {
+  async listProjects(query, user) {
     const { page, limit, skip } = parsePagination(query);
-    const conditions = [];
+    const conditions = [siteScope(query, user)];
 
     if (query.status) conditions.push({ status: query.status });
     const textFilter = buildPropertyTextFilter(query.search);
@@ -276,8 +292,9 @@ export const adminService = {
     return { projects, pagination: buildPaginationMeta(total, page, limit) };
   },
 
-  async moderateProject(projectId, status) {
-    const existing = await Project.findById(projectId);
+  async moderateProject(projectId, status, actor) {
+    const siteId = resolveListSiteId({}, actor);
+    const existing = await Project.findOne({ _id: projectId, siteId });
     if (!existing) throw new AppError("Project not found", 404);
 
     if (status === "active") {
@@ -321,8 +338,6 @@ export const adminService = {
       await cascadeDemoteUnitsWhenProjectReturnedToDraft(project._id);
     }
 
-    await cacheService.invalidateListingCaches();
-
     const statusMessages = {
       active: "Your project has been approved and is now live.",
       draft: "Your project was returned for edits.",
@@ -351,14 +366,13 @@ export const adminService = {
     return project;
   },
 
-  async getAnalytics() {
-    const cacheKey = ANALYTICS_CACHE_KEY;
-    const cached = await cacheService.get(cacheKey);
-    if (cached) return cached;
-
+  async getAnalytics(query = {}, user) {
+    const siteId = resolveListSiteId(query, user);
     const startOfMonth = new Date();
     startOfMonth.setDate(1);
     startOfMonth.setHours(0, 0, 0, 0);
+
+    const siteMatch = { siteId };
 
     const [
       usersByRole,
@@ -368,11 +382,11 @@ export const adminService = {
       topCities,
     ] = await Promise.all([
       User.aggregate([
-        { $match: { deletedAt: null } },
+        { $match: { ...siteMatch, deletedAt: null } },
         { $group: { _id: "$role", count: { $sum: 1 } } },
       ]),
       Property.aggregate([
-        { $match: { deletedAt: null } },
+        { $match: { ...siteMatch, deletedAt: null } },
         {
           $group: {
             _id: { type: "$type", status: "$status" },
@@ -381,11 +395,39 @@ export const adminService = {
         },
       ]),
       Booking.aggregate([
-        { $match: { createdAt: { $gte: startOfMonth } } },
+        {
+          $lookup: {
+            from: "properties",
+            localField: "propertyId",
+            foreignField: "_id",
+            as: "property",
+          },
+        },
+        { $unwind: "$property" },
+        {
+          $match: {
+            "property.siteId": siteId,
+            createdAt: { $gte: startOfMonth },
+          },
+        },
         { $count: "count" },
       ]),
       Transaction.aggregate([
-        { $match: { status: "completed" } },
+        {
+          $lookup: {
+            from: "properties",
+            localField: "propertyId",
+            foreignField: "_id",
+            as: "property",
+          },
+        },
+        { $unwind: "$property" },
+        {
+          $match: {
+            "property.siteId": siteId,
+            status: "completed",
+          },
+        },
         {
           $group: {
             _id: "$type",
@@ -395,7 +437,7 @@ export const adminService = {
         },
       ]),
       Property.aggregate([
-        { $match: { deletedAt: null, status: "active" } },
+        { $match: { ...siteMatch, deletedAt: null, status: "active" } },
         { $group: { _id: "$location.city", count: { $sum: 1 } } },
         { $sort: { count: -1 } },
         { $limit: 10 },
@@ -410,7 +452,6 @@ export const adminService = {
       topCities,
     };
 
-    await cacheService.set(cacheKey, analytics, 600);
     return analytics;
   },
 };

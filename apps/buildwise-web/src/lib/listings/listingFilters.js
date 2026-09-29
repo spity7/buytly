@@ -1,0 +1,130 @@
+export const LISTING_PAGE_SIZE = 12;
+
+export const LISTING_MAX_PRICE = 1_000_000;
+
+export const LISTING_SORT_OPTIONS = {
+  Newest: { sortBy: "createdAt", sortOrder: "desc" },
+  "Price Low": { sortBy: "price", sortOrder: "asc" },
+  "Price High": { sortBy: "price", sortOrder: "desc" },
+  "Best Seller": { sortBy: "viewCount", sortOrder: "desc" },
+  "Best Match": { sortBy: "createdAt", sortOrder: "desc" },
+};
+
+export const LISTING_PROPERTY_TYPE_OPTIONS = [
+  { label: "Apartment", value: "apartment" },
+  { label: "Villa", value: "villa" },
+  { label: "Duplex", value: "duplex" },
+  { label: "Penthouse", value: "penthouse" },
+  { label: "Townhouse", value: "townhouse" },
+  { label: "Office", value: "office" },
+  { label: "Shop", value: "shop" },
+  { label: "Building", value: "building" },
+  { label: "Land", value: "land" },
+  { label: "Chalet", value: "chalet" },
+];
+
+export function buildListingQueryParams({
+  page = 1,
+  limit = LISTING_PAGE_SIZE,
+  currentSortingOption = "Newest",
+  listingStatus = "All",
+  propertyTypes = [],
+  priceRange = [0, LISTING_MAX_PRICE],
+  bedrooms = 0,
+  location = "All Cities",
+  searchQuery = "",
+} = {}) {
+  const sort =
+    LISTING_SORT_OPTIONS[currentSortingOption] || LISTING_SORT_OPTIONS.Newest;
+
+  const params = {
+    page,
+    limit,
+    status: "active",
+    sortBy: sort.sortBy,
+    sortOrder: sort.sortOrder,
+  };
+
+  if (listingStatus === "Sold") params.status = "sold";
+  if (propertyTypes.length === 1) params.type = propertyTypes[0];
+  if (priceRange[0] > 0) params.minPrice = priceRange[0];
+  if (priceRange[1] < LISTING_MAX_PRICE) params.maxPrice = priceRange[1];
+  if (bedrooms > 0) params.bedrooms = bedrooms;
+  if (location && location !== "All Cities") params.city = location;
+
+  const trimmedSearch = searchQuery.trim();
+  if (trimmedSearch) params.search = trimmedSearch;
+
+  return params;
+}
+
+export function getListingPageRange(page, limit, total = 0) {
+  if (!total) return [0, 0, 0];
+
+  return [(page - 1) * limit + 1, Math.min(page * limit, total), total];
+}
+
+export function getListingBrowseTitle({
+  listingStatus = "All",
+  location = "All Cities",
+  discoveryMode = "units",
+} = {}) {
+  const cityLabel =
+    location && location !== "All Cities" ? location : "All Areas";
+
+  if (discoveryMode === "projects") {
+    if (listingStatus === "Sold") {
+      return `Sold Projects in ${cityLabel}`;
+    }
+    return `Projects for Sale in ${cityLabel}`;
+  }
+
+  if (listingStatus === "Sold") {
+    return `Sold Properties in ${cityLabel}`;
+  }
+
+  return `Properties for Sale in ${cityLabel}`;
+}
+
+export function getListingBrowseCrumb({
+  listingStatus = "All",
+  location = "All Cities",
+  discoveryMode = "units",
+} = {}) {
+  if (discoveryMode === "projects") {
+    if (listingStatus === "Sold") return "Sold projects";
+    if (location && location !== "All Cities") return location;
+    return "Projects";
+  }
+
+  if (listingStatus === "Sold") return "Sold";
+  if (location && location !== "All Cities") return location;
+  return "For Sale";
+}
+
+export function buildProjectQueryParams({
+  page = 1,
+  limit = LISTING_PAGE_SIZE,
+  currentSortingOption = "Newest",
+  listingStatus = "All",
+  location = "All Cities",
+  searchQuery = "",
+} = {}) {
+  const sort =
+    LISTING_SORT_OPTIONS[currentSortingOption] || LISTING_SORT_OPTIONS.Newest;
+
+  const params = {
+    page,
+    limit,
+    status: listingStatus === "Sold" ? "sold" : "active",
+    sortBy: sort.sortBy === "price" ? "createdAt" : sort.sortBy,
+    sortOrder: sort.sortOrder,
+  };
+
+  if (location && location !== "All Cities") params.city = location;
+
+  const trimmedSearch = searchQuery.trim();
+  if (trimmedSearch) params.search = trimmedSearch;
+
+  return params;
+}

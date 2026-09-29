@@ -44,7 +44,7 @@ npm run seed:reset    # wipe collections first, then seed
 | `SEED_PASSWORD` | `BuytlyDemo2026!` | Shared password for all `@buytly.demo` accounts |
 | `SEED_FORCE`    | —                 | Required to run when `NODE_ENV=production`      |
 
-Demo logins: `admin@buytly.demo`, `seller@buytly.demo`, `agent@buytly.demo`, `buyer@buytly.demo` (see seed output for full list). Includes land and archived listings, seller2 reviews, and cache invalidation when Redis is connected.
+Demo logins: `admin@buytly.demo`, `seller@buytly.demo`, `agent@buytly.demo`, `buyer@buytly.demo` (see seed output for full list). Includes land and archived listings and seller2 reviews.
 
 **`npm run seed:reset`** (recommended) wipes users, listings, and the **listing catalog** collections, then reloads demo property types (only those used by sample listings), amenities, and demo data. All demo listing prices use **`currency: USD`**, consistent with the API (create/update always store USD). Use **`npm run seed`** without reset only to append users when emails are new; catalog rows are skipped if types already exist (demo amenities are upserted).
 
@@ -86,21 +86,25 @@ The Next.js client fetches the live OpenAPI spec from `/api/docs.json` for Orval
 | SMTP_FROM              | Yes      | From email address (verified sender for SendGrid)                                 |
 | CONTACT_INBOX_EMAIL    | No       | Receives `/contact` form submissions (default `buytlyonline@gmail.com`)           |
 | GCS_ORPHAN_GRACE_HOURS | No       | Grace period for `npm run cleanup:gcs` (default 48)                               |
-| REDIS_URL              | No       | Redis connection URL (optional)                                                   |
 | OVERPASS_URL           | No       | Primary Overpass API URL for What's Nearby (falls back to public mirrors)         |
 | OVERPASS_USER_AGENT    | No       | User-Agent sent to Overpass (recommended in production)                           |
 | GOOGLE_CLIENT_ID       | Yes      | Google OAuth Web client ID (same as client `NEXT_PUBLIC_GOOGLE_CLIENT_ID`)        |
 
 **Docker Compose (repo root `.env`):** copy `.env.example` → `.env` at the repo root. Never commit `.env`. Required for client build/runtime:
 
-| Variable                            | Required                 | Description                                                                 |
-| ----------------------------------- | ------------------------ | --------------------------------------------------------------------------- |
-| `NEXT_PUBLIC_API_URL`               | Yes                      | Public API base baked into the Next.js bundle                               |
-| `NEXT_PUBLIC_GOOGLE_CLIENT_ID`      | Yes (for Google sign-in) | Same value as `GOOGLE_CLIENT_ID` in `server/.env`                           |
-| `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`   | No                       | Google Maps JavaScript API key for map demo pages                           |
-| `NEXT_PUBLIC_SUPPORT_PHONE`         | No                       | E.164 support line for footer/mobile menu WhatsApp (default `+96171601751`) |
-| `NEXT_PUBLIC_SUPPORT_PHONE_DISPLAY` | No                       | Human-readable support number shown in UI (default `+961 71 601 751`)       |
-| `NEXT_PUBLIC_SUPPORT_EMAIL`         | No                       | Support email in footer and mailto links (default `buytlyonline@gmail.com`) |
+| Variable                            | Required                 | Description                                                                    |
+| ----------------------------------- | ------------------------ | ------------------------------------------------------------------------------ |
+| `NEXT_PUBLIC_API_URL`               | Yes                      | Public API base baked into the Next.js bundle                                  |
+| `NEXT_PUBLIC_GOOGLE_CLIENT_ID`      | Yes (for Google sign-in) | Same value as `GOOGLE_CLIENT_ID` in `server/.env`                              |
+| `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`   | No                       | Google Maps JavaScript API key for map demo pages                              |
+| `NEXT_PUBLIC_SUPPORT_PHONE`         | No                       | E.164 support line for footer/mobile menu WhatsApp (default `+96171601751`)    |
+| `NEXT_PUBLIC_SUPPORT_PHONE_DISPLAY` | No                       | Human-readable support number shown in UI (default `+961 71 601 751`)          |
+| `NEXT_PUBLIC_SUPPORT_EMAIL`         | No                       | Support email in footer and mailto links (default `buytlyonline@gmail.com`)    |
+| `BUILDWISE_SUPPORT_PHONE`           | No                       | Buildwise footer/WhatsApp (default `+96171703703`) — `buildwise-web` build arg |
+| `BUILDWISE_SUPPORT_PHONE_DISPLAY`   | No                       | Buildwise display number (default `+961 71 703 703`)                           |
+| `BUILDWISE_SUPPORT_EMAIL`           | No                       | Buildwise support email (default `info@buildwise-engineering.com`)             |
+
+`docker-compose.yml` passes site slug/name and support fields as **build args** only (`NEXT_PUBLIC_*` is baked at `docker compose build` time). Changing root `.env` requires `docker compose build client buildwise-web` (or `--build` on `up`).
 
 Production setup: copy `server/.env.example` → `.env` on the server, then comment local lines and uncomment the prod line below each pair. Default email is **SMTP** (Gmail); switch to **SendGrid** for higher volume.
 
@@ -176,10 +180,11 @@ Propagation can take up to 24–48 hours (often minutes).
 
 Same flow as handiz-dashboard: Docker Compose on the VPS, host nginx + certbot for SSL.
 
-| Service | Host port | Domain           |
-| ------- | --------- | ---------------- |
-| client  | 3025      | buytly.com / www |
-| server  | 5025      | api.buytly.com   |
+| Service       | Host port | Domain                      |
+| ------------- | --------- | --------------------------- |
+| client        | 3025      | buytly.com / www            |
+| buildwise-web | 3026      | buildwise-engineering.com   |
+| server        | 5025      | api.buytly.com (shared API) |
 
 (handiz-dashboard uses 3016 / 5016 on the same VPS — no conflict)
 
@@ -211,13 +216,26 @@ PORT=5000
 TRUST_PROXY=true
 APP_URL=https://buytly.com
 API_URL=https://api.buytly.com/api/v1
-CORS_ORIGIN=https://buytly.com,https://www.buytly.com
+CORS_ORIGIN=https://buytly.com,https://www.buytly.com,https://buildwise-engineering.com,https://www.buildwise-engineering.com
 SWAGGER_ENABLED=false
 GCS_KEY_FILE=./gcs-service-account.json
 GOOGLE_CLIENT_ID=<your-google-oauth-client-id>
 ```
 
-Add Google OAuth authorized JavaScript origins: `https://buytly.com`, `https://www.buytly.com`.
+Add Google OAuth authorized JavaScript origins: `https://buytly.com`, `https://www.buytly.com`, `https://buildwise-engineering.com`, `https://www.buildwise-engineering.com`.
+
+### Multi-site rollout
+
+1. Deploy API with site middleware (`resolveSite` + seeded `sites` collection).
+2. Run once on production DB: `npm run migrate:multi-site -w server` (from repo root) or `node scripts/migrate-multi-site.js` in `server/`.
+3. Build and run both frontends: `docker compose up -d --build` (services `client`, `buildwise-web`, `server`).
+4. Host nginx:
+   - `buytly.com` / `www` → `127.0.0.1:3025`
+   - `buildwise-engineering.com` / `www` → `127.0.0.1:3026`
+   - `api.buytly.com` → `127.0.0.1:5025`
+5. TLS: `sudo certbot --nginx -d buildwise-engineering.com -d www.buildwise-engineering.com` (in addition to Buytly hosts).
+
+Each frontend sends browser `Origin`; the API resolves tenant from host mapping in `sites`. Dev/tests may send `X-Site-Slug: buytly|buildwise`. Per-site accounts: the same email may exist independently on each site.
 
 ## MongoDB Atlas Setup
 
@@ -244,16 +262,6 @@ Mongoose recreates `email_1` as a partial unique index (`deletedAt: null`) on st
 5. Download JSON key file → set `GCS_KEY_FILE` path
 6. On GCP Compute/Cloud Run, use workload identity instead of key files
 
-## Redis Setup (Optional)
-
-For caching, deploy Redis (Redis Cloud, AWS ElastiCache, or local):
-
-```
-REDIS_URL=redis://localhost:6379
-```
-
-If unset, caching is disabled — the app works without Redis.
-
 ## Production Checklist
 
 - [ ] Set `NODE_ENV=production`
@@ -261,7 +269,7 @@ If unset, caching is disabled — the app works without Redis.
 - [ ] Use strong, unique JWT secrets (`npm run generate-secrets`)
 - [ ] MongoDB Atlas with IP whitelist and TLS
 - [ ] GCS bucket with uniform access, no public ACLs
-- [ ] `CORS_ORIGIN` restricted to `https://buytly.com,https://www.buytly.com`
+- [ ] `CORS_ORIGIN` includes all frontend origins (Buytly + Buildwise domains for production)
 - [ ] `APP_URL=https://buytly.com` for password-reset links
 - [ ] `API_URL=https://api.buytly.com/api/v1`
 - [ ] DNS A records for `@`, `www`, `api` → VPS IP
@@ -283,20 +291,24 @@ If unset, caching is disabled — the app works without Redis.
 
 Same layout as handiz-dashboard:
 
-| File                 | Purpose                                  |
-| -------------------- | ---------------------------------------- |
-| `docker-compose.yml` | Client + server services, ports, volumes |
-| `client/Dockerfile`  | Build Next.js → run `npm start`          |
-| `server/Dockerfile`  | `npm ci --omit=dev` → `npm start`        |
+| File                            | Purpose                                                               |
+| ------------------------------- | --------------------------------------------------------------------- |
+| `docker-compose.yml`            | `client`, `buildwise-web`, `server`; ports, volumes                   |
+| `client/Dockerfile`             | Buytly Next.js standalone → `node server.js` :3025                    |
+| `apps/buildwise-web/Dockerfile` | Buildwise Next.js standalone → `node server.js` :3026                 |
+| `server/Dockerfile`             | `npm ci --omit=dev` → `npm start` :5025                               |
+| Repo root `.dockerignore`       | Build context for frontends; excludes `.env*`, `server/`, `packages/` |
+| Repo root `.gitignore`          | Secrets, `node_modules/`, `**/.next/`, coverage (workspaces)          |
 
-Client env comes from the repo root `.env` (see `.env.example`): **build args** bake `NEXT_PUBLIC_*` values into the bundle; **environment** supplies them at runtime for `next start` / `next.config.js`. Server runtime env comes from `server/.env`.
+Frontend env for Docker comes from the repo root `.env` (see `.env.example`) via **compose build args** — values are embedded at image build time. Server runtime env comes from `server/.env` (`env_file` in compose). Optional: set `APP_URL` in `server/.env` to the public site users open in the browser (email/reset links); local dev often uses `http://localhost:3000` / `3001`, Docker frontends use `http://localhost:3025` / `3026`.
 
-Both services define **healthchecks** in `docker-compose.yml` and in their Dockerfiles:
+All three services define **healthchecks** in `docker-compose.yml` and in their Dockerfiles:
 
-| Service | Check                                                             |
-| ------- | ----------------------------------------------------------------- |
-| server  | `GET http://127.0.0.1:5000/api/v1/health` (503 when MongoDB down) |
-| client  | `GET http://127.0.0.1:3000`                                       |
+| Service       | Check                                     |
+| ------------- | ----------------------------------------- |
+| server        | `GET http://127.0.0.1:5025/api/v1/health` |
+| client        | `GET http://127.0.0.1:3025`               |
+| buildwise-web | `GET http://127.0.0.1:3026`               |
 
 ## CI/CD
 
@@ -325,17 +337,10 @@ Response (healthy):
     "status": "ok",
     "timestamp": "2026-01-01T00:00:00.000Z",
     "services": {
-      "mongodb": "connected",
-      "redis": "connected"
+      "mongodb": "connected"
     }
   }
 }
 ```
-
-`services.redis` values:
-
-- `"not_configured"` — `REDIS_URL` is unset (caching disabled)
-- `"connected"` — Redis is configured and reachable
-- `"disconnected"` — `REDIS_URL` is set but Redis is not connected
 
 Returns **503** with `"status": "degraded"` if MongoDB is disconnected (body still has `success: true`).

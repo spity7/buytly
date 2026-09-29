@@ -1,4 +1,5 @@
 import { describe, it, expect } from "vitest";
+import { api } from "./helpers/http.js";
 import request from "supertest";
 import { mongoAvailable } from "./setup.js";
 import { runSeed } from "../scripts/seed/run.js";
@@ -96,7 +97,7 @@ describe.skipIf(!mongoAvailable)("seed script", () => {
     }
 
     const app = await getApp();
-    const login = await request(app)
+    const login = await api(app)
       .post("/api/v1/auth/login")
       .send({ email: `buyer@${SEED_DOMAIN}`, password: DEMO_PASSWORD });
 

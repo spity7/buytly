@@ -4,7 +4,8 @@
 
 | Collection           | Module           | Description                                     |
 | -------------------- | ---------------- | ----------------------------------------------- |
-| users                | Users            | User accounts and profiles                      |
+| sites                | Sites            | Tenant registry (domains, branding, policies)   |
+| users                | Users            | Per-site user accounts                          |
 | refreshtokens        | Auth             | JWT refresh token store                         |
 | projects             | Projects         | Development projects (shared marketing + units) |
 | properties           | Properties       | Sellable units (listings)                       |
@@ -15,17 +16,46 @@
 | transactions         | Transactions     | Purchase tracking                               |
 | notifications        | Notifications    | In-app notifications                            |
 | propertytypecatalogs | Catalog          | Admin-managed property types                    |
-| amenitycatalogs      | Catalog          | Admin-managed amenities                         |
+| amenitycatalogs      | Catalog          | Per-site admin-managed amenities                |
+
+## sites
+
+Multi-tenant registry. One document per public site (Buytly platform + partner tenants such as Buildwise).
+
+```javascript
+{
+  slug: String (unique, e.g. buytly, buildwise),
+  kind: enum [platform, tenant],
+  name: String,
+  primaryDomain: String,
+  domains: [String],
+  publicUrl: String,
+  branding: {
+    supportEmail, supportPhone, supportPhoneDisplay,
+    siteDisplayName, logoUrl, contactInboxEmail
+  },
+  platformListingPolicy: enum [optIn, defaultVisibleOnPlatform],
+  features: Mixed,
+  isActive: Boolean,
+  timestamps
+}
+```
+
+**Indexes:** `slug` (unique), `primaryDomain`, `domains`, `isActive`
+
+**Seeding:** `siteService.ensureDefaultSites()` on API boot creates Buytly (`kind: platform`) and Buildwise (`kind: tenant`).
 
 ## users
 
 ```javascript
 {
-  email: String (unique among active users — partial index where deletedAt is null),
+  siteId: ObjectId → sites (required),
+  email: String (unique per site among active users),
   authProvider: enum [local, google, both] (default local),
   googleId: String (partial unique where deletedAt is null and googleId is set),
   passwordHash: String (required when authProvider is local),
   role: enum [buyer, seller, agent, admin],
+  platformPermissions: [cross_site_read, cross_site_moderate] (platform admins on Buytly),
   firstName, lastName, phone: String,
   phoneCountryCode, phoneNumber: String (E.164 parts; `phone` kept as combined),
   avatar: { gcsKey, mimeType, size } — stored in GCS; API responses add a signed `url` at read time (not persisted).
@@ -46,7 +76,7 @@
 }
 ```
 
-**Indexes:** `email` (partial unique where `deletedAt` is null), `googleId` (partial unique where `deletedAt` is null), `role`, `deletedAt`
+**Indexes:** `{ siteId, email }` (partial unique where `deletedAt` is null), `{ siteId, googleId }` (partial unique), `role`, `deletedAt`
 
 **Account deletion:** Sets `deletedAt`, clears avatar from GCS and document, anonymizes `email`, stores prior address in `deletedEmail`. Does **not** cascade to properties, bookings, transactions, reviews, or favorites — listings remain at their current status (including active/public).
 
@@ -55,6 +85,7 @@
 ```javascript
 {
   userId: ObjectId → users,
+  siteId: ObjectId → sites,
   tokenHash: String (unique),
   expiresAt: Date (TTL index),
   revokedAt: Date,
@@ -66,7 +97,8 @@
 
 ```javascript
 {
-  title, slug (unique), description: String,
+  siteId: ObjectId → sites (required),
+  title, slug (unique per siteId), description: String,
   location: {
     type: Point,
     coordinates: [lng, lat],
@@ -79,6 +111,7 @@
   agentId: ObjectId → users,
   ownerId: ObjectId → users,
   viewCount: Number,
+  visibleOnPlatform: Boolean (opt-in for Buytly aggregator),
   deletedAt: Date,
   timestamps
 }

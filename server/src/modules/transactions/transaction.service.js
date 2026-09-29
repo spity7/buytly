@@ -1,7 +1,6 @@
 import { Transaction } from "./transaction.model.js";
 import { Property } from "../properties/property.model.js";
 import { notificationService } from "../notifications/notification.service.js";
-import { cacheService } from "../../services/cache.service.js";
 import { AppError } from "../../shared/AppError.js";
 import {
   parsePagination,
@@ -9,11 +8,13 @@ import {
 } from "../../shared/pagination.js";
 import { ROLES } from "../../shared/constants.js";
 import { syncParentProjectSoldStatus } from "../projects/project-sold-sync.js";
+import { getRequestSiteId } from "../../shared/requestContext.js";
 
 export const transactionService = {
   async create(buyerId, data) {
     const property = await Property.findOne({
       _id: data.propertyId,
+      siteId: getRequestSiteId(),
       deletedAt: null,
       status: "active",
     });
@@ -44,8 +45,6 @@ export const transactionService = {
           .map((id) => id.toString()),
       ),
     ];
-
-    await cacheService.invalidateAnalytics();
 
     await notificationService.notifyMany("transaction.created", notifyIds, {
       transactionId: transaction._id,
@@ -136,10 +135,6 @@ export const transactionService = {
       if (property?.projectId) {
         await syncParentProjectSoldStatus(property.projectId, { notify: true });
       }
-
-      await cacheService.invalidateListingCaches();
-    } else {
-      await cacheService.invalidateAnalytics();
     }
 
     const recipientIds = [

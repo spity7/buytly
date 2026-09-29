@@ -1,9 +1,10 @@
 import { describe, it, expect } from "vitest";
-import request from "supertest";
 import { mongoAvailable } from "./setup.js";
 import { User } from "../src/modules/users/user.model.js";
 import { Property } from "../src/modules/properties/property.model.js";
 import { Project } from "../src/modules/projects/project.model.js";
+import { api } from "./helpers/http.js";
+import { getTestSiteId } from "./helpers/runWithTestSite.js";
 
 const getApp = async () => {
   const { default: app } = await import("../src/app.js");
@@ -11,16 +12,17 @@ const getApp = async () => {
 };
 
 const loginAsAdmin = async (app, email = "catalog-admin@example.com") => {
-  await request(app).post("/api/v1/auth/register").send({
+  await api(app).post("/api/v1/auth/register").send({
     email,
     password: "password123",
     confirmPassword: "password123",
     role: "buyer",
   });
 
-  await User.findOneAndUpdate({ email }, { role: "admin" });
+  const siteId = await getTestSiteId();
+  await User.findOneAndUpdate({ siteId, email }, { role: "admin" });
 
-  const login = await request(app)
+  const login = await api(app)
     .post("/api/v1/auth/login")
     .send({ email, password: "password123" });
 
@@ -31,11 +33,11 @@ describe.skipIf(!mongoAvailable)("catalog API", () => {
   it("bootstraps amenities and lists catalog publicly", async () => {
     const app = await getApp();
 
-    const types = await request(app).get("/api/v1/catalog/property-types");
+    const types = await api(app).get("/api/v1/catalog/property-types");
     expect(types.status).toBe(200);
     expect(Array.isArray(types.body.data)).toBe(true);
 
-    const amenities = await request(app).get("/api/v1/catalog/amenities");
+    const amenities = await api(app).get("/api/v1/catalog/amenities");
     expect(amenities.status).toBe(200);
     expect(amenities.body.data.length).toBeGreaterThan(0);
   });
@@ -44,10 +46,10 @@ describe.skipIf(!mongoAvailable)("catalog API", () => {
     const app = await getApp();
 
     const responses = await Promise.all([
-      request(app).get("/api/v1/catalog/property-types"),
-      request(app).get("/api/v1/catalog/amenities"),
-      request(app).get("/api/v1/catalog/property-types"),
-      request(app).get("/api/v1/catalog/amenities"),
+      api(app).get("/api/v1/catalog/property-types"),
+      api(app).get("/api/v1/catalog/amenities"),
+      api(app).get("/api/v1/catalog/property-types"),
+      api(app).get("/api/v1/catalog/amenities"),
     ]);
 
     for (const res of responses) {
@@ -62,7 +64,7 @@ describe.skipIf(!mongoAvailable)("catalog API", () => {
     const app = await getApp();
     const token = await loginAsAdmin(app, "catalog-admin-types@example.com");
 
-    const created = await request(app)
+    const created = await api(app)
       .post("/api/v1/admin/catalog/property-types")
       .set("Authorization", `Bearer ${token}`)
       .send({
@@ -74,7 +76,7 @@ describe.skipIf(!mongoAvailable)("catalog API", () => {
     expect(created.status).toBe(201);
     expect(created.body.data.value).toBe("loft");
 
-    const updated = await request(app)
+    const updated = await api(app)
       .patch(`/api/v1/admin/catalog/property-types/${created.body.data.id}`)
       .set("Authorization", `Bearer ${token}`)
       .send({ isActive: false });
@@ -87,7 +89,7 @@ describe.skipIf(!mongoAvailable)("catalog API", () => {
     const app = await getApp();
     const token = await loginAsAdmin(app, "catalog-slug-immutable@example.com");
 
-    const created = await request(app)
+    const created = await api(app)
       .post("/api/v1/admin/catalog/property-types")
       .set("Authorization", `Bearer ${token}`)
       .send({
@@ -96,7 +98,7 @@ describe.skipIf(!mongoAvailable)("catalog API", () => {
         sortOrder: 50,
       });
 
-    const updated = await request(app)
+    const updated = await api(app)
       .patch(`/api/v1/admin/catalog/property-types/${created.body.data.id}`)
       .set("Authorization", `Bearer ${token}`)
       .send({ value: "changed-slug", label: "Loft updated" });
@@ -110,7 +112,7 @@ describe.skipIf(!mongoAvailable)("catalog API", () => {
     const app = await getApp();
     const token = await loginAsAdmin(app, "catalog-listing-count@example.com");
 
-    await request(app)
+    await api(app)
       .post("/api/v1/admin/catalog/property-types")
       .set("Authorization", `Bearer ${token}`)
       .send({
@@ -119,14 +121,16 @@ describe.skipIf(!mongoAvailable)("catalog API", () => {
         sortOrder: 1,
       });
 
-    const seller = await request(app).post("/api/v1/auth/register").send({
+    const seller = await api(app).post("/api/v1/auth/register").send({
       email: "catalog-count-seller@example.com",
       password: "password123",
       confirmPassword: "password123",
       role: "seller",
     });
 
+    const siteId = await getTestSiteId();
     const project = await Project.create({
+      siteId,
       title: "Catalog count project",
       slug: "catalog-count-project-test",
       description: "Project for catalog count test",
@@ -141,6 +145,7 @@ describe.skipIf(!mongoAvailable)("catalog API", () => {
     });
 
     await Property.create({
+      siteId,
       title: "Catalog count listing",
       slug: "catalog-count-listing-test",
       description: "Uses default apartment type and Parking amenity",
@@ -153,7 +158,7 @@ describe.skipIf(!mongoAvailable)("catalog API", () => {
       status: "active",
     });
 
-    const types = await request(app)
+    const types = await api(app)
       .get("/api/v1/admin/catalog/property-types")
       .set("Authorization", `Bearer ${token}`);
 
@@ -163,7 +168,7 @@ describe.skipIf(!mongoAvailable)("catalog API", () => {
     );
     expect(apartment?.listingCount).toBeGreaterThanOrEqual(1);
 
-    const amenities = await request(app)
+    const amenities = await api(app)
       .get("/api/v1/admin/catalog/amenities")
       .set("Authorization", `Bearer ${token}`);
 
@@ -178,7 +183,7 @@ describe.skipIf(!mongoAvailable)("catalog API", () => {
     const app = await getApp();
     const token = await loginAsAdmin(app, "catalog-dup-names@example.com");
 
-    await request(app)
+    await api(app)
       .post("/api/v1/admin/catalog/property-types")
       .set("Authorization", `Bearer ${token}`)
       .send({
@@ -187,7 +192,7 @@ describe.skipIf(!mongoAvailable)("catalog API", () => {
         sortOrder: 1,
       });
 
-    const dupType = await request(app)
+    const dupType = await api(app)
       .post("/api/v1/admin/catalog/property-types")
       .set("Authorization", `Bearer ${token}`)
       .send({
@@ -198,7 +203,7 @@ describe.skipIf(!mongoAvailable)("catalog API", () => {
 
     expect(dupType.status).toBe(409);
 
-    const dupTypeLabel = await request(app)
+    const dupTypeLabel = await api(app)
       .post("/api/v1/admin/catalog/property-types")
       .set("Authorization", `Bearer ${token}`)
       .send({
@@ -209,7 +214,7 @@ describe.skipIf(!mongoAvailable)("catalog API", () => {
 
     expect(dupTypeLabel.status).toBe(409);
 
-    const dupAmenity = await request(app)
+    const dupAmenity = await api(app)
       .post("/api/v1/admin/catalog/amenities")
       .set("Authorization", `Bearer ${token}`)
       .send({
@@ -220,7 +225,7 @@ describe.skipIf(!mongoAvailable)("catalog API", () => {
 
     expect(dupAmenity.status).toBe(409);
 
-    const created = await request(app)
+    const created = await api(app)
       .post("/api/v1/admin/catalog/amenities")
       .set("Authorization", `Bearer ${token}`)
       .send({
@@ -231,7 +236,7 @@ describe.skipIf(!mongoAvailable)("catalog API", () => {
 
     expect(created.status).toBe(201);
 
-    const dupAmenityUpdate = await request(app)
+    const dupAmenityUpdate = await api(app)
       .patch(`/api/v1/admin/catalog/amenities/${created.body.data.id}`)
       .set("Authorization", `Bearer ${token}`)
       .send({ label: "Parking" });

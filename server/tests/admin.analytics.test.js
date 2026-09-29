@@ -1,4 +1,5 @@
 import { describe, it, expect } from "vitest";
+import { api } from "./helpers/http.js";
 import request from "supertest";
 import { mongoAvailable } from "./setup.js";
 import { User } from "../src/modules/users/user.model.js";
@@ -9,7 +10,7 @@ const getApp = async () => {
 };
 
 const loginAsAdmin = async (app, email = "admin-analytics@example.com") => {
-  await request(app)
+  await api(app)
     .post("/api/v1/auth/register")
     .send({
       email,
@@ -21,7 +22,7 @@ const loginAsAdmin = async (app, email = "admin-analytics@example.com") => {
 
   await User.findOneAndUpdate({ email }, { role: "admin" });
 
-  const login = await request(app)
+  const login = await api(app)
     .post("/api/v1/auth/login")
     .send({ email, password: "password123" });
 
@@ -33,7 +34,7 @@ describe.skipIf(!mongoAvailable)("admin analytics API", () => {
     const app = await getApp();
     const adminToken = await loginAsAdmin(app);
 
-    const res = await request(app)
+    const res = await api(app)
       .get("/api/v1/admin/analytics")
       .set("Authorization", `Bearer ${adminToken}`);
 
@@ -49,7 +50,7 @@ describe.skipIf(!mongoAvailable)("admin analytics API", () => {
   it("rejects analytics for non-admin users", async () => {
     const app = await getApp();
 
-    const buyer = await request(app)
+    const buyer = await api(app)
       .post("/api/v1/auth/register")
       .send({
         email: "buyer-analytics@example.com",
@@ -58,7 +59,7 @@ describe.skipIf(!mongoAvailable)("admin analytics API", () => {
         role: "buyer",
       });
 
-    const res = await request(app)
+    const res = await api(app)
       .get("/api/v1/admin/analytics")
       .set("Authorization", `Bearer ${buyer.body.data.accessToken}`);
 

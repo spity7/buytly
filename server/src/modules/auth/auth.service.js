@@ -18,17 +18,19 @@ import { ROLES } from "../../shared/constants.js";
 import { env } from "../../config/env.js";
 import { googleService } from "../../services/google.service.js";
 import { syncGoogleAvatarIfMissing } from "../../services/googleAvatar.service.js";
-import { cacheService } from "../../services/cache.service.js";
+import { getRequestSiteId } from "../../shared/requestContext.js";
 
 const SALT_ROUNDS = 12;
 
 const issueTokenPair = async (user) => {
-  const accessToken = generateAccessToken(user._id, user.role);
+  const siteId = user.siteId ?? getRequestSiteId();
+  const accessToken = generateAccessToken(user._id, user.role, siteId);
   const refreshToken = generateRefreshToken();
   const tokenHash = hashToken(refreshToken);
 
   await RefreshToken.create({
     userId: user._id,
+    siteId,
     tokenHash,
     expiresAt: getRefreshTokenExpiry(),
   });
@@ -93,7 +95,12 @@ const linkGoogleToExistingUser = async (user, profile) => {
 
 export const authService = {
   async register(data) {
-    const existing = await User.findOne({ email: data.email, deletedAt: null });
+    const siteId = getRequestSiteId();
+    const existing = await User.findOne({
+      email: data.email,
+      siteId,
+      deletedAt: null,
+    });
     if (existing) {
       throw new AppError("Email already registered", 409);
     }
@@ -108,6 +115,7 @@ export const authService = {
     let user;
     try {
       user = new User({
+        siteId,
         email: data.email,
         passwordHash,
         authProvider: "local",
@@ -147,8 +155,6 @@ export const authService = {
       console.error("Verification email failed:", err.message),
     );
 
-    await cacheService.invalidateAnalytics();
-
     return {
       user: user.toPublicJSON(),
       ...tokens,
@@ -156,7 +162,8 @@ export const authService = {
   },
 
   async login({ email, password }) {
-    const user = await User.findOne({ email, deletedAt: null }).select(
+    const siteId = getRequestSiteId();
+    const user = await User.findOne({ email, siteId, deletedAt: null }).select(
       "+passwordHash",
     );
 
@@ -188,8 +195,11 @@ export const authService = {
       throw new AppError("Google email is not verified", 401);
     }
 
+    const siteId = getRequestSiteId();
+
     let user = await User.findOne({
       googleId: profile.googleId,
+      siteId,
       deletedAt: null,
     }).select(
       "+googleId +emailVerificationToken +emailVerificationExpires +passwordHash",
@@ -218,6 +228,7 @@ export const authService = {
 
     const existingByEmail = await User.findOne({
       email: profile.email,
+      siteId,
       deletedAt: null,
     }).select(
       "+googleId +passwordHash +emailVerificationToken +emailVerificationExpires",
@@ -240,6 +251,7 @@ export const authService = {
 
     try {
       user = new User({
+        siteId,
         email: profile.email,
         googleId: profile.googleId,
         authProvider: "google",
@@ -271,8 +283,6 @@ export const authService = {
       .catch((err) =>
         console.error("Registration notification failed:", err.message),
       );
-
-    await cacheService.invalidateAnalytics();
 
     return {
       user: user.toPublicJSON(),
@@ -314,8 +324,10 @@ export const authService = {
   },
 
   async resendVerification(email) {
+    const siteId = getRequestSiteId();
     const user = await User.findOne({
       email,
+      siteId,
       deletedAt: null,
       isActive: true,
       isEmailVerified: false,
@@ -333,8 +345,13 @@ export const authService = {
   },
 
   async refresh(refreshToken) {
+    const siteId = getRequestSiteId();
     const tokenHash = hashToken(refreshToken);
-    const stored = await RefreshToken.findOne({ tokenHash, revokedAt: null });
+    const stored = await RefreshToken.findOne({
+      tokenHash,
+      siteId,
+      revokedAt: null,
+    });
 
     if (!stored || stored.expiresAt < new Date()) {
       throw new AppError("Invalid or expired refresh token", 401);
@@ -342,6 +359,7 @@ export const authService = {
 
     const user = await User.findOne({
       _id: stored.userId,
+      siteId,
       deletedAt: null,
       isActive: true,
     });
@@ -357,6 +375,7 @@ export const authService = {
 
     await RefreshToken.create({
       userId: user._id,
+      siteId,
       tokenHash: newTokenHash,
       expiresAt: getRefreshTokenExpiry(),
     });
@@ -364,7 +383,7 @@ export const authService = {
     stored.replacedByToken = newTokenHash;
     await stored.save();
 
-    const accessToken = generateAccessToken(user._id, user.role);
+    const accessToken = generateAccessToken(user._id, user.role, siteId);
 
     return {
       accessToken,
@@ -379,7 +398,8 @@ export const authService = {
   },
 
   async forgotPassword(email) {
-    const user = await User.findOne({ email, deletedAt: null });
+    const siteId = getRequestSiteId();
+    const user = await User.findOne({ email, siteId, deletedAt: null });
 
     if (!user) {
       return { message: "If the email exists, a reset link has been sent" };
