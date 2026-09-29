@@ -2,8 +2,10 @@ const { spawn } = require("child_process");
 const path = require("path");
 const { main } = require("./gen-api.cjs");
 const { clientDir, resolvePackageBin } = require("./load-env.cjs");
+const { ensureHoistedDeps } = require("./ensure-hoisted-deps.cjs");
 
 async function start() {
+  ensureHoistedDeps(clientDir);
   try {
     await main();
   } catch (err) {

@@ -1,4 +1,5 @@
 const path = require("path");
+const fs = require("fs");
 
 if (!process.env.NEXT_PUBLIC_API_URL) {
   throw new Error(
@@ -53,9 +54,40 @@ const singleStyleRedirects = [2, 3, 4, 5, 6, 7, 8, 9, 10].map((version) => ({
   permanent: false,
 }));
 
+const appDir = __dirname;
+
+function resolveNextRoot(startDir) {
+  let dir = startDir;
+  for (;;) {
+    if (fs.existsSync(path.join(dir, "node_modules", "next", "package.json"))) {
+      return dir;
+    }
+    const parent = path.dirname(dir);
+    if (parent === dir) return startDir;
+    dir = parent;
+  }
+}
+
+const nextRoot = resolveNextRoot(appDir);
+
+function collectSassIncludePaths() {
+  const paths = [];
+  for (const base of [appDir, nextRoot]) {
+    const nodeModules = path.join(base, "node_modules");
+    if (!fs.existsSync(nodeModules)) continue;
+    paths.push(nodeModules);
+    const bootstrapScss = path.join(nodeModules, "bootstrap", "scss");
+    if (fs.existsSync(bootstrapScss)) paths.push(bootstrapScss);
+  }
+  return paths.filter((p, i, arr) => arr.indexOf(p) === i);
+}
+
+const sassIncludePaths = collectSassIncludePaths();
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   output: "standalone",
+  ...(nextRoot !== appDir ? { outputFileTracingRoot: nextRoot } : {}),
   async redirects() {
     return [
       {
@@ -93,10 +125,10 @@ const nextConfig = {
     ],
   },
   turbopack: {
-    root: __dirname,
+    root: nextRoot,
   },
   sassOptions: {
-    includePaths: [path.join(__dirname, "node_modules")],
+    includePaths: sassIncludePaths,
     quietDeps: true,
     silenceDeprecations: [
       "legacy-js-api",
