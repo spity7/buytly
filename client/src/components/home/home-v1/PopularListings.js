@@ -1,5 +1,6 @@
 "use client";
 
+import PropertySectionEmptyState from "@/components/property/property-single-style/common/PropertySectionEmptyState";
 import Image from "next/image";
 import Link from "next/link";
 import FavoriteButton from "@/components/property/FavoriteButton";
@@ -9,7 +10,16 @@ const PLACEHOLDER = "/images/listings/list-1.jpg";
 
 const PopularListings = ({ data = [] }) => {
   if (!data.length) {
-    return <p className="text-white text-center">No properties available.</p>;
+    return (
+      <PropertySectionEmptyState
+        variant="on-dark"
+        icon="flaticon-home-1"
+        title="No listings to show yet"
+        description="Popular homes will surface here as new properties go live. Browse the full catalog in the meantime."
+        actions={[{ label: "See all properties", href: "/listings" }]}
+        className="popular-listings-empty"
+      />
+    );
   }
 
   return (

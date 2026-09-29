@@ -4642,6 +4642,60 @@ tr.dashboard-row-highlight {
     border: 0 !important;
 }
 
+.featured-listings-empty--on-dark {
+    background: rgba(255, 255, 255, 0.06);
+    border-color: rgba(255, 255, 255, 0.14) !important;
+
+    .featured-listings-empty__icon {
+        background: rgba(255, 255, 255, 0.1);
+    }
+
+    .featured-listings-empty__title {
+        color: #fff;
+    }
+
+    .featured-listings-empty__text {
+        color: rgba(255, 255, 255, 0.72);
+    }
+}
+
+.explore-apartment-slider--viewport-bleed {
+    margin-right: calc(-1 * (100vw - 100%) / 2);
+    overflow: hidden;
+}
+
+.explore-property-types-static {
+    position: relative;
+}
+
+.explore-property-types-static__grid {
+    --bs-gutter-x: 1rem;
+    margin-left: 0;
+    margin-right: 0;
+}
+
+.explore-property-types-empty {
+    width: 100%;
+    max-width: none;
+    margin-top: 0;
+    align-items: center;
+    text-align: center;
+    padding: 40px 28px;
+
+    .featured-listings-empty__text {
+        max-width: 480px;
+    }
+
+    .featured-listings-empty__actions {
+        justify-content: center;
+    }
+}
+
+.popular-listings-empty {
+    width: 100%;
+    margin-top: 8px;
+}
+
 .property-reviews-empty__stars {
     display: flex;
     align-items: center;

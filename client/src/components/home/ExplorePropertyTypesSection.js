@@ -13,7 +13,8 @@ export default function ExplorePropertyTypesSection({
   sectionId = "explore-property",
   className = "pb90 pb30-md",
 }) {
-  const { data: types = [] } = useCatalogPropertyTypes();
+  const { data: types = [], isLoading } = useCatalogPropertyTypes();
+  const showCarouselNav = isLoading || types.length > 0;
   const totalListings = types.reduce(
     (sum, type) => sum + (Number(type.listingCount) || 0),
     0,
@@ -28,14 +29,21 @@ export default function ExplorePropertyTypesSection({
     <section id={sectionId} className={className}>
       <div className="container">
         <div className="row justify-content-between align-items-center">
-          <div className="col-auto">
-            <div className="main-title" data-aos="fade-up" data-aos-delay="300">
+          <div className="col-lg-8">
+            <div
+              className={`main-title${showCarouselNav ? "" : " mb30 mb0-md"}`}
+              data-aos="fade-up"
+              data-aos-delay="300"
+            >
               <h2 className="title">Explore property types</h2>
               <p className="paragraph">{subtitle}</p>
             </div>
           </div>
 
-          <div className="col-auto mb30">
+          <div
+            className={`col-auto mb30${showCarouselNav ? "" : " d-none"}`}
+            aria-hidden={!showCarouselNav}
+          >
             <div className="row align-items-center justify-content-center">
               <div className="col-auto">
                 <button
@@ -64,24 +72,21 @@ export default function ExplorePropertyTypesSection({
           </div>
         </div>
 
-        <div className="row">
-          <div className="col-lg-12">
-            <div
-              className="explore-apartment-slider"
-              data-aos="fade-up"
-              data-aos-delay="300"
-              style={{
-                marginRight: "calc(-1 * (100vw - 100%) / 2)",
-                overflow: "hidden",
-              }}
-            >
-              <ExplorePropertyTypesCarousel
-                navigationPrevClass={NAV.prev}
-                navigationNextClass={NAV.next}
-                paginationClass={NAV.pagination}
-              />
-            </div>
-          </div>
+        <div
+          className={
+            showCarouselNav
+              ? "explore-apartment-slider explore-apartment-slider--viewport-bleed"
+              : "explore-property-types-static"
+          }
+          data-aos="fade-up"
+          data-aos-delay="300"
+        >
+          <ExplorePropertyTypesCarousel
+            navigationPrevClass={NAV.prev}
+            navigationNextClass={NAV.next}
+            paginationClass={NAV.pagination}
+            layout={showCarouselNav ? "carousel" : "static"}
+          />
         </div>
       </div>
     </section>

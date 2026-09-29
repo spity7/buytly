@@ -1,5 +1,6 @@
 import { PropertyTypeCatalog } from "../../src/modules/catalog/property-type.model.js";
 import { AmenityCatalog } from "../../src/modules/catalog/amenity.model.js";
+import { ensureCatalogIndexes } from "../../src/modules/catalog/catalog.indexes.js";
 import { DEFAULT_AMENITIES } from "../../src/modules/catalog/catalog.defaults.js";
 import { ensureTestSites, TEST_SITE_SLUG } from "./siteFixtures.js";
 import { Site } from "../../src/modules/sites/site.model.js";
@@ -61,8 +62,7 @@ export async function ensureTestAmenities(siteId = null) {
 
 export async function ensureTestCatalog() {
   await ensureTestSites();
-  await PropertyTypeCatalog.syncIndexes();
-  await AmenityCatalog.syncIndexes();
+  await ensureCatalogIndexes();
   await ensureTestPropertyTypes();
   await ensureTestAmenities();
 }

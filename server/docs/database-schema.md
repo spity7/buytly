@@ -236,13 +236,16 @@ Sellable **units** under a project. All listings are for **sale** (no `listingTy
 
 ```javascript
 {
-  value: String (unique; slug for types, stored amenity string for amenities),
+  siteId: ObjectId → sites (required),
+  value: String (unique per site; slug for types, stored amenity string for amenities),
   label: String,
   sortOrder: Number,
   isActive: Boolean,
   timestamps
 }
 ```
+
+**Indexes:** unique compound `{ siteId: 1, value: 1 }`. On API startup (and `migrate:multi-site`), legacy single-field unique index `value_1` is dropped if present so each site can share the same catalog values.
 
 Seeded from `catalog.defaults.js` on first catalog API access: **default amenities** are upserted when missing (`$setOnInsert` only). **Property types are not auto-created** — admins manage them via the catalog API (demo `npm run seed:reset` inserts only types used by sample listings).
 

@@ -227,7 +227,7 @@ Add Google OAuth authorized JavaScript origins: `https://buytly.com`, `https://w
 ### Multi-site rollout
 
 1. Deploy API with site middleware (`resolveSite` + seeded `sites` collection).
-2. Run once on production DB: `npm run migrate:multi-site -w server` (from repo root) or `node scripts/migrate-multi-site.js` in `server/`.
+2. Run once on production DB: `npm run migrate:multi-site -w server` (from repo root) or `node scripts/migrate-multi-site.js` in `server/`. This backfills `siteId`, grants platform admin permissions, and drops legacy catalog unique index `value_1` in favor of `{ siteId, value }`. New API processes also run that index sync on startup.
 3. Build and run both frontends: `docker compose up -d --build` (services `client`, `buildwise-web`, `server`).
 4. Host nginx:
    - `buytly.com` / `www` → `127.0.0.1:3025`
@@ -244,14 +244,17 @@ Each frontend sends browser `Origin`; the API resolves tenant from host mapping 
 3. Whitelist your server IP (or 0.0.0.0/0 for development only)
 4. Copy the connection string to `MONGODB_URI`
 
-**Upgrading:** If you previously deployed with a global unique index on `users.email`, drop it after deploy so soft-deleted accounts can free their email via the partial index:
+**Upgrading:** Older databases may still have **global** unique indexes on `users.email` and/or `users.googleId` from before multi-site (`siteId`) tenancy. Those block the same email or Google account on a second site (e.g. Buytly vs Buildwise). On API startup, `ensureUserIndexes()` drops legacy global `email_1` / `googleId_1` indexes and runs `User.syncIndexes()` so only `{ siteId, email }` and `{ siteId, googleId }` partial uniques remain.
+
+Manual fix (if needed):
 
 ```javascript
 // mongosh
-db.users.dropIndex("email_1");
+db.users.dropIndex("email_1"); // only if key is { email: 1 } without siteId
+db.users.dropIndex("googleId_1"); // only if key is { googleId: 1 } without siteId
 ```
 
-Mongoose recreates `email_1` as a partial unique index (`deletedAt: null`) on startup. Email is also anonymized on `DELETE /users/me`, so re-registration works even before the index migration.
+Email is anonymized on `DELETE /users/me`, so re-registration works with the partial per-site unique index.
 
 ## Google Cloud Storage Setup
 

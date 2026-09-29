@@ -6,6 +6,7 @@ import {
   getPropertyTypeIcon,
 } from "@/lib/catalog/propertyTypePresentation";
 import { useCatalogPropertyTypes } from "@/hooks/useCatalog";
+import PropertySectionEmptyState from "@/components/property/property-single-style/common/PropertySectionEmptyState";
 import Link from "next/link";
 import { Navigation, Pagination } from "swiper/modules";
 import { Swiper, SwiperSlide } from "swiper/react";
@@ -26,6 +27,7 @@ export default function ExplorePropertyTypesCarousel({
   navigationPrevClass = "prev__active",
   navigationNextClass = "next__active",
   paginationClass = "pagination__active",
+  layout = "carousel",
 }) {
   const { data: types = [], isLoading, isError } = useCatalogPropertyTypes();
 
@@ -42,8 +44,13 @@ export default function ExplorePropertyTypesCarousel({
   }
 
   if (isLoading) {
+    const gridClass =
+      layout === "static"
+        ? "row g-3 explore-property-types-static__grid"
+        : "row g-3";
+
     return (
-      <div className="row g-3">
+      <div className={gridClass}>
         {Array.from({ length: 6 }).map((_, index) => (
           <div className="col-6 col-md-4 col-lg-3 col-xl-2" key={index}>
             <TypeCardSkeleton />
@@ -55,9 +62,13 @@ export default function ExplorePropertyTypesCarousel({
 
   if (!types.length) {
     return (
-      <p className="text mb0" role="status">
-        No property types are configured yet.
-      </p>
+      <PropertySectionEmptyState
+        icon="flaticon-corporation"
+        title="Property types coming soon"
+        description="Apartments, villas, offices, and more will show up here as inventory grows. In the meantime, explore everything on the market."
+        actions={[{ label: "Browse all listings", href: "/listings" }]}
+        className="explore-property-types-empty"
+      />
     );
   }
 

@@ -17,13 +17,16 @@ import { Transaction } from "../src/modules/transactions/transaction.model.js";
 import { Notification } from "../src/modules/notifications/notification.model.js";
 import { PropertyReview } from "../src/modules/property-reviews/property-review.model.js";
 import { PLATFORM_PERMISSIONS } from "../src/modules/sites/site.constants.js";
+import { ensureCatalogIndexes } from "../src/modules/catalog/catalog.indexes.js";
 
 async function backfillCollection(Model, siteId, label) {
   const result = await Model.updateMany(
     { $or: [{ siteId: { $exists: false } }, { siteId: null }] },
     { $set: { siteId } },
   );
-  console.log(`${label}: matched ${result.matchedCount}, modified ${result.modifiedCount}`);
+  console.log(
+    `${label}: matched ${result.matchedCount}, modified ${result.modifiedCount}`,
+  );
 }
 
 async function grantPlatformPermissions(buytlySiteId) {
@@ -49,6 +52,7 @@ async function grantPlatformPermissions(buytlySiteId) {
 
 async function run() {
   await connectDB();
+  await ensureCatalogIndexes();
   await siteService.ensureDefaultSites();
 
   const buytly = await Site.findOne({ slug: "buytly" });

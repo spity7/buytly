@@ -54,11 +54,47 @@ const setEmailVerificationToken = async (user) => {
   return token;
 };
 
+const normalizeAuthEmail = (email) => email?.toLowerCase()?.trim() ?? "";
+
+const duplicateKeyAppError = (err) => {
+  const keyPattern = err.keyPattern || {};
+  if (keyPattern.googleId) {
+    return new AppError(
+      "This Google account is already linked to another user on this site",
+      409,
+    );
+  }
+  return new AppError("Email already registered", 409);
+};
+
 const handleDuplicateEmailError = (err) => {
   if (err.code === 11000) {
-    throw new AppError("Email already registered", 409);
+    throw duplicateKeyAppError(err);
   }
   throw err;
+};
+
+const userSelectForGoogleAuth =
+  "+googleId +emailVerificationToken +emailVerificationExpires +passwordHash";
+
+const findActiveUserByGoogleId = (googleId, siteId) =>
+  User.findOne({ googleId, siteId, deletedAt: null }).select(
+    userSelectForGoogleAuth,
+  );
+
+const findActiveUserByEmail = (email, siteId) =>
+  User.findOne({
+    email: normalizeAuthEmail(email),
+    siteId,
+    deletedAt: null,
+  }).select(userSelectForGoogleAuth);
+
+const finishGoogleSignIn = async (user) => {
+  const tokens = await issueTokenPair(user);
+  return {
+    user: user.toPublicJSON(),
+    ...tokens,
+  };
 };
 
 const verifyEmailFromGoogle = (user) => {
@@ -197,13 +233,7 @@ export const authService = {
 
     const siteId = getRequestSiteId();
 
-    let user = await User.findOne({
-      googleId: profile.googleId,
-      siteId,
-      deletedAt: null,
-    }).select(
-      "+googleId +emailVerificationToken +emailVerificationExpires +passwordHash",
-    );
+    let user = await findActiveUserByGoogleId(profile.googleId, siteId);
 
     if (user) {
       if (!user.isActive) {
@@ -219,20 +249,10 @@ export const authService = {
         await user.save();
       }
 
-      const tokens = await issueTokenPair(user);
-      return {
-        user: user.toPublicJSON(),
-        ...tokens,
-      };
+      return finishGoogleSignIn(user);
     }
 
-    const existingByEmail = await User.findOne({
-      email: profile.email,
-      siteId,
-      deletedAt: null,
-    }).select(
-      "+googleId +passwordHash +emailVerificationToken +emailVerificationExpires",
-    );
+    const existingByEmail = await findActiveUserByEmail(profile.email, siteId);
 
     if (existingByEmail) {
       if (!existingByEmail.isActive) {
@@ -242,17 +262,13 @@ export const authService = {
       await linkGoogleToExistingUser(existingByEmail, profile);
       await existingByEmail.save();
 
-      const tokens = await issueTokenPair(existingByEmail);
-      return {
-        user: existingByEmail.toPublicJSON(),
-        ...tokens,
-      };
+      return finishGoogleSignIn(existingByEmail);
     }
 
     try {
       user = new User({
         siteId,
-        email: profile.email,
+        email: normalizeAuthEmail(profile.email),
         googleId: profile.googleId,
         authProvider: "google",
         firstName: profile.firstName,
@@ -262,7 +278,37 @@ export const authService = {
       });
       await user.save();
     } catch (err) {
-      handleDuplicateEmailError(err);
+      if (err.code !== 11000) {
+        throw err;
+      }
+
+      const existingAfterConflict =
+        (await findActiveUserByGoogleId(profile.googleId, siteId)) ||
+        (await findActiveUserByEmail(profile.email, siteId));
+
+      if (existingAfterConflict) {
+        if (!existingAfterConflict.isActive) {
+          throw new AppError("Account inactive", 401);
+        }
+
+        if (existingAfterConflict.googleId === profile.googleId) {
+          const emailVerified = verifyEmailFromGoogle(existingAfterConflict);
+          const avatarSynced = await syncGoogleAvatarIfMissing(
+            existingAfterConflict,
+            profile.picture,
+          );
+          if (emailVerified || avatarSynced) {
+            await existingAfterConflict.save();
+          }
+          return finishGoogleSignIn(existingAfterConflict);
+        }
+
+        await linkGoogleToExistingUser(existingAfterConflict, profile);
+        await existingAfterConflict.save();
+        return finishGoogleSignIn(existingAfterConflict);
+      }
+
+      throw duplicateKeyAppError(err);
     }
 
     if (await syncGoogleAvatarIfMissing(user, profile.picture)) {
@@ -273,8 +319,6 @@ export const authService = {
       await AgentProfile.create({ userId: user._id });
     }
 
-    const tokens = await issueTokenPair(user);
-
     notificationService
       .notifyFromEvent("auth.welcome", {
         userId: user._id,
@@ -284,10 +328,7 @@ export const authService = {
         console.error("Registration notification failed:", err.message),
       );
 
-    return {
-      user: user.toPublicJSON(),
-      ...tokens,
-    };
+    return finishGoogleSignIn(user);
   },
 
   async verifyEmail(token) {

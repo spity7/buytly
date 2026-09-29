@@ -16,7 +16,11 @@ export default function PropertySectionEmptyState({
   className = "",
 }) {
   const variantClass =
-    variant === "embedded" ? "featured-listings-empty--embedded" : "";
+    variant === "embedded"
+      ? "featured-listings-empty--embedded"
+      : variant === "on-dark"
+        ? "featured-listings-empty--on-dark"
+        : "";
 
   return (
     <div

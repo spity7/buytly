@@ -2,12 +2,16 @@ import app from "./app.js";
 import { env, isSwaggerEnabled } from "./config/env.js";
 import { connectDB, disconnectDB } from "./config/db.js";
 import { siteService } from "./modules/sites/site.service.js";
+import { ensureCatalogIndexes } from "./modules/catalog/catalog.indexes.js";
+import { ensureUserIndexes } from "./modules/users/user.indexes.js";
 
 const publicBaseUrl = env.API_URL.replace(/\/api\/v1\/?$/, "");
 
 const startServer = async () => {
   try {
     await connectDB();
+    await ensureCatalogIndexes();
+    await ensureUserIndexes();
     await siteService.ensureDefaultSites();
 
     const server = app.listen(env.PORT, () => {
