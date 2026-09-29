@@ -1,4 +1,4 @@
-import { afterAll, afterEach } from "vitest";
+import { afterAll, afterEach, beforeEach } from "vitest";
 import mongoose from "mongoose";
 
 // Set before any src/ import (env.js skips dotenv when NODE_ENV=test)
@@ -52,6 +52,12 @@ afterEach(async () => {
   await ensureTestCatalog();
   const { siteService } = await import("../src/modules/sites/site.service.js");
   siteService.invalidateCache();
+});
+
+beforeEach(async () => {
+  if (!mongoAvailable) return;
+  const { ensureTestSites } = await import("./helpers/siteFixtures.js");
+  await ensureTestSites();
 });
 
 afterAll(async () => {

@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { api } from "./helpers/http.js";
+import { registerAndGetToken } from "./helpers/authFixtures.js";
 import { mongoAvailable } from "./setup.js";
 import {
   createProject,
@@ -11,17 +12,6 @@ import { User } from "../src/modules/users/user.model.js";
 const getApp = async () => {
   const { default: app } = await import("../src/app.js");
   return app;
-};
-
-const registerAndGetToken = async (app, email) => {
-  const res = await api(app).post("/api/v1/auth/register").send({
-    email,
-    password: "password123",
-    confirmPassword: "password123",
-    firstName: "Test",
-    role: "seller",
-  });
-  return res.body.data.accessToken;
 };
 
 describe.skipIf(!mongoAvailable)("projects API", () => {
@@ -124,9 +114,7 @@ describe.skipIf(!mongoAvailable)("projects API", () => {
     expect(ownerView.status).toBe(200);
     expect(ownerView.body.data.viewCount).toBe(afterPublic);
 
-    const secondPublic = await api(app).get(
-      `/api/v1/projects/slug/${slug}`,
-    );
+    const secondPublic = await api(app).get(`/api/v1/projects/slug/${slug}`);
     expect(secondPublic.body.data.viewCount).toBe(afterPublic + 1);
   });
 
