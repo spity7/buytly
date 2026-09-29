@@ -1,4 +1,3 @@
-import mongoose from "mongoose";
 import { Site } from "../sites/site.model.js";
 import { Property } from "../properties/property.model.js";
 import { Project } from "../projects/project.model.js";

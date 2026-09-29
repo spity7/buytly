@@ -2,7 +2,6 @@ import { describe, it, expect, vi } from "vitest";
 import { mongoAvailable } from "./setup.js";
 import { getTestSiteId } from "./helpers/runWithTestSite.js";
 import { User } from "../src/modules/users/user.model.js";
-import { Property } from "../src/modules/properties/property.model.js";
 import { Project } from "../src/modules/projects/project.model.js";
 
 const mockResolveAvatar = vi.fn(async (avatar) => ({

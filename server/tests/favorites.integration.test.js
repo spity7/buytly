@@ -1,6 +1,5 @@
 import { describe, it, expect } from "vitest";
 import { api } from "./helpers/http.js";
-import request from "supertest";
 import { mongoAvailable } from "./setup.js";
 import { createActiveProperty } from "./helpers/listingFixtures.js";
 

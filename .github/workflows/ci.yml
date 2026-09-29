@@ -32,7 +32,7 @@ jobs:
           cache-dependency-path: server/package-lock.json
 
       - name: Install dependencies
-        run: npm ci
+        run: npm ci --no-workspaces
 
       - name: Lint
         run: npm run lint
@@ -62,7 +62,7 @@ jobs:
           cache-dependency-path: client/package-lock.json
 
       - name: Install dependencies
-        run: npm ci
+        run: npm ci --no-workspaces
 
       - name: Build
         run: npm run build
@@ -93,7 +93,7 @@ jobs:
           cache-dependency-path: apps/buildwise-web/package-lock.json
 
       - name: Install dependencies
-        run: npm ci
+        run: npm ci --no-workspaces
 
       - name: Build
         run: npm run build

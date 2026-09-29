@@ -1,6 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { api } from "./helpers/http.js";
-import request from "supertest";
 import { mongoAvailable } from "./setup.js";
 import {
   createProject,

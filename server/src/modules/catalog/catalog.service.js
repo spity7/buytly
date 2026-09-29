@@ -377,7 +377,8 @@ export const catalogService = {
 
   async updatePropertyType(id, data) {
     await this.ensureDefaults();
-    const { value: _immutable, ...patch } = data;
+    const patch = { ...data };
+    delete patch.value;
 
     const siteId = getRequestSiteId();
     const existing = await PropertyTypeCatalog.findOne({ _id: id, siteId });
@@ -447,7 +448,8 @@ export const catalogService = {
 
   async updateAmenity(id, data) {
     await this.ensureDefaults();
-    const { value: _immutable, ...patch } = data;
+    const patch = { ...data };
+    delete patch.value;
 
     if (patch.label) {
       await this.assertUniqueAmenityLabel(patch.label, id);

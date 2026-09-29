@@ -1,11 +1,9 @@
 import { describe, it, expect } from "vitest";
 import { api } from "./helpers/http.js";
-import request from "supertest";
 import { mongoAvailable } from "./setup.js";
 import {
   createProject,
   createPropertyForProject,
-  projectPayload,
 } from "./helpers/listingFixtures.js";
 import { Project } from "../src/modules/projects/project.model.js";
 import { User } from "../src/modules/users/user.model.js";

@@ -314,10 +314,11 @@ All three services define **healthchecks** in `docker-compose.yml` and in their 
 
 GitHub Actions workflow [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml) runs on every push and pull request (and can be re-run manually via **workflow_dispatch**):
 
-| Job        | Steps                                                              |
-| ---------- | ------------------------------------------------------------------ |
-| **server** | `npm ci`, `npm run lint`, `npm test` (MongoDB 7 service container) |
-| **client** | `npm ci`, `npm run build` (uses committed `src/api/generated/`)    |
+| Job               | Steps                                                                              |
+| ----------------- | ---------------------------------------------------------------------------------- |
+| **server**        | `npm ci --no-workspaces`, `npm run lint`, `npm test` (MongoDB 7 service container) |
+| **client**        | `npm ci --no-workspaces`, `npm run build` (uses committed `src/api/generated/`)    |
+| **buildwise-web** | `npm ci --no-workspaces`, `npm run build` (Buildwise tenant env)                   |
 
 Regenerate and commit `client/src/api/generated/` after OpenAPI changes (`npm run gen:api` with the API running locally).
 

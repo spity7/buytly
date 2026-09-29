@@ -1,6 +1,5 @@
 import { describe, it, expect } from "vitest";
 import { api } from "./helpers/http.js";
-import request from "supertest";
 import { mongoAvailable } from "./setup.js";
 import { runSeed } from "../scripts/seed/run.js";
 import { SEED_DOMAIN, SEED_EXPECTED_COUNTS } from "../scripts/seed/catalog.js";

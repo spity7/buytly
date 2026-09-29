@@ -1,9 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { api } from "./helpers/http.js";
-import request from "supertest";
 import { mongoAvailable } from "./setup.js";
 import { Property } from "../src/modules/properties/property.model.js";
-import { Project } from "../src/modules/projects/project.model.js";
 import { PropertyReview } from "../src/modules/property-reviews/property-review.model.js";
 import {
   buildPropertyBody,
