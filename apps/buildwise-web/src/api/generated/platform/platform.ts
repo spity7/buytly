@@ -5,32 +5,34 @@
  * Production-ready real estate marketplace backend API. All successful responses use `{ success, message, data }`. Paginated lists add a top-level `pagination` object. OpenAPI spec is Orval-compatible — each operation has an `operationId`.
  * OpenAPI spec version: 1.0.0
  */
-import type { HealthSuccessResponse } from "../buytly.schemas";
+import type { ListPlatformFeaturedListingsParams } from "../buytly.schemas";
 
 import { customInstance } from "../../../lib/api/custom-instance";
 
 type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];
 
-export const getHealth = () => {
+export const getPlatform = () => {
   /**
-   * Returns service health status including MongoDB connectivity. Returns 503 when MongoDB is disconnected.
-   * @summary Health check
+   * @summary Partner listings visible on the platform site (Buytly)
    */
-  const getHealth = (
-    options?: SecondParameter<typeof customInstance<HealthSuccessResponse>>,
+  const listPlatformFeaturedListings = (
+    params?: ListPlatformFeaturedListingsParams,
+    options?: SecondParameter<typeof customInstance<void>>,
   ) => {
-    return customInstance<HealthSuccessResponse>(
-      { url: `/health`, method: "GET" },
+    return customInstance<void>(
+      { url: `/platform/featured-listings`, method: "GET", params },
       options,
     );
   };
-  return { getHealth };
+  return { listPlatformFeaturedListings };
 };
 
 type AwaitedInput<T> = PromiseLike<T> | T;
 
 type Awaited<O> = O extends AwaitedInput<infer T> ? T : never;
 
-export type GetHealthResult = NonNullable<
-  Awaited<ReturnType<ReturnType<typeof getHealth>["getHealth"]>>
+export type ListPlatformFeaturedListingsResult = NonNullable<
+  Awaited<
+    ReturnType<ReturnType<typeof getPlatform>["listPlatformFeaturedListings"]>
+  >
 >;

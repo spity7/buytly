@@ -645,23 +645,8 @@ export const HealthDataServicesMongodb = {
   disconnected: "disconnected",
 } as const;
 
-/**
- * not_configured when REDIS_URL is unset; disconnected when configured but unreachable
- */
-export type HealthDataServicesRedis =
-  (typeof HealthDataServicesRedis)[keyof typeof HealthDataServicesRedis];
-
-// eslint-disable-next-line @typescript-eslint/no-redeclare
-export const HealthDataServicesRedis = {
-  connected: "connected",
-  not_configured: "not_configured",
-  disconnected: "disconnected",
-} as const;
-
 export type HealthDataServices = {
   mongodb: HealthDataServicesMongodb;
-  /** not_configured when REDIS_URL is unset; disconnected when configured but unreachable */
-  redis: HealthDataServicesRedis;
 };
 
 export interface HealthData {
@@ -1472,6 +1457,11 @@ export type UploadProjectMediaBody = {
 
 export type ReorderProjectMediaBody = {
   imageIds: ObjectId[];
+};
+
+export type ListPlatformFeaturedListingsParams = {
+  page?: number;
+  limit?: number;
 };
 
 export type ListNotificationsParams = {

@@ -13,7 +13,7 @@ type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];
 
 export const getHealth = () => {
   /**
-   * Returns service health status including MongoDB and Redis connectivity. Returns 503 when MongoDB is disconnected.
+   * Returns service health status including MongoDB connectivity. Returns 503 when MongoDB is disconnected.
    * @summary Health check
    */
   const getHealth = (
