@@ -13,6 +13,7 @@ import Blog from "@/components/common/Blog";
 import PopulerProperty from "@/components/home/home-v1/PopulerProperty";
 import FeaturedProjects from "@/components/home/home-v1/FeaturedProjects";
 import ExplorePropertyTypesSection from "@/components/home/ExplorePropertyTypesSection";
+import { BRAND_SHORT_NAME } from "@/data/brandAssets";
 
 export const metadata = {
   title: "Home v1",
@@ -53,7 +54,9 @@ const Home_V1 = () => {
                 data-aos="fade-up"
                 data-aos-delay="300"
               >
-                <h2 className="title">People Love Living with Buytly</h2>
+                <h2 className="title">
+                  People Love Living with {BRAND_SHORT_NAME}
+                </h2>
                 <p className="paragraph">
                   Aliquam lacinia diam quis lacus euismod
                 </p>

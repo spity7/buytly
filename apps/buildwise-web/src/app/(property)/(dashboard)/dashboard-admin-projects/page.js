@@ -1,7 +1,7 @@
 import AdminProjectsTable from "@/components/property/dashboard/dashboard-admin-projects/AdminProjectsTable";
 
 export const metadata = {
-  title: "Admin Projects | Buytly",
+  title: "Admin Projects",
 };
 
 export default function DashboardAdminProjectsPage() {

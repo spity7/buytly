@@ -1,4 +1,5 @@
 import React from "react";
+import { BRAND_NAME } from "@/data/brandAssets";
 
 const getCurrentYear = () => {
   return new Date().getFullYear();
@@ -26,7 +27,7 @@ const Footer = () => {
         <div className="col-sm-6">
           <div className="text-center text-lg-start">
             <p className="copyright-text text-gray ff-heading">
-              © Buytly {getCurrentYear()} - All rights reserved
+              © {BRAND_NAME} {getCurrentYear()} - All rights reserved
             </p>
           </div>
         </div>

@@ -1,3 +1,4 @@
+import { BRAND_NAME } from "@/data/brandAssets";
 import { isExternalImageSrc } from "@/lib/images/isExternalImageSrc";
 import { buildWhatsAppUrl, getPublicSiteOrigin } from "@/lib/phone/whatsapp";
 import {
@@ -185,7 +186,7 @@ export function buildListingContactWhatsAppMessage(
     return undefined;
   }
 
-  const lines = [`Hi, I'm interested in "${context.title}" on Buytly.`];
+  const lines = [`Hi, I'm interested in "${context.title}" on ${BRAND_NAME}.`];
   if (context.listingPath) {
     const origin = siteOrigin?.replace(/\/$/, "");
     lines.push(

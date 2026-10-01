@@ -4,6 +4,7 @@ import Footer from "@/components/common/default-footer";
 import MobileMenu from "@/components/common/mobile-menu";
 import Form from "@/components/pages/contact/Form";
 import Office from "@/components/pages/contact/Office";
+import { BRAND_SHORT_NAME } from "@/data/brandAssets";
 
 export const metadata = {
   title: "Contact ",
@@ -53,8 +54,8 @@ const Contact = () => {
               </h2>
               <p className="text">
                 We are here to answer any question you may have. As a partner of
-                corporates, Buytly has more than 9,000 offices of all sizes and
-                all potential of session.
+                corporates, {BRAND_SHORT_NAME} has more than 9,000 offices of
+                all sizes and all potential of session.
               </p>
             </div>
             {/* End .col */}
@@ -75,8 +76,8 @@ const Contact = () => {
               <div className="main-title text-center">
                 <h2 className="title">Visit Our Office</h2>
                 <p className="paragraph">
-                  Buytly has more than 9,000 offices of all sizes and all
-                  potential of session.
+                  {BRAND_SHORT_NAME} has more than 9,000 offices of all sizes
+                  and all potential of session.
                 </p>
               </div>
             </div>

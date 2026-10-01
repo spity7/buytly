@@ -14,7 +14,6 @@ export function getPropertyFormActionConfig({
     const canSaveChanges = isEdit;
     const showReturnDraft = status === "pending";
     const showSaveDraft =
-      status === "draft" ||
       status === "active" ||
       status === "archived" ||
       status === "sold" ||

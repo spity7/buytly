@@ -1,7 +1,7 @@
 Add-Type -AssemblyName System.Drawing
 
 $root = Split-Path $PSScriptRoot -Parent
-$source = Join-Path $root "public\images\buytly-logo-dark.png"
+$source = Join-Path $root "public\images\buildwise-logo-dark.png"
 $appDir = Join-Path $root "src\app"
 $imagesDir = Join-Path $root "public\images"
 

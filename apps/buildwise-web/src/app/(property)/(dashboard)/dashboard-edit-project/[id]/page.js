@@ -3,7 +3,7 @@ import ProjectEditDashboard from "@/components/property/dashboard/dashboard-proj
 import { DashboardListingPageSkeleton } from "@/components/property/dashboard/skeletons/DashboardSkeletons";
 
 export const metadata = {
-  title: "Edit Project | Buytly",
+  title: "Edit Project",
 };
 
 export default async function DashboardEditProjectPage({ params }) {

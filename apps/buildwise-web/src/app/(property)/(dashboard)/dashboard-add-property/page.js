@@ -3,7 +3,7 @@ import UnitPropertyDashboard from "@/components/property/dashboard/dashboard-add
 import { redirect } from "next/navigation";
 
 export const metadata = {
-  title: "Add Unit | Buytly",
+  title: "Add Unit",
 };
 
 export default async function DashboardAddPropertyPage({ searchParams }) {

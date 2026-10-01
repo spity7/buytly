@@ -6,8 +6,9 @@ Monorepo for the Buytly real estate marketplace — **Next.js frontend** + **Exp
 
 ```
 buytly/
-├── client/          # Next.js frontend
-├── server/          # Express API
+├── client/                 # Buytly Next.js frontend
+├── apps/buildwise-web/     # Buildwise Engineering tenant frontend
+├── server/                 # Express API (multi-tenant)
 └── docker-compose.yml
 ```
 
@@ -36,12 +37,24 @@ npm run dev
 
 - App: `http://localhost:3000`
 
-## Production (buytly.com)
+**Buildwise frontend** (tenant site; same API, `X-Site-Slug: buildwise`):
 
-| Host                            | Service          |
-| ------------------------------- | ---------------- |
-| `buytly.com` / `www.buytly.com` | Next.js frontend |
-| `api.buytly.com`                | Express API      |
+```bash
+cd apps/buildwise-web
+cp .env.example .env.local
+npm install
+npm run dev
+```
+
+- App: `http://localhost:3000` (use a different port if Buytly client is already running)
+
+## Production
+
+| Host                            | Service                                   |
+| ------------------------------- | ----------------------------------------- |
+| `buytly.com` / `www.buytly.com` | Buytly Next.js (`client`, 3025)           |
+| `buildwise-engineering.com`     | Buildwise Next.js (`buildwise-web`, 3026) |
+| `api.buytly.com`                | Shared Express API (5025)                 |
 
 Deploy on Hostinger VPS with Docker Compose (same flow as handiz-dashboard):
 
@@ -49,9 +62,9 @@ Deploy on Hostinger VPS with Docker Compose (same flow as handiz-dashboard):
 2. Copy `.env.example` → `.env` at the repo root and set `NEXT_PUBLIC_API_URL`, `NEXT_PUBLIC_GOOGLE_CLIENT_ID`, and optional `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`
 3. Upload `server/gcs-service-account.json`
 4. Run `docker compose up -d --build`
-5. Point host nginx + certbot at ports 3025 (frontend) and 5025 (API)
+5. Point host nginx + certbot at ports 3025 (Buytly), 3026 (Buildwise), and 5025 (API)
 
-CI runs on every push and pull request via [`.github/workflows/ci.yml`](.github/workflows/ci.yml) (server lint + test with MongoDB, client production build).
+CI runs on every push and pull request via [`.github/workflows/ci.yml`](.github/workflows/ci.yml) (server lint + test with MongoDB, Buytly client build, Buildwise web build).
 
 Full guide: [server/docs/deployment.md](server/docs/deployment.md)
 

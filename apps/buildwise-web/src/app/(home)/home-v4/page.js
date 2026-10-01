@@ -1,3 +1,4 @@
+import { BRAND_SHORT_NAME } from "@/data/brandAssets";
 import MobileMenu from "@/components/common/mobile-menu";
 import CallToActions from "@/components/home/home-v4/CallToActions";
 import DefaultHeader from "@/components/common/DefaultHeader";
@@ -208,7 +209,9 @@ const Home_V4 = () => {
                 data-aos="fade-up"
                 data-aos-delay="300"
               >
-                <h2 className="title">People Love Living with Buytly</h2>
+                <h2 className="title">
+                  People Love Living with {BRAND_SHORT_NAME}
+                </h2>
                 <p className="paragraph">
                   Aliquam lacinia diam quis lacus euismod
                 </p>

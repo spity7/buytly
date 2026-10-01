@@ -1,4 +1,5 @@
 import React from "react";
+import { BRAND_NAME } from "@/data/brandAssets";
 
 const footerLinks = [
   { text: "Privacy", href: "#" },
@@ -16,7 +17,7 @@ const Footer = () => {
           <div className="col-auto">
             <div className="copyright-widget">
               <p className="text">
-                © Buytly {currentYear} - All rights reserved
+                © {BRAND_NAME} {currentYear} - All rights reserved
               </p>
             </div>
           </div>

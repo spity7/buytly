@@ -5,7 +5,7 @@ import MobileMenu from "@/components/common/mobile-menu";
 import ListingBrowsePanel from "@/components/listing/shared/ListingBrowsePanel";
 
 export const metadata = {
-  title: "Browse Properties | Buytly",
+  title: "Browse Properties",
   description: "Search and filter active property listings for sale and rent.",
 };
 

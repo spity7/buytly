@@ -3,12 +3,15 @@ import ClientLayout from "./ClientLayout";
 import ExtensionHydrationFix from "./ExtensionHydrationFix";
 import "../../public/scss/main.scss";
 
+const siteName =
+  process.env.NEXT_PUBLIC_SITE_NAME?.trim() || "Buildwise Engineering";
+
 export const metadata = {
   title: {
-    default: "Buytly",
-    template: "%s | Buytly",
+    default: siteName,
+    template: `%s | ${siteName}`,
   },
-  description: "Find, list, and manage real estate on Buytly.",
+  description: `Find, list, and manage real estate on ${siteName}.`,
 };
 
 const dmSans = localFont({

@@ -6,6 +6,10 @@ import {
   getPlatformSupportWhatsAppUrl,
   PLATFORM_SUPPORT_WHATSAPP_MESSAGE,
 } from "@/data/platformContact";
+import {
+  SITE_PUBLIC_WWW_LABEL,
+  SITE_PUBLIC_WWW_LINK,
+} from "@/data/brandAssets";
 
 const InvoiceFooter = () => {
   const supportWhatsAppUrl = getPlatformSupportWhatsAppUrl(
@@ -16,8 +20,8 @@ const InvoiceFooter = () => {
 
   const footerData = [
     {
-      text: "www.Buytly.com",
-      link: "https://www.Buytly.com",
+      text: SITE_PUBLIC_WWW_LABEL,
+      link: SITE_PUBLIC_WWW_LINK,
     },
     {
       text: supportEmail,

@@ -1,12 +1,7 @@
 import { buildWhatsAppUrl } from "@/lib/phone/whatsapp";
 
-function getSiteDisplayName() {
-  return (
-    process.env.NEXT_PUBLIC_SITE_NAME?.trim() ||
-    (process.env.NEXT_PUBLIC_SITE_SLUG === "buildwise"
-      ? "Buildwise Engineering"
-      : "Buytly")
-  );
+export function getSiteDisplayName() {
+  return process.env.NEXT_PUBLIC_SITE_NAME?.trim() || "Buildwise Engineering";
 }
 
 export const PLATFORM_SUPPORT_WHATSAPP_MESSAGE = `Hi, I need help with ${getSiteDisplayName()}.`;
@@ -18,9 +13,7 @@ const DEFAULT_SUPPORT_PHONE = "+96171703703";
 const DEFAULT_SUPPORT_PHONE_DISPLAY = "+961 71 703 703";
 
 export function getPlatformSupportEmail() {
-  return (
-    process.env.NEXT_PUBLIC_SUPPORT_EMAIL?.trim() || DEFAULT_SUPPORT_EMAIL
-  );
+  return process.env.NEXT_PUBLIC_SUPPORT_EMAIL?.trim() || DEFAULT_SUPPORT_EMAIL;
 }
 
 export function getPlatformSupportMailtoUrl({

@@ -6,6 +6,7 @@ import SignUp from "./SignUp";
 import { AUTH_MODAL_ID, switchAuthTab } from "./authModal";
 import { consumeAuthIntent } from "@/lib/auth/authIntent";
 import { AUTHENTICATED_HOME } from "@/lib/auth/constants";
+import { BRAND_NAME } from "@/data/brandAssets";
 
 const DEFAULT_SIGNUP_CONFIG = {
   defaultRole: "buyer",
@@ -70,7 +71,7 @@ const LoginSignupModal = () => {
     <div className="modal-content">
       <div className="modal-header">
         <h5 className="modal-title" id="exampleModalToggleLabel">
-          Welcome to Buytly
+          Welcome to {BRAND_NAME}
         </h5>
         <button
           type="button"

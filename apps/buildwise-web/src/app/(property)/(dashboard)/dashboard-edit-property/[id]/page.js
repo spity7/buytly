@@ -3,7 +3,7 @@ import RequireListingRole from "@/components/auth/RequireListingRole";
 import { DashboardListingPageSkeleton } from "@/components/property/dashboard/skeletons/DashboardSkeletons";
 
 export const metadata = {
-  title: "Edit Unit | Buytly",
+  title: "Edit Unit",
 };
 
 const DashboardEditProperty = async (props) => {

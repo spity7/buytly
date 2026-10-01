@@ -1,11 +1,12 @@
 import React from "react";
+import { SITE_PUBLIC_WWW_LABEL } from "@/data/brandAssets";
 
 const professionalInfoData = [
   { label: "Broker address", content: "House on the Northridge" },
   { label: "Office", content: "(484) 524-3699" },
   { label: "Mobile", content: "(484) 524-7963" },
   { label: "Fax", content: "(484) 524-1023" },
-  { label: "Websites", content: "www.Buytly.com" },
+  { label: "Websites", content: SITE_PUBLIC_WWW_LABEL },
   { label: "Member since", content: "10-01-2022" },
 ];
 

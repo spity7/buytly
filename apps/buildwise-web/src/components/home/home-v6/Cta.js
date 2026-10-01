@@ -1,4 +1,5 @@
 import React from "react";
+import { BRAND_SHORT_NAME } from "@/data/brandAssets";
 import AppWidget from "./AppWidget";
 import Image from "next/image";
 
@@ -24,8 +25,9 @@ const Cta = () => {
               <span className="app-tag mb25">Start today</span>
               <h2 className="cta-title">Download the App</h2>
               <p className="cta-text mb60">
-                Take classes on the go with the Buytly app. Stream or download
-                to watch on the plane, the subway, or wherever you learn best.
+                Take classes on the go with the {BRAND_SHORT_NAME} app. Stream
+                or download to watch on the plane, the subway, or wherever you
+                learn best.
               </p>
               <AppWidget />
             </div>

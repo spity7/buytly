@@ -1,3 +1,4 @@
+import { BRAND_SHORT_NAME } from "@/data/brandAssets";
 import MobileMenu from "@/components/common/mobile-menu";
 import Header from "@/components/home/home-v7/Header";
 import Hero from "@/components/home/home-v7/hero";
@@ -133,7 +134,7 @@ const Home_V7 = () => {
       {/* End Featured Homes */}
 
       {/* Popular Property */}
-      <PropertyListing/>
+      <PropertyListing />
       {/* Popular Property */}
 
       {/* Explore Apartment Explore cities */}
@@ -279,7 +280,7 @@ const Home_V7 = () => {
               data-wow-delay="300ms"
             >
               <div className="main-title text-center">
-                <h2 className="title">See How Buytly Can Help</h2>
+                <h2 className="title">See How {BRAND_SHORT_NAME} Can Help</h2>
                 <p className="paragraph">
                   Aliquam lacinia diam quis lacus euismod
                 </p>

@@ -1,4 +1,5 @@
 import React from "react";
+import { BRAND_NAME } from "@/data/brandAssets";
 
 const InvoiceTopData = () => {
   const invoiceData = [
@@ -6,7 +7,7 @@ const InvoiceTopData = () => {
       title: "Invoice date:",
       date: "22 April 2022",
       heading: "Supplier",
-      name: "Buytly LLC",
+      name: BRAND_NAME,
       address: (
         <>
           2301 Ravenswood Rd Madison, <br /> WI 53711

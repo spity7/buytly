@@ -1,3 +1,4 @@
+import { BRAND_NAME } from "@/data/brandAssets";
 import ContactInfo from "./ContactInfo";
 import MenuItems from "./MenuItems";
 import SocialLinks from "./SocialLinks";
@@ -13,7 +14,7 @@ const SidebarPanel = () => {
         >
           <span className="far fa-times"></span>
         </div>
-        <h4 className="title">Welcome to Buytly</h4>
+        <h4 className="title">Welcome to {BRAND_NAME}</h4>
       </div>
       {/* End header */}
 

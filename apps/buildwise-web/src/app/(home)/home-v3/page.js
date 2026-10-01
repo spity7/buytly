@@ -1,3 +1,4 @@
+import { BRAND_SHORT_NAME } from "@/data/brandAssets";
 import MobileMenu from "@/components/common/mobile-menu";
 import Header from "@/components/home/home-v3/Header";
 import Hero from "@/components/home/home-v3/hero";
@@ -190,7 +191,7 @@ const Home_V3 = () => {
       </section>
       {/* End Why Chose Us */}
 
-      {/*People Love Living with Buytly */}
+      {/* People Love Living with Buildwise */}
       <section className="pb30-md bgc-f7">
         <div className="container">
           <div className="row align-items-md-center">
@@ -199,7 +200,9 @@ const Home_V3 = () => {
               data-wow-delay="100ms"
             >
               <div className="main-title">
-                <h2 className="title">People Love Living with Buytly</h2>
+                <h2 className="title">
+                  People Love Living with {BRAND_SHORT_NAME}
+                </h2>
                 <p className="paragraph">
                   Aliquam lacinia diam quis lacus euismod
                 </p>
@@ -223,7 +226,7 @@ const Home_V3 = () => {
           </div>
         </div>
       </section>
-      {/* End People Love Living with Buytly */}
+      {/* End People Love Living with Buildwise */}
 
       {/* Real Estate Inquiry Form */}
       <section className="pb-0">

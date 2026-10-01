@@ -1,7 +1,7 @@
 import ProjectDetailClient from "./ProjectDetailClient";
 
 export const metadata = {
-  title: "Project | Buytly",
+  title: "Project",
 };
 
 export default async function ProjectDetailPage({ params }) {

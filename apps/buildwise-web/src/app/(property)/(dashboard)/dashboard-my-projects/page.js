@@ -3,7 +3,7 @@ import RequireListingRole from "@/components/auth/RequireListingRole";
 import MyProjectsPanel from "@/components/property/dashboard/dashboard-projects/MyProjectsPanel";
 
 export const metadata = {
-  title: "My Projects | Buytly",
+  title: "My Projects",
 };
 
 export default function DashboardMyProjectsPage() {

@@ -64,7 +64,7 @@ const MobileMenu = () => {
             >
               <span className="far fa-times"></span>
             </div>
-            <h4 className="title">Welcome to Buytly</h4>
+            <h4 className="title">Welcome to {BRAND_NAME}</h4>
           </div>
           {/* End header */}
 

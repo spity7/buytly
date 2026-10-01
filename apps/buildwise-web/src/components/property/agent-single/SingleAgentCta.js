@@ -4,6 +4,7 @@ import Image from "next/image";
 import { useAgent } from "@/hooks/useAgents";
 import { mapAgentDetail } from "@/lib/agents/mapAgent";
 import { isExternalImageSrc } from "@/lib/images/isExternalImageSrc";
+import { BRAND_NAME } from "@/data/brandAssets";
 import { buildWhatsAppUrl } from "@/lib/phone/whatsapp";
 
 const SOCIAL_ICONS = {
@@ -29,7 +30,7 @@ const SingleAgentCta = ({ id }) => {
     ([, url]) => url,
   );
   const whatsappHref = buildWhatsAppUrl(agent.phoneE164 || agent.phone, {
-    text: `Hi ${agent.name}, I found your profile on Buytly and would like to connect.`,
+    text: `Hi ${agent.name}, I found your profile on ${BRAND_NAME} and would like to connect.`,
   });
 
   return (

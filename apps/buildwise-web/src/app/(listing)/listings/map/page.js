@@ -5,7 +5,7 @@ import MobileMenu from "@/components/common/mobile-menu";
 import ListingMapBrowsePanel from "@/components/listing/shared/ListingMapBrowsePanel";
 
 export const metadata = {
-  title: "Map View | Buytly",
+  title: "Map View",
   description: "Browse property listings on an interactive map.",
 };
 

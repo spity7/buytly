@@ -1,3 +1,4 @@
+import { BRAND_SHORT_NAME } from "@/data/brandAssets";
 import Explore from "@/components/common/Explore";
 import Footer from "@/components/common/default-footer";
 import MobileMenu from "@/components/common/mobile-menu";
@@ -130,7 +131,7 @@ const Home_V1 = () => {
               data-aos-delay="300"
             >
               <div className="main-title text-center">
-                <h2 className="title">See How Buytly Can Help</h2>
+                <h2 className="title">See How {BRAND_SHORT_NAME} Can Help</h2>
                 <p className="paragraph">
                   Aliquam lacinia diam quis lacus euismod
                 </p>
@@ -244,7 +245,9 @@ const Home_V1 = () => {
                 data-aos="fade-up"
                 data-aos-delay="300"
               >
-                <h2 className="title">People Love Living with Buytly</h2>
+                <h2 className="title">
+                  People Love Living with {BRAND_SHORT_NAME}
+                </h2>
                 <p className="paragraph">
                   Aliquam lacinia diam quis lacus euismod
                 </p>

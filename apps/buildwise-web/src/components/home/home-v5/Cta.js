@@ -1,6 +1,7 @@
 import AddPropertyLink from "@/components/auth/AddPropertyLink";
 import Link from "next/link";
 import React from "react";
+import { BRAND_SHORT_NAME } from "@/data/brandAssets";
 
 const Cta = () => {
   return (
@@ -11,8 +12,8 @@ const Cta = () => {
             <div className="cta-style4 position-relative text-center">
               <h6 className="sub-title fw400 text-white">BUY OR SELL</h6>
               <h1 className="cta-title mb30 text-white">
-                Looking to Buy a new property or sell an existing one? Buytly
-                provides an awesome solution!
+                Looking to Buy a new property or sell an existing one?{" "}
+                {BRAND_SHORT_NAME} provides an awesome solution!
               </h1>
               <div className="d-block d-sm-flex justify-content-center">
                 <AddPropertyLink className="ud-btn btn-thm me-0 me-sm-4">

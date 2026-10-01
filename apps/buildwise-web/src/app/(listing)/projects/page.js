@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 
 export const metadata = {
-  title: "Projects | Buytly",
+  title: "Projects",
   description: "Browse development projects and multi-unit listings for sale.",
 };
 

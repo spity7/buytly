@@ -74,7 +74,7 @@ const InfoWithForm = () => {
                 <input
                   type="email"
                   className="form-control"
-                  placeholder="buytly"
+                  placeholder="buildwise"
                 />
               </div>
             </div>

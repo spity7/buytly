@@ -2,7 +2,7 @@ import ProjectWizard from "@/components/property/dashboard/dashboard-projects/Pr
 import RequireListingRole from "@/components/auth/RequireListingRole";
 
 export const metadata = {
-  title: "Add New Project | Buytly",
+  title: "Add New Project",
 };
 
 export default function DashboardAddProjectPage() {

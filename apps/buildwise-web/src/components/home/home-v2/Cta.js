@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import React from "react";
+import { BRAND_SHORT_NAME } from "@/data/brandAssets";
 
 const Cta = () => {
   return (
@@ -45,7 +46,7 @@ const Cta = () => {
             >
               <div className="cta-style2">
                 <h2 className="cta-title">
-                  Start Listing or Buying a Property With Buytly
+                  Start Listing or Buying a Property With {BRAND_SHORT_NAME}
                 </h2>
                 <p className="cta-text">
                   Talk to our experts or Browse through more properties.
