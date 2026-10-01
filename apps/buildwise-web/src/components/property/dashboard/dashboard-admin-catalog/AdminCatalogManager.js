@@ -22,6 +22,11 @@ import {
 import { DashboardTableSkeleton } from "@/components/property/dashboard/skeletons/DashboardSkeletons";
 import { Tooltip as ReactTooltip } from "react-tooltip";
 import ApiPagination from "@/components/property/ApiPagination";
+import {
+  DEFAULT_CATALOG_SORT_ORDER,
+  formatCatalogSortOrderForInput,
+  resolveCatalogSortOrderForPayload,
+} from "@/lib/properties/unitSortOrder";
 const CATALOG_PAGE_SIZE = 10;
 
 const PROTECTED_PROPERTY_TYPE_VALUES = new Set();
@@ -35,14 +40,14 @@ const STATUS_FILTER_OPTIONS = [
 const emptyTypeForm = {
   value: "",
   label: "",
-  sortOrder: "0",
+  sortOrder: String(DEFAULT_CATALOG_SORT_ORDER),
   isActive: true,
 };
 
 const emptyAmenityForm = {
   value: "",
   label: "",
-  sortOrder: "0",
+  sortOrder: String(DEFAULT_CATALOG_SORT_ORDER),
   isActive: true,
 };
 
@@ -81,7 +86,8 @@ function findDuplicateTypeValue(typeRows, value, editingId) {
 function catalogAdminFormMatchesRow(row, form) {
   return (
     row.label === form.label.trim() &&
-    (Number(form.sortOrder) || 0) === (row.sortOrder ?? 0) &&
+    resolveCatalogSortOrderForPayload(form.sortOrder) ===
+      (row.sortOrder ?? DEFAULT_CATALOG_SORT_ORDER) &&
     row.isActive === form.isActive
   );
 }
@@ -531,7 +537,7 @@ export default function AdminCatalogManager() {
 
     const payload = {
       label: typeForm.label.trim(),
-      sortOrder: Number(typeForm.sortOrder) || 0,
+      sortOrder: resolveCatalogSortOrderForPayload(typeForm.sortOrder),
       isActive: typeForm.isActive,
     };
 
@@ -605,7 +611,7 @@ export default function AdminCatalogManager() {
     const label = amenityForm.label.trim();
     const payload = {
       label,
-      sortOrder: Number(amenityForm.sortOrder) || 0,
+      sortOrder: resolveCatalogSortOrderForPayload(amenityForm.sortOrder),
       isActive: amenityForm.isActive,
     };
 
@@ -818,7 +824,7 @@ export default function AdminCatalogManager() {
       {
         key: "sortOrder",
         label: "Order",
-        render: (row) => row.sortOrder,
+        render: (row) => row.sortOrder ?? DEFAULT_CATALOG_SORT_ORDER,
       },
       {
         key: "isActive",
@@ -837,7 +843,7 @@ export default function AdminCatalogManager() {
       {
         key: "sortOrder",
         label: "Order",
-        render: (row) => row.sortOrder,
+        render: (row) => row.sortOrder ?? DEFAULT_CATALOG_SORT_ORDER,
       },
       {
         key: "isActive",
@@ -943,6 +949,7 @@ export default function AdminCatalogManager() {
                   <input
                     type="number"
                     className="form-control"
+                    placeholder={String(DEFAULT_CATALOG_SORT_ORDER)}
                     value={typeForm.sortOrder}
                     onChange={(e) =>
                       setTypeForm((prev) => ({
@@ -953,6 +960,10 @@ export default function AdminCatalogManager() {
                     min={0}
                     disabled={isCatalogBusy}
                   />
+                  <p className="catalog-admin__help mb0 mt10">
+                    Lower numbers appear first. Default is{" "}
+                    {DEFAULT_CATALOG_SORT_ORDER}.
+                  </p>
                 </div>
                 <label className="custom_checkbox d-block mb20">
                   Active (visible on listing forms)
@@ -1040,7 +1051,7 @@ export default function AdminCatalogManager() {
                   setTypeForm({
                     value: row.value,
                     label: row.label,
-                    sortOrder: String(row.sortOrder ?? 0),
+                    sortOrder: formatCatalogSortOrderForInput(row.sortOrder),
                     isActive: row.isActive,
                   });
                 },
@@ -1104,6 +1115,7 @@ export default function AdminCatalogManager() {
                   <input
                     type="number"
                     className="form-control"
+                    placeholder={String(DEFAULT_CATALOG_SORT_ORDER)}
                     value={amenityForm.sortOrder}
                     onChange={(e) =>
                       setAmenityForm((prev) => ({
@@ -1114,6 +1126,10 @@ export default function AdminCatalogManager() {
                     min={0}
                     disabled={isCatalogBusy}
                   />
+                  <p className="catalog-admin__help mb0 mt10">
+                    Lower numbers appear first. Default is{" "}
+                    {DEFAULT_CATALOG_SORT_ORDER}.
+                  </p>
                 </div>
                 <label className="custom_checkbox d-block mb20">
                   Active (visible on listing forms)
@@ -1201,7 +1217,7 @@ export default function AdminCatalogManager() {
                   setAmenityForm({
                     value: row.value,
                     label: row.label,
-                    sortOrder: String(row.sortOrder ?? 0),
+                    sortOrder: formatCatalogSortOrderForInput(row.sortOrder),
                     isActive: row.isActive,
                   });
                 },

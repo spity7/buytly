@@ -21,6 +21,9 @@ export const PROPERTY_TYPES = [
 
 export const DEFAULT_CURRENCY = "USD";
 
+/** Default sort order for units and catalog rows (lower sorts first). */
+export const DEFAULT_CATALOG_SORT_ORDER = 999;
+
 export const PROPERTY_STATUSES = [
   "draft",
   "pending",

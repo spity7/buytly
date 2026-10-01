@@ -2,6 +2,7 @@ import multer from "multer";
 import { userService } from "./user.service.js";
 import { ApiResponse } from "../../shared/ApiResponse.js";
 import { avatarUpload } from "../../services/gcs.service.js";
+import { bindSiteContext } from "../../shared/requestContext.js";
 
 const upload = avatarUpload(multer);
 
@@ -54,6 +55,7 @@ export const userController = {
 
   uploadAvatar: [
     upload.single("avatar"),
+    bindSiteContext,
     async (req, res, next) => {
       try {
         if (!req.file) {

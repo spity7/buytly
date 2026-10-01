@@ -11,6 +11,7 @@ import Link from "next/link";
 import DashboardBtnIcon, {
   dashboardIcons,
 } from "@/components/property/dashboard/DashboardBtnIcon";
+import { DEFAULT_UNIT_SORT_ORDER } from "@/lib/properties/unitSortOrder";
 
 const PLACEHOLDER_IMAGE = "/images/listings/list-1.jpg";
 
@@ -195,7 +196,9 @@ export default function ProjectEditUnitsSection({
                       </h5>
                     </div>
                     <StatusBadge
-                      {...getPropertyStatusBadgeProps(unit, { parentProject: project })}
+                      {...getPropertyStatusBadgeProps(unit, {
+                        parentProject: project,
+                      })}
                       className="project-edit-unit-card__badge"
                     />
                   </div>
@@ -208,6 +211,9 @@ export default function ProjectEditUnitsSection({
                         {specs}
                       </span>
                     ) : null}
+                    <span className="project-edit-unit-card__specs">
+                      Order {unit.sortOrder ?? DEFAULT_UNIT_SORT_ORDER}
+                    </span>
                     {views != null ? (
                       <span className="project-edit-unit-card__views">
                         <i className="flaticon-fullscreen" aria-hidden="true" />

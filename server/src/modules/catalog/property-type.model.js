@@ -15,7 +15,7 @@ const propertyTypeSchema = new mongoose.Schema(
       trim: true,
     },
     label: { type: String, required: true, trim: true },
-    sortOrder: { type: Number, default: 0 },
+    sortOrder: { type: Number, default: 999 },
     isActive: { type: Boolean, default: true, index: true },
   },
   { timestamps: true },

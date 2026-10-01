@@ -27,6 +27,11 @@ import {
   sortPropertyImages,
 } from "@/lib/properties/propertyPhotoGallery";
 import { reorderPropertyImages } from "@/lib/properties/reorderPropertyMedia";
+import {
+  DEFAULT_UNIT_SORT_ORDER,
+  formatUnitSortOrderForInput,
+  resolveUnitSortOrderForPayload,
+} from "@/lib/properties/unitSortOrder";
 import { coordinatesToLatLngStrings } from "@/lib/geo/propertyCoordinates";
 import {
   useCatalogAmenities,
@@ -321,7 +326,7 @@ const emptyForm = {
   amenities: [],
   virtualTourUrl: "",
   floorPlans: [],
-  sortOrder: "",
+  sortOrder: String(DEFAULT_UNIT_SORT_ORDER),
 };
 
 function buildFormFromProperty(property) {
@@ -339,10 +344,7 @@ function buildFormFromProperty(property) {
     status: property.status || "draft",
     amenities: property.amenities || [],
     virtualTourUrl: property.virtualTourUrl || "",
-    sortOrder:
-      property.sortOrder != null && property.sortOrder !== ""
-        ? String(property.sortOrder)
-        : "",
+    sortOrder: formatUnitSortOrderForInput(property.sortOrder),
     floorPlans: (property.floorPlans || []).map((plan) => ({
       title: plan.title || "",
       gcsKey: plan.gcsKey || "",
@@ -977,8 +979,7 @@ export default function PropertyForm({
     }
 
     if (unitUnderProject) {
-      const order = parseOptionalWholeNumber(form.sortOrder);
-      if (order != null) payload.sortOrder = order;
+      payload.sortOrder = resolveUnitSortOrderForPayload(form.sortOrder);
     }
 
     return payload;
@@ -1118,12 +1119,13 @@ export default function PropertyForm({
                   type="number"
                   min={0}
                   className="form-control"
-                  placeholder="0"
+                  placeholder={String(DEFAULT_UNIT_SORT_ORDER)}
                   value={form.sortOrder}
                   onChange={(e) => updateField("sortOrder", e.target.value)}
                 />
                 <p className="text fz13 mt10 mb0">
-                  Lower numbers appear first on the project page.
+                  Lower numbers appear first on the project page. Default is{" "}
+                  {DEFAULT_UNIT_SORT_ORDER}.
                 </p>
               </div>
             </div>

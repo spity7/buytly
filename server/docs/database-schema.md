@@ -130,7 +130,7 @@ Sellable **units** under a project. All listings are for **sale** (no `listingTy
 ```javascript
 {
   projectId: ObjectId → projects (required),
-  sortOrder: Number,
+  sortOrder: Number (default 999; lower sorts first on project page),
   title, slug (unique), description: String,
   type: String (catalog slug),
   price: Number (whole USD), currency: String (USD),
@@ -239,7 +239,7 @@ Sellable **units** under a project. All listings are for **sale** (no `listingTy
   siteId: ObjectId → sites (required),
   value: String (unique per site; slug for types, stored amenity string for amenities),
   label: String,
-  sortOrder: Number,
+  sortOrder: Number (default 999; lower sorts first in admin and listing forms),
   isActive: Boolean,
   timestamps
 }

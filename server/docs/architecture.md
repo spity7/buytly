@@ -53,7 +53,7 @@ flowchart LR
 ## Request Lifecycle
 
 1. **Ingress** — Helmet, CORS, rate limit, body parsing, mongo sanitize
-2. **Tenant** — `resolveSite` resolves the site from host/headers, sets `req.site`, and runs the rest of the request in AsyncLocalStorage (`getRequestSiteId()` / `getRequestSite()`). Domain services filter and write by `siteId` unless a platform admin overrides via `siteId` query on admin list endpoints.
+2. **Tenant** — `resolveSite` resolves the site from host/headers, sets `req.site`, and runs the rest of the request in AsyncLocalStorage (`getRequestSiteId()` / `getRequestSite()`). Multer upload handlers call `bindSiteContext` after parsing so site context is restored before GCS paths and tenant-scoped queries run. Domain services filter and write by `siteId` unless a platform admin overrides via `siteId` query on admin list endpoints.
 3. **Routing** — `/api/v1/{module}` matched to module router
 4. **Auth** — JWT verified via `authenticate` middleware (where required); user and token `siteId` must match the resolved site
 5. **Validation** — Zod schemas validate body/query/params; parsed query/params are merged in-place (Express 5 compatible)
@@ -67,7 +67,7 @@ flowchart LR
 ### Media Upload
 
 ```
-Client → Multer (memory) → image.service (compress if > 800 KB) → GCS Service → MongoDB (metadata only) → Signed URL response
+Client → Multer (memory) → bindSiteContext → image.service (compress if > 800 KB) → GCS Service → MongoDB (metadata only) → Signed URL response
 ```
 
 Images above 800 KB are resized and compressed to WebP (max 800 KB) before upload. Images at or below 800 KB, GIFs, and videos are stored as-is.

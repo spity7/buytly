@@ -2,6 +2,7 @@ import multer from "multer";
 import { propertyService } from "./property.service.js";
 import { ApiResponse } from "../../shared/ApiResponse.js";
 import { createMulterOptions } from "../../services/gcs.service.js";
+import { bindSiteContext } from "../../shared/requestContext.js";
 
 const upload = multer(createMulterOptions(multer));
 
@@ -61,6 +62,7 @@ export const propertyController = {
 
   uploadMedia: [
     upload.single("media"),
+    bindSiteContext,
     async (req, res, next) => {
       try {
         if (!req.file) {
@@ -100,6 +102,7 @@ export const propertyController = {
 
   uploadFloorPlanImage: [
     upload.single("image"),
+    bindSiteContext,
     async (req, res, next) => {
       try {
         if (!req.file) {

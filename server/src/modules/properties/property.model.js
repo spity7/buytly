@@ -38,7 +38,7 @@ const propertySchema = new mongoose.Schema(
       required: true,
       index: true,
     },
-    sortOrder: { type: Number, default: 0 },
+    sortOrder: { type: Number, default: 999 },
     price: { type: Number, required: true, min: 0 },
     currency: { type: String, default: "USD" },
     location: {
