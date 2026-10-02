@@ -15,6 +15,7 @@ import { catalogService } from "../catalog/catalog.service.js";
 import { User } from "../users/user.model.js";
 import { notificationService } from "../notifications/notification.service.js";
 import {
+  applyPublicListStatusToFilter,
   normalizeSellerStatus,
   resolvePublicListStatus,
   hasMaterialChanges,
@@ -314,7 +315,7 @@ export const projectService = {
     const { page, limit, skip } = parsePagination(query);
     const filter = { siteId, deletedAt: null };
 
-    filter.status = resolvePublicListStatus(query.status);
+    applyPublicListStatusToFilter(filter, query.status);
     if (query.city) filter["location.city"] = new RegExp(query.city, "i");
 
     const hasTextSearch = Boolean(query.search);
@@ -536,7 +537,6 @@ export const projectService = {
     await project.save();
 
     await cascadeTrashProjectUnits(project._id, deletedAt);
-
   },
 
   async restore(id, user) {

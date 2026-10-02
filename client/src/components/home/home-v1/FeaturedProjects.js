@@ -2,21 +2,26 @@
 
 import Link from "next/link";
 import { useProjects } from "@/hooks/useProjects";
+import { publicMarketplaceQuery } from "@/lib/listings/listingFilters";
+import { getMarketplaceCardLabel } from "@/lib/properties/mapProperty";
 
 export default function FeaturedProjects() {
-  const { data, isLoading } = useProjects({
-    page: 1,
-    limit: 6,
-    status: "active",
-    sortBy: "viewCount",
-    sortOrder: "desc",
-  });
+  const { data, isLoading } = useProjects(
+    publicMarketplaceQuery({
+      page: 1,
+      limit: 6,
+      sortBy: "viewCount",
+      sortOrder: "desc",
+    }),
+  );
 
   const cards = data?.cards || [];
 
   if (isLoading) {
     return (
-      <p className="text-center py-4 text-white">Loading featured projects...</p>
+      <p className="text-center py-4 text-white">
+        Loading featured projects...
+      </p>
     );
   }
 
@@ -59,8 +64,8 @@ export default function FeaturedProjects() {
                   </h6>
                   <p className="list-text mb-0">{item.location}</p>
                   <p className="fz14 text-muted mb0">
-                    {item.unitCount} unit{item.unitCount === 1 ? "" : "s"} · For
-                    sale
+                    {item.unitCount} unit{item.unitCount === 1 ? "" : "s"} ·{" "}
+                    {getMarketplaceCardLabel(item)}
                   </p>
                 </div>
               </div>

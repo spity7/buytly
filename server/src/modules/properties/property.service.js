@@ -29,6 +29,7 @@ import {
   isPublicPropertyViewStatus,
   shouldIncrementListingView,
   normalizeSellerStatus,
+  applyPublicListStatusToFilter,
   resolvePublicListStatus,
   hasMaterialChanges,
   buildArchiveUpdate,
@@ -362,7 +363,7 @@ export const propertyService = {
         ? query.projectId
         : { $in: [] };
     }
-    filter.status = resolvePublicListStatus(query.status);
+    applyPublicListStatusToFilter(filter, query.status);
     if (query.city) filter["location.city"] = new RegExp(query.city, "i");
     if (query.bedrooms) filter.bedrooms = { $gte: query.bedrooms };
 
@@ -847,7 +848,7 @@ export const propertyService = {
       siteId,
       agentId,
       deletedAt: null,
-      status: "active",
+      status: { $in: PUBLIC_PARENT_PROJECT_STATUSES },
       projectId: { $in: publicProjectIds },
     };
 

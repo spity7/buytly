@@ -19,12 +19,27 @@ export const shouldIncrementPropertyView = shouldIncrementListingView;
 /** Statuses non-admins may set on create/update (sold only when transitioning from active). */
 export const SELLER_SETTABLE_STATUSES = new Set(["draft", "pending", "active"]);
 
+/** Statuses included on public browse when no `status` query param is passed. */
+export const PUBLIC_MARKETPLACE_LIST_STATUSES = ["active", "sold"];
+
 export const resolvePublicListStatus = (requestedStatus) => {
   if (!requestedStatus) return "active";
   if (!PUBLIC_LIST_STATUSES.has(requestedStatus)) {
     throw new AppError("Invalid status filter", 400);
   }
   return requestedStatus;
+};
+
+/** Applies public list `status` filter (omit param → active + sold). */
+export const applyPublicListStatusToFilter = (filter, requestedStatus) => {
+  if (!requestedStatus) {
+    filter.status = { $in: PUBLIC_MARKETPLACE_LIST_STATUSES };
+    return;
+  }
+  if (!PUBLIC_LIST_STATUSES.has(requestedStatus)) {
+    throw new AppError("Invalid status filter", 400);
+  }
+  filter.status = requestedStatus;
 };
 
 /**

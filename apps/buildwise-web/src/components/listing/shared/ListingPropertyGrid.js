@@ -3,7 +3,10 @@
 import Image from "next/image";
 import Link from "next/link";
 import FavoriteButton from "@/components/property/FavoriteButton";
-import { getPublicListingCardHref } from "@/lib/properties/mapProperty";
+import {
+  getMarketplaceCardLabel,
+  getPublicListingCardHref,
+} from "@/lib/properties/mapProperty";
 const PLACEHOLDER = "/images/listings/list-1.jpg";
 
 const LAYOUT_COLUMNS = {
@@ -80,14 +83,16 @@ export default function ListingPropertyGrid({
                   src={image}
                   alt={listing.title || "listing"}
                 />
-                {!isProject ? (
-                  <div className="sale-sticker-wrap">
+                <div className="sale-sticker-wrap">
+                  {listing.status === "sold" ? (
+                    <div className="list-tag fz12 bg-danger">SOLD</div>
+                  ) : !isProject && listing.featured ? (
                     <div className="list-tag fz12">
                       <span className="flaticon-electricity me-2" />
                       FEATURED
                     </div>
-                  </div>
-                ) : null}
+                  ) : null}
+                </div>
 
                 <div className="list-price">{listing.price}</div>
               </div>
@@ -121,7 +126,9 @@ export default function ListingPropertyGrid({
                 )}
                 <hr className="mt-2 mb-2" />
                 <div className="list-meta2 d-flex justify-content-between align-items-center">
-                  <span className="for-what">For Sale</span>
+                  <span className="for-what">
+                    {getMarketplaceCardLabel(listing)}
+                  </span>
                   <div className="icons d-flex align-items-center">
                     <Link href={href} className="icon">
                       <span className="flaticon-fullscreen" />

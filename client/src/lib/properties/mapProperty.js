@@ -158,6 +158,12 @@ export function getStatusLabel(status) {
   return labels[status] || status || "—";
 }
 
+/** Short label on public listing/project cards (browse + home widgets). */
+export function getMarketplaceCardLabel(listing) {
+  if (listing?.status === "sold") return "Sold";
+  return "For Sale";
+}
+
 /** Dashboard row label — trashed listings use Trash, not the archived status flag alone. */
 export function getTrashedListingLabel() {
   return "In trash";
@@ -269,6 +275,12 @@ export function canMarkPropertySold(property) {
 
 export function canMarkProjectSold(project) {
   return project?.status === "active" && !project?.deletedAt;
+}
+
+/** Public project page is available for live and sold developments. */
+export function isProjectPublicDetailAvailable(project) {
+  if (!project || project.deletedAt) return false;
+  return project.status === "active" || project.status === "sold";
 }
 
 export function isPropertyBookable(status) {

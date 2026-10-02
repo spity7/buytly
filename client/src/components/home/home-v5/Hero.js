@@ -7,6 +7,7 @@ import "swiper/swiper-bundle.css";
 import Image from "next/image";
 import Link from "next/link";
 import { useProperties } from "@/hooks/useProperties";
+import { publicMarketplaceQuery } from "@/lib/listings/listingFilters";
 import { getPublicListingCardHref } from "@/lib/properties/mapProperty";
 
 const FALLBACK_SLIDES = [
@@ -155,12 +156,12 @@ const Hero = () => {
   const [thumbsSwiper, setThumbsSwiper] = useState(null);
 
   const queryParams = useMemo(
-    () => ({
-      limit: 5,
-      status: "active",
-      sortBy: "viewCount",
-      sortOrder: "desc",
-    }),
+    () =>
+      publicMarketplaceQuery({
+        limit: 5,
+        sortBy: "viewCount",
+        sortOrder: "desc",
+      }),
     [],
   );
 

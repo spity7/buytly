@@ -4,6 +4,7 @@ import PropertySectionEmptyState from "@/components/property/property-single-sty
 import Image from "next/image";
 import Link from "next/link";
 import FavoriteButton from "@/components/property/FavoriteButton";
+import { getMarketplaceCardLabel } from "@/lib/properties/mapProperty";
 import { Swiper, SwiperSlide } from "swiper/react";
 
 const PLACEHOLDER = "/images/listings/list-1.jpg";
@@ -49,12 +50,14 @@ const PopularListings = ({ data = [] }) => {
                       alt={listing.title || "listing"}
                     />
                     <div className="sale-sticker-wrap">
-                      {listing.featured && (
+                      {listing.status === "sold" ? (
+                        <div className="list-tag fz12 bg-danger">SOLD</div>
+                      ) : listing.featured ? (
                         <div className="list-tag fz12">
                           <span className="flaticon-electricity me-2" />
                           FEATURED
                         </div>
-                      )}
+                      ) : null}
                     </div>
 
                     <div className="list-price">{listing.price}</div>
@@ -77,7 +80,9 @@ const PopularListings = ({ data = [] }) => {
                     </div>
                     <hr className="mt-2 mb-2" />
                     <div className="list-meta2 d-flex justify-content-between align-items-center">
-                      <span className="for-what">For Sale</span>
+                      <span className="for-what">
+                        {getMarketplaceCardLabel(listing)}
+                      </span>
                       <div className="icons d-flex align-items-center">
                         <Link href={`/single-v1/${id}`} className="icon">
                           <span className="flaticon-fullscreen" />

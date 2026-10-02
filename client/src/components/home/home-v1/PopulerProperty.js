@@ -4,15 +4,16 @@ import Link from "next/link";
 import React, { useMemo } from "react";
 import PopularListings from "./PopularListings";
 import { useProperties } from "@/hooks/useProperties";
+import { publicMarketplaceQuery } from "@/lib/listings/listingFilters";
 
 export default function PopulerProperty() {
   const params = useMemo(
-    () => ({
-      limit: 8,
-      status: "active",
-      sortBy: "createdAt",
-      sortOrder: "desc",
-    }),
+    () =>
+      publicMarketplaceQuery({
+        limit: 8,
+        sortBy: "createdAt",
+        sortOrder: "desc",
+      }),
     [],
   );
 

@@ -3,17 +3,18 @@
 import { useState } from "react";
 import { useProperties } from "@/hooks/useProperties";
 import { useProjects } from "@/hooks/useProjects";
+import { publicMarketplaceQuery } from "@/lib/listings/listingFilters";
 import { getPublicListingCardHref } from "@/lib/properties/mapProperty";
 import Link from "next/link";
 
 export default function ListingDiscoveryTabs({ limit = 6 }) {
   const [mode, setMode] = useState("units");
   const { data: unitsData, isLoading: unitsLoading } = useProperties(
-    { page: 1, limit, status: "active" },
+    publicMarketplaceQuery({ page: 1, limit }),
     { enabled: mode === "units" },
   );
   const { data: projectsData, isLoading: projectsLoading } = useProjects(
-    { page: 1, limit, status: "active" },
+    publicMarketplaceQuery({ page: 1, limit }),
     { enabled: mode === "projects" },
   );
 

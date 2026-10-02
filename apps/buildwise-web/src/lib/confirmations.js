@@ -191,7 +191,7 @@ export function adminArchiveListingConfirmation(title) {
 export function propertyMarkSoldConfirmation(title) {
   return {
     title: "Mark listing as sold?",
-    message: `"${title}" will leave active search results. Buyers can still find it under sold listings for reference.`,
+    message: `"${title}" will be marked sold but stays on the public site (browse and sold filter). It will no longer accept new bookings.`,
     confirmLabel: "Mark as sold",
     confirmingLabel: "Updating...",
   };
@@ -201,7 +201,7 @@ export function projectMarkSoldConfirmation(title, unitCount = 0) {
   const unitLabel = unitCount === 1 ? "1 unit" : `${unitCount} units`;
   return {
     title: "Mark project as sold?",
-    message: `"${title}" and all ${unitLabel} on this project will be marked sold. They will no longer appear in active search.`,
+    message: `"${title}" and all ${unitLabel} on this project will be marked sold. They remain visible on the public site with sold status.`,
     confirmLabel: "Mark project as sold",
     confirmingLabel: "Updating...",
   };

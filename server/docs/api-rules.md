@@ -99,7 +99,7 @@ Property list supports:
 - `sortBy` — `price`, `createdAt`, `viewCount`
 - `sortOrder` — `asc`, `desc`
 - `minPrice`, `maxPrice`, `type`, `status`, `city`, `bedrooms`
-- `status` on public `GET /properties` — only `active` (default) or `sold`; other values return 400
+- `status` on public `GET /properties` and `GET /projects` — omit for **active + sold**, or pass `active` or `sold` to filter; other values return 400
 - Public `GET /properties/:id` — `active` and `sold` listings on public parent projects are visible without auth; other statuses require owner, agent, or admin
 - `viewCount` — incremented on `GET /properties/:id` and `GET /projects/:id` (and slug) only for `active` records and only when the request is not from a user who can manage that listing (owner, agent, or admin)
 - Public `GET /projects` — `kind`, `city`, geo radius, `search`, pagination; list items include `unitCount`, `priceMin`, `priceMax`

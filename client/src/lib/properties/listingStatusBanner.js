@@ -104,8 +104,8 @@ export function getListingStatusBannerContent({
     case "sold":
       return {
         message: isAdmin
-          ? "This property has been marked as sold and is hidden from active search."
-          : "This property has been marked as sold and is no longer available.",
+          ? "This property is marked sold. It remains on the public site for reference; buyers can filter by sold or see it in browse results."
+          : "This property is sold. It stays visible on the marketplace with sold status and is no longer available to purchase.",
         meta: [
           { label: "Closed", value: formatListingDate(updatedAt || createdAt) },
           { label: "Total views", value: viewCount.toLocaleString() },

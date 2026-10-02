@@ -37,6 +37,7 @@ import { getProjectsTableEmptyState } from "@/lib/dashboard/tableEmptyStates";
 import {
   canAddUnitToProject,
   canMarkProjectSold,
+  isProjectPublicDetailAvailable,
 } from "@/lib/properties/mapProperty";
 import { remoteImageProps } from "@/lib/images/remoteImage";
 
@@ -205,9 +206,8 @@ const ProjectsDataTable = ({
               const rowBusy = actingId === projectId;
               const isPublished =
                 !isTrash &&
-                project.status === "active" &&
-                project.slug &&
-                !project.deletedAt;
+                isProjectPublicDetailAvailable(project) &&
+                Boolean(project.slug);
               const showAddUnit = canAddUnitToProject(project);
 
               return (

@@ -10,6 +10,18 @@ export const LISTING_SORT_OPTIONS = {
   "Best Match": { sortBy: "createdAt", sortOrder: "desc" },
 };
 
+/**
+ * Public catalog API params: omit `status` so the server returns active + sold.
+ * Pass `status: "sold"` only for sold-only widgets.
+ */
+export function publicMarketplaceQuery(params = {}) {
+  if (params.status === "sold") {
+    return { ...params };
+  }
+  const { status: _omit, ...rest } = params;
+  return rest;
+}
+
 export const LISTING_PROPERTY_TYPE_OPTIONS = [
   { label: "Apartment", value: "apartment" },
   { label: "Villa", value: "villa" },
@@ -40,12 +52,13 @@ export function buildListingQueryParams({
   const params = {
     page,
     limit,
-    status: "active",
     sortBy: sort.sortBy,
     sortOrder: sort.sortOrder,
   };
 
-  if (listingStatus === "Sold") params.status = "sold";
+  if (listingStatus === "Sold") {
+    params.status = "sold";
+  }
   if (propertyTypes.length === 1) params.type = propertyTypes[0];
   if (priceRange[0] > 0) params.minPrice = priceRange[0];
   if (priceRange[1] < LISTING_MAX_PRICE) params.maxPrice = priceRange[1];
@@ -116,10 +129,13 @@ export function buildProjectQueryParams({
   const params = {
     page,
     limit,
-    status: listingStatus === "Sold" ? "sold" : "active",
     sortBy: sort.sortBy === "price" ? "createdAt" : sort.sortBy,
     sortOrder: sort.sortOrder,
   };
+
+  if (listingStatus === "Sold") {
+    params.status = "sold";
+  }
 
   if (location && location !== "All Cities") params.city = location;
 

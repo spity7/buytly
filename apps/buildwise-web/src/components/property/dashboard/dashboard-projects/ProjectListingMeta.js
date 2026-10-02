@@ -19,7 +19,9 @@ export default function ProjectListingMeta({ project }) {
     return null;
   }
 
-  const showPublicLink = project.status === "active" && Boolean(project.slug);
+  const showPublicLink =
+    (project.status === "active" || project.status === "sold") &&
+    Boolean(project.slug);
   const agentName =
     project.agentId && typeof project.agentId === "object"
       ? [project.agentId.firstName, project.agentId.lastName]

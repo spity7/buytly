@@ -6,16 +6,18 @@ import {
 } from "@/components/home/FeaturedListingsSectionState";
 import FeaturedListings from "@/components/listing/grid-view/grid-default/FeatuerdListings";
 import { useProperties } from "@/hooks/useProperties";
+import { publicMarketplaceQuery } from "@/lib/listings/listingFilters";
 import { Navigation, Pagination } from "swiper/modules";
 import { Swiper, SwiperSlide } from "swiper/react";
 
 const HomeFeaturedListings = () => {
-  const { data, isLoading } = useProperties({
-    limit: 8,
-    sortBy: "viewCount",
-    sortOrder: "desc",
-    status: "active",
-  });
+  const { data, isLoading } = useProperties(
+    publicMarketplaceQuery({
+      limit: 8,
+      sortBy: "viewCount",
+      sortOrder: "desc",
+    }),
+  );
 
   const cards = data?.cards || [];
 

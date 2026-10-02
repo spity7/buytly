@@ -4,7 +4,8 @@ import {
 } from "@/lib/listings/listingFilters";
 
 export function listingStatusFromParams(searchParams) {
-  if (searchParams.get("status") === "sold") return "Sold";
+  const status = searchParams.get("status");
+  if (status === "sold") return "Sold";
   return "All";
 }
 
