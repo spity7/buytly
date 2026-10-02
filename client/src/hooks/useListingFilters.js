@@ -6,8 +6,15 @@ import {
   LISTING_MAX_PRICE,
   LISTING_PAGE_SIZE,
   buildListingQueryParams,
+  buildPlatformListingQueryParams,
+  buildPlatformProjectQueryParams,
   getListingPageRange,
 } from "@/lib/listings/listingFilters";
+import {
+  usePlatformFeaturedProperties,
+  usePlatformFeaturedProjects,
+} from "@/hooks/usePlatformListings";
+import { isPlatformMarketplaceSite } from "@/lib/siteContext";
 import {
   buildListingSearchParams,
   parseListingSearchParams,
@@ -164,14 +171,78 @@ export function useListingFilters({
     ],
   );
 
+  const usePlatformBrowse = isPlatformMarketplaceSite();
+
+  const platformUnitsParams = useMemo(
+    () =>
+      buildPlatformListingQueryParams({
+        page: pageNumber,
+        limit: pageSize,
+        currentSortingOption,
+        listingStatus,
+        propertyTypes,
+        priceRange,
+        bedrooms,
+        location,
+        searchQuery,
+      }),
+    [
+      pageNumber,
+      pageSize,
+      currentSortingOption,
+      listingStatus,
+      propertyTypes,
+      priceRange,
+      bedrooms,
+      location,
+      searchQuery,
+    ],
+  );
+
+  const platformProjectsParams = useMemo(
+    () =>
+      buildPlatformProjectQueryParams({
+        page: pageNumber,
+        limit: pageSize,
+        currentSortingOption,
+        listingStatus,
+        location,
+        searchQuery,
+      }),
+    [
+      pageNumber,
+      pageSize,
+      currentSortingOption,
+      listingStatus,
+      location,
+      searchQuery,
+    ],
+  );
+
   const unitsQuery = useProperties(queryParams, {
-    enabled: discoveryMode === "units",
+    enabled: !usePlatformBrowse && discoveryMode === "units",
   });
   const projectsQuery = useProjects(projectQueryParams, {
-    enabled: discoveryMode === "projects",
+    enabled: !usePlatformBrowse && discoveryMode === "projects",
   });
+  const platformUnitsQuery = usePlatformFeaturedProperties(
+    platformUnitsParams,
+    {
+      enabled: usePlatformBrowse && discoveryMode === "units",
+    },
+  );
+  const platformProjectsQuery = usePlatformFeaturedProjects(
+    platformProjectsParams,
+    { enabled: usePlatformBrowse && discoveryMode === "projects" },
+  );
 
-  const activeQuery = discoveryMode === "projects" ? projectsQuery : unitsQuery;
+  const activeQuery = usePlatformBrowse
+    ? discoveryMode === "projects"
+      ? platformProjectsQuery
+      : platformUnitsQuery
+    : discoveryMode === "projects"
+      ? projectsQuery
+      : unitsQuery;
   const { isLoading, isError, isFetching } = activeQuery;
 
   const cards = activeQuery.data?.cards || [];

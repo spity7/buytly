@@ -18,6 +18,7 @@ import {
   reorderPropertyMediaSchema,
 } from "./property.validation.js";
 import propertyReviewRoutes from "../property-reviews/property-review.routes.js";
+import { rejectTenantPlatformFeaturingPatch } from "../platform/platform-visibility.js";
 import { propertyReviewController } from "../property-reviews/property-review.controller.js";
 import { listPropertyReviewsSchema } from "../property-reviews/property-review.validation.js";
 
@@ -347,6 +348,7 @@ router.patch(
   "/:id",
   authenticate,
   authorize(ROLES.SELLER, ROLES.AGENT, ROLES.ADMIN),
+  rejectTenantPlatformFeaturingPatch,
   validateMultiple({ params: propertyIdSchema, body: updatePropertySchema }),
   asyncHandler(propertyController.update),
 );

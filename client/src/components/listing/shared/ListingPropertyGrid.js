@@ -62,6 +62,9 @@ export default function ListingPropertyGrid({
         const id = listing.id || listing._id;
         const image = listing.image || PLACEHOLDER;
         const href = getPublicListingCardHref(listing);
+        const linkProps = listing.openInNewTab
+          ? { target: "_blank", rel: "noopener noreferrer" }
+          : {};
         const isProject =
           listing.itemType === "project" || discoveryMode === "projects";
 
@@ -98,7 +101,9 @@ export default function ListingPropertyGrid({
               </div>
               <div className="list-content">
                 <h6 className="list-title">
-                  <Link href={href}>{listing.title}</Link>
+                  <Link href={href} {...linkProps}>
+                    {listing.title}
+                  </Link>
                 </h6>
                 <p className="list-text">{listing.location}</p>
                 {isProject ? (
@@ -130,10 +135,10 @@ export default function ListingPropertyGrid({
                     {getMarketplaceCardLabel(listing)}
                   </span>
                   <div className="icons d-flex align-items-center">
-                    <Link href={href} className="icon">
+                    <Link href={href} className="icon" {...linkProps}>
                       <span className="flaticon-fullscreen" />
                     </Link>
-                    <Link href={href} className="icon">
+                    <Link href={href} className="icon" {...linkProps}>
                       <span className="flaticon-new-tab" />
                     </Link>
                     {!isProject && <FavoriteButton propertyId={id} />}

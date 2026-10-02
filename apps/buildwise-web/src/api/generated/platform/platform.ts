@@ -5,7 +5,10 @@
  * Production-ready real estate marketplace backend API. All successful responses use `{ success, message, data }`. Paginated lists add a top-level `pagination` object. OpenAPI spec is Orval-compatible — each operation has an `operationId`.
  * OpenAPI spec version: 1.0.0
  */
-import type { ListPlatformFeaturedListingsParams } from "../buytly.schemas";
+import type {
+  ListPlatformFeaturedListingsParams,
+  ListPlatformFeaturedProjectsParams,
+} from "../buytly.schemas";
 
 import { customInstance } from "../../../lib/api/custom-instance";
 
@@ -24,7 +27,19 @@ export const getPlatform = () => {
       options,
     );
   };
-  return { listPlatformFeaturedListings };
+  /**
+   * @summary Partner projects visible on the platform site (Buytly)
+   */
+  const listPlatformFeaturedProjects = (
+    params?: ListPlatformFeaturedProjectsParams,
+    options?: SecondParameter<typeof customInstance<void>>,
+  ) => {
+    return customInstance<void>(
+      { url: `/platform/featured-projects`, method: "GET", params },
+      options,
+    );
+  };
+  return { listPlatformFeaturedListings, listPlatformFeaturedProjects };
 };
 
 type AwaitedInput<T> = PromiseLike<T> | T;
@@ -34,5 +49,10 @@ type Awaited<O> = O extends AwaitedInput<infer T> ? T : never;
 export type ListPlatformFeaturedListingsResult = NonNullable<
   Awaited<
     ReturnType<ReturnType<typeof getPlatform>["listPlatformFeaturedListings"]>
+  >
+>;
+export type ListPlatformFeaturedProjectsResult = NonNullable<
+  Awaited<
+    ReturnType<ReturnType<typeof getPlatform>["listPlatformFeaturedProjects"]>
   >
 >;

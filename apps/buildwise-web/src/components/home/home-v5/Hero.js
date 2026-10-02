@@ -7,8 +7,10 @@ import "swiper/swiper-bundle.css";
 import Image from "next/image";
 import Link from "next/link";
 import { useProperties } from "@/hooks/useProperties";
+import { usePlatformFeaturedProperties } from "@/hooks/usePlatformListings";
 import { publicMarketplaceQuery } from "@/lib/listings/listingFilters";
 import { getPublicListingCardHref } from "@/lib/properties/mapProperty";
+import { isPlatformMarketplaceSite } from "@/lib/siteContext";
 
 const FALLBACK_SLIDES = [
   {
@@ -165,7 +167,12 @@ const Hero = () => {
     [],
   );
 
-  const { data, isLoading } = useProperties(queryParams);
+  const usePlatform = isPlatformMarketplaceSite();
+  const tenantQuery = useProperties(queryParams, { enabled: !usePlatform });
+  const platformQuery = usePlatformFeaturedProperties(queryParams, {
+    enabled: usePlatform,
+  });
+  const { data, isLoading } = usePlatform ? platformQuery : tenantQuery;
 
   const sliderItems = useMemo(() => {
     const cards = data?.cards || [];

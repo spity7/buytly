@@ -330,3 +330,22 @@ export function projectMediaDeleteConfirmation(isVideo = false) {
     confirmingLabel: "Removing...",
   };
 }
+
+export function adminMarketplaceFeatureConfirmation(title, enabling, kind) {
+  const noun = kind === "project" ? "project" : "listing";
+  if (enabling) {
+    return {
+      title: "Feature on marketplace?",
+      message: `"${title}" will appear on the public marketplace. Feature the parent project before its units.`,
+      confirmLabel: `Feature ${noun}`,
+      confirmingLabel: "Updating...",
+    };
+  }
+  return {
+    title: "Remove from marketplace?",
+    message: `"${title}" will no longer appear on the public marketplace.`,
+    confirmLabel: "Remove from marketplace",
+    confirmVariant: "danger",
+    confirmingLabel: "Updating...",
+  };
+}

@@ -20,15 +20,20 @@ import DashboardBtnIcon, {
 } from "@/components/property/dashboard/DashboardBtnIcon";
 import {
   canAdminApproveUnit,
+  canTogglePropertyPlatformVisibility,
   getStatusLabel,
   isUnitPublicOnMarket,
   resolveParentProject,
 } from "@/lib/properties/mapProperty";
+import MarketplaceFeatureToggle from "@/components/property/dashboard/MarketplaceFeatureToggle";
+import { getApiError } from "@/lib/auth/getApiError";
+import { notifyError } from "@/lib/toast";
 import { getPropertyStatusBadgeProps } from "@/lib/statusBadges";
 import {
   adminApproveListingConfirmation,
   adminArchiveListingConfirmation,
   adminMarkListingSoldConfirmation,
+  adminMarketplaceFeatureConfirmation,
   adminReturnDraftConfirmation,
 } from "@/lib/confirmations";
 import {
@@ -50,6 +55,9 @@ import DashboardTableEmptyState, {
   DashboardTableErrorState,
 } from "@/components/property/dashboard/DashboardTableEmptyState";
 import { getAdminPropertiesEmptyState } from "@/lib/dashboard/tableEmptyStates";
+import { useAuth } from "@/providers/AuthProvider";
+import { useAdminPartnerSites } from "@/hooks/useAdminPartnerSites";
+import { isBuytlyPlatformAdmin } from "@/lib/siteContext";
 
 const PAGE_SIZE = 20;
 
@@ -78,10 +86,15 @@ const getModerateConfirmConfig = (title, status) => {
 
 export default function AdminPropertiesTable() {
   const queryClient = useQueryClient();
+  const { user } = useAuth();
+  const canPickSite = isBuytlyPlatformAdmin(user);
+  const canFeatureOnMarketplace = canPickSite;
+  const { data: partnerSites = [] } = useAdminPartnerSites(canPickSite);
   const [page, setPage] = useState(1);
   const [searchInput, setSearchInput, search] = useDebouncedSearch();
   const [statusFilter, setStatusFilter] = useState("");
   const [type, setPropertyType] = useState("");
+  const [siteId, setSiteId] = useState("");
   const [sort, setSort] = useState("createdAt:desc");
 
   const { sortBy, sortOrder } = parseSortValue(sort);
@@ -97,9 +110,19 @@ export default function AdminPropertiesTable() {
     if (statusFilter) params.status = statusFilter;
     if (type) params.type = type;
     if (search.trim()) params.search = search.trim();
+    if (canPickSite && siteId) params.siteId = siteId;
 
     return params;
-  }, [page, statusFilter, type, search, sortBy, sortOrder]);
+  }, [
+    page,
+    statusFilter,
+    type,
+    search,
+    sortBy,
+    sortOrder,
+    canPickSite,
+    siteId,
+  ]);
 
   const { requestConfirm, isLocked, dialogProps, pending } = useConfirmAction();
 
@@ -111,14 +134,30 @@ export default function AdminPropertiesTable() {
 
   const properties = data?.properties || [];
   const pagination = data?.pagination;
+  const siteOptions = useMemo(
+    () => [
+      { label: "All sites", value: "" },
+      ...partnerSites.map((site) => ({
+        label: site.name || site.slug,
+        value: site.id,
+      })),
+    ],
+    [partnerSites],
+  );
+
   const hasActiveFilters = Boolean(
-    search.trim() || statusFilter || type || sort !== "createdAt:desc",
+    search.trim() ||
+    statusFilter ||
+    type ||
+    siteId ||
+    sort !== "createdAt:desc",
   );
 
   const resetFilters = () => {
     setSearchInput("");
     setStatusFilter("");
     setPropertyType("");
+    setSiteId("");
     setSort("createdAt:desc");
     setPage(1);
   };
@@ -172,6 +211,29 @@ export default function AdminPropertiesTable() {
     ready: highlightReady,
   });
 
+  const promptMarketplaceFeature = (propertyId, title, enabling) => {
+    requestConfirm({
+      ...adminMarketplaceFeatureConfirmation(title, enabling, "listing"),
+      targetId: propertyId,
+      action: {
+        message: enabling
+          ? "Featuring on marketplace..."
+          : "Removing from marketplace...",
+        successMessage: enabling
+          ? "Listing featured on marketplace"
+          : "Listing removed from marketplace",
+        task: () =>
+          buytlyApi.adminSetPropertyPlatformFeatured(propertyId, {
+            visibleOnPlatform: enabling,
+          }),
+        onSuccess: () => {
+          queryClient.invalidateQueries({ queryKey: ["admin-properties"] });
+        },
+        onError: (error) => notifyError(getApiError(error)),
+      },
+    });
+  };
+
   const promptModerate = (propertyId, title, status) => {
     requestConfirm({
       ...getModerateConfirmConfig(title, status),
@@ -201,6 +263,20 @@ export default function AdminPropertiesTable() {
           placeholder="Search listings"
           disabled={tableBusy}
         />
+        {canPickSite ? (
+          <FilterSelect
+            id="admin-site-filter"
+            label="Site"
+            hideLabel
+            value={siteId}
+            disabled={tableBusy}
+            onChange={(value) => {
+              setPage(1);
+              setSiteId(value);
+            }}
+            options={siteOptions}
+          />
+        ) : null}
         <FilterSelect
           id="admin-status-filter"
           label="Status"
@@ -372,6 +448,21 @@ export default function AdminPropertiesTable() {
                           </button>
                         </>
                       )}
+                      {canFeatureOnMarketplace &&
+                      (canTogglePropertyPlatformVisibility(property) ||
+                        property.visibleOnPlatform) ? (
+                        <MarketplaceFeatureToggle
+                          enabled={Boolean(property.visibleOnPlatform)}
+                          disabled={rowBusy || tableBusy}
+                          onToggle={() =>
+                            promptMarketplaceFeature(
+                              propertyId,
+                              property.title,
+                              !property.visibleOnPlatform,
+                            )
+                          }
+                        />
+                      ) : null}
                       <Link
                         href={`/dashboard-edit-property/${propertyId}`}
                         className={`ud-btn btn-white btn-sm${tableBusy ? " pe-none opacity-50" : ""}`}

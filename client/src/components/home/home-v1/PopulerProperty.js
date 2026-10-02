@@ -4,9 +4,12 @@ import Link from "next/link";
 import React, { useMemo } from "react";
 import PopularListings from "./PopularListings";
 import { useProperties } from "@/hooks/useProperties";
+import { usePlatformFeaturedProperties } from "@/hooks/usePlatformListings";
 import { publicMarketplaceQuery } from "@/lib/listings/listingFilters";
+import { isPlatformMarketplaceSite } from "@/lib/siteContext";
 
 export default function PopulerProperty() {
+  const usePlatform = isPlatformMarketplaceSite();
   const params = useMemo(
     () =>
       publicMarketplaceQuery({
@@ -17,7 +20,11 @@ export default function PopulerProperty() {
     [],
   );
 
-  const { data, isLoading } = useProperties(params);
+  const tenantQuery = useProperties(params, { enabled: !usePlatform });
+  const platformQuery = usePlatformFeaturedProperties(params, {
+    enabled: usePlatform,
+  });
+  const { data, isLoading } = usePlatform ? platformQuery : tenantQuery;
   const cards = data?.cards || [];
 
   return (

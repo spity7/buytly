@@ -2,18 +2,24 @@
 
 import Link from "next/link";
 import { useProjects } from "@/hooks/useProjects";
+import { usePlatformFeaturedProjects } from "@/hooks/usePlatformListings";
 import { publicMarketplaceQuery } from "@/lib/listings/listingFilters";
 import { getMarketplaceCardLabel } from "@/lib/properties/mapProperty";
+import { isPlatformMarketplaceSite } from "@/lib/siteContext";
 
 export default function FeaturedProjects() {
-  const { data, isLoading } = useProjects(
-    publicMarketplaceQuery({
-      page: 1,
-      limit: 6,
-      sortBy: "viewCount",
-      sortOrder: "desc",
-    }),
-  );
+  const usePlatform = isPlatformMarketplaceSite();
+  const params = publicMarketplaceQuery({
+    page: 1,
+    limit: 6,
+    sortBy: "viewCount",
+    sortOrder: "desc",
+  });
+  const tenantQuery = useProjects(params, { enabled: !usePlatform });
+  const platformQuery = usePlatformFeaturedProjects(params, {
+    enabled: usePlatform,
+  });
+  const { data, isLoading } = usePlatform ? platformQuery : tenantQuery;
 
   const cards = data?.cards || [];
 
@@ -60,7 +66,14 @@ export default function FeaturedProjects() {
                 </div>
                 <div className="list-content p20">
                   <h6 className="list-title">
-                    <Link href={`/project/${item.slug}`}>{item.title}</Link>
+                    <Link
+                      href={item.href || `/project/${item.slug}`}
+                      {...(item.openInNewTab
+                        ? { target: "_blank", rel: "noopener noreferrer" }
+                        : {})}
+                    >
+                      {item.title}
+                    </Link>
                   </h6>
                   <p className="list-text mb-0">{item.location}</p>
                   <p className="fz14 text-muted mb0">

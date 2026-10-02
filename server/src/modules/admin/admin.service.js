@@ -34,8 +34,16 @@ import {
   syncParentProjectSoldStatus,
 } from "../projects/project-sold-sync.js";
 import mongoose from "mongoose";
+import { Site } from "../sites/site.model.js";
+import { SITE_KIND } from "../sites/site.constants.js";
 import { getRequestSiteId } from "../../shared/requestContext.js";
 import { isPlatformAdmin } from "../../shared/siteAccess.js";
+import {
+  assertCanSetVisibleOnPlatform,
+  assertPlatformSiteAdmin,
+  assertUnitPlatformVisibility,
+} from "../platform/platform-visibility.js";
+import { attachPropertyMediaUrls } from "../properties/property.service.js";
 
 const resolveListSiteId = (query, user) => {
   const requestSiteId = getRequestSiteId();
@@ -51,6 +59,24 @@ const siteScope = (query, user, extra = {}) => ({
 });
 
 export const adminService = {
+  async listPartnerSites(user) {
+    assertPlatformSiteAdmin(user);
+
+    const sites = await Site.find({
+      isActive: true,
+      kind: SITE_KIND.TENANT,
+    })
+      .select("slug name kind")
+      .sort({ name: 1 })
+      .lean();
+
+    return sites.map((site) => ({
+      id: site._id,
+      slug: site.slug,
+      name: site.name,
+    }));
+  },
+
   async listUsers(query, user) {
     const { page, limit, skip } = parsePagination(query);
     const filter = siteScope(query, user);
@@ -395,6 +421,58 @@ export const adminService = {
       );
 
     return project;
+  },
+
+  async setPropertyPlatformFeatured(propertyId, visibleOnPlatform, actor) {
+    assertPlatformSiteAdmin(actor);
+
+    const property = await Property.findOne({
+      _id: propertyId,
+      deletedAt: null,
+    });
+    if (!property) throw new AppError("Property not found", 404);
+
+    const listingSite = await Site.findById(property.siteId).lean();
+    if (!listingSite || listingSite.kind !== SITE_KIND.TENANT) {
+      throw new AppError("Only partner tenant listings can be featured", 400);
+    }
+
+    assertCanSetVisibleOnPlatform(property, visibleOnPlatform);
+
+    if (visibleOnPlatform) {
+      const project = await Project.findOne({
+        _id: property.projectId,
+        deletedAt: null,
+      });
+      if (!project) throw new AppError("Project not found", 404);
+      assertUnitPlatformVisibility(project, true);
+    }
+
+    property.visibleOnPlatform = visibleOnPlatform;
+    await property.save();
+    return attachPropertyMediaUrls(property);
+  },
+
+  async setProjectPlatformFeatured(projectId, visibleOnPlatform, actor) {
+    assertPlatformSiteAdmin(actor);
+
+    const project = await Project.findOne({
+      _id: projectId,
+      deletedAt: null,
+    });
+    if (!project) throw new AppError("Project not found", 404);
+
+    const listingSite = await Site.findById(project.siteId).lean();
+    if (!listingSite || listingSite.kind !== SITE_KIND.TENANT) {
+      throw new AppError("Only partner tenant projects can be featured", 400);
+    }
+
+    assertCanSetVisibleOnPlatform(project, visibleOnPlatform);
+    project.visibleOnPlatform = visibleOnPlatform;
+    await project.save();
+
+    const doc = project.toObject();
+    return doc;
   },
 
   async getAnalytics(query = {}, user) {

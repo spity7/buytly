@@ -2,6 +2,11 @@ import { adminService } from "./admin.service.js";
 import { ApiResponse } from "../../shared/ApiResponse.js";
 
 export const adminController = {
+  listPartnerSites: async (req, res) => {
+    const sites = await adminService.listPartnerSites(req.user);
+    ApiResponse.success(res, sites);
+  },
+
   listUsers: async (req, res) => {
     const result = await adminService.listUsers(req.query, req.user);
     ApiResponse.paginated(res, result.users, result.pagination);
@@ -44,6 +49,15 @@ export const adminController = {
     ApiResponse.success(res, property, "Property moderated");
   },
 
+  setPropertyPlatformFeatured: async (req, res) => {
+    const property = await adminService.setPropertyPlatformFeatured(
+      req.params.id,
+      req.body.visibleOnPlatform,
+      req.user,
+    );
+    ApiResponse.success(res, property, "Marketplace featuring updated");
+  },
+
   listProjects: async (req, res) => {
     const result = await adminService.listProjects(req.query, req.user);
     ApiResponse.paginated(res, result.projects, result.pagination);
@@ -56,6 +70,15 @@ export const adminController = {
       req.user,
     );
     ApiResponse.success(res, project, "Project moderated");
+  },
+
+  setProjectPlatformFeatured: async (req, res) => {
+    const project = await adminService.setProjectPlatformFeatured(
+      req.params.id,
+      req.body.visibleOnPlatform,
+      req.user,
+    );
+    ApiResponse.success(res, project, "Marketplace featuring updated");
   },
 
   getAnalytics: async (req, res) => {

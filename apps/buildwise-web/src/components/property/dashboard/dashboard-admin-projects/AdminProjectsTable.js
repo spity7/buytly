@@ -23,10 +23,16 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import DashboardTableEmptyState from "@/components/property/dashboard/DashboardTableEmptyState";
 import { DashboardTableSkeleton } from "@/components/property/dashboard/skeletons/DashboardSkeletons";
 import { getAdminProjectsEmptyState } from "@/lib/dashboard/tableEmptyStates";
+import { useAuth } from "@/providers/AuthProvider";
+import { useAdminPartnerSites } from "@/hooks/useAdminPartnerSites";
+import { isBuytlyPlatformAdmin } from "@/lib/siteContext";
 import {
   adminArchiveProjectConfirmation,
   adminMarkProjectSoldConfirmation,
+  adminMarketplaceFeatureConfirmation,
 } from "@/lib/confirmations";
+import { canToggleProjectPlatformVisibility } from "@/lib/properties/mapProperty";
+import MarketplaceFeatureToggle from "@/components/property/dashboard/MarketplaceFeatureToggle";
 
 const PAGE_SIZE = 20;
 
@@ -61,9 +67,14 @@ const formatOwner = (owner) => {
 };
 
 export default function AdminProjectsTable() {
+  const { user } = useAuth();
+  const canPickSite = isBuytlyPlatformAdmin(user);
+  const canFeatureOnMarketplace = canPickSite;
+  const { data: partnerSites = [] } = useAdminPartnerSites(canPickSite);
   const [page, setPage] = useState(1);
   const [searchInput, setSearchInput, search] = useDebouncedSearch();
   const [statusFilter, setStatusFilter] = useState("");
+  const [siteId, setSiteId] = useState("");
   const [projects, setProjects] = useState([]);
   const [pagination, setPagination] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -75,8 +86,20 @@ export default function AdminProjectsTable() {
       limit: PAGE_SIZE,
       ...(statusFilter ? { status: statusFilter } : {}),
       ...(search.trim() ? { search: search.trim() } : {}),
+      ...(canPickSite && siteId ? { siteId } : {}),
     }),
-    [page, statusFilter, search],
+    [page, statusFilter, search, canPickSite, siteId],
+  );
+
+  const siteOptions = useMemo(
+    () => [
+      { label: "All sites", value: "" },
+      ...partnerSites.map((site) => ({
+        label: site.name || site.slug,
+        value: site.id,
+      })),
+    ],
+    [partnerSites],
   );
 
   const load = useCallback(
@@ -103,16 +126,38 @@ export default function AdminProjectsTable() {
 
   useLiveSyncReload(load);
 
-  const hasActiveFilters = Boolean(search.trim() || statusFilter);
+  const hasActiveFilters = Boolean(search.trim() || statusFilter || siteId);
 
   const resetFilters = () => {
     setSearchInput("");
     setStatusFilter("");
+    setSiteId("");
     setPage(1);
   };
 
   const tableBusy = isLocked;
   const moderatingId = pending?.targetId ?? null;
+
+  const promptMarketplaceFeature = (id, title, enabling) => {
+    requestConfirm({
+      ...adminMarketplaceFeatureConfirmation(title, enabling, "project"),
+      targetId: id,
+      action: {
+        message: enabling
+          ? "Featuring on marketplace..."
+          : "Removing from marketplace...",
+        successMessage: enabling
+          ? "Project featured on marketplace"
+          : "Project removed from marketplace",
+        task: () =>
+          buytlyApi.adminSetProjectPlatformFeatured(id, {
+            visibleOnPlatform: enabling,
+          }),
+        onSuccess: load,
+        onError: (error) => notifyError(getApiError(error)),
+      },
+    });
+  };
 
   const moderate = (id, title, status, unitCount = 0) => {
     const archiveConfig =
@@ -175,6 +220,19 @@ export default function AdminProjectsTable() {
           placeholder="Search by title or owner email"
           disabled={tableBusy}
         />
+        {canPickSite ? (
+          <FilterSelect
+            id="admin-project-site"
+            label="Site"
+            value={siteId}
+            options={siteOptions}
+            disabled={tableBusy}
+            onChange={(value) => {
+              setPage(1);
+              setSiteId(value);
+            }}
+          />
+        ) : null}
         <FilterSelect
           id="admin-project-status"
           label="Status"
@@ -340,6 +398,21 @@ export default function AdminProjectsTable() {
                                   Archive
                                 </button>
                               </>
+                            ) : null}
+                            {canFeatureOnMarketplace &&
+                            (canToggleProjectPlatformVisibility(project) ||
+                              project.visibleOnPlatform) ? (
+                              <MarketplaceFeatureToggle
+                                enabled={Boolean(project.visibleOnPlatform)}
+                                disabled={rowBusy || tableBusy}
+                                onToggle={() =>
+                                  promptMarketplaceFeature(
+                                    id,
+                                    project.title,
+                                    !project.visibleOnPlatform,
+                                  )
+                                }
+                              />
                             ) : null}
                           </>
                         )}

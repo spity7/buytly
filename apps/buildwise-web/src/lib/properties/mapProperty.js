@@ -84,6 +84,40 @@ export function mapPropertiesToCards(properties = []) {
   return properties.map(mapPropertyToCard).filter(Boolean);
 }
 
+export function mapPlatformPropertyToCard(property) {
+  const card = mapPropertyToCard(property);
+  if (!card) return null;
+  const externalHref = property.sourceSite?.listingUrl;
+  return {
+    ...card,
+    href: externalHref || getPublicListingCardHref(card),
+    externalHref,
+    partnerSiteName: property.sourceSite?.name,
+    openInNewTab: Boolean(externalHref),
+  };
+}
+
+export function mapPlatformPropertiesToCards(properties = []) {
+  return properties.map(mapPlatformPropertyToCard).filter(Boolean);
+}
+
+export function mapPlatformProjectToCard(project) {
+  const card = mapProjectToCard(project);
+  if (!card) return null;
+  const externalHref = project.sourceSite?.listingUrl;
+  return {
+    ...card,
+    href: externalHref || (card.slug ? `/project/${card.slug}` : "/listings"),
+    externalHref,
+    partnerSiteName: project.sourceSite?.name,
+    openInNewTab: Boolean(externalHref),
+  };
+}
+
+export function mapPlatformProjectsToCards(projects = []) {
+  return projects.map(mapPlatformProjectToCard).filter(Boolean);
+}
+
 export function mapProjectToCard(project) {
   if (!project) return null;
 
@@ -140,6 +174,8 @@ export function formatProjectPriceRange(project, currency = "USD") {
 /** Public detail URL for a listing grid/map card. */
 export function getPublicListingCardHref(listing) {
   if (!listing) return "/listings";
+  if (listing.href) return listing.href;
+  if (listing.externalHref) return listing.externalHref;
   const id = listing.id || listing._id;
   if (listing.itemType === "project" && listing.slug) {
     return `/project/${listing.slug}`;
@@ -271,6 +307,16 @@ export function isPropertyTerminal(status) {
 
 export function canMarkPropertySold(property) {
   return property?.status === "active" && !property?.deletedAt;
+}
+
+export function canTogglePropertyPlatformVisibility(property) {
+  if (!property || property.deletedAt) return false;
+  return property.status === "active" || property.status === "sold";
+}
+
+export function canToggleProjectPlatformVisibility(project) {
+  if (!project || project.deletedAt) return false;
+  return project.status === "active" || project.status === "sold";
 }
 
 export function canMarkProjectSold(project) {

@@ -219,17 +219,20 @@ Completing a transaction sets the property to `sold`, then sets the parent proje
 
 **Responsibility:** User management, listing moderation, platform analytics.
 
-| Endpoint                       | Method | Auth  | Input                                                                           | Output                                             |
-| ------------------------------ | ------ | ----- | ------------------------------------------------------------------------------- | -------------------------------------------------- |
-| /admin/users                   | GET    | Admin | role, isActive, deleted (`true`/`false`/`all`)                                  | user list (includes deletedEmail for soft-deleted) |
-| /admin/users/:id               | GET    | Admin | —                                                                               | user detail + related counts                       |
-| /admin/users/:id/status        | PATCH  | Admin | isActive                                                                        | updated user (active users only)                   |
-| /admin/users/:id/role          | PATCH  | Admin | role                                                                            | updated user                                       |
-| /admin/properties              | GET    | Admin | pagination, status, type, search (partial title/description), sortBy, sortOrder | all listings (includes archived / soft-deleted)    |
-| /admin/properties/:id/moderate | PATCH  | Admin | status                                                                          | moderated listing                                  |
-| /admin/projects                | GET    | Admin | pagination, status, kind, search, sortBy, sortOrder                             | all projects                                       |
-| /admin/projects/:id/moderate   | PATCH  | Admin | status                                                                          | moderated project                                  |
-| /admin/analytics               | GET    | Admin | —                                                                               | KPI analytics                                      |
+| Endpoint                                | Method | Auth                  | Input                                                                          | Output                                             |
+| --------------------------------------- | ------ | --------------------- | ------------------------------------------------------------------------------ | -------------------------------------------------- |
+| /admin/sites                            | GET    | Admin                 | —                                                                              | tenant sites (platform admin / cross-site)         |
+| /admin/users                            | GET    | Admin                 | role, isActive, deleted (`true`/`false`/`all`)                                 | user list (includes deletedEmail for soft-deleted) |
+| /admin/users/:id                        | GET    | Admin                 | —                                                                              | user detail + related counts                       |
+| /admin/users/:id/status                 | PATCH  | Admin                 | isActive                                                                       | updated user (active users only)                   |
+| /admin/users/:id/role                   | PATCH  | Admin                 | role                                                                           | updated user                                       |
+| /admin/properties                       | GET    | Admin                 | pagination, status, type, search, sortBy, sortOrder, `siteId` (platform admin) | all listings (includes archived / soft-deleted)    |
+| /admin/properties/:id/moderate          | PATCH  | Admin                 | status                                                                         | moderated listing                                  |
+| /admin/properties/:id/platform-featured | PATCH  | Admin (platform site) | `{ visibleOnPlatform }`                                                        | partner listing marketplace featuring              |
+| /admin/projects/:id/platform-featured   | PATCH  | Admin (platform site) | `{ visibleOnPlatform }`                                                        | partner project marketplace featuring              |
+| /admin/projects                         | GET    | Admin                 | pagination, status, search, sortBy, sortOrder, `siteId` (platform admin)       | all projects                                       |
+| /admin/projects/:id/moderate            | PATCH  | Admin                 | status                                                                         | moderated project                                  |
+| /admin/analytics                        | GET    | Admin                 | —                                                                              | KPI analytics                                      |
 
 Moderation notifies the listing owner (in-app + email).
 
@@ -243,11 +246,14 @@ Platform admins (`platformPermissions` on Buytly `admin` users) may pass `?siteI
 
 **Responsibility:** Buytly-only cross-site discovery (partner listings).
 
-| Endpoint                    | Method | Auth | Input       | Output                                     |
-| --------------------------- | ------ | ---- | ----------- | ------------------------------------------ |
-| /platform/featured-listings | GET    | —    | page, limit | Partner properties + `sourceSite` metadata |
+| Endpoint                    | Method | Auth | Input                                                          | Output                                   |
+| --------------------------- | ------ | ---- | -------------------------------------------------------------- | ---------------------------------------- |
+| /platform/featured-listings | GET    | —    | page, limit, filters (status, city, type, price, search, sort) | Partner units + `sourceSite` metadata    |
+| /platform/featured-projects | GET    | —    | page, limit, filters (status, city, search, sort)              | Partner projects + `sourceSite` metadata |
 
-Requires resolved site `kind: platform` (Buytly Origin / `X-Site-Slug: buytly`). Returns opt-in listings from tenant sites (`visibleOnPlatform` + site policy).
+Requires resolved site `kind: platform` (Buytly Origin / `X-Site-Slug: buytly`). Returns opt-in listings from tenant sites (`visibleOnPlatform: true` on both project and unit for `optIn` tenants; active + sold by default).
+
+Featuring is **Buytly admin only** (`PATCH /admin/.../platform-featured` on the platform site). Tenant sellers cannot read or write `visibleOnPlatform` on standard property/project routes.
 
 **Dependencies:** properties, projects, sites
 

@@ -17,6 +17,7 @@ import {
   projectMediaIdSchema,
   reorderProjectMediaSchema,
 } from "./project.validation.js";
+import { rejectTenantPlatformFeaturingPatch } from "../platform/platform-visibility.js";
 
 const router = Router();
 
@@ -267,6 +268,7 @@ router.patch(
   "/:id",
   authenticate,
   authorize(ROLES.SELLER, ROLES.AGENT, ROLES.ADMIN),
+  rejectTenantPlatformFeaturingPatch,
   validateMultiple({ params: projectIdSchema, body: updateProjectSchema }),
   asyncHandler(projectController.update),
 );

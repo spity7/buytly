@@ -20,6 +20,7 @@ import { buildPropertyTextFilter } from "../../shared/search.js";
 import { slugify } from "../../utils/slugify.js";
 import { DEFAULT_CURRENCY, ROLES } from "../../shared/constants.js";
 import { catalogService } from "../catalog/catalog.service.js";
+import { stripTenantPlatformVisibility } from "../platform/platform-visibility.js";
 import { purgePropertyRecord } from "../../services/listing-purge.service.js";
 import { User } from "../users/user.model.js";
 import { notificationService } from "../notifications/notification.service.js";
@@ -123,7 +124,7 @@ const attachMediaUrls = async (property) => {
     };
   }
 
-  return doc;
+  return stripTenantPlatformVisibility(doc);
 };
 
 /** Signed URLs for unit/property media (e.g. embedded units on project detail). */
@@ -500,12 +501,16 @@ export const propertyService = {
 
     const isAdmin = user.role === ROLES.ADMIN;
 
+    const previousStatus = property.status;
+    const patch = { ...data };
+
     if (!isAdmin && isPropertyTerminal(property.status)) {
       throw new AppError("Sold or archived listings cannot be edited", 400);
     }
 
-    const previousStatus = property.status;
-    const patch = { ...data };
+    if (patch.visibleOnPlatform !== undefined) {
+      throw new AppError("You cannot change marketplace featuring", 403);
+    }
 
     const project = await Project.findOne({
       _id: property.projectId,
@@ -520,6 +525,7 @@ export const propertyService = {
     if (patch.amenities !== undefined) {
       await catalogService.assertValidAmenities(patch.amenities);
     }
+
     patch.currency = DEFAULT_CURRENCY;
 
     const normalizedStatus = normalizeSellerStatus(patch.status, {

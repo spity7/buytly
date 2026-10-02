@@ -1,42 +1,69 @@
-import { Site } from "../sites/site.model.js";
 import { Property } from "../properties/property.model.js";
 import { Project } from "../projects/project.model.js";
-import { SITE_KIND, PLATFORM_LISTING_POLICY } from "../sites/site.constants.js";
+import { SITE_KIND } from "../sites/site.constants.js";
 import { getRequestSite } from "../../shared/requestContext.js";
 import { AppError } from "../../shared/AppError.js";
 import { attachPropertyMediaUrls } from "../properties/property.service.js";
-import { parsePagination, buildPaginationMeta } from "../../shared/pagination.js";
+import { gcsService } from "../../services/gcs.service.js";
+import {
+  parsePagination,
+  buildPaginationMeta,
+} from "../../shared/pagination.js";
+import { PUBLIC_MARKETPLACE_LIST_STATUSES } from "../properties/property-status.js";
+import {
+  buildPlatformVisibilityOr,
+  buildSourceSiteMeta,
+  getPartnerTenantSites,
+  getPublicPartnerProjectIds,
+} from "./platform-query.js";
 
-const PUBLIC_PARENT_PROJECT_STATUSES = ["active", "sold"];
+const attachProjectMediaUrls = async (project) => {
+  const doc = project.toObject ? project.toObject() : { ...project };
+  if (doc.media?.length) {
+    doc.media = await Promise.all(
+      doc.media.map(async (item) => {
+        if (!item.gcsKey) return item;
+        const url = await gcsService.getSignedUrl(item.gcsKey);
+        return { ...item, url };
+      }),
+    );
+  }
+  return doc;
+};
 
 function assertPlatformRequestSite() {
   const site = getRequestSite();
   if (!site || site.kind !== SITE_KIND.PLATFORM) {
-    throw new AppError("Platform listings are only available on the platform site", 403);
+    throw new AppError(
+      "Platform listings are only available on the platform site",
+      403,
+    );
   }
   return site;
 }
 
-async function getPartnerSiteIds(platformSiteId) {
-  const sites = await Site.find({
-    isActive: true,
-    kind: SITE_KIND.TENANT,
-    _id: { $ne: platformSiteId },
-  }).lean();
+function buildPropertySort(query) {
+  const sortBy = query.sortBy || "createdAt";
+  const sortOrder = query.sortOrder === "asc" ? 1 : -1;
+  if (sortBy === "price") return { price: sortOrder };
+  if (sortBy === "viewCount") return { viewCount: sortOrder };
+  return { createdAt: sortOrder };
+}
 
-  return sites
-    .filter(
-      (s) =>
-        s.platformListingPolicy === PLATFORM_LISTING_POLICY.DEFAULT_VISIBLE ||
-        s.platformListingPolicy === PLATFORM_LISTING_POLICY.OPT_IN,
-    )
-    .map((s) => s._id);
+function buildProjectSort(query) {
+  const sortBy = query.sortBy || "createdAt";
+  const sortOrder = query.sortOrder === "asc" ? 1 : -1;
+  if (sortBy === "viewCount") return { viewCount: sortOrder };
+  if (sortBy === "title") return { title: sortOrder };
+  return { createdAt: sortOrder };
 }
 
 export const platformService = {
   async listFeaturedListings(query = {}) {
     const platformSite = assertPlatformRequestSite();
-    const partnerSiteIds = await getPartnerSiteIds(platformSite._id);
+    const { sites, partnerSiteIds, siteById } = await getPartnerTenantSites(
+      platformSite._id,
+    );
 
     if (partnerSiteIds.length === 0) {
       return {
@@ -45,56 +72,41 @@ export const platformService = {
       };
     }
 
-    const sites = await Site.find({ _id: { $in: partnerSiteIds } }).lean();
-    const siteById = new Map(sites.map((s) => [String(s._id), s]));
-
-    const optInSiteIds = sites
-      .filter((s) => s.platformListingPolicy === PLATFORM_LISTING_POLICY.OPT_IN)
-      .map((s) => s._id);
-    const defaultVisibleSiteIds = sites
-      .filter(
-        (s) => s.platformListingPolicy === PLATFORM_LISTING_POLICY.DEFAULT_VISIBLE,
-      )
-      .map((s) => s._id);
-
-    const publicProjectIds = await Project.find({
-      siteId: { $in: partnerSiteIds },
-      deletedAt: null,
-      status: { $in: PUBLIC_PARENT_PROJECT_STATUSES },
-      $or: [
-        { visibleOnPlatform: true },
-        {
-          siteId: { $in: defaultVisibleSiteIds },
-          visibleOnPlatform: { $ne: false },
-        },
-      ],
-    }).distinct("_id");
+    const publicProjectIds = await getPublicPartnerProjectIds(
+      partnerSiteIds,
+      sites,
+    );
+    const visibilityOr = buildPlatformVisibilityOr(sites);
 
     const { page, limit, skip } = parsePagination(query);
     const filter = {
       siteId: { $in: partnerSiteIds },
       deletedAt: null,
-      status: "active",
       projectId: { $in: publicProjectIds },
-      $or: [
-        { visibleOnPlatform: true },
-        {
-          siteId: { $in: defaultVisibleSiteIds },
-          visibleOnPlatform: { $ne: false },
-        },
-      ],
+      $or: visibilityOr,
     };
 
-    if (optInSiteIds.length) {
-      filter.$or.push({
-        siteId: { $in: optInSiteIds },
-        visibleOnPlatform: true,
-      });
+    if (query.status === "sold" || query.status === "active") {
+      filter.status = query.status;
+    } else {
+      filter.status = { $in: PUBLIC_MARKETPLACE_LIST_STATUSES };
+    }
+
+    if (query.type) filter.type = query.type;
+    if (query.city) filter["location.city"] = new RegExp(query.city, "i");
+    if (query.bedrooms) filter.bedrooms = { $gte: query.bedrooms };
+    if (query.minPrice || query.maxPrice) {
+      filter.price = {};
+      if (query.minPrice) filter.price.$gte = query.minPrice;
+      if (query.maxPrice) filter.price.$lte = query.maxPrice;
+    }
+    if (query.search) {
+      filter.$text = { $search: query.search };
     }
 
     const [properties, total] = await Promise.all([
       Property.find(filter)
-        .sort({ createdAt: -1 })
+        .sort(buildPropertySort(query))
         .skip(skip)
         .limit(limit)
         .populate("projectId", "title slug status siteId visibleOnPlatform"),
@@ -105,24 +117,78 @@ export const platformService = {
       properties.map(async (property) => {
         const doc = await attachPropertyMediaUrls(property);
         const sourceSite = siteById.get(String(property.siteId));
-        const publicBase =
-          sourceSite?.publicUrl || `https://${sourceSite?.primaryDomain || ""}`;
         return {
           ...doc,
-          sourceSite: sourceSite
-            ? {
-                slug: sourceSite.slug,
-                name: sourceSite.name,
-                publicUrl: publicBase,
-                listingUrl: `${publicBase.replace(/\/$/, "")}/single-v1/${property._id}`,
-              }
-            : null,
+          sourceSite: buildSourceSiteMeta(sourceSite, {
+            listingPath: `/single-v1/${property._id}`,
+          }),
         };
       }),
     );
 
     return {
       properties: enriched,
+      pagination: buildPaginationMeta(total, page, limit),
+    };
+  },
+
+  async listFeaturedProjects(query = {}) {
+    const platformSite = assertPlatformRequestSite();
+    const { sites, partnerSiteIds, siteById } = await getPartnerTenantSites(
+      platformSite._id,
+    );
+
+    if (partnerSiteIds.length === 0) {
+      return {
+        projects: [],
+        pagination: buildPaginationMeta(0, 1, query.limit || 20),
+      };
+    }
+
+    const visibilityOr = buildPlatformVisibilityOr(sites);
+    const { page, limit, skip } = parsePagination(query);
+
+    const filter = {
+      siteId: { $in: partnerSiteIds },
+      deletedAt: null,
+      $or: visibilityOr,
+    };
+
+    if (query.status === "sold" || query.status === "active") {
+      filter.status = query.status;
+    } else {
+      filter.status = { $in: PUBLIC_MARKETPLACE_LIST_STATUSES };
+    }
+
+    if (query.city) filter["location.city"] = new RegExp(query.city, "i");
+    if (query.search) {
+      filter.$text = { $search: query.search };
+    }
+
+    const [projects, total] = await Promise.all([
+      Project.find(filter)
+        .sort(buildProjectSort(query))
+        .skip(skip)
+        .limit(limit),
+      Project.countDocuments(filter),
+    ]);
+
+    const enriched = await Promise.all(
+      projects.map(async (project) => {
+        const doc = await attachProjectMediaUrls(project);
+        const sourceSite = siteById.get(String(project.siteId));
+        const slug = project.slug;
+        return {
+          ...doc,
+          sourceSite: buildSourceSiteMeta(sourceSite, {
+            listingPath: `/project/${slug}`,
+          }),
+        };
+      }),
+    );
+
+    return {
+      projects: enriched,
       pagination: buildPaginationMeta(total, page, limit),
     };
   },

@@ -111,7 +111,7 @@ Multi-tenant registry. One document per public site (Buytly platform + partner t
   agentId: ObjectId → users,
   ownerId: ObjectId → users,
   viewCount: Number,
-  visibleOnPlatform: Boolean (opt-in for Buytly aggregator),
+  visibleOnPlatform: Boolean (default false; Buytly platform admin featuring for marketplace when status is active/sold),
   deletedAt: Date,
   timestamps
 }

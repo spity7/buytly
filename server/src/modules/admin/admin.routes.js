@@ -15,7 +15,9 @@ import {
   projectIdSchema,
   moderatePropertySchema,
   moderateProjectSchema,
+  platformFeaturedSchema,
 } from "./admin.validation.js";
+import { requirePlatformSite } from "../../middleware/resolveSite.js";
 import { catalogController } from "../catalog/catalog.controller.js";
 import {
   catalogItemIdSchema,
@@ -28,6 +30,27 @@ import {
 const router = Router();
 
 router.use(authenticate, authorize(ROLES.ADMIN));
+
+/**
+ * @swagger
+ * /admin/sites:
+ *   get:
+ *     operationId: adminListPartnerSites
+ *     summary: List tenant sites for platform admin cross-site moderation
+ *     tags: [Admin]
+ *     security:
+ *       - BearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Partner site list
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ */
+router.get(
+  "/sites",
+  requirePlatformSite,
+  asyncHandler(adminController.listPartnerSites),
+);
 
 /**
  * @swagger
@@ -298,6 +321,51 @@ router.patch(
 
 /**
  * @swagger
+ * /admin/properties/{id}/platform-featured:
+ *   patch:
+ *     operationId: adminSetPropertyPlatformFeatured
+ *     summary: Set partner listing marketplace featuring
+ *     description: Buytly platform admin only. Sets visibleOnPlatform on a tenant-site listing.
+ *     tags: [Admin]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - $ref: '#/components/parameters/ObjectIdParam'
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [visibleOnPlatform]
+ *             properties:
+ *               visibleOnPlatform:
+ *                 type: boolean
+ *     responses:
+ *       200:
+ *         description: Marketplace featuring updated
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/PropertySuccessResponse'
+ *       400:
+ *         $ref: '#/components/responses/ValidationError'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ */
+router.patch(
+  "/properties/:id/platform-featured",
+  requirePlatformSite,
+  validateMultiple({ params: propertyIdSchema, body: platformFeaturedSchema }),
+  asyncHandler(adminController.setPropertyPlatformFeatured),
+);
+
+/**
+ * @swagger
  * /admin/projects:
  *   get:
  *     operationId: adminListProjects
@@ -370,6 +438,47 @@ router.patch(
   "/projects/:id/moderate",
   validateMultiple({ params: projectIdSchema, body: moderateProjectSchema }),
   asyncHandler(adminController.moderateProject),
+);
+
+/**
+ * @swagger
+ * /admin/projects/{id}/platform-featured:
+ *   patch:
+ *     operationId: adminSetProjectPlatformFeatured
+ *     summary: Set partner project marketplace featuring
+ *     description: Buytly platform admin only. Sets visibleOnPlatform on a tenant-site project.
+ *     tags: [Admin]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - $ref: '#/components/parameters/ObjectIdParam'
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [visibleOnPlatform]
+ *             properties:
+ *               visibleOnPlatform:
+ *                 type: boolean
+ *     responses:
+ *       200:
+ *         description: Marketplace featuring updated
+ *       400:
+ *         $ref: '#/components/responses/ValidationError'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ */
+router.patch(
+  "/projects/:id/platform-featured",
+  requirePlatformSite,
+  validateMultiple({ params: projectIdSchema, body: platformFeaturedSchema }),
+  asyncHandler(adminController.setProjectPlatformFeatured),
 );
 
 /**

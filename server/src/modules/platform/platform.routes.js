@@ -30,4 +30,27 @@ router.get(
   asyncHandler(platformController.featuredListings),
 );
 
+/**
+ * @swagger
+ * /platform/featured-projects:
+ *   get:
+ *     operationId: listPlatformFeaturedProjects
+ *     summary: Partner projects visible on the platform site (Buytly)
+ *     tags: [Platform]
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema: { type: integer }
+ *       - in: query
+ *         name: limit
+ *         schema: { type: integer }
+ *     responses:
+ *       200:
+ *         description: Paginated partner projects with source site metadata
+ */
+router.get(
+  "/featured-projects",
+  asyncHandler(platformController.featuredProjects),
+);
+
 export default router;

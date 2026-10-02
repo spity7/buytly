@@ -115,6 +115,50 @@ export function getListingBrowseCrumb({
   return "For Sale";
 }
 
+/** Query params for Buytly platform partner browse (`/platform/*`). */
+export function buildPlatformListingQueryParams({
+  page = 1,
+  limit = LISTING_PAGE_SIZE,
+  currentSortingOption = "Newest",
+  listingStatus = "All",
+  propertyTypes = [],
+  priceRange = [0, LISTING_MAX_PRICE],
+  bedrooms = 0,
+  location = "All Cities",
+  searchQuery = "",
+} = {}) {
+  const base = buildListingQueryParams({
+    page,
+    limit,
+    currentSortingOption,
+    listingStatus,
+    propertyTypes,
+    priceRange,
+    bedrooms,
+    location,
+    searchQuery,
+  });
+  return base;
+}
+
+export function buildPlatformProjectQueryParams({
+  page = 1,
+  limit = LISTING_PAGE_SIZE,
+  currentSortingOption = "Newest",
+  listingStatus = "All",
+  location = "All Cities",
+  searchQuery = "",
+} = {}) {
+  return buildProjectQueryParams({
+    page,
+    limit,
+    currentSortingOption,
+    listingStatus,
+    location,
+    searchQuery,
+  });
+}
+
 export function buildProjectQueryParams({
   page = 1,
   limit = LISTING_PAGE_SIZE,

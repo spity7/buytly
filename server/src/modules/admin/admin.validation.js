@@ -27,6 +27,8 @@ export const moderatePropertySchema = z.object({
   status: z.enum(PROPERTY_STATUSES),
 });
 
+const objectIdString = z.string().regex(/^[0-9a-fA-F]{24}$/);
+
 export const listAdminPropertiesSchema = z.object({
   page: z.coerce.number().int().positive().optional(),
   limit: z.coerce.number().int().positive().max(100).optional(),
@@ -35,6 +37,7 @@ export const listAdminPropertiesSchema = z.object({
   search: z.string().optional(),
   sortBy: z.enum(["price", "createdAt", "viewCount"]).optional(),
   sortOrder: z.enum(["asc", "desc"]).optional(),
+  siteId: objectIdString.optional(),
 });
 
 export const listAdminProjectsSchema = z.object({
@@ -44,6 +47,7 @@ export const listAdminProjectsSchema = z.object({
   search: z.string().optional(),
   sortBy: z.enum(["createdAt", "viewCount", "title"]).optional(),
   sortOrder: z.enum(["asc", "desc"]).optional(),
+  siteId: objectIdString.optional(),
 });
 
 export const propertyIdSchema = z.object({
@@ -56,4 +60,8 @@ export const projectIdSchema = z.object({
 
 export const moderateProjectSchema = z.object({
   status: z.enum(PROPERTY_STATUSES),
+});
+
+export const platformFeaturedSchema = z.object({
+  visibleOnPlatform: z.boolean(),
 });

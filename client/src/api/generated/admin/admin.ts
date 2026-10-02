@@ -13,6 +13,8 @@ import type {
   AdminListUsersParams,
   AdminModerateProjectBody,
   AdminModeratePropertyBody,
+  AdminSetProjectPlatformFeaturedBody,
+  AdminSetPropertyPlatformFeaturedBody,
   AdminUpdateUserRoleBody,
   AdminUpdateUserStatusBody,
   AdminUserDetailResponse,
@@ -34,6 +36,17 @@ import type { BodyType } from "../../../lib/api/custom-instance";
 type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];
 
 export const getAdmin = () => {
+  /**
+   * @summary List tenant sites for platform admin cross-site moderation
+   */
+  const adminListPartnerSites = (
+    options?: SecondParameter<typeof customInstance<void>>,
+  ) => {
+    return customInstance<void>(
+      { url: `/admin/sites`, method: "GET" },
+      options,
+    );
+  };
   /**
    * Returns a paginated list of all users. Admin only.
    * @summary List all users
@@ -135,6 +148,25 @@ export const getAdmin = () => {
     );
   };
   /**
+   * Buytly platform admin only. Sets visibleOnPlatform on a tenant-site listing.
+   * @summary Set partner listing marketplace featuring
+   */
+  const adminSetPropertyPlatformFeatured = (
+    id: string,
+    adminSetPropertyPlatformFeaturedBody: BodyType<AdminSetPropertyPlatformFeaturedBody>,
+    options?: SecondParameter<typeof customInstance<PropertySuccessResponse>>,
+  ) => {
+    return customInstance<PropertySuccessResponse>(
+      {
+        url: `/admin/properties/${id}/platform-featured`,
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        data: adminSetPropertyPlatformFeaturedBody,
+      },
+      options,
+    );
+  };
+  /**
    * @summary List all projects (admin)
    */
   const adminListProjects = (
@@ -161,6 +193,25 @@ export const getAdmin = () => {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         data: adminModerateProjectBody,
+      },
+      options,
+    );
+  };
+  /**
+   * Buytly platform admin only. Sets visibleOnPlatform on a tenant-site project.
+   * @summary Set partner project marketplace featuring
+   */
+  const adminSetProjectPlatformFeatured = (
+    id: string,
+    adminSetProjectPlatformFeaturedBody: BodyType<AdminSetProjectPlatformFeaturedBody>,
+    options?: SecondParameter<typeof customInstance<void>>,
+  ) => {
+    return customInstance<void>(
+      {
+        url: `/admin/projects/${id}/platform-featured`,
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        data: adminSetProjectPlatformFeaturedBody,
       },
       options,
     );
@@ -298,14 +349,17 @@ export const getAdmin = () => {
     );
   };
   return {
+    adminListPartnerSites,
     adminListUsers,
     adminGetUserById,
     adminUpdateUserStatus,
     adminUpdateUserRole,
     adminListProperties,
     adminModerateProperty,
+    adminSetPropertyPlatformFeatured,
     adminListProjects,
     adminModerateProject,
+    adminSetProjectPlatformFeatured,
     getAnalytics,
     adminListCatalogPropertyTypes,
     adminCreateCatalogPropertyType,
@@ -322,6 +376,9 @@ type AwaitedInput<T> = PromiseLike<T> | T;
 
 type Awaited<O> = O extends AwaitedInput<infer T> ? T : never;
 
+export type AdminListPartnerSitesResult = NonNullable<
+  Awaited<ReturnType<ReturnType<typeof getAdmin>["adminListPartnerSites"]>>
+>;
 export type AdminListUsersResult = NonNullable<
   Awaited<ReturnType<ReturnType<typeof getAdmin>["adminListUsers"]>>
 >;
@@ -340,11 +397,21 @@ export type AdminListPropertiesResult = NonNullable<
 export type AdminModeratePropertyResult = NonNullable<
   Awaited<ReturnType<ReturnType<typeof getAdmin>["adminModerateProperty"]>>
 >;
+export type AdminSetPropertyPlatformFeaturedResult = NonNullable<
+  Awaited<
+    ReturnType<ReturnType<typeof getAdmin>["adminSetPropertyPlatformFeatured"]>
+  >
+>;
 export type AdminListProjectsResult = NonNullable<
   Awaited<ReturnType<ReturnType<typeof getAdmin>["adminListProjects"]>>
 >;
 export type AdminModerateProjectResult = NonNullable<
   Awaited<ReturnType<ReturnType<typeof getAdmin>["adminModerateProject"]>>
+>;
+export type AdminSetProjectPlatformFeaturedResult = NonNullable<
+  Awaited<
+    ReturnType<ReturnType<typeof getAdmin>["adminSetProjectPlatformFeatured"]>
+  >
 >;
 export type GetAnalyticsResult = NonNullable<
   Awaited<ReturnType<ReturnType<typeof getAdmin>["getAnalytics"]>>

@@ -1464,6 +1464,11 @@ export type ListPlatformFeaturedListingsParams = {
   limit?: number;
 };
 
+export type ListPlatformFeaturedProjectsParams = {
+  page?: number;
+  limit?: number;
+};
+
 export type ListNotificationsParams = {
   /**
    * Page number (1-based)
@@ -1841,6 +1846,10 @@ export type AdminModeratePropertyBody = {
   status: PropertyStatus;
 };
 
+export type AdminSetPropertyPlatformFeaturedBody = {
+  visibleOnPlatform: boolean;
+};
+
 export type AdminListProjectsParams = {
   /**
    * Page number (1-based)
@@ -1880,6 +1889,10 @@ export const AdminListProjectsSortOrder = {
 
 export type AdminModerateProjectBody = {
   status: PropertyStatus;
+};
+
+export type AdminSetProjectPlatformFeaturedBody = {
+  visibleOnPlatform: boolean;
 };
 
 export type GetAnalytics200AllOf = {

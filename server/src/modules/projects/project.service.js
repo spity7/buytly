@@ -14,6 +14,7 @@ import { ROLES } from "../../shared/constants.js";
 import { catalogService } from "../catalog/catalog.service.js";
 import { User } from "../users/user.model.js";
 import { notificationService } from "../notifications/notification.service.js";
+import { stripTenantPlatformVisibility } from "../platform/platform-visibility.js";
 import {
   applyPublicListStatusToFilter,
   normalizeSellerStatus,
@@ -148,7 +149,7 @@ const attachMediaUrls = async (project) => {
     );
   }
 
-  return doc;
+  return stripTenantPlatformVisibility(doc);
 };
 
 const buildUniqueSlug = async ({ siteId, title }) => {
@@ -439,12 +440,16 @@ export const projectService = {
 
     const isAdmin = user.role === ROLES.ADMIN;
 
+    const previousStatus = project.status;
+    const patch = { ...data };
+
     if (!isAdmin && project.status === "sold") {
       throw new AppError("Sold projects cannot be edited", 400);
     }
 
-    const previousStatus = project.status;
-    const patch = { ...data };
+    if (patch.visibleOnPlatform !== undefined) {
+      throw new AppError("You cannot change marketplace featuring", 403);
+    }
 
     if (patch.amenities !== undefined) {
       await catalogService.assertValidAmenities(patch.amenities);

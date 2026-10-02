@@ -147,6 +147,9 @@ userSchema.methods.toPublicJSON = function () {
     isActive: this.isActive,
     isEmailVerified: this.isEmailVerified,
     createdAt: this.createdAt,
+    ...(this.role === ROLES.ADMIN
+      ? { platformPermissions: this.platformPermissions || [] }
+      : {}),
   };
 };
 

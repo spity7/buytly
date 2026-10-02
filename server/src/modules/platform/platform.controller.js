@@ -6,4 +6,9 @@ export const platformController = {
     const result = await platformService.listFeaturedListings(req.query);
     ApiResponse.paginated(res, result.properties, result.pagination);
   },
+
+  featuredProjects: async (req, res) => {
+    const result = await platformService.listFeaturedProjects(req.query);
+    ApiResponse.paginated(res, result.projects, result.pagination);
+  },
 };
