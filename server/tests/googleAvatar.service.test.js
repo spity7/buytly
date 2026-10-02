@@ -1,20 +1,27 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { mongoAvailable } from "./setup.js";
+import { runWithTestSite } from "./helpers/runWithTestSite.js";
 
-vi.mock("../src/services/gcs.service.js", () => ({
-  gcsService: {
-    uploadFile: vi.fn(),
-  },
-}));
+vi.mock("../src/services/gcs.service.js", async (importOriginal) => {
+  const actual = await importOriginal();
+  return {
+    ...actual,
+    gcsService: {
+      ...actual.gcsService,
+      uploadFile: vi.fn(),
+    },
+  };
+});
 
 const { gcsService } = await import("../src/services/gcs.service.js");
 const { importAvatarFromUrl, syncGoogleAvatarIfMissing } =
   await import("../src/services/googleAvatar.service.js");
 
-describe("googleAvatar.service", () => {
+describe.skipIf(!mongoAvailable)("googleAvatar.service", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     gcsService.uploadFile.mockResolvedValue({
-      gcsKey: "avatars/test.jpg",
+      gcsKey: "sites/buytly/avatars/test.jpg",
       mimeType: "image/jpeg",
       size: 128,
     });
@@ -24,7 +31,7 @@ describe("googleAvatar.service", () => {
     vi.unstubAllGlobals();
   });
 
-  it("uploads a fetched Google profile photo to GCS", async () => {
+  it("uploads a fetched Google profile photo to GCS under the site folder", async () => {
     vi.stubGlobal(
       "fetch",
       vi.fn().mockResolvedValue({
@@ -35,10 +42,16 @@ describe("googleAvatar.service", () => {
       }),
     );
 
-    const uploaded = await importAvatarFromUrl("https://example.com/photo.jpg");
+    const uploaded = await runWithTestSite(() =>
+      importAvatarFromUrl("https://example.com/photo.jpg"),
+    );
 
-    expect(uploaded.gcsKey).toBe("avatars/test.jpg");
+    expect(uploaded.gcsKey).toBe("sites/buytly/avatars/test.jpg");
     expect(gcsService.uploadFile).toHaveBeenCalledOnce();
+    expect(gcsService.uploadFile).toHaveBeenCalledWith(
+      expect.any(Buffer),
+      expect.objectContaining({ folder: "sites/buytly/avatars" }),
+    );
   });
 
   it("sets avatar on user when missing", async () => {
@@ -53,20 +66,18 @@ describe("googleAvatar.service", () => {
     );
 
     const user = { avatar: undefined };
-    const updated = await syncGoogleAvatarIfMissing(
-      user,
-      "https://example.com/photo.jpg",
+    const updated = await runWithTestSite(() =>
+      syncGoogleAvatarIfMissing(user, "https://example.com/photo.jpg"),
     );
 
     expect(updated).toBe(true);
-    expect(user.avatar?.gcsKey).toBe("avatars/test.jpg");
+    expect(user.avatar?.gcsKey).toBe("sites/buytly/avatars/test.jpg");
   });
 
   it("skips sync when user already has an avatar", async () => {
-    const user = { avatar: { gcsKey: "avatars/existing.jpg" } };
-    const updated = await syncGoogleAvatarIfMissing(
-      user,
-      "https://example.com/photo.jpg",
+    const user = { avatar: { gcsKey: "sites/buytly/avatars/existing.jpg" } };
+    const updated = await runWithTestSite(() =>
+      syncGoogleAvatarIfMissing(user, "https://example.com/photo.jpg"),
     );
 
     expect(updated).toBe(false);

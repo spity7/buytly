@@ -110,7 +110,7 @@ Test env skips network send entirely.
 
 ## GCS orphan cleanup
 
-Media keys live in MongoDB (`users.avatar`, `properties.media`, `properties.floorPlans`, `projects.media`). Orphaned bucket objects are removed by `scripts/gcs-orphan-cleanup.js` (`npm run cleanup:gcs`, `--dry-run` supported). New uploads use `sites/{siteSlug}/avatars|properties|projects/...` via `buildSiteFolder()`. Legacy flat prefixes may still exist in older data. Orphan cleanup considers keys referenced in MongoDB; unreferenced objects older than `GCS_ORPHAN_GRACE_HOURS` (default 48) are deleted.
+Media keys live in MongoDB (`users.avatar`, `properties.media`, `properties.floorPlans`, `projects.media`). Orphaned bucket objects are removed by `scripts/gcs-orphan-cleanup.js` (`npm run cleanup:gcs`, `--dry-run` supported). All uploads use `sites/{siteSlug}/avatars|properties|projects/...` via `buildSiteFolder()`. Deployments that predate multi-site may still have legacy flat keys (`avatars/`, `projects/`, `properties/`) in MongoDB and GCS — run `npm run migrate:gcs-site-prefix` once (see `deployment.md`) to copy objects and rewrite keys; flat prefixes are deprecated after that migration. Orphan cleanup scans both legacy and `sites/` prefixes until cleanup has removed stragglers; unreferenced objects older than `GCS_ORPHAN_GRACE_HOURS` (default 48) are deleted.
 
 ## Scalability Considerations
 

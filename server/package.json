@@ -17,6 +17,8 @@
     "cleanup:gcs": "node scripts/gcs-orphan-cleanup.js",
     "cleanup:gcs:dry-run": "node scripts/gcs-orphan-cleanup.js --dry-run",
     "migrate:multi-site": "node scripts/migrate-multi-site.js",
+    "migrate:gcs-site-prefix": "node scripts/migrate-gcs-site-prefix.js",
+    "migrate:gcs-site-prefix:dry-run": "node scripts/migrate-gcs-site-prefix.js --dry-run",
     "lint": "eslint src tests"
   },
   "keywords": [

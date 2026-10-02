@@ -1,4 +1,4 @@
-import { gcsService } from "./gcs.service.js";
+import { buildSiteFolder, gcsService } from "./gcs.service.js";
 
 const ALLOWED_MIMES = new Set([
   "image/jpeg",
@@ -39,7 +39,7 @@ export async function importAvatarFromUrl(pictureUrl) {
   }
 
   return gcsService.uploadFile(buffer, {
-    folder: "avatars",
+    folder: buildSiteFolder("avatars"),
     mimeType,
     originalName:
       mimeType === "image/png" ? "google-avatar.png" : "google-avatar.jpg",

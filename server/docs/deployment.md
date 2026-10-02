@@ -171,6 +171,20 @@ npm run cleanup:gcs           # delete orphans
 
 Set `GCS_ORPHAN_GRACE_HOURS` (default 48) to avoid deleting in-flight uploads. Schedule via cron, e.g. weekly: `0 3 * * 0 cd /path/to/buytly/server && npm run cleanup:gcs`.
 
+## GCS site-prefix migration (legacy flat keys)
+
+If the bucket still has root-level `avatars/`, `projects/`, or `properties/` alongside `sites/{slug}/...`, run once after `npm run migrate:multi-site` (every document must have `siteId`):
+
+```bash
+cd server
+npm run migrate:gcs-site-prefix:dry-run   # preview oldKey -> newKey mappings
+npm run migrate:gcs-site-prefix         # copy in GCS, update MongoDB, delete old objects
+npm run cleanup:gcs:dry-run             # preview unreferenced legacy stragglers
+npm run cleanup:gcs                       # delete orphans (optional but recommended)
+```
+
+The script is idempotent: keys already under `sites/` are skipped. Take a MongoDB backup and review dry-run output before applying. Google profile avatars and manual uploads both use `sites/{slug}/avatars/...` after the code change bundled with this migration.
+
 ## Hostinger (buytly.com) — DNS
 
 In **Hostinger hPanel → Domains → buytly.com → DNS / Nameservers**:

@@ -3,6 +3,7 @@ export const GCS_ORPHAN_PREFIXES = [
   "properties/",
   "projects/",
   "sites/",
+  // Legacy flat prefixes above can be removed after production migrate:gcs-site-prefix + cleanup:gcs.
 ];
 
 export function collectReferencedGcsKeys({

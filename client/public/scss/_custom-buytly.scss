@@ -3897,6 +3897,28 @@ header.nav-homepage-style.sticky {
     word-break: break-word;
 }
 
+.admin-projects-moderation__summary {
+    margin-top: -0.25rem;
+}
+
+.admin-projects-moderation-table {
+    &__title {
+        font-weight: 600;
+        max-width: 280px;
+        word-break: break-word;
+    }
+
+    &__owner {
+        width: 220px;
+        max-width: 260px;
+        word-break: break-word;
+    }
+
+    &__actions {
+        min-width: 200px;
+    }
+}
+
 tr.dashboard-row-highlight,
 tr.dashboard-row-highlight > th,
 tr.dashboard-row-highlight > td {

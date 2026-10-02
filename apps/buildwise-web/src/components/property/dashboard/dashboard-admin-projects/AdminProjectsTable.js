@@ -2,8 +2,10 @@
 
 import { buytlyApi } from "@/api/generated";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
+import ApiPagination from "@/components/property/ApiPagination";
 import {
   DashboardFilterBar,
+  FilterClearButton,
   FilterSearch,
   FilterSelect,
 } from "@/components/property/dashboard/DashboardFilterBar";
@@ -23,6 +25,8 @@ import { DashboardTableSkeleton } from "@/components/property/dashboard/skeleton
 import { getAdminProjectsEmptyState } from "@/lib/dashboard/tableEmptyStates";
 import { adminArchiveProjectConfirmation } from "@/lib/confirmations";
 
+const PAGE_SIZE = 20;
+
 const STATUS_FILTERS = [
   { value: "", label: "All statuses" },
   { value: "pending", label: "Pending review" },
@@ -32,19 +36,40 @@ const STATUS_FILTERS = [
   { value: "archived", label: "Archived" },
 ];
 
+const formatDate = (value) => {
+  if (!value) return "—";
+  return new Intl.DateTimeFormat(undefined, {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  }).format(new Date(value));
+};
+
+const formatOwner = (owner) => {
+  if (!owner) return { name: "—", email: null };
+  const name = [owner.firstName, owner.lastName].filter(Boolean).join(" ");
+  if (name && owner.email) {
+    return { name, email: owner.email };
+  }
+  return {
+    name: name || owner.email || "—",
+    email: owner.email && name ? owner.email : null,
+  };
+};
+
 export default function AdminProjectsTable() {
   const [page, setPage] = useState(1);
   const [searchInput, setSearchInput, search] = useDebouncedSearch();
-  const [statusFilter, setStatusFilter] = useState("pending");
+  const [statusFilter, setStatusFilter] = useState("");
   const [projects, setProjects] = useState([]);
   const [pagination, setPagination] = useState(null);
   const [loading, setLoading] = useState(true);
-  const { requestConfirm, dialogProps, isLocked } = useConfirmAction();
+  const { requestConfirm, dialogProps, isLocked, pending } = useConfirmAction();
 
   const queryParams = useMemo(
     () => ({
       page,
-      limit: 20,
+      limit: PAGE_SIZE,
       ...(statusFilter ? { status: statusFilter } : {}),
       ...(search.trim() ? { search: search.trim() } : {}),
     }),
@@ -75,15 +100,16 @@ export default function AdminProjectsTable() {
 
   useLiveSyncReload(load);
 
-  const hasActiveFilters = Boolean(
-    search.trim() || statusFilter !== "pending",
-  );
+  const hasActiveFilters = Boolean(search.trim() || statusFilter);
 
   const resetFilters = () => {
     setSearchInput("");
-    setStatusFilter("pending");
+    setStatusFilter("");
     setPage(1);
   };
+
+  const tableBusy = isLocked;
+  const moderatingId = pending?.targetId ?? null;
 
   const moderate = (id, title, status) => {
     const archiveConfig =
@@ -103,6 +129,7 @@ export default function AdminProjectsTable() {
         (status === "active" ? "Approve" : "Confirm"),
       confirmVariant: archiveConfig?.confirmVariant,
       confirmingLabel: archiveConfig?.confirmingLabel,
+      targetId: id,
       action: {
         message:
           status === "archived"
@@ -117,114 +144,169 @@ export default function AdminProjectsTable() {
     });
   };
 
-  return (
-    <div className="p30">
-      <ConfirmDialog {...dialogProps} />
-      <h2 className="mb20">Moderate projects</h2>
+  const showTableSkeleton = loading && !projects.length;
 
-      <DashboardFilterBar className="mb20">
+  return (
+    <>
+      <ConfirmDialog {...dialogProps} />
+
+      <DashboardFilterBar className="mb20 admin-projects-moderation__filters">
         <FilterSearch
           id="admin-projects-search"
           value={searchInput}
           onChange={setSearchInput}
-          placeholder="Search projects"
-          disabled={isLocked}
+          placeholder="Search by title or owner email"
+          disabled={tableBusy}
         />
         <FilterSelect
           id="admin-project-status"
           label="Status"
-          hideLabel
           value={statusFilter}
           options={STATUS_FILTERS}
-          disabled={isLocked}
+          disabled={tableBusy}
           onChange={(value) => {
             setPage(1);
             setStatusFilter(value);
           }}
         />
+        <FilterClearButton
+          visible={hasActiveFilters}
+          disabled={tableBusy}
+          onClick={resetFilters}
+        />
       </DashboardFilterBar>
 
-      {loading && !projects.length ? (
+      {pagination?.total != null && !showTableSkeleton ? (
+        <p className="admin-projects-moderation__summary text-muted fz14 mb20">
+          {hasActiveFilters
+            ? `${pagination.total} project${pagination.total === 1 ? "" : "s"} match your filters`
+            : `${pagination.total} project${pagination.total === 1 ? "" : "s"} total`}
+        </p>
+      ) : null}
+
+      {showTableSkeleton ? (
         <DashboardTableSkeleton rows={5} columns={5} />
       ) : !projects.length ? (
         <DashboardTableEmptyState
           {...getAdminProjectsEmptyState({
             hasActiveFilters,
-            isPendingQueue:
-              statusFilter === "pending" && !search.trim(),
+            isPendingQueue: statusFilter === "pending" && !search.trim(),
             onClearFilters: resetFilters,
           })}
         />
       ) : (
-        <div className="table-responsive">
-          <table className="table-style3 table at-savesearch">
-            <thead>
+        <div className="table-responsive admin-projects-moderation__table-wrap">
+          <table className="table-style3 table at-savesearch admin-projects-moderation-table">
+            <thead className="t-head">
               <tr>
-                <th>Title</th>
-                <th>Status</th>
-                <th>Owner</th>
-                <th>Actions</th>
+                <th scope="col">Project</th>
+                <th scope="col">Status</th>
+                <th
+                  scope="col"
+                  className="admin-projects-moderation-table__owner"
+                >
+                  Owner
+                </th>
+                <th scope="col">Submitted</th>
+                <th
+                  scope="col"
+                  className="admin-projects-moderation-table__actions"
+                >
+                  Actions
+                </th>
               </tr>
             </thead>
-            <tbody>
+            <tbody className="t-body">
               {projects.map((project) => {
                 const id = project._id || project.id;
+                const rowBusy = moderatingId === id;
+                const owner = formatOwner(project.ownerId);
+
                 return (
                   <tr key={id}>
-                    <td>{project.title}</td>
-                    <td>
+                    <th
+                      scope="row"
+                      className="admin-projects-moderation-table__title"
+                    >
+                      {project.title}
+                    </th>
+                    <td className="vam">
                       <StatusBadge domain="listing" status={project.status} />
                     </td>
-                    <td>
-                      {project.ownerId?.email ||
-                        project.ownerId?.firstName ||
-                        "—"}
+                    <td className="vam admin-projects-moderation-table__owner">
+                      <div>{owner.name}</div>
+                      {owner.email ? (
+                        <div className="text-muted fz13">{owner.email}</div>
+                      ) : null}
                     </td>
-                    <td className="d-flex flex-wrap gap-2">
-                      <Link
-                        href={`/dashboard-edit-project/${id}`}
-                        className="ud-btn btn-white2 btn-sm"
-                      >
-                        <DashboardBtnIcon icon={dashboardIcons.eye} />
-                        Review
-                      </Link>
-                      {project.status === "pending" ? (
-                        <>
-                          <button
-                            type="button"
-                            className="btn btn-sm btn-success"
-                            disabled={isLocked}
-                            onClick={() =>
-                              moderate(id, project.title, "active")
-                            }
-                          >
-                            <DashboardBtnIcon icon={dashboardIcons.approve} />
-                            Approve
-                          </button>
-                          <button
-                            type="button"
-                            className="btn btn-sm btn-outline-secondary"
-                            disabled={isLocked}
-                            onClick={() => moderate(id, project.title, "draft")}
-                          >
-                            <DashboardBtnIcon icon={dashboardIcons.draft} />
-                            Return to draft
-                          </button>
-                        </>
-                      ) : null}
-                      {project.status === "active" ? (
-                        <button
-                          type="button"
-                          className="btn btn-sm btn-outline-danger"
-                          disabled={isLocked}
-                          onClick={() =>
-                            moderate(id, project.title, "archived")
-                          }
-                        >
-                          <DashboardBtnIcon icon={dashboardIcons.archive} />
-                          Archive
-                        </button>
-                      ) : null}
+                    <td className="vam text-nowrap">
+                      {formatDate(project.createdAt)}
+                    </td>
+                    <td className="vam admin-projects-moderation-table__actions">
+                      <div className="d-flex flex-wrap gap-2">
+                        {project.status === "pending" ? (
+                          <>
+                            <button
+                              type="button"
+                              className="ud-btn btn-thm btn-sm"
+                              disabled={rowBusy || tableBusy}
+                              onClick={() =>
+                                moderate(id, project.title, "active")
+                              }
+                            >
+                              <DashboardBtnIcon icon={dashboardIcons.approve} />
+                              Approve
+                            </button>
+                            <Link
+                              href={`/dashboard-edit-project/${id}`}
+                              className={`ud-btn btn-white btn-sm${tableBusy ? " pe-none opacity-50" : ""}`}
+                              aria-disabled={tableBusy}
+                              tabIndex={tableBusy ? -1 : undefined}
+                            >
+                              <DashboardBtnIcon icon={dashboardIcons.eye} />
+                              Review
+                            </Link>
+                            <button
+                              type="button"
+                              className="ud-btn btn-white btn-sm"
+                              disabled={rowBusy || tableBusy}
+                              onClick={() =>
+                                moderate(id, project.title, "draft")
+                              }
+                            >
+                              <DashboardBtnIcon icon={dashboardIcons.draft} />
+                              Return to draft
+                            </button>
+                          </>
+                        ) : (
+                          <>
+                            <Link
+                              href={`/dashboard-edit-project/${id}`}
+                              className={`ud-btn btn-white btn-sm${tableBusy ? " pe-none opacity-50" : ""}`}
+                              aria-disabled={tableBusy}
+                              tabIndex={tableBusy ? -1 : undefined}
+                            >
+                              <DashboardBtnIcon icon={dashboardIcons.eye} />
+                              Review
+                            </Link>
+                            {project.status === "active" ? (
+                              <button
+                                type="button"
+                                className="ud-btn btn-white btn-sm"
+                                disabled={rowBusy || tableBusy}
+                                onClick={() =>
+                                  moderate(id, project.title, "archived")
+                                }
+                              >
+                                <DashboardBtnIcon
+                                  icon={dashboardIcons.archive}
+                                />
+                                Archive
+                              </button>
+                            ) : null}
+                          </>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 );
@@ -234,31 +316,20 @@ export default function AdminProjectsTable() {
         </div>
       )}
 
-      {pagination && pagination.totalPages > 1 ? (
-        <div className="d-flex gap-2 mt20">
-          <button
-            type="button"
-            className="ud-btn btn-white2 btn-sm"
-            disabled={page <= 1 || isLocked}
-            onClick={() => setPage((p) => Math.max(1, p - 1))}
-          >
-            <DashboardBtnIcon icon={dashboardIcons.chevronLeft} />
-            Previous
-          </button>
-          <button
-            type="button"
-            className="ud-btn btn-white2 btn-sm"
-            disabled={page >= pagination.totalPages || isLocked}
-            onClick={() => setPage((p) => p + 1)}
-          >
-            Next
-            <DashboardBtnIcon
-              icon={dashboardIcons.chevronRight}
-              position="trail"
-            />
-          </button>
+      {!showTableSkeleton ? (
+        <div className="mt30">
+          <ApiPagination
+            page={page}
+            totalPages={pagination?.totalPages || 1}
+            total={pagination?.total || 0}
+            limit={PAGE_SIZE}
+            itemLabel="projects"
+            itemLabelSingular="project"
+            disabled={tableBusy}
+            onPageChange={setPage}
+          />
         </div>
       ) : null}
-    </div>
+    </>
   );
 }

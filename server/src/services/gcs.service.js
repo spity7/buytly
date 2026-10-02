@@ -64,6 +64,22 @@ export const gcsService = {
     await gcsBucket.file(gcsKey).delete({ ignoreNotFound: true });
   },
 
+  async copyFile(sourceKey, destKey) {
+    if (!sourceKey || !destKey) {
+      throw new AppError("Source and destination GCS keys are required", 400);
+    }
+    if (sourceKey === destKey) return;
+    const gcsBucket = initGCS();
+    await gcsBucket.file(sourceKey).copy(gcsBucket.file(destKey));
+  },
+
+  async fileExists(gcsKey) {
+    if (!gcsKey) return false;
+    const gcsBucket = initGCS();
+    const [exists] = await gcsBucket.file(gcsKey).exists();
+    return exists;
+  },
+
   async listObjects(prefix = "") {
     const gcsBucket = initGCS();
     const [files] = await gcsBucket.getFiles({ prefix });

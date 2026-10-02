@@ -119,7 +119,7 @@ sequenceDiagram
 - Email/password accounts with the same verified Google email are **auto-linked** on Google sign-in — user can then sign in with either method
 - The same person may have **separate accounts per site** (Buytly vs Buildwise) with the same email or Google ID; uniqueness is `{ siteId, email }` and `{ siteId, googleId }`, not global across the database
 - Google sign-in auto-verifies the account when Google confirms the email (`isEmailVerified=true`, verification tokens cleared)
-- On first Google sign-in, account linking, or later sign-in when the user has no avatar yet, the API downloads the Google profile photo from the ID token `picture` claim, stores it in GCS under `avatars/`, and sets `users.avatar` (existing custom avatars are not overwritten)
+- On first Google sign-in, account linking, or later sign-in when the user has no avatar yet, the API downloads the Google profile photo from the ID token `picture` claim, stores it in GCS under `sites/{siteSlug}/avatars/`, and sets `users.avatar` (existing custom avatars are not overwritten)
 - Google-only accounts cannot change password until a password is set via reset; after reset, `authProvider` becomes `both` and password login/change-password are available
 
 **Env:** `GOOGLE_CLIENT_ID` (server) and `NEXT_PUBLIC_GOOGLE_CLIENT_ID` (client) must match the OAuth Web client ID. Add every site origin you serve under **Authorized JavaScript origins** in Google Cloud Console (e.g. `http://localhost:3000`, `https://buytly.com`, `https://www.buytly.com`).

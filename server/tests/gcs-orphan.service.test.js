@@ -63,4 +63,34 @@ describe("gcs-orphan.service", () => {
 
     expect(orphans).toEqual(["properties/stale.jpg"]);
   });
+
+  it("findOrphanObjectKeys handles sites/{slug}/ prefixed objects", () => {
+    const now = Date.parse("2026-01-10T12:00:00.000Z");
+    const referenced = new Set(["sites/buytly/properties/keep.jpg"]);
+
+    const orphans = findOrphanObjectKeys({
+      referencedKeys: referenced,
+      graceHours: 48,
+      now,
+      bucketObjects: [
+        {
+          name: "sites/buytly/properties/keep.jpg",
+          timeCreated: "2026-01-01T00:00:00.000Z",
+        },
+        {
+          name: "sites/buytly/projects/stale.jpg",
+          timeCreated: "2026-01-01T00:00:00.000Z",
+        },
+        {
+          name: "sites/buildwise/avatars/old.jpg",
+          timeCreated: "2026-01-01T00:00:00.000Z",
+        },
+      ],
+    });
+
+    expect(orphans).toEqual([
+      "sites/buytly/projects/stale.jpg",
+      "sites/buildwise/avatars/old.jpg",
+    ]);
+  });
 });
