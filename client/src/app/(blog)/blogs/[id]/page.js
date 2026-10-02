@@ -11,10 +11,9 @@ import DefaultHeader from "@/components/common/DefaultHeader";
 import Footer from "@/components/common/default-footer";
 import MobileMenu from "@/components/common/mobile-menu";
 import Image from "next/image";
+import { pageMetadata } from "@/lib/siteMetadata";
 
-export const metadata = {
-  title: "Blog Single ",
-};
+export const metadata = pageMetadata("Blog Post");
 
 const BlogSingle = async props => {
   const params = await props.params;

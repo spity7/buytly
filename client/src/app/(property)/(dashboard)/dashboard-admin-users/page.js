@@ -1,10 +1,9 @@
 import RequireAdmin from "@/components/auth/RequireAdmin";
 import DboardMobileNavigation from "@/components/property/dashboard/DboardMobileNavigation";
 import AdminUsersTable from "@/components/property/dashboard/dashboard-admin-users/AdminUsersTable";
+import { pageMetadata } from "@/lib/siteMetadata";
 
-export const metadata = {
-  title: "Admin Users | Dashboard",
-};
+export const metadata = pageMetadata("Admin Users");
 
 export default function DashboardAdminUsersPage() {
   return (

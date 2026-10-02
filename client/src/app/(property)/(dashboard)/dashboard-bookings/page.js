@@ -1,10 +1,9 @@
 import BookingsDataTable from "@/components/property/dashboard/dashboard-bookings/BookingsDataTable";
 import DboardMobileNavigation from "@/components/property/dashboard/DboardMobileNavigation";
 import RequireAuth from "@/components/auth/RequireAuth";
+import { pageMetadata } from "@/lib/siteMetadata";
 
-export const metadata = {
-  title: "My Bookings",
-};
+export const metadata = pageMetadata("My Bookings");
 
 export default function DashboardBookingsPage() {
   return (

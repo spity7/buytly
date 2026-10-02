@@ -22,10 +22,9 @@ import ScheduleTour from "@/components/property/property-single-style/sidebar/Sc
 import PropertyGallery from "@/components/property/property-single-style/single-v5/property-gallery";
 import MortgageCalculator from "@/components/property/property-single-style/common/MortgageCalculator";
 import WalkScore from "@/components/property/property-single-style/common/WalkScore";
+import { pageMetadata } from "@/lib/siteMetadata";
 
-export const metadata = {
-  title: "Property Single V5",
-};
+export const metadata = pageMetadata("Property Details");
 
 const SingleV5 = async props => {
   const params = await props.params;

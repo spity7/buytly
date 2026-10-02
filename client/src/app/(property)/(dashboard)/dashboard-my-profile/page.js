@@ -8,10 +8,9 @@ import NotificationPreferencesForm from "@/components/notifications/Notification
 import PreferencesForm from "@/components/property/dashboard/dashboard-profile/PreferencesForm";
 import ProfileBox from "@/components/property/dashboard/dashboard-profile/ProfileBox";
 import SocialField from "@/components/property/dashboard/dashboard-profile/SocialField";
+import { pageMetadata } from "@/lib/siteMetadata";
 
-export const metadata = {
-  title: "My Profile | Dashboard",
-};
+export const metadata = pageMetadata("My Profile");
 
 const DashboardMyProfile = () => {
   return (

@@ -1,10 +1,9 @@
 import RequireAdmin from "@/components/auth/RequireAdmin";
 import DboardMobileNavigation from "@/components/property/dashboard/DboardMobileNavigation";
 import AdminCatalogManager from "@/components/property/dashboard/dashboard-admin-catalog/AdminCatalogManager";
+import { pageMetadata } from "@/lib/siteMetadata";
 
-export const metadata = {
-  title: "Listing Catalog | Admin Dashboard",
-};
+export const metadata = pageMetadata("Listing Catalog");
 
 export default function DashboardAdminCatalogPage() {
   return (

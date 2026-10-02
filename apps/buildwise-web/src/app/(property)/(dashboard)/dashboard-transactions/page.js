@@ -1,10 +1,9 @@
 import TransactionsDataTable from "@/components/property/dashboard/dashboard-transactions/TransactionsDataTable";
 import DboardMobileNavigation from "@/components/property/dashboard/DboardMobileNavigation";
 import RequireAuth from "@/components/auth/RequireAuth";
+import { pageMetadata } from "@/lib/siteMetadata";
 
-export const metadata = {
-  title: "My Transactions",
-};
+export const metadata = pageMetadata("My Transactions");
 
 export default function DashboardTransactionsPage() {
   return (

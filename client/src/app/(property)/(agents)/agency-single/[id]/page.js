@@ -2,6 +2,7 @@ import DefaultHeader from "@/components/common/DefaultHeader";
 import Footer from "@/components/common/default-footer";
 import MobileMenu from "@/components/common/mobile-menu";
 import FormContact from "@/components/property/FormContact";
+import { pageMetadata } from "@/lib/siteMetadata";
 
 import ProfessionalInfo from "@/components/property/ProfessionalInfo";
 import ReviewBoxForm from "@/components/property/ReviewBoxForm";
@@ -13,9 +14,7 @@ import Image from "next/image";
 import Link from "next/link";
 import React from "react";
 
-export const metadata = {
-  title: "Agency Single",
-};
+export const metadata = pageMetadata("Agency");
 
 const AgencySingle = async props => {
   const params = await props.params;

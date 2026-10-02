@@ -4,10 +4,9 @@ import MobileMenu from "@/components/common/mobile-menu";
 import Image from "next/image";
 import Link from "next/link";
 import React from "react";
+import { pageMetadata } from "@/lib/siteMetadata";
 
-export const metadata = {
-  title: "Not-Found ",
-};
+export const metadata = pageMetadata("Page Not Found");
 
 const NotFound = () => {
   return (

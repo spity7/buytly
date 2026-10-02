@@ -4,10 +4,9 @@ import BlogSidebar from "@/components/blog/sidebar";
 import DefaultHeader from "@/components/common/DefaultHeader";
 import Footer from "@/components/common/default-footer";
 import MobileMenu from "@/components/common/mobile-menu";
+import { pageMetadata } from "@/lib/siteMetadata";
 
-export const metadata = {
-  title: "Blog List v2 ",
-};
+export const metadata = pageMetadata("Blog");
 
 const BlogV2 = () => {
   return (

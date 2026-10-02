@@ -3,10 +3,9 @@ import DefaultHeader from "@/components/common/DefaultHeader";
 import Footer from "@/components/common/default-footer";
 import MobileMenu from "@/components/common/mobile-menu";
 import Pricing from "@/components/pages/pricing/Pricing";
+import { pageMetadata } from "@/lib/siteMetadata";
 
-export const metadata = {
-  title: "Pricing ",
-};
+export const metadata = pageMetadata("Pricing");
 
 const PricingPlan = () => {
   return (

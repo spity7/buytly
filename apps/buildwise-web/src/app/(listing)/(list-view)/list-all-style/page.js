@@ -10,10 +10,9 @@ import Listing6 from "@/components/listing/list-view/all-list-style/Listing6";
 import Listing7 from "@/components/listing/list-view/all-list-style/Listing7";
 import Listing8 from "@/components/listing/list-view/all-list-style/Listing8";
 import React from "react";
+import { pageMetadata } from "@/lib/siteMetadata";
 
-export const metadata = {
-  title: "List V1",
-};
+export const metadata = pageMetadata("Property List");
 
 const ListV1 = () => {
   return (

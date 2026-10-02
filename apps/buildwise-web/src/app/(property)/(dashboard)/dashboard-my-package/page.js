@@ -1,9 +1,8 @@
 import DboardMobileNavigation from "@/components/property/dashboard/DboardMobileNavigation";
 import PackageDataTable from "@/components/property/dashboard/dashboard-package/PackageDataTable";
+import { pageMetadata } from "@/lib/siteMetadata";
 
-export const metadata = {
-  title: "Dashboard My Package",
-};
+export const metadata = pageMetadata("My Package");
 
 const DashboardMyPackage = () => {
   return (

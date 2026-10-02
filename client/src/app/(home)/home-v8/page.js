@@ -14,10 +14,9 @@ import FeaturedListings from "@/components/home/home-v8/FeatuerdListings";
 import PartnerDark from "@/components/common/PartnerDark";
 import SidebarStickyBar from "@/components/home/home-v8/SidebarStickyBar";
 import Link from "next/link";
+import { pageMetadata } from "@/lib/siteMetadata";
 
-export const metadata = {
-  title: "Home v8",
-};
+export const metadata = pageMetadata("Home");
 
 const Home_V8 = () => {
   return (

@@ -1,10 +1,9 @@
 import UnitPropertyDashboard from "@/components/property/dashboard/dashboard-add-property/UnitPropertyDashboard";
 import RequireListingRole from "@/components/auth/RequireListingRole";
 import { DashboardListingPageSkeleton } from "@/components/property/dashboard/skeletons/DashboardSkeletons";
+import { pageMetadata } from "@/lib/siteMetadata";
 
-export const metadata = {
-  title: "Edit Unit | Buytly",
-};
+export const metadata = pageMetadata("Edit Unit");
 
 const DashboardEditProperty = async (props) => {
   const params = await props.params;

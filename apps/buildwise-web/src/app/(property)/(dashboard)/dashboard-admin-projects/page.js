@@ -1,10 +1,9 @@
 import RequireAdmin from "@/components/auth/RequireAdmin";
 import DboardMobileNavigation from "@/components/property/dashboard/DboardMobileNavigation";
 import AdminProjectsTable from "@/components/property/dashboard/dashboard-admin-projects/AdminProjectsTable";
+import { pageMetadata } from "@/lib/siteMetadata";
 
-export const metadata = {
-  title: "Moderate Projects",
-};
+export const metadata = pageMetadata("Moderate Projects");
 
 export default function DashboardAdminProjectsPage() {
   return (

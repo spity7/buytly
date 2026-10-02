@@ -1,10 +1,9 @@
 import Pagination from "@/components/property/Pagination";
 import DboardMobileNavigation from "@/components/property/dashboard/DboardMobileNavigation";
 import ListingsFavourites from "@/components/property/dashboard/dashboard-my-favourites/ListingsFavourites";
+import { pageMetadata } from "@/lib/siteMetadata";
 
-export const metadata = {
-  title: "Dashboard My Favourites",
-};
+export const metadata = pageMetadata("Saved Listings");
 
 const DashboardMyFavourites = () => {
   return (

@@ -13,10 +13,9 @@ import About from "@/components/home/home-v4/about";
 import Testimonial from "@/components/home/home-v4/Testimonial";
 import FilterProperties from "@/components/home/home-v4/FilterProperties";
 import Footer from "@/components/home/home-v4/footer";
+import { pageMetadata } from "@/lib/siteMetadata";
 
-export const metadata = {
-  title: "Home v4",
-};
+export const metadata = pageMetadata("Home");
 
 const Home_V4 = () => {
   return (

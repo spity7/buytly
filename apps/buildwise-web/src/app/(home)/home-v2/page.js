@@ -13,12 +13,11 @@ import Hero from "@/components/home/home-v2/hero";
 import React from "react";
 import Footer from "@/components/common/default-footer";
 import Cta from "@/components/home/home-v2/Cta";
+import { pageMetadata } from "@/lib/siteMetadata";
 
 import Link from "next/link";
 
-export const metadata = {
-  title: "Home v2",
-};
+export const metadata = pageMetadata("Home");
 
 const Home_V2 = () => {
   return (

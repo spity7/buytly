@@ -1,10 +1,9 @@
 import RequireAdmin from "@/components/auth/RequireAdmin";
 import DboardMobileNavigation from "@/components/property/dashboard/DboardMobileNavigation";
 import AdminAnalyticsPanel from "@/components/property/dashboard/dashboard-admin-analytics/AdminAnalyticsPanel";
+import { pageMetadata } from "@/lib/siteMetadata";
 
-export const metadata = {
-  title: "Admin Analytics | Dashboard",
-};
+export const metadata = pageMetadata("Admin Analytics");
 
 export default function DashboardAdminAnalyticsPage() {
   return (

@@ -3,11 +3,9 @@ import DefaultHeader from "@/components/common/DefaultHeader";
 import Footer from "@/components/common/default-footer";
 import MobileMenu from "@/components/common/mobile-menu";
 import ListingMapBrowsePanel from "@/components/listing/shared/ListingMapBrowsePanel";
+import { pageMetadata } from "@/lib/siteMetadata";
 
-export const metadata = {
-  title: "Map View | Buytly",
-  description: "Browse property listings on an interactive map.",
-};
+export const metadata = pageMetadata("Map Search", {"description":"Browse property listings on an interactive map."});
 
 function MapListingsFallback() {
   return (

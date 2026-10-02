@@ -1,4 +1,5 @@
 import DefaultHeader from "@/components/common/DefaultHeader";
+import { pageMetadata } from "@/lib/siteMetadata";
 
 import Footer from "@/components/common/default-footer";
 import MobileMenu from "@/components/common/mobile-menu";
@@ -9,9 +10,7 @@ import TopFilterBar from "@/components/listing/map-style/header-map-style/TopFil
 import TopFilterBar2 from "@/components/listing/map-style/header-map-style/TopFilterBar2";
 import React from "react";
 
-export const metadata = {
-  title: "Header Map Style",
-};
+export const metadata = pageMetadata("Map Search");
 
 const HeaderMapStyle = () => {
   return (

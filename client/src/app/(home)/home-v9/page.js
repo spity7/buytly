@@ -13,10 +13,9 @@ import SellingBlock from "../../../components/home/home-v9/SellingBlock";
 import About from "@/components/home/home-v9/about";
 import Pricing from "@/components/home/home-v9/Pricing";
 import Cta from "@/components/home/home-v9/Cta";
+import { pageMetadata } from "@/lib/siteMetadata";
 
-export const metadata = {
-  title: "Home v9",
-};
+export const metadata = pageMetadata("Home");
 
 const Home_V9 = () => {
   return (

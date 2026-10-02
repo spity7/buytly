@@ -14,10 +14,9 @@ import ApartmentTypes from "@/components/home/home-v5/ApartmentTypes";
 import Cta from "@/components/home/home-v5/Cta";
 import Link from "next/link";
 import PropertyListing from "@/components/home/home-v5/PropertyListing";
+import { pageMetadata } from "@/lib/siteMetadata";
 
-export const metadata = {
-  title: "Home v5",
-};
+export const metadata = pageMetadata("Home");
 
 const Home_V5 = () => {
   return (

@@ -3,11 +3,9 @@ import DefaultHeader from "@/components/common/DefaultHeader";
 import Footer from "@/components/common/default-footer";
 import MobileMenu from "@/components/common/mobile-menu";
 import ListingBrowsePanel from "@/components/listing/shared/ListingBrowsePanel";
+import { pageMetadata } from "@/lib/siteMetadata";
 
-export const metadata = {
-  title: "Browse Properties | Buytly",
-  description: "Search and filter active property listings for sale and rent.",
-};
+export const metadata = pageMetadata("Browse Properties", {"description":"Search and filter active property listings for sale and rent."});
 
 function ListingsFallback() {
   return (

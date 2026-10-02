@@ -1,8 +1,7 @@
 import SingleV1Client from "./SingleV1Client";
+import { pageMetadata } from "@/lib/siteMetadata";
 
-export const metadata = {
-  title: "Property Single V1",
-};
+export const metadata = pageMetadata("Property Details");
 
 const SingleV1 = async (props) => {
   const params = await props.params;

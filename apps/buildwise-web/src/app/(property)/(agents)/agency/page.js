@@ -2,12 +2,11 @@ import DefaultHeader from "@/components/common/DefaultHeader";
 import Footer from "@/components/common/default-footer";
 import MobileMenu from "@/components/common/mobile-menu";
 import FilteringAgency from "@/components/property/FilteringAgency";
+import { pageMetadata } from "@/lib/siteMetadata";
 
 import React from "react";
 
-export const metadata = {
-  title: "Agency",
-};
+export const metadata = pageMetadata("Agency");
 
 const Agency = () => {
   return (

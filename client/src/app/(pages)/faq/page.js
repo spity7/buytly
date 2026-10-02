@@ -4,10 +4,9 @@ import Footer from "@/components/common/default-footer";
 import MobileMenu from "@/components/common/mobile-menu";
 import Faq1 from "@/components/pages/faq/Faq1";
 import Faq2 from "@/components/pages/faq/Faq2";
+import { pageMetadata } from "@/lib/siteMetadata";
 
-export const metadata = {
-  title: "Faq ",
-};
+export const metadata = pageMetadata("FAQ");
 
 const Faq = () => {
   return (

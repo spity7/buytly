@@ -6,6 +6,13 @@ alwaysApply: false
 
 # Buytly Client
 
+## Page titles (browser tabs)
+
+- Root layout (`client/src/app/layout.js`) uses `SITE_NAME` from `client/src/lib/siteMetadata.js` (`NEXT_PUBLIC_SITE_NAME` or `Buytly`) with template `%s | ${SITE_NAME}`.
+- Marketing homepage (`client/src/app/page.js`): `homePageMetadata()` → tab shows site name only.
+- Other routes: `pageMetadata("Segment")` from `@/lib/siteMetadata` (no demo names like `Home v1`; do not embed `| Buytly` in the segment — the layout adds it).
+- Bulk refresh after theme imports: `npm run sync:page-metadata -w client` (`client/scripts/sync-page-metadata.mjs`).
+
 ## Async / busy loading
 
 - `AsyncActionOverlayProvider` is mounted in `client/src/app/ClientLayout.js` — **do not** add per-page `<AsyncActionOverlay />` unless the provider is unavailable.

@@ -1,3 +1,4 @@
+import { pageMetadata } from "@/lib/siteMetadata";
 // "use client";
 import DefaultHeader from "@/components/common/DefaultHeader";
 import Footer from "@/components/common/default-footer";
@@ -26,9 +27,7 @@ import React from "react";
 import MortgageCalculator from "@/components/property/property-single-style/common/MortgageCalculator";
 import WalkScore from "@/components/property/property-single-style/common/WalkScore";
 
-export const metadata = {
-  title: "Property Single V8",
-};
+export const metadata = pageMetadata("Property Details");
 
 const SingleV8 = async props => {
   const params = await props.params;

@@ -2,12 +2,11 @@ import DefaultHeader from "@/components/common/DefaultHeader";
 import Footer from "@/components/common/default-footer";
 import MobileMenu from "@/components/common/mobile-menu";
 import PropertyFilteringList from "@/components/listing/list-view/list-v1/PropertyFilteringList";
+import { pageMetadata } from "@/lib/siteMetadata";
 
 import React from "react";
 
-export const metadata = {
-  title: "List V1",
-};
+export const metadata = pageMetadata("Property List");
 
 const ListV1 = () => {
   return (

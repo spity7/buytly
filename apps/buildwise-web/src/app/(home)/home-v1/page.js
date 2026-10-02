@@ -14,10 +14,9 @@ import PopulerProperty from "@/components/home/home-v1/PopulerProperty";
 import FeaturedProjects from "@/components/home/home-v1/FeaturedProjects";
 import ExplorePropertyTypesSection from "@/components/home/ExplorePropertyTypesSection";
 import { BRAND_SHORT_NAME } from "@/data/brandAssets";
+import { homePageMetadata } from "@/lib/siteMetadata";
 
-export const metadata = {
-  title: "Home v1",
-};
+export const metadata = homePageMetadata();
 
 const Home_V1 = () => {
   return (

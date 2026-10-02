@@ -1,10 +1,9 @@
 import AdminPropertiesTable from "@/components/property/dashboard/dashboard-admin-properties/AdminPropertiesTable";
 import DboardMobileNavigation from "@/components/property/dashboard/DboardMobileNavigation";
 import RequireAdmin from "@/components/auth/RequireAdmin";
+import { pageMetadata } from "@/lib/siteMetadata";
 
-export const metadata = {
-  title: "Moderate Listings",
-};
+export const metadata = pageMetadata("Moderate Listings");
 
 export default function DashboardAdminPropertiesPage() {
   return (

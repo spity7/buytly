@@ -1,9 +1,8 @@
 import DboardMobileNavigation from "@/components/property/dashboard/DboardMobileNavigation";
 import SearchDataTable from "@/components/property/dashboard/dashboard-saved-search/SearchDataTable";
+import { pageMetadata } from "@/lib/siteMetadata";
 
-export const metadata = {
-  title: "Saved Searches | Dashboard",
-};
+export const metadata = pageMetadata("Saved Searches");
 
 const DashboardSavedSearch = () => {
   return (

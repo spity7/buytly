@@ -1,17 +1,15 @@
 import localFont from "next/font/local";
 import ClientLayout from "./ClientLayout";
 import ExtensionHydrationFix from "./ExtensionHydrationFix";
+import { SITE_NAME } from "@/lib/siteMetadata";
 import "../../public/scss/main.scss";
-
-const siteName =
-  process.env.NEXT_PUBLIC_SITE_NAME?.trim() || "Buildwise Engineering";
 
 export const metadata = {
   title: {
-    default: siteName,
-    template: `%s | ${siteName}`,
+    default: SITE_NAME,
+    template: `%s | ${SITE_NAME}`,
   },
-  description: `Find, list, and manage real estate on ${siteName}.`,
+  description: `Find, list, and manage real estate on ${SITE_NAME}.`,
 };
 
 const dmSans = localFont({

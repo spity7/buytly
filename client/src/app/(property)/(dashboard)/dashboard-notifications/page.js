@@ -1,9 +1,8 @@
 import DboardMobileNavigation from "@/components/property/dashboard/DboardMobileNavigation";
 import NotificationsPanel from "@/components/notifications/NotificationsPanel";
+import { pageMetadata } from "@/lib/siteMetadata";
 
-export const metadata = {
-  title: "Notifications | Dashboard",
-};
+export const metadata = pageMetadata("Notifications");
 
 const DashboardNotifications = () => {
   return (

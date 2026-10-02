@@ -1,3 +1,4 @@
+import { pageMetadata } from "@/lib/siteMetadata";
 // "use client";
 import DefaultHeader from "@/components/common/DefaultHeader";
 import Footer from "@/components/common/default-footer";
@@ -26,9 +27,7 @@ import MortgageCalculator from "@/components/property/property-single-style/comm
 import WalkScore from "@/components/property/property-single-style/common/WalkScore";
 import OverView from "@/components/property/property-single-style/single-v7/OverView";
 
-export const metadata = {
-  title: "Property Single V7",
-};
+export const metadata = pageMetadata("Property Details");
 
 const SingleV7 = async props => {
   const params = await props.params;

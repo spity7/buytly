@@ -13,10 +13,9 @@ import About from "@/components/home/home-v6/About";
 import ExploreCities from "@/components/home/home-v6/ExploreCities";
 import FeaturedListings from "@/components/home/home-v6/FeatuerdListings";
 import Link from "next/link";
+import { pageMetadata } from "@/lib/siteMetadata";
 
-export const metadata = {
-  title: "Home v6",
-};
+export const metadata = pageMetadata("Home");
 
 const Home_V6 = () => {
   return (

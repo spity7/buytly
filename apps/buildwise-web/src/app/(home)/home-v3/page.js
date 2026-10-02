@@ -15,10 +15,9 @@ import Cta from "@/components/home/home-v3/Cta";
 import InqueryForm from "@/components/home/home-v3/InqueryForm";
 import Link from "next/link";
 import PropertyByCitiesWrapper from "@/components/home/home-v3/PropertyByCitiesWrapper";
+import { pageMetadata } from "@/lib/siteMetadata";
 
-export const metadata = {
-  title: "Home v3",
-};
+export const metadata = pageMetadata("Home");
 
 const Home_V3 = () => {
   return (

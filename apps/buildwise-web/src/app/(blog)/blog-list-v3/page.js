@@ -4,10 +4,9 @@ import BlogFilterContainer from "@/components/blog/blog-list-v3/BlogFilterContai
 import DefaultHeader from "@/components/common/DefaultHeader";
 import Footer from "@/components/common/default-footer";
 import MobileMenu from "@/components/common/mobile-menu";
+import { pageMetadata } from "@/lib/siteMetadata";
 
-export const metadata = {
-  title: "Blog List v3 ",
-};
+export const metadata = pageMetadata("Blog");
 
 const BlogV3 = () => {
   return (

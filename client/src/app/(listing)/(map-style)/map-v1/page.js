@@ -1,4 +1,5 @@
 import DefaultHeader from "@/components/common/DefaultHeader";
+import { pageMetadata } from "@/lib/siteMetadata";
 
 import MobileMenu from "@/components/common/mobile-menu";
 
@@ -6,9 +7,7 @@ import PropertyFilteringTwo from "@/components/listing/map-style/map-v1/Property
 
 import React from "react";
 
-export const metadata = {
-  title: "Map V1",
-};
+export const metadata = pageMetadata("Map Search");
 
 const MapV1 = () => {
   return (

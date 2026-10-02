@@ -9,10 +9,9 @@ import FunFact from "@/components/pages/about/FunFact";
 import Mission from "@/components/pages/about/Mission";
 import Image from "next/image";
 import Link from "next/link";
+import { pageMetadata } from "@/lib/siteMetadata";
 
-export const metadata = {
-  title: "About ",
-};
+export const metadata = pageMetadata("About Us");
 
 const About = () => {
   return (

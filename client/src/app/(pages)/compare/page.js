@@ -3,10 +3,9 @@ import DefaultHeader from "@/components/common/DefaultHeader";
 import Footer from "@/components/common/default-footer";
 import MobileMenu from "@/components/common/mobile-menu";
 import ComapareTable from "@/components/pages/compare/ComapareTable";
+import { pageMetadata } from "@/lib/siteMetadata";
 
-export const metadata = {
-  title: "Compare ",
-};
+export const metadata = pageMetadata("Compare Listings");
 
 const Compare = () => {
   return (

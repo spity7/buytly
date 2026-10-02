@@ -4,10 +4,9 @@ import SearchBox from "@/components/property/dashboard/dashboard-message/SearchB
 import UserChatBoxContent from "@/components/property/dashboard/dashboard-message/UserChatBoxContent";
 import UserInboxList from "@/components/property/dashboard/dashboard-message/UserInboxList";
 import Image from "next/image";
+import { pageMetadata } from "@/lib/siteMetadata";
 
-export const metadata = {
-  title: "Dashboard Message",
-};
+export const metadata = pageMetadata("Messages");
 
 const DashboardMessage = () => {
   return (

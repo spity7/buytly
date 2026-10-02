@@ -5,10 +5,9 @@ import MobileMenu from "@/components/common/mobile-menu";
 import Form from "@/components/pages/contact/Form";
 import Office from "@/components/pages/contact/Office";
 import { BRAND_SHORT_NAME } from "@/data/brandAssets";
+import { pageMetadata } from "@/lib/siteMetadata";
 
-export const metadata = {
-  title: "Contact ",
-};
+export const metadata = pageMetadata("Contact");
 
 const Contact = () => {
   return (

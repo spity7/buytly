@@ -1,8 +1,7 @@
 import ProjectDetailClient from "./ProjectDetailClient";
+import { pageMetadata } from "@/lib/siteMetadata";
 
-export const metadata = {
-  title: "Project | Buytly",
-};
+export const metadata = pageMetadata("Project Details");
 
 export default async function ProjectDetailPage({ params }) {
   const { slug } = await params;

@@ -1,4 +1,5 @@
 import DefaultHeader from "@/components/common/DefaultHeader";
+import { pageMetadata } from "@/lib/siteMetadata";
 
 import Footer from "@/components/common/default-footer";
 import MobileMenu from "@/components/common/mobile-menu";
@@ -9,9 +10,7 @@ import PropertyFiltering from "@/components/listing/grid-view/grid-full-2-col/Pr
 
 import React from "react";
 
-export const metadata = {
-  title: "Gird Full 2 Column",
-};
+export const metadata = pageMetadata("Browse Properties");
 
 const GridFull2Col = () => {
   return (

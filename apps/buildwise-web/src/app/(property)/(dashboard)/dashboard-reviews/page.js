@@ -1,9 +1,8 @@
 import DboardMobileNavigation from "@/components/property/dashboard/DboardMobileNavigation";
 import MyPropertyReviewsPanel from "@/components/property/dashboard/dashboard-reviews";
+import { pageMetadata } from "@/lib/siteMetadata";
 
-export const metadata = {
-  title: "Dashboard Reviews",
-};
+export const metadata = pageMetadata("Reviews");
 
 const DashboardReviews = () => {
   return (

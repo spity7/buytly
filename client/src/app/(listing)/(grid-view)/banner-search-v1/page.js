@@ -1,14 +1,13 @@
 import DefaultHeader from "@/components/common/DefaultHeader";
 import Footer from "@/components/common/default-footer";
 import MobileMenu from "@/components/common/mobile-menu";
+import { pageMetadata } from "@/lib/siteMetadata";
 
 import PropertyFilteringBanner from "@/components/listing/grid-view/banner-search-v1/PropertyFilteringBanner";
 
 import React from "react";
 
-export const metadata = {
-  title: "Banner Search V1",
-};
+export const metadata = pageMetadata("Search Properties");
 
 const BannerSearchV1 = () => {
   return (

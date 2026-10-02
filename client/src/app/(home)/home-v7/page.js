@@ -16,10 +16,9 @@ import PopularListings from "@/components/home/home-v7/PopularListings";
 import Testimonial from "@/components/home/home-v7/Testimonial";
 import Link from "next/link";
 import PropertyListing from "@/components/home/home-v7/PropertyListing";
+import { pageMetadata } from "@/lib/siteMetadata";
 
-export const metadata = {
-  title: "Home v7",
-};
+export const metadata = pageMetadata("Home");
 
 const Home_V7 = () => {
   return (
