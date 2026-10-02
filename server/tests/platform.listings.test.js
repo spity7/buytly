@@ -104,6 +104,9 @@ describe.skipIf(!mongoAvailable)("platform partner listings", () => {
       (row) => String(row._id || row.id) === String(propertyId),
     );
     expect(match?.sourceSite?.slug).toBe(SITE_SLUG.BUILDWISE);
+    expect(match?.sourceSite?.listingUrl).toMatch(
+      /^http:\/\/localhost:3001\/single-v1\//,
+    );
   });
 
   it("excludes buildwise units when visibleOnPlatform is false", async () => {
@@ -207,6 +210,44 @@ describe.skipIf(!mongoAvailable)("platform partner listings", () => {
 
     const ids = res.body.data.map((row) => String(row._id || row.id));
     expect(ids).toContain(String(propertyId));
+  });
+
+  it("includes buytly first-party units without partner opt-in", async () => {
+    const app = await getApp();
+    const email = `buytly-own-${Date.now()}@example.com`;
+    const token = await registerOnSite(app, SITE_SLUG.BUYTLY, email);
+    const projectRes = await api(app, SITE_SLUG.BUYTLY)
+      .post("/api/v1/projects")
+      .set("Authorization", `Bearer ${token}`)
+      .send(projectPayload({ title: "Buytly Native Project" }));
+    const projectId = projectRes.body.data._id;
+
+    await Project.findByIdAndUpdate(projectId, { status: "active" });
+
+    const property = await Property.create({
+      siteId: (await Site.findOne({ slug: SITE_SLUG.BUYTLY }).lean())._id,
+      ownerId: (
+        await User.findOne({
+          email,
+          siteId: (await Site.findOne({ slug: SITE_SLUG.BUYTLY }).lean())._id,
+        }).lean()
+      )._id,
+      projectId,
+      title: "Buytly Native Unit",
+      slug: `buytly-unit-${Date.now()}`,
+      description: "First-party platform listing.",
+      type: "villa",
+      price: 250000,
+      location: projectPayload().location,
+      status: "active",
+    });
+
+    const res = await api(app, SITE_SLUG.BUYTLY).get(
+      "/api/v1/platform/featured-listings?limit=50",
+    );
+
+    const ids = res.body.data.map((row) => String(row._id || row.id));
+    expect(ids).toContain(String(property._id));
   });
 
   it("returns opted-in buildwise projects on platform featured-projects", async () => {

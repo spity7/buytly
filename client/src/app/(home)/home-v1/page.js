@@ -15,10 +15,13 @@ import FeaturedProjects from "@/components/home/home-v1/FeaturedProjects";
 import ExplorePropertyTypesSection from "@/components/home/ExplorePropertyTypesSection";
 import PartnerFeaturedListingsSection from "@/components/home/PartnerFeaturedListingsSection";
 import { homePageMetadata } from "@/lib/siteMetadata";
+import { isPlatformMarketplaceSite } from "@/lib/siteContext";
 
 export const metadata = homePageMetadata();
 
 const Home_V1 = () => {
+  const isPlatformHome = isPlatformMarketplaceSite();
+
   return (
     <>
       {/* Main Header Nav */}
@@ -40,9 +43,18 @@ const Home_V1 = () => {
       {/* Explore property types (live catalog) */}
       <ExplorePropertyTypesSection />
 
-      <PopulerProperty />
-      <FeaturedProjects />
-      <PartnerFeaturedListingsSection />
+      {isPlatformHome ? (
+        <>
+          <PopulerProperty />
+          <FeaturedProjects />
+          <PartnerFeaturedListingsSection />
+        </>
+      ) : (
+        <>
+          <PopulerProperty />
+          <FeaturedProjects />
+        </>
+      )}
 
       {/* Our Testimonials */}
       <section className="pb100 pb50-md bgc-thm-light">

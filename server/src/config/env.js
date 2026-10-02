@@ -38,11 +38,11 @@ const envSchema = z
     SMTP_PASS: z.string().optional(),
     SMTP_FROM: z.string().email(),
     /** Public contact form submissions are delivered here */
-    CONTACT_INBOX_EMAIL: z
-      .string()
-      .email()
-      .default("buytlyonline@gmail.com"),
+    CONTACT_INBOX_EMAIL: z.string().email().default("buytlyonline@gmail.com"),
     APP_URL: z.string().url().default("http://localhost:3000"),
+    /** Dev/local overrides for partner listing links (optional) */
+    SITE_PUBLIC_URL_BUILDWISE: z.string().url().optional(),
+    SITE_PUBLIC_URL_BUYTLY: z.string().url().optional(),
     /** Public API base URL (e.g. https://api.buytly.com/api/v1) — Swagger servers + startup logs */
     API_URL: z.string().url(),
     /** Set to true when behind nginx/Cloud Load Balancer (required for rate limits & HTTPS) */

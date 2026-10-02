@@ -1,8 +1,16 @@
-import { SITE_KIND, PLATFORM_PERMISSIONS } from "../modules/sites/site.constants.js";
+import {
+  SITE_KIND,
+  PLATFORM_PERMISSIONS,
+} from "../modules/sites/site.constants.js";
 import { getRequestSite } from "./requestContext.js";
 
 export function isPlatformSite(site) {
   return site?.kind === SITE_KIND.PLATFORM;
+}
+
+/** Resolved request site is the Buytly platform origin (not a tenant storefront). */
+export function isPlatformRequestSite() {
+  return isPlatformSite(getRequestSite());
 }
 
 export function userHasPlatformPermission(user, permission) {

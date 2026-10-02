@@ -60,58 +60,60 @@ The Next.js client fetches the live OpenAPI spec from `/api/docs.json` for Orval
 
 ## Environment Variables
 
-| Variable               | Required | Description                                                                       |
-| ---------------------- | -------- | --------------------------------------------------------------------------------- |
-| NODE_ENV               | Yes      | development / production / test                                                   |
-| PORT                   | Yes      | Server port (default 5000)                                                        |
-| TRUST_PROXY            | No       | `true` behind nginx/ALB (default `false`)                                         |
-| MONGODB_URI            | Yes      | MongoDB connection string                                                         |
-| JWT_ACCESS_SECRET      | Yes      | Access token secret (min 32 chars)                                                |
-| JWT_REFRESH_SECRET     | Yes      | Reserved for future use; refresh tokens are opaque UUIDs stored hashed in MongoDB |
-| JWT_ACCESS_EXPIRES_IN  | No       | Access token TTL (default 15m)                                                    |
-| JWT_REFRESH_EXPIRES_IN | No       | Refresh token TTL (default 7d)                                                    |
-| GCS_PROJECT_ID         | Yes      | GCP project ID                                                                    |
-| GCS_BUCKET             | Yes      | GCS bucket name                                                                   |
-| GCS_KEY_FILE           | No       | Path to service account JSON                                                      |
-| APP_URL                | Yes      | Frontend URL for password-reset links                                             |
-| API_URL                | Yes      | Public API base for Swagger and logs (e.g. `https://api.buytly.com/api/v1`)       |
-| CORS_ORIGIN            | Yes      | Allowed origins (comma-separated)                                                 |
-| SWAGGER_ENABLED        | No       | Expose `/api/docs` (default: on in dev, off in production)                        |
-| EMAIL_PROVIDER         | No       | `smtp` (default) or `sendgrid`                                                    |
-| SENDGRID_API_KEY       | Cond.    | Required when `EMAIL_PROVIDER=sendgrid`                                           |
-| SMTP_HOST              | Cond.    | Required when `EMAIL_PROVIDER=smtp`                                               |
-| SMTP_PORT              | No       | SMTP port (587 or 465; default 587)                                               |
-| SMTP_USER              | Cond.    | Required when `EMAIL_PROVIDER=smtp`                                               |
-| SMTP_PASS              | Cond.    | Required when `EMAIL_PROVIDER=smtp`                                               |
-| SMTP_FROM              | Yes      | From email address (verified sender for SendGrid)                                 |
-| CONTACT_INBOX_EMAIL    | No       | Receives `/contact` form submissions (default `buytlyonline@gmail.com`)           |
-| GCS_ORPHAN_GRACE_HOURS | No       | Grace period for `npm run cleanup:gcs` (default 48)                               |
-| OVERPASS_URL           | No       | Primary Overpass API URL for What's Nearby (falls back to public mirrors)         |
-| OVERPASS_USER_AGENT    | No       | User-Agent sent to Overpass (recommended in production)                           |
-| GOOGLE_CLIENT_ID       | Yes      | Google OAuth Web client ID (same as client `NEXT_PUBLIC_GOOGLE_CLIENT_ID`)        |
+| Variable                  | Required | Description                                                                                                           |
+| ------------------------- | -------- | --------------------------------------------------------------------------------------------------------------------- |
+| NODE_ENV                  | Yes      | development / production / test                                                                                       |
+| PORT                      | Yes      | Server port (default 5000)                                                                                            |
+| TRUST_PROXY               | No       | `true` behind nginx/ALB (default `false`)                                                                             |
+| MONGODB_URI               | Yes      | MongoDB connection string                                                                                             |
+| JWT_ACCESS_SECRET         | Yes      | Access token secret (min 32 chars)                                                                                    |
+| JWT_REFRESH_SECRET        | Yes      | Reserved for future use; refresh tokens are opaque UUIDs stored hashed in MongoDB                                     |
+| JWT_ACCESS_EXPIRES_IN     | No       | Access token TTL (default 15m)                                                                                        |
+| JWT_REFRESH_EXPIRES_IN    | No       | Refresh token TTL (default 7d)                                                                                        |
+| GCS_PROJECT_ID            | Yes      | GCP project ID                                                                                                        |
+| GCS_BUCKET                | Yes      | GCS bucket name                                                                                                       |
+| GCS_KEY_FILE              | No       | Path to service account JSON                                                                                          |
+| APP_URL                   | Yes      | Frontend URL for password-reset links                                                                                 |
+| API_URL                   | Yes      | Public API base for Swagger and logs (e.g. `https://api.buytly.com/api/v1`)                                           |
+| CORS_ORIGIN               | Yes      | Allowed origins (comma-separated)                                                                                     |
+| SWAGGER_ENABLED           | No       | Expose `/api/docs` (default: on in dev, off in production)                                                            |
+| EMAIL_PROVIDER            | No       | `smtp` (default) or `sendgrid`                                                                                        |
+| SENDGRID_API_KEY          | Cond.    | Required when `EMAIL_PROVIDER=sendgrid`                                                                               |
+| SMTP_HOST                 | Cond.    | Required when `EMAIL_PROVIDER=smtp`                                                                                   |
+| SMTP_PORT                 | No       | SMTP port (587 or 465; default 587)                                                                                   |
+| SMTP_USER                 | Cond.    | Required when `EMAIL_PROVIDER=smtp`                                                                                   |
+| SMTP_PASS                 | Cond.    | Required when `EMAIL_PROVIDER=smtp`                                                                                   |
+| SMTP_FROM                 | Yes      | From email address (verified sender for SendGrid)                                                                     |
+| CONTACT_INBOX_EMAIL       | No       | Receives `/contact` form submissions (default `buytlyonline@gmail.com`)                                               |
+| GCS_ORPHAN_GRACE_HOURS    | No       | Grace period for `npm run cleanup:gcs` (default 48)                                                                   |
+| OVERPASS_URL              | No       | Primary Overpass API URL for What's Nearby (falls back to public mirrors)                                             |
+| OVERPASS_USER_AGENT       | No       | User-Agent sent to Overpass (recommended in production)                                                               |
+| GOOGLE_CLIENT_ID          | Yes      | Google OAuth Web client ID (same as client `NEXT_PUBLIC_GOOGLE_CLIENT_ID`)                                            |
+| SITE_PUBLIC_URL_BUILDWISE | No       | Partner listing links from Buytly marketplace (`sourceSite.listingUrl`). Dev default `http://localhost:3001` if unset |
+| SITE_PUBLIC_URL_BUYTLY    | No       | Buytly first-party listing base in platform API metadata. Dev default `http://localhost:3000` if unset                |
 
 **Docker Compose (repo root `.env`):** copy `.env.example` → `.env` at the repo root. Never commit `.env`. Required for client build/runtime:
 
-| Variable                            | Required                 | Description                                                                                                                    |
-| ----------------------------------- | ------------------------ | ------------------------------------------------------------------------------------------------------------------------------ |
-| `NEXT_PUBLIC_API_URL`               | Yes                      | Public API base baked into the Next.js bundle                                                                                  |
-| `NEXT_PUBLIC_GOOGLE_CLIENT_ID`      | Yes (for Google sign-in) | Same value as `GOOGLE_CLIENT_ID` in `server/.env`                                                                              |
-| `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`   | No                       | Google Maps JavaScript API key for map demo pages                                                                              |
-| `NEXT_PUBLIC_SUPPORT_PHONE`         | No                       | E.164 support line for footer/mobile menu WhatsApp (default `+96171601751`)                                                    |
-| `NEXT_PUBLIC_SUPPORT_PHONE_DISPLAY` | No                       | Human-readable support number shown in UI (default `+961 71 601 751`)                                                          |
-| `NEXT_PUBLIC_SUPPORT_EMAIL`         | No                       | Support email in footer and mailto links (default `buytlyonline@gmail.com`)                                                    |
-| `BUILDWISE_SUPPORT_PHONE`           | No                       | Buildwise footer/WhatsApp (default `+96171703703`) — `buildwise-web` build arg                                                 |
-| `BUILDWISE_SUPPORT_PHONE_DISPLAY`   | No                       | Buildwise display number (default `+961 71 703 703`)                                                                           |
-| `BUILDWISE_SUPPORT_EMAIL`           | No                       | Buildwise support email (default `info@buildwise-engineering.com`)                                                             |
-| `BUILDWISE_SITE_PUBLIC_URL`         | No                       | Buildwise public site URL for invoice links/metadata (default `https://buildwise-engineering.com`) — `buildwise-web` build arg |
+| Variable                            | Required                 | Description                                                                                                                                                                                                               |
+| ----------------------------------- | ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `NEXT_PUBLIC_API_URL`               | Yes                      | Public API base baked into the Next.js bundle                                                                                                                                                                             |
+| `NEXT_PUBLIC_GOOGLE_CLIENT_ID`      | Yes (for Google sign-in) | Same value as `GOOGLE_CLIENT_ID` in `server/.env`                                                                                                                                                                         |
+| `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`   | No                       | Google Maps JavaScript API key for map demo pages                                                                                                                                                                         |
+| `NEXT_PUBLIC_SUPPORT_PHONE`         | No                       | E.164 support line for footer/mobile menu WhatsApp (default `+96171601751`)                                                                                                                                               |
+| `NEXT_PUBLIC_SUPPORT_PHONE_DISPLAY` | No                       | Human-readable support number shown in UI (default `+961 71 601 751`)                                                                                                                                                     |
+| `NEXT_PUBLIC_SUPPORT_EMAIL`         | No                       | Support email in footer and mailto links (default `buytlyonline@gmail.com`)                                                                                                                                               |
+| `BUILDWISE_SUPPORT_PHONE`           | No                       | Buildwise footer/WhatsApp (default `+96171703703`) — `buildwise-web` build arg                                                                                                                                            |
+| `BUILDWISE_SUPPORT_PHONE_DISPLAY`   | No                       | Buildwise display number (default `+961 71 703 703`)                                                                                                                                                                      |
+| `BUILDWISE_SUPPORT_EMAIL`           | No                       | Buildwise support email (default `info@buildwise-engineering.com`)                                                                                                                                                        |
+| `BUILDWISE_SITE_PUBLIC_URL`         | No                       | Buildwise public site URL for invoice links/metadata (default `https://buildwise-engineering.com`) — `buildwise-web` build arg only; not the API partner-link override (use `SITE_PUBLIC_URL_BUILDWISE` in `server/.env`) |
 
 **Per-app Next.js env** (local dev: `client/.env.local` or `apps/buildwise-web/.env.local`; see each app’s `.env.example`):
 
-| Variable                      | Buytly (`client`) | Buildwise (`apps/buildwise-web`)                                                              |
-| ----------------------------- | ----------------- | --------------------------------------------------------------------------------------------- |
-| `NEXT_PUBLIC_SITE_SLUG`       | `buytly`          | `buildwise`                                                                                   |
-| `NEXT_PUBLIC_SITE_NAME`       | `Buytly`          | `Buildwise Engineering`                                                                       |
-| `NEXT_PUBLIC_SITE_PUBLIC_URL` | — (optional)      | `https://buildwise-engineering.com` (invoice/footer canonical URL; defaults in code if unset) |
+| Variable                      | Buytly (`client`) | Buildwise (`apps/buildwise-web`)                                                                                              |
+| ----------------------------- | ----------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| `NEXT_PUBLIC_SITE_SLUG`       | `buytly`          | `buildwise`                                                                                                                   |
+| `NEXT_PUBLIC_SITE_NAME`       | `Buytly`          | `Buildwise Engineering`                                                                                                       |
+| `NEXT_PUBLIC_SITE_PUBLIC_URL` | — (optional)      | Buildwise: canonical URL in UI/metadata (local dev: `http://localhost:3001`). Buytly client: optional `http://localhost:3000` |
 
 `docker-compose.yml` passes site slug/name, public URL, and support fields as **build args** only (`NEXT_PUBLIC_*` is baked at `docker compose build` time). Changing root `.env` requires `docker compose build client buildwise-web` (or `--build` on `up`).
 

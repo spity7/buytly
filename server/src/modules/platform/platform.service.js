@@ -15,7 +15,10 @@ import {
   buildSourceSiteMeta,
   getPartnerTenantSites,
   getPublicPartnerProjectIds,
+  getPublicPlatformSiteProjectIds,
+  parsePartnersOnlyQuery,
 } from "./platform-query.js";
+import { resolveSitePublicBaseUrl } from "../sites/sitePublicUrl.js";
 
 const attachProjectMediaUrls = async (project) => {
   const doc = project.toObject ? project.toObject() : { ...project };
@@ -58,39 +61,116 @@ function buildProjectSort(query) {
   return { createdAt: sortOrder };
 }
 
+function buildMarketplaceStatusFilter(query) {
+  if (query.status === "sold" || query.status === "active") {
+    return { status: query.status };
+  }
+  return { status: { $in: PUBLIC_MARKETPLACE_LIST_STATUSES } };
+}
+
+function resolveListingSourceSite(
+  siteDoc,
+  listingSiteId,
+  platformSiteId,
+  listingPath,
+) {
+  if (!siteDoc) return null;
+  const isFirstParty = String(listingSiteId) === String(platformSiteId);
+  if (isFirstParty) {
+    return {
+      slug: siteDoc.slug,
+      name: siteDoc.name,
+      publicUrl: resolveSitePublicBaseUrl(siteDoc),
+    };
+  }
+  return buildSourceSiteMeta(siteDoc, { listingPath });
+}
+
+async function buildUnitCatalogScope(platformSite, query) {
+  const partnersOnly = parsePartnersOnlyQuery(query);
+  const { sites, partnerSiteIds, siteById } = await getPartnerTenantSites(
+    platformSite._id,
+  );
+  siteById.set(String(platformSite._id), platformSite);
+
+  const platformProjectIds = partnersOnly
+    ? []
+    : await getPublicPlatformSiteProjectIds(platformSite._id);
+
+  const partnerProjectIds =
+    partnerSiteIds.length > 0
+      ? await getPublicPartnerProjectIds(partnerSiteIds, sites)
+      : [];
+
+  const visibilityOr = buildPlatformVisibilityOr(sites);
+  const unitBranches = [];
+
+  if (platformProjectIds.length > 0) {
+    unitBranches.push({
+      siteId: platformSite._id,
+      projectId: { $in: platformProjectIds },
+    });
+  }
+
+  if (partnerSiteIds.length > 0 && partnerProjectIds.length > 0) {
+    unitBranches.push({
+      siteId: { $in: partnerSiteIds },
+      projectId: { $in: partnerProjectIds },
+      $or: visibilityOr,
+    });
+  }
+
+  return { unitBranches, siteById, platformSite };
+}
+
+async function buildProjectCatalogScope(platformSite, query) {
+  const partnersOnly = parsePartnersOnlyQuery(query);
+  const { sites, partnerSiteIds, siteById } = await getPartnerTenantSites(
+    platformSite._id,
+  );
+  siteById.set(String(platformSite._id), platformSite);
+
+  const visibilityOr = buildPlatformVisibilityOr(sites);
+  const projectBranches = [];
+
+  if (!partnersOnly) {
+    projectBranches.push({
+      siteId: platformSite._id,
+    });
+  }
+
+  if (partnerSiteIds.length > 0) {
+    projectBranches.push({
+      siteId: { $in: partnerSiteIds },
+      $or: visibilityOr,
+    });
+  }
+
+  return { projectBranches, siteById, platformSite };
+}
+
 export const platformService = {
   async listFeaturedListings(query = {}) {
     const platformSite = assertPlatformRequestSite();
-    const { sites, partnerSiteIds, siteById } = await getPartnerTenantSites(
-      platformSite._id,
+    const { unitBranches, siteById } = await buildUnitCatalogScope(
+      platformSite,
+      query,
     );
 
-    if (partnerSiteIds.length === 0) {
+    const { page, limit, skip } = parsePagination(query);
+
+    if (unitBranches.length === 0) {
       return {
         properties: [],
-        pagination: buildPaginationMeta(0, 1, query.limit || 20),
+        pagination: buildPaginationMeta(0, page, limit),
       };
     }
 
-    const publicProjectIds = await getPublicPartnerProjectIds(
-      partnerSiteIds,
-      sites,
-    );
-    const visibilityOr = buildPlatformVisibilityOr(sites);
-
-    const { page, limit, skip } = parsePagination(query);
     const filter = {
-      siteId: { $in: partnerSiteIds },
       deletedAt: null,
-      projectId: { $in: publicProjectIds },
-      $or: visibilityOr,
+      $or: unitBranches,
+      ...buildMarketplaceStatusFilter(query),
     };
-
-    if (query.status === "sold" || query.status === "active") {
-      filter.status = query.status;
-    } else {
-      filter.status = { $in: PUBLIC_MARKETPLACE_LIST_STATUSES };
-    }
 
     if (query.type) filter.type = query.type;
     if (query.city) filter["location.city"] = new RegExp(query.city, "i");
@@ -116,12 +196,15 @@ export const platformService = {
     const enriched = await Promise.all(
       properties.map(async (property) => {
         const doc = await attachPropertyMediaUrls(property);
-        const sourceSite = siteById.get(String(property.siteId));
+        const sourceSiteDoc = siteById.get(String(property.siteId));
         return {
           ...doc,
-          sourceSite: buildSourceSiteMeta(sourceSite, {
-            listingPath: `/single-v1/${property._id}`,
-          }),
+          sourceSite: resolveListingSourceSite(
+            sourceSiteDoc,
+            property.siteId,
+            platformSite._id,
+            `/single-v1/${property._id}`,
+          ),
         };
       }),
     );
@@ -134,31 +217,25 @@ export const platformService = {
 
   async listFeaturedProjects(query = {}) {
     const platformSite = assertPlatformRequestSite();
-    const { sites, partnerSiteIds, siteById } = await getPartnerTenantSites(
-      platformSite._id,
+    const { projectBranches, siteById } = await buildProjectCatalogScope(
+      platformSite,
+      query,
     );
 
-    if (partnerSiteIds.length === 0) {
+    const { page, limit, skip } = parsePagination(query);
+
+    if (projectBranches.length === 0) {
       return {
         projects: [],
-        pagination: buildPaginationMeta(0, 1, query.limit || 20),
+        pagination: buildPaginationMeta(0, page, limit),
       };
     }
 
-    const visibilityOr = buildPlatformVisibilityOr(sites);
-    const { page, limit, skip } = parsePagination(query);
-
     const filter = {
-      siteId: { $in: partnerSiteIds },
       deletedAt: null,
-      $or: visibilityOr,
+      $or: projectBranches,
+      ...buildMarketplaceStatusFilter(query),
     };
-
-    if (query.status === "sold" || query.status === "active") {
-      filter.status = query.status;
-    } else {
-      filter.status = { $in: PUBLIC_MARKETPLACE_LIST_STATUSES };
-    }
 
     if (query.city) filter["location.city"] = new RegExp(query.city, "i");
     if (query.search) {
@@ -176,13 +253,16 @@ export const platformService = {
     const enriched = await Promise.all(
       projects.map(async (project) => {
         const doc = await attachProjectMediaUrls(project);
-        const sourceSite = siteById.get(String(project.siteId));
+        const sourceSiteDoc = siteById.get(String(project.siteId));
         const slug = project.slug;
         return {
           ...doc,
-          sourceSite: buildSourceSiteMeta(sourceSite, {
-            listingPath: `/project/${slug}`,
-          }),
+          sourceSite: resolveListingSourceSite(
+            sourceSiteDoc,
+            project.siteId,
+            platformSite._id,
+            `/project/${slug}`,
+          ),
         };
       }),
     );

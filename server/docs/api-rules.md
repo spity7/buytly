@@ -178,11 +178,11 @@ module.exports = defineConfig({
 ## Buytly platform marketplace (cross-site)
 
 - Tenant sites (e.g. Buildwise) scope `GET /properties` and `GET /projects` to their own `siteId` (`X-Site-Slug`).
-- The Buytly platform site (`X-Site-Slug: buytly`) uses `GET /platform/featured-listings` and `GET /platform/featured-projects` for partner catalog rows. Each row includes `sourceSite` (`slug`, `name`, `publicUrl`, `listingUrl`).
+- The Buytly platform site (`X-Site-Slug: buytly`) uses `GET /platform/featured-listings` and `GET /platform/featured-projects` for the public marketplace: **Buytly first-party** active/sold listings plus partner tenants (opt-in rules). Use `partnersOnly=true` for partner-only feeds. Partner rows include `sourceSite.listingUrl` for off-site links; first-party rows use on-site URLs.
 - Tenants with `platformListingPolicy: optIn` appear on the marketplace only when `visibleOnPlatform: true` on the **project** and each **unit** (defaults `false`). Sellers cannot set this flag — `PATCH /properties` and `PATCH /projects` reject `visibleOnPlatform` with **403**. Tenant-site owner JSON omits `visibleOnPlatform`.
 - Buytly platform admins (`role: admin` on `X-Site-Slug: buytly`) set featuring via `PATCH /admin/properties/:id/platform-featured` and `PATCH /admin/projects/:id/platform-featured` with `{ visibleOnPlatform: boolean }` (target must be a partner tenant listing; enable only when status is `active` or `sold`; units require the parent project featured first).
 - Public marketplace status filter: omit `status` → `active` + `sold`; `status=sold` or `status=active` narrows the set.
-- Buytly platform admins may pass `?siteId=` on `GET /admin/properties` and `GET /admin/projects` (partner site filter for moderation).
+- Buytly platform admins (`role: admin` on the platform site) on `GET /admin/properties` and `GET /admin/projects`: omit `siteId` to list all active **tenant** partner sites plus the Buytly platform site; pass `?siteId=` to scope to one site.
 
 **Client generation workflow**
 

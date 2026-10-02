@@ -11,6 +11,7 @@ import {
 import { AppError } from "../../shared/AppError.js";
 import { nearbyService } from "../../services/nearby.service.js";
 import { getRequestSiteId } from "../../shared/requestContext.js";
+import { isPlatformRequestSite } from "../../shared/siteAccess.js";
 
 /** Matches public property list browse (active units on live parent projects). */
 const PUBLIC_PARENT_PROJECT_STATUSES = ["active", "sold"];
@@ -183,6 +184,9 @@ export const catalogService = {
 
   async countPublicListingsByPropertyTypeValues(values = []) {
     if (!values.length) return new Map();
+    if (isPlatformRequestSite()) {
+      return new Map(values.map((value) => [value, 0]));
+    }
 
     const siteId = getRequestSiteId();
     const publicProjectIds = await getPublicBrowseProjectIds(siteId);

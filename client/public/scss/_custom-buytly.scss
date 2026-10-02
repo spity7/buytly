@@ -4658,6 +4658,17 @@ tr.dashboard-row-highlight {
     margin-top: 24px;
 }
 
+.partner-featured-listings-section {
+    .partner-featured-listings-empty {
+        width: 100%;
+        min-height: 280px;
+    }
+
+    .featured-listings-skeleton {
+        margin-bottom: 0;
+    }
+}
+
 .featured-listings-empty--embedded {
     padding: 28px 16px 8px;
     background: transparent;

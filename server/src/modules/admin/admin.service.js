@@ -36,8 +36,11 @@ import {
 import mongoose from "mongoose";
 import { Site } from "../sites/site.model.js";
 import { SITE_KIND } from "../sites/site.constants.js";
-import { getRequestSiteId } from "../../shared/requestContext.js";
-import { isPlatformAdmin } from "../../shared/siteAccess.js";
+import {
+  getRequestSite,
+  getRequestSiteId,
+} from "../../shared/requestContext.js";
+import { ROLES } from "../../shared/constants.js";
 import {
   assertCanSetVisibleOnPlatform,
   assertPlatformSiteAdmin,
@@ -47,7 +50,7 @@ import { attachPropertyMediaUrls } from "../properties/property.service.js";
 
 const resolveListSiteId = (query, user) => {
   const requestSiteId = getRequestSiteId();
-  if (query.siteId && isPlatformAdmin(user)) {
+  if (query.siteId && isPlatformSiteAdminLister(user)) {
     return new mongoose.Types.ObjectId(query.siteId);
   }
   return requestSiteId;
@@ -57,6 +60,47 @@ const siteScope = (query, user, extra = {}) => ({
   siteId: resolveListSiteId(query, user),
   ...extra,
 });
+
+/** Buytly platform site — any admin may cross-list partner tenants. */
+function isPlatformSiteAdminLister(user) {
+  const site = getRequestSite();
+  return site?.kind === SITE_KIND.PLATFORM && user?.role === ROLES.ADMIN;
+}
+
+async function buildAdminListSiteFilter(query, user) {
+  const requestSiteId = getRequestSiteId();
+
+  if (!isPlatformSiteAdminLister(user)) {
+    return { siteId: requestSiteId };
+  }
+
+  if (query.siteId) {
+    return { siteId: new mongoose.Types.ObjectId(query.siteId) };
+  }
+
+  const tenantIds = await Site.find({
+    isActive: true,
+    kind: SITE_KIND.TENANT,
+  }).distinct("_id");
+
+  return { siteId: { $in: [...tenantIds, requestSiteId] } };
+}
+
+async function findAdminProjectForModeration(projectId, actor) {
+  if (isPlatformSiteAdminLister(actor)) {
+    return Project.findOne({ _id: projectId });
+  }
+  const siteId = getRequestSiteId();
+  return Project.findOne({ _id: projectId, siteId });
+}
+
+async function findAdminPropertyForModeration(propertyId, actor) {
+  if (isPlatformSiteAdminLister(actor)) {
+    return Property.findOne({ _id: propertyId });
+  }
+  const siteId = getRequestSiteId();
+  return Property.findOne({ _id: propertyId, siteId });
+}
 
 export const adminService = {
   async listPartnerSites(user) {
@@ -183,7 +227,7 @@ export const adminService = {
 
   async listProperties(query, user) {
     const { page, limit, skip } = parsePagination(query);
-    const conditions = [siteScope(query, user)];
+    const conditions = [await buildAdminListSiteFilter(query, user)];
 
     if (query.status) conditions.push({ status: query.status });
 
@@ -214,13 +258,15 @@ export const adminService = {
   },
 
   async moderateProperty(propertyId, status, actor) {
-    const siteId = resolveListSiteId({}, actor);
-    const existing = await Property.findOne({ _id: propertyId, siteId });
+    const existing = await findAdminPropertyForModeration(propertyId, actor);
     if (!existing) throw new AppError("Property not found", 404);
 
     let project;
     if (status !== "archived") {
-      project = await Project.findOne({ _id: existing.projectId, siteId });
+      project = await Project.findOne({
+        _id: existing.projectId,
+        siteId: existing.siteId,
+      });
       assertParentProjectAllowsUnitRestore(project);
       const unarchivingUnit = Boolean(existing.deletedAt);
       if (status === "active" && !unarchivingUnit) {
@@ -296,7 +342,7 @@ export const adminService = {
 
   async listProjects(query, user) {
     const { page, limit, skip } = parsePagination(query);
-    const conditions = [siteScope(query, user)];
+    const conditions = [await buildAdminListSiteFilter(query, user)];
 
     if (query.status) conditions.push({ status: query.status });
     const textFilter = buildPropertyTextFilter(query.search);
@@ -323,8 +369,7 @@ export const adminService = {
   },
 
   async moderateProject(projectId, status, actor) {
-    const siteId = resolveListSiteId({}, actor);
-    const existing = await Project.findOne({ _id: projectId, siteId });
+    const existing = await findAdminProjectForModeration(projectId, actor);
     if (!existing) throw new AppError("Project not found", 404);
 
     if (status === "active") {

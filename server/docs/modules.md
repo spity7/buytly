@@ -251,7 +251,7 @@ Platform admins (`platformPermissions` on Buytly `admin` users) may pass `?siteI
 | /platform/featured-listings | GET    | —    | page, limit, filters (status, city, type, price, search, sort) | Partner units + `sourceSite` metadata    |
 | /platform/featured-projects | GET    | —    | page, limit, filters (status, city, search, sort)              | Partner projects + `sourceSite` metadata |
 
-Requires resolved site `kind: platform` (Buytly Origin / `X-Site-Slug: buytly`). Returns opt-in listings from tenant sites (`visibleOnPlatform: true` on both project and unit for `optIn` tenants; active + sold by default).
+Requires resolved site `kind: platform` (Buytly Origin / `X-Site-Slug: buytly`). Default feeds include **Buytly first-party** listings (active/sold on the platform site) plus partner tenant rows (opt-in / default-visible rules). Pass `partnersOnly=true` for partner-only results (e.g. home “Partner developments” block).
 
 Featuring is **Buytly admin only** (`PATCH /admin/.../platform-featured` on the platform site). Tenant sellers cannot read or write `visibleOnPlatform` on standard property/project routes.
 
