@@ -7,8 +7,8 @@ FROM base AS deps
 RUN apk add --no-cache libc6-compat
 WORKDIR /app/apps/buildwise-web
 COPY apps/buildwise-web/package.json apps/buildwise-web/package-lock.json ./
-RUN --mount=type=cache,target=/root/.npm \
-    npm config set fetch-retries 5 && \
+# Plain RUN (no BuildKit cache mount) so classic `docker compose build` works on VPS without buildx
+RUN npm config set fetch-retries 5 && \
     npm config set fetch-retry-mintimeout 20000 && \
     npm config set fetch-retry-maxtimeout 120000 && \
     npm config set fetch-timeout 600000 && \

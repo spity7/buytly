@@ -46,7 +46,7 @@ npm install
 npm run dev
 ```
 
-- App: `http://localhost:3000` (use a different port if Buytly client is already running)
+- App: `http://localhost:3001`
 
 ## Production
 

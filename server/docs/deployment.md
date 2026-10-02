@@ -26,8 +26,8 @@ npm install
 npm run dev
 ```
 
-Server starts at `http://localhost:5000`  
-Swagger docs at `http://localhost:5000/api/docs` (enabled automatically in development)
+Server starts at `http://localhost:5025`  
+Swagger docs at `http://localhost:5025/api/docs` (enabled automatically in development)
 
 ### Demo database seed
 
@@ -63,9 +63,10 @@ The Next.js client fetches the live OpenAPI spec from `/api/docs.json` for Orval
 | Variable                  | Required | Description                                                                                                           |
 | ------------------------- | -------- | --------------------------------------------------------------------------------------------------------------------- |
 | NODE_ENV                  | Yes      | development / production / test                                                                                       |
-| PORT                      | Yes      | Server port (default 5000)                                                                                            |
+| PORT                      | Yes      | Server port (default **5025**; must match `docker-compose.yml` publish and healthcheck)                               |
 | TRUST_PROXY               | No       | `true` behind nginx/ALB (default `false`)                                                                             |
-| MONGODB_URI               | Yes      | MongoDB connection string                                                                                             |
+| DEFAULT_SITE_SLUG         | No       | Fallback tenant when `Origin` / `X-Site-Slug` is missing (scripts, server-to-server); usually `buytly`                |
+| MONGODB_URI               | Yes      | MongoDB connection string (local in `.env.example`; production: Atlas `mongodb+srv://...`)                            |
 | JWT_ACCESS_SECRET         | Yes      | Access token secret (min 32 chars)                                                                                    |
 | JWT_REFRESH_SECRET        | Yes      | Reserved for future use; refresh tokens are opaque UUIDs stored hashed in MongoDB                                     |
 | JWT_ACCESS_EXPIRES_IN     | No       | Access token TTL (default 15m)                                                                                        |
@@ -218,27 +219,40 @@ git clone <your-repo-url> /var/www/buytly
 cd /var/www/buytly
 cp server/.env.example server/.env
 cp .env.example .env
-# Edit server/.env — comment local lines, uncomment prod below each pair (include TRUST_PROXY=true)
-# Edit .env — set NEXT_PUBLIC_API_URL, NEXT_PUBLIC_GOOGLE_CLIENT_ID (same as GOOGLE_CLIENT_ID), optional NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
+# Edit server/.env — comment local lines, uncomment prod below each pair (include TRUST_PROXY=true, Atlas MONGODB_URI)
+# Edit .env — uncomment prod NEXT_PUBLIC_API_URL; set NEXT_PUBLIC_GOOGLE_CLIENT_ID (same as GOOGLE_CLIENT_ID);
+#   optional NEXT_PUBLIC_GOOGLE_MAPS_API_KEY; confirm BUILDWISE_SITE_PUBLIC_URL and BUILDWISE_SUPPORT_* for buildwise-web
 # Upload gcs-service-account.json to server/
 docker compose up -d --build
 ```
 
-Point host nginx at `127.0.0.1:3025` (frontend) and `127.0.0.1:5025` (API), then:
+Point **host nginx** at loopback (three virtual hosts):
+
+| Public host                         | Upstream         |
+| ----------------------------------- | ---------------- |
+| `buytly.com` / `www.buytly.com`     | `127.0.0.1:3025` |
+| `buildwise-engineering.com` / `www` | `127.0.0.1:3026` |
+| `api.buytly.com`                    | `127.0.0.1:5025` |
+
+TLS (certbot; run after nginx proxies are in place):
 
 ```bash
 sudo certbot --nginx -d buytly.com -d www.buytly.com
 sudo certbot --nginx -d api.buytly.com
+sudo certbot --nginx -d buildwise-engineering.com -d www.buildwise-engineering.com
 ```
 
 Verify: `curl https://api.buytly.com/api/v1/health`
 
 ### Production `.env` checklist
 
+**`server/.env` (API runtime — `env_file` in compose):**
+
 ```env
 NODE_ENV=production
-PORT=5000
+PORT=5025
 TRUST_PROXY=true
+MONGODB_URI=mongodb+srv://<user>:<pass>@<cluster>/<db>?retryWrites=true&w=majority
 APP_URL=https://buytly.com
 API_URL=https://api.buytly.com/api/v1
 CORS_ORIGIN=https://buytly.com,https://www.buytly.com,https://buildwise-engineering.com,https://www.buildwise-engineering.com
@@ -247,18 +261,24 @@ GCS_KEY_FILE=./gcs-service-account.json
 GOOGLE_CLIENT_ID=<your-google-oauth-client-id>
 ```
 
+Optional in `server/.env`: `SITE_PUBLIC_URL_BUILDWISE` / `SITE_PUBLIC_URL_BUYTLY` override partner `listingUrl` bases; if unset in production, the API uses `sites.publicUrl` / `primaryDomain` from MongoDB (seeded on startup).
+
+**Repo root `.env` (Next.js **build args** — rebake images after changes):**
+
+```env
+NEXT_PUBLIC_API_URL=https://api.buytly.com/api/v1
+NEXT_PUBLIC_GOOGLE_CLIENT_ID=<same-as-GOOGLE_CLIENT_ID>
+BUILDWISE_SITE_PUBLIC_URL=https://buildwise-engineering.com
+```
+
 Add Google OAuth authorized JavaScript origins: `https://buytly.com`, `https://www.buytly.com`, `https://buildwise-engineering.com`, `https://www.buildwise-engineering.com`.
 
 ### Multi-site rollout
 
 1. Deploy API with site middleware (`resolveSite` + seeded `sites` collection).
-2. Run once on production DB: `npm run migrate:multi-site -w server` (from repo root) or `node scripts/migrate-multi-site.js` in `server/`. This backfills `siteId`, grants platform admin permissions, and drops legacy catalog unique index `value_1` in favor of `{ siteId, value }`. New API processes also run that index sync on startup.
-3. Build and run both frontends: `docker compose up -d --build` (services `client`, `buildwise-web`, `server`).
-4. Host nginx:
-   - `buytly.com` / `www` → `127.0.0.1:3025`
-   - `buildwise-engineering.com` / `www` → `127.0.0.1:3026`
-   - `api.buytly.com` → `127.0.0.1:5025`
-5. TLS: `sudo certbot --nginx -d buildwise-engineering.com -d www.buildwise-engineering.com` (in addition to Buytly hosts).
+2. Run once on production DB (skip on a fresh empty DB if you rely on startup seed only): `npm run migrate:multi-site -w server` (from repo root) or `node scripts/migrate-multi-site.js` in `server/`. This backfills `siteId`, grants platform admin permissions, and drops legacy catalog unique index `value_1` in favor of `{ siteId, value }`. New API processes also run that index sync on startup.
+3. Build and run all services: `docker compose up -d --build` (`client`, `buildwise-web`, `server`).
+4. Nginx + TLS: same three-host layout and certbot commands as [Hostinger VPS — deployment](#hostinger-vps--deployment) above.
 
 Each frontend sends browser `Origin`; the API resolves tenant from host mapping in `sites`. Dev/tests may send `X-Site-Slug: buytly|buildwise`. Per-site accounts: the same email may exist independently on each site.
 
@@ -293,6 +313,7 @@ Email is anonymized on `DELETE /users/me`, so re-registration works with the par
 ## Production Checklist
 
 - [ ] Set `NODE_ENV=production`
+- [ ] Set `PORT=5025` in `server/.env` (matches Docker publish and healthcheck)
 - [ ] Set `TRUST_PROXY=true` behind nginx
 - [ ] Use strong, unique JWT secrets (`npm run generate-secrets`)
 - [ ] MongoDB Atlas with IP whitelist and TLS
@@ -307,7 +328,7 @@ Email is anonymized on `DELETE /users/me`, so re-registration works with the par
 - [ ] `SWAGGER_ENABLED=false` in production (unless you need public docs)
 - [ ] Gmail SMTP configured (`smtp.gmail.com:587`, app password)
 - [ ] `GOOGLE_CLIENT_ID` / `NEXT_PUBLIC_GOOGLE_CLIENT_ID` match; OAuth origins include production domains
-- [ ] Repo root `.env` for Docker Compose (client build args) — never committed
+- [ ] Repo root `.env` for Docker Compose — prod `NEXT_PUBLIC_API_URL` and matching `NEXT_PUBLIC_GOOGLE_CLIENT_ID`; rebuild frontends after changes — never committed
 - [ ] `server/.env` never committed — use server-only secrets
 - [ ] GitHub Actions CI passing (`.github/workflows/ci.yml`)
 - [ ] MongoDB indexes created (auto-created on first run via Mongoose)
@@ -329,6 +350,8 @@ Same layout as handiz-dashboard:
 | Repo root `.gitignore`          | Secrets, `node_modules/`, `**/.next/`, coverage (workspaces)          |
 
 Frontend env for Docker comes from the repo root `.env` (see `.env.example`) via **compose build args** — values are embedded at image build time. Server runtime env comes from `server/.env` (`env_file` in compose). Optional: set `APP_URL` in `server/.env` to the public site users open in the browser (email/reset links); local dev often uses `http://localhost:3000` / `3001`, Docker frontends use `http://localhost:3025` / `3026`.
+
+**BuildKit / buildx:** Frontend Dockerfiles use a plain `npm ci` layer so **classic** `docker compose build` works on minimal VPS images (no `buildx` required). If you see `Docker Compose requires buildx plugin`, it is usually a warning only. Optional faster rebuilds on a machine with BuildKit: `export DOCKER_BUILDKIT=1` before `docker compose build` (install `docker-buildx-plugin` if your distro documents it).
 
 All three services define **healthchecks** in `docker-compose.yml` and in their Dockerfiles:
 
