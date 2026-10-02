@@ -28,6 +28,7 @@ import { getPropertyStatusBadgeProps } from "@/lib/statusBadges";
 import {
   adminApproveListingConfirmation,
   adminArchiveListingConfirmation,
+  adminMarkListingSoldConfirmation,
   adminReturnDraftConfirmation,
 } from "@/lib/confirmations";
 import {
@@ -64,12 +65,14 @@ const formatDate = (value) => {
 const getModerateLoadingMessage = (status) => {
   if (status === "active") return "Approving listing...";
   if (status === "draft") return "Returning listing to draft...";
+  if (status === "sold") return "Marking listing as sold...";
   return "Updating listing...";
 };
 
 const getModerateConfirmConfig = (title, status) => {
   if (status === "active") return adminApproveListingConfirmation(title);
   if (status === "draft") return adminReturnDraftConfirmation(title);
+  if (status === "sold") return adminMarkListingSoldConfirmation(title);
   return adminArchiveListingConfirmation(title);
 };
 
@@ -340,21 +343,34 @@ export default function AdminPropertiesTable() {
                         </>
                       )}
                       {property.status === "active" && (
-                        <button
-                          type="button"
-                          className="ud-btn btn-white btn-sm"
-                          disabled={rowBusy || tableBusy}
-                          onClick={() =>
-                            promptModerate(
-                              propertyId,
-                              property.title,
-                              "archived",
-                            )
-                          }
-                        >
-                          <DashboardBtnIcon icon={dashboardIcons.archive} />
-                          Archive
-                        </button>
+                        <>
+                          <button
+                            type="button"
+                            className="ud-btn btn-white btn-sm"
+                            disabled={rowBusy || tableBusy}
+                            onClick={() =>
+                              promptModerate(propertyId, property.title, "sold")
+                            }
+                          >
+                            <DashboardBtnIcon icon={dashboardIcons.complete} />
+                            Mark as sold
+                          </button>
+                          <button
+                            type="button"
+                            className="ud-btn btn-white btn-sm"
+                            disabled={rowBusy || tableBusy}
+                            onClick={() =>
+                              promptModerate(
+                                propertyId,
+                                property.title,
+                                "archived",
+                              )
+                            }
+                          >
+                            <DashboardBtnIcon icon={dashboardIcons.archive} />
+                            Archive
+                          </button>
+                        </>
                       )}
                       <Link
                         href={`/dashboard-edit-property/${propertyId}`}

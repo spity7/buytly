@@ -263,6 +263,14 @@ export function isPropertyTerminal(status) {
   return status === "sold" || status === "archived";
 }
 
+export function canMarkPropertySold(property) {
+  return property?.status === "active" && !property?.deletedAt;
+}
+
+export function canMarkProjectSold(project) {
+  return project?.status === "active" && !project?.deletedAt;
+}
+
 export function isPropertyBookable(status) {
   return status === "active";
 }

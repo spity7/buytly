@@ -23,7 +23,10 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import DashboardTableEmptyState from "@/components/property/dashboard/DashboardTableEmptyState";
 import { DashboardTableSkeleton } from "@/components/property/dashboard/skeletons/DashboardSkeletons";
 import { getAdminProjectsEmptyState } from "@/lib/dashboard/tableEmptyStates";
-import { adminArchiveProjectConfirmation } from "@/lib/confirmations";
+import {
+  adminArchiveProjectConfirmation,
+  adminMarkProjectSoldConfirmation,
+} from "@/lib/confirmations";
 
 const PAGE_SIZE = 20;
 
@@ -111,32 +114,46 @@ export default function AdminProjectsTable() {
   const tableBusy = isLocked;
   const moderatingId = pending?.targetId ?? null;
 
-  const moderate = (id, title, status) => {
+  const moderate = (id, title, status, unitCount = 0) => {
     const archiveConfig =
       status === "archived" ? adminArchiveProjectConfirmation(title) : null;
+    const soldConfig =
+      status === "sold"
+        ? adminMarkProjectSoldConfirmation(title, unitCount)
+        : null;
 
     requestConfirm({
       title:
+        soldConfig?.title ??
         archiveConfig?.title ??
         (status === "active" ? "Approve project?" : "Update project status?"),
       message:
+        soldConfig?.message ??
         archiveConfig?.message ??
         (status === "active"
           ? `"${title}" will go live and pending units will be published.`
           : `Set "${title}" to ${status}?`),
       confirmLabel:
+        soldConfig?.confirmLabel ??
         archiveConfig?.confirmLabel ??
         (status === "active" ? "Approve" : "Confirm"),
       confirmVariant: archiveConfig?.confirmVariant,
-      confirmingLabel: archiveConfig?.confirmingLabel,
+      confirmingLabel:
+        soldConfig?.confirmingLabel ?? archiveConfig?.confirmingLabel,
       targetId: id,
       action: {
         message:
-          status === "archived"
-            ? "Archiving project..."
-            : "Updating project...",
+          status === "sold"
+            ? "Marking project as sold..."
+            : status === "archived"
+              ? "Archiving project..."
+              : "Updating project...",
         successMessage:
-          status === "archived" ? "Project archived" : "Project updated",
+          status === "sold"
+            ? "Project marked as sold"
+            : status === "archived"
+              ? "Project archived"
+              : "Project updated",
         task: () => buytlyApi.adminModerateProject(id, { status }),
         onSuccess: load,
         onError: (error) => notifyError(getApiError(error)),
@@ -290,19 +307,39 @@ export default function AdminProjectsTable() {
                               Review
                             </Link>
                             {project.status === "active" ? (
-                              <button
-                                type="button"
-                                className="ud-btn btn-white btn-sm"
-                                disabled={rowBusy || tableBusy}
-                                onClick={() =>
-                                  moderate(id, project.title, "archived")
-                                }
-                              >
-                                <DashboardBtnIcon
-                                  icon={dashboardIcons.archive}
-                                />
-                                Archive
-                              </button>
+                              <>
+                                <button
+                                  type="button"
+                                  className="ud-btn btn-white btn-sm"
+                                  disabled={rowBusy || tableBusy}
+                                  onClick={() =>
+                                    moderate(
+                                      id,
+                                      project.title,
+                                      "sold",
+                                      project.unitCount ?? 0,
+                                    )
+                                  }
+                                >
+                                  <DashboardBtnIcon
+                                    icon={dashboardIcons.complete}
+                                  />
+                                  Mark as sold
+                                </button>
+                                <button
+                                  type="button"
+                                  className="ud-btn btn-white btn-sm"
+                                  disabled={rowBusy || tableBusy}
+                                  onClick={() =>
+                                    moderate(id, project.title, "archived")
+                                  }
+                                >
+                                  <DashboardBtnIcon
+                                    icon={dashboardIcons.archive}
+                                  />
+                                  Archive
+                                </button>
+                              </>
                             ) : null}
                           </>
                         )}

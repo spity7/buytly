@@ -12,6 +12,7 @@ import { DashboardFormSkeleton } from "@/components/property/dashboard/skeletons
 import { useProject } from "@/hooks/useProjects";
 import { useConfirmAction } from "@/hooks/useConfirmAction";
 import {
+  projectMarkSoldConfirmation,
   projectPermanentDeleteConfirmation,
   projectPublishConfirmation,
   projectTrashConfirmation,
@@ -25,7 +26,10 @@ import {
   getProjectPublishRules,
 } from "@/lib/properties/projectForm";
 import { useAuth } from "@/providers/AuthProvider";
-import { canAddUnitToProject } from "@/lib/properties/mapProperty";
+import {
+  canAddUnitToProject,
+  canMarkProjectSold,
+} from "@/lib/properties/mapProperty";
 import { notifyError, notifySuccess } from "@/lib/toast";
 import Link from "next/link";
 import DashboardBtnIcon, {
@@ -204,6 +208,28 @@ export default function ProjectEditPanel({ projectId }) {
     }
   };
 
+  const markProjectAsSold = () => {
+    const confirmation = projectMarkSoldConfirmation(project.title, unitCount);
+
+    requestConfirm({
+      ...confirmation,
+      action: {
+        message: "Marking project as sold...",
+        successMessage: "Project marked as sold",
+        task: async () => {
+          if (isAdmin) {
+            await buytlyApi.adminModerateProject(projectId, { status: "sold" });
+          } else {
+            await buytlyApi.updateProject(projectId, { status: "sold" });
+          }
+          await refetch();
+          invalidateLists();
+        },
+        onError: (error) => notifyError(getApiError(error)),
+      },
+    });
+  };
+
   const submitForReview = () => {
     const confirmation = projectPublishConfirmation({
       isAdmin,
@@ -274,15 +300,33 @@ export default function ProjectEditPanel({ projectId }) {
               </button>
             </>
           ) : (
-            <button
-              type="button"
-              className="ud-btn btn-white2"
-              disabled={isLocked || isSold}
-              onClick={moveToTrash}
-            >
-              <DashboardBtnIcon icon={dashboardIcons.trash} />
-              Move to trash
-            </button>
+            <>
+              {canMarkProjectSold(project) ? (
+                <button
+                  type="button"
+                  className="ud-btn btn-white2"
+                  disabled={isLocked || detailsDirty}
+                  title={
+                    detailsDirty
+                      ? "Save project details before marking as sold"
+                      : undefined
+                  }
+                  onClick={markProjectAsSold}
+                >
+                  <DashboardBtnIcon icon={dashboardIcons.complete} />
+                  Mark project as sold
+                </button>
+              ) : null}
+              <button
+                type="button"
+                className="ud-btn btn-white2"
+                disabled={isLocked || isSold}
+                onClick={moveToTrash}
+              >
+                <DashboardBtnIcon icon={dashboardIcons.trash} />
+                Move to trash
+              </button>
+            </>
           )}
           <Link href="/dashboard-my-projects" className="ud-btn btn-white2">
             <DashboardBtnIcon icon={dashboardIcons.arrowLeft} />

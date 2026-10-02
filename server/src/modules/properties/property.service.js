@@ -524,6 +524,7 @@ export const propertyService = {
     const normalizedStatus = normalizeSellerStatus(patch.status, {
       isAdmin,
       isCreate: false,
+      currentStatus: previousStatus,
     });
 
     if (normalizedStatus !== undefined) {
@@ -566,7 +567,7 @@ export const propertyService = {
 
     await property.save();
 
-    if (isAdmin && normalizedStatus === "sold") {
+    if (normalizedStatus === "sold") {
       await syncParentProjectSoldStatus(property.projectId, { notify: true });
     }
 

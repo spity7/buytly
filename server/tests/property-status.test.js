@@ -75,13 +75,13 @@ describe.skipIf(!mongoAvailable)("property status rules", () => {
     expect(res.body.data.status).toBe("sold");
   });
 
-  it("rejects seller setting sold status directly", async () => {
+  it("allows seller to mark an active listing sold", async () => {
     const app = await getApp();
     const token = await registerAndGetToken(app, {
-      email: "sold-bypass@example.com",
+      email: "sold-mark-seller@example.com",
     });
     const id = await createActiveProperty(app, token, {
-      title: "Bypass Sold Property",
+      title: "Mark Sold Property",
     });
 
     const res = await api(app)
@@ -89,7 +89,30 @@ describe.skipIf(!mongoAvailable)("property status rules", () => {
       .set("Authorization", `Bearer ${token}`)
       .send({ status: "sold" });
 
-    expect(res.status).toBe(403);
+    expect(res.status).toBe(200);
+    expect(res.body.data.status).toBe("sold");
+  });
+
+  it("rejects seller marking a draft listing sold", async () => {
+    const app = await getApp();
+    const token = await registerAndGetToken(app, {
+      email: "sold-draft-seller@example.com",
+    });
+    const projectRes = await createProject(app, token);
+    const created = await createPropertyForProject(
+      app,
+      token,
+      projectRes.body.data._id,
+      { title: "Draft Not Sold", status: "draft" },
+    );
+    const id = created.body.data._id;
+
+    const res = await api(app)
+      .patch(`/api/v1/properties/${id}`)
+      .set("Authorization", `Bearer ${token}`)
+      .send({ status: "sold" });
+
+    expect(res.status).toBe(400);
   });
 
   it("keeps status unchanged when seller updates without status field", async () => {
@@ -293,6 +316,43 @@ describe.skipIf(!mongoAvailable)("property status rules", () => {
 
     project = await Project.findById(projectId);
     expect(project.status).toBe("sold");
+  });
+
+  it("cascades sold to all units when project is marked sold", async () => {
+    const app = await getApp();
+    const sellerToken = await registerAndGetToken(app, {
+      email: "cascade-sold-seller@example.com",
+    });
+
+    const projectRes = await createProject(app, sellerToken, {
+      title: "Cascade Sold Project",
+    });
+    const projectId = projectRes.body.data._id;
+
+    const unitA = await createPropertyForProject(app, sellerToken, projectId, {
+      title: "Cascade Unit A",
+    });
+    const unitB = await createPropertyForProject(app, sellerToken, projectId, {
+      title: "Cascade Unit B",
+    });
+
+    await Property.findByIdAndUpdate(unitA.body.data._id, { status: "active" });
+    await Property.findByIdAndUpdate(unitB.body.data._id, { status: "active" });
+    await Project.findByIdAndUpdate(projectId, { status: "active" });
+
+    const markSold = await api(app)
+      .patch(`/api/v1/projects/${projectId}`)
+      .set("Authorization", `Bearer ${sellerToken}`)
+      .send({ status: "sold" });
+
+    expect(markSold.status).toBe(200);
+    expect(markSold.body.data.status).toBe("sold");
+
+    const units = await Property.find({
+      projectId,
+      deletedAt: null,
+    }).select("status");
+    expect(units.every((u) => u.status === "sold")).toBe(true);
   });
 
   it("soft-deletes property and hides from mine list", async () => {

@@ -10,6 +10,7 @@ import ApiPagination from "@/components/property/ApiPagination";
 import { useMyProperties } from "@/hooks/useMyProperties";
 import { useConfirmAction } from "@/hooks/useConfirmAction";
 import {
+  propertyMarkSoldConfirmation,
   propertyPermanentDeleteConfirmation,
   propertyTrashConfirmation,
 } from "@/lib/confirmations";
@@ -34,6 +35,7 @@ import DashboardTableEmptyState, {
 import { getPropertiesTableEmptyState } from "@/lib/dashboard/tableEmptyStates";
 import { getPropertyTypeLabel } from "@/lib/dashboard/filterOptions";
 import {
+  canMarkPropertySold,
   isUnitPublicOnMarket,
   isUnitRestoreBlockedByParentProject,
   resolveParentProject,
@@ -118,6 +120,20 @@ const PropertyDataTable = ({
           invalidate();
           onMovedToTrash?.();
         },
+      },
+    });
+  };
+
+  const promptMarkSold = (propertyId, title) => {
+    requestConfirm({
+      ...propertyMarkSoldConfirmation(title),
+      targetId: propertyId,
+      action: {
+        message: "Marking listing as sold...",
+        successMessage: "Listing marked as sold",
+        task: () => buytlyApi.updateProperty(propertyId, { status: "sold" }),
+        onSuccess: invalidate,
+        onError: (error) => notifyError(getApiError(error)),
       },
     });
   };
@@ -297,7 +313,22 @@ const PropertyDataTable = ({
                           </button>
                         </div>
                       ) : (
-                        <>
+                        <div className="d-flex flex-wrap align-items-center gap-2">
+                          {canMarkPropertySold(property) ? (
+                            <button
+                              type="button"
+                              className="ud-btn btn-white btn-sm"
+                              disabled={rowBusy || tableBusy}
+                              onClick={() =>
+                                promptMarkSold(propertyId, property.title)
+                              }
+                            >
+                              <DashboardBtnIcon
+                                icon={dashboardIcons.complete}
+                              />
+                              Mark as sold
+                            </button>
+                          ) : null}
                           <Link
                             href={`/dashboard-edit-property/${propertyId}`}
                             className={`icon${tableBusy ? " pe-none opacity-50" : ""}`}
@@ -329,7 +360,7 @@ const PropertyDataTable = ({
                             place="top"
                             content="Move to trash"
                           />
-                        </>
+                        </div>
                       )}
                     </div>
                   </td>

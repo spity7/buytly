@@ -28,7 +28,11 @@ import {
   cascadeTrashProjectUnits,
 } from "../projects/project-trash-cascade.js";
 import { cascadeDemoteUnitsWhenProjectReturnedToDraft } from "../projects/project-draft-cascade.js";
-import { syncParentProjectSoldStatus } from "../projects/project-sold-sync.js";
+import {
+  assertCanMarkProjectSold,
+  cascadeMarkProjectAndUnitsSold,
+  syncParentProjectSoldStatus,
+} from "../projects/project-sold-sync.js";
 import mongoose from "mongoose";
 import { getRequestSiteId } from "../../shared/requestContext.js";
 import { isPlatformAdmin } from "../../shared/siteAccess.js";
@@ -303,6 +307,33 @@ export const adminService = {
         deletedAt: null,
       });
       assertPublishUnitCardinality(unitCount);
+    }
+
+    if (status === "sold") {
+      assertCanMarkProjectSold(existing);
+      await cascadeMarkProjectAndUnitsSold(projectId, { notify: false });
+      const project = await Project.findById(projectId).populate(
+        "ownerId",
+        "firstName lastName email",
+      );
+      if (!project) throw new AppError("Project not found", 404);
+
+      notificationService
+        .notifyFromEvent("project.status_changed", {
+          userId: project.ownerId._id,
+          context: {
+            projectId: project._id,
+            projectTitle: project.title,
+            status: "sold",
+            message: "Your project was marked as sold.",
+            name: project.ownerId.firstName || project.ownerId.email,
+          },
+        })
+        .catch((err) =>
+          console.error("Project moderation notification failed:", err.message),
+        );
+
+      return project;
     }
 
     const cascadeDeletedAt = existing.deletedAt;

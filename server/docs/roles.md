@@ -97,7 +97,7 @@ On create, `agentId` is only set if explicitly passed in the payload (to assign 
 
 - Submitting `active` or `pending` → stored as **`pending`** for admin review
 - Default on create without status → `draft`
-- Cannot set `sold` or `archived` directly — use completed transactions or admin action
+- May mark **active** listings and projects `sold` via `PATCH` (dashboard “Mark as sold”); cannot set `archived` directly (trash/admin only). Completing a purchase transaction is an alternate path to `sold` for units
 - Material changes to an active listing re-trigger pending review
 
 ### Bookings and transactions

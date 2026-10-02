@@ -188,6 +188,33 @@ export function adminArchiveListingConfirmation(title) {
   };
 }
 
+export function propertyMarkSoldConfirmation(title) {
+  return {
+    title: "Mark listing as sold?",
+    message: `"${title}" will leave active search results. Buyers can still find it under sold listings for reference.`,
+    confirmLabel: "Mark as sold",
+    confirmingLabel: "Updating...",
+  };
+}
+
+export function projectMarkSoldConfirmation(title, unitCount = 0) {
+  const unitLabel = unitCount === 1 ? "1 unit" : `${unitCount} units`;
+  return {
+    title: "Mark project as sold?",
+    message: `"${title}" and all ${unitLabel} on this project will be marked sold. They will no longer appear in active search.`,
+    confirmLabel: "Mark project as sold",
+    confirmingLabel: "Updating...",
+  };
+}
+
+export function adminMarkListingSoldConfirmation(title) {
+  return propertyMarkSoldConfirmation(title);
+}
+
+export function adminMarkProjectSoldConfirmation(title, unitCount = 0) {
+  return projectMarkSoldConfirmation(title, unitCount);
+}
+
 export function adminArchiveProjectConfirmation(title) {
   return {
     title: "Archive project?",

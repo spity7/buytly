@@ -16,7 +16,7 @@ export const shouldIncrementListingView = ({
 /** @deprecated Use shouldIncrementListingView */
 export const shouldIncrementPropertyView = shouldIncrementListingView;
 
-/** Statuses non-admins may set via create/update (sold comes from completed transactions). */
+/** Statuses non-admins may set on create/update (sold only when transitioning from active). */
 export const SELLER_SETTABLE_STATUSES = new Set(["draft", "pending", "active"]);
 
 export const resolvePublicListStatus = (requestedStatus) => {
@@ -31,21 +31,36 @@ export const resolvePublicListStatus = (requestedStatus) => {
  * Normalizes status on create/update for non-admin users.
  * - active → pending (submit for review)
  * - draft / pending allowed
- * - sold / archived rejected
+ * - sold allowed on update only when current status is active
+ * - archived rejected (admin only)
  * Returns undefined when status should not be changed (update without status field).
  */
-export const normalizeSellerStatus = (status, { isAdmin, isCreate }) => {
+export const normalizeSellerStatus = (
+  status,
+  { isAdmin, isCreate, currentStatus } = {},
+) => {
   if (isAdmin) return status;
 
   if (status === undefined || status === null) {
     return isCreate ? "draft" : undefined;
   }
 
+  if (status === "sold") {
+    if (isCreate) {
+      throw new AppError("You cannot create a listing as sold", 400);
+    }
+    if (currentStatus !== "active") {
+      throw new AppError("Only published listings can be marked sold", 400);
+    }
+    return "sold";
+  }
+
+  if (status === "archived") {
+    throw new AppError("You cannot set this status directly", 403);
+  }
+
   if (!SELLER_SETTABLE_STATUSES.has(status)) {
-    throw new AppError(
-      "You cannot set this status directly. Use transactions to mark a property sold.",
-      403,
-    );
+    throw new AppError("You cannot set this status directly", 403);
   }
 
   if (status === "active" || status === "pending") {

@@ -23,6 +23,7 @@ import {
   shouldIncrementListingView,
 } from "../properties/property-status.js";
 import { assertPublishUnitCardinality } from "./project-cardinality.js";
+import { cascadeMarkProjectAndUnitsSold } from "./project-sold-sync.js";
 import {
   cascadeRestoreProjectUnits,
   cascadeTrashProjectUnits,
@@ -451,6 +452,7 @@ export const projectService = {
     const normalizedStatus = normalizeSellerStatus(patch.status, {
       isAdmin,
       isCreate: false,
+      currentStatus: previousStatus,
     });
 
     if (normalizedStatus !== undefined) {
@@ -488,6 +490,10 @@ export const projectService = {
     }
 
     await project.save();
+
+    if (normalizedStatus === "sold") {
+      await cascadeMarkProjectAndUnitsSold(project._id, { notify: false });
+    }
 
     if (patch.location) {
       await Property.updateMany(

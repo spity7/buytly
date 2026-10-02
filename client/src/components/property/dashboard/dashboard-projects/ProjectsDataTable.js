@@ -19,6 +19,7 @@ import {
   useHighlightQueryParam,
 } from "@/hooks/useDashboardRowHighlight";
 import {
+  projectMarkSoldConfirmation,
   projectPermanentDeleteConfirmation,
   projectTrashConfirmation,
 } from "@/lib/confirmations";
@@ -33,7 +34,10 @@ import DashboardTableEmptyState, {
   DashboardTableErrorState,
 } from "@/components/property/dashboard/DashboardTableEmptyState";
 import { getProjectsTableEmptyState } from "@/lib/dashboard/tableEmptyStates";
-import { canAddUnitToProject } from "@/lib/properties/mapProperty";
+import {
+  canAddUnitToProject,
+  canMarkProjectSold,
+} from "@/lib/properties/mapProperty";
 import { remoteImageProps } from "@/lib/images/remoteImage";
 
 const PLACEHOLDER = "/images/listings/list-1.jpg";
@@ -94,6 +98,20 @@ const ProjectsDataTable = ({
     queryClient.invalidateQueries({ queryKey: ["my-projects"] });
     queryClient.invalidateQueries({ queryKey: ["my-properties"] });
     invalidateNotificationQueries(queryClient);
+  };
+
+  const promptMarkSold = (projectId, title, unitCount) => {
+    requestConfirm({
+      ...projectMarkSoldConfirmation(title, unitCount),
+      targetId: projectId,
+      action: {
+        message: "Marking project as sold...",
+        successMessage: "Project marked as sold",
+        task: () => buytlyApi.updateProject(projectId, { status: "sold" }),
+        onSuccess: invalidate,
+        onError: (error) => notifyError(getApiError(error)),
+      },
+    });
   };
 
   const promptDelete = (projectId, title) => {
@@ -279,7 +297,26 @@ const ProjectsDataTable = ({
                           />
                         </>
                       ) : (
-                        <>
+                        <div className="d-flex flex-wrap align-items-center gap-2">
+                          {canMarkProjectSold(project) ? (
+                            <button
+                              type="button"
+                              className="ud-btn btn-white btn-sm"
+                              disabled={rowBusy || tableBusy}
+                              onClick={() =>
+                                promptMarkSold(
+                                  projectId,
+                                  project.title,
+                                  project.unitCount ?? 0,
+                                )
+                              }
+                            >
+                              <DashboardBtnIcon
+                                icon={dashboardIcons.complete}
+                              />
+                              Mark as sold
+                            </button>
+                          ) : null}
                           {isPublished ? (
                             <Link
                               href={`/project/${project.slug}`}
@@ -348,7 +385,7 @@ const ProjectsDataTable = ({
                             place="top"
                             content="Move to trash"
                           />
-                        </>
+                        </div>
                       )}
                     </div>
                   </td>
