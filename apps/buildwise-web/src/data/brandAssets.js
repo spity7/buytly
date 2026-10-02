@@ -24,9 +24,10 @@ export const SITE_PUBLIC_WWW_LABEL = new URL(SITE_PUBLIC_WWW_LINK).hostname;
 export const BRAND_LOGO_WHITE = "/images/buildwise-logo-white.png";
 export const BRAND_LOGO_DARK = "/images/buildwise-logo-dark.png";
 
-export const BRAND_LOGO_WIDTH = 138;
-export const BRAND_LOGO_HEIGHT = 53;
+/** Matches `public/images/buildwise-logo-*.png` (438×159). */
+export const BRAND_LOGO_WIDTH = 175;
+export const BRAND_LOGO_HEIGHT = 63;
 
-/** Favicon assets: Next.js serves `src/app/icon.png` and `src/app/apple-icon.png` automatically. */
+/** Favicon assets: source `public/images/buildwise-favicon.png`; run `scripts/generate-favicons.ps1`. Next.js serves `src/app/icon.png` and `src/app/apple-icon.png`. */
 export const BRAND_FAVICON_16 = "/images/favicon-16x16.png";
 export const BRAND_FAVICON_32 = "/images/favicon-32x32.png";
