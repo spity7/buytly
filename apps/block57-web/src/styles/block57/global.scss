@@ -1,0 +1,216 @@
+// Block 57 public site — global stylesheet for the `(site)` root layout.
+//
+// PROVISIONAL: the palette and type stacks below are placeholders until the
+// block-57.com design inventory (plan Phase 0) is captured. Change tokens here;
+// components should only consume the custom properties.
+// No Bootstrap/Homez imports: the dashboard theme stays in `(app)`.
+
+:root {
+  // Palette
+  --b57-color-text: #111111;
+  --b57-color-text-muted: #5f5a52;
+  --b57-color-bg: #f6f3ee;
+  --b57-color-surface: #ffffff;
+  --b57-color-accent: #9a7b4f;
+  --b57-color-accent-strong: #7d6340;
+  --b57-color-border: rgba(17, 17, 17, 0.12);
+
+  // Typography. No serif webfont is bundled yet, so headings use a system
+  // serif stack; body text uses the local DM Sans (next/font/local).
+  --b57-font-serif:
+    "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia,
+    "Times New Roman", serif;
+  --b57-font-sans:
+    var(--b57-font-sans-local, system-ui), -apple-system, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, sans-serif;
+
+  // Layout
+  --b57-container-width: 1200px;
+  --b57-gutter: clamp(1rem, 4vw, 2.5rem);
+  --b57-hairline: 1px solid var(--b57-color-border);
+  --b57-radius: 2px;
+  --b57-transition: 0.2s ease;
+}
+
+// Reset
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background-color: var(--b57-color-bg);
+  color: var(--b57-color-text);
+  font-family: var(--b57-font-sans);
+  font-size: 1rem;
+  line-height: 1.65;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+img,
+picture,
+video,
+svg {
+  display: block;
+  max-width: 100%;
+}
+
+input,
+button,
+textarea,
+select {
+  font: inherit;
+  color: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+// Typography
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  margin: 0 0 0.5em;
+  font-family: var(--b57-font-serif);
+  font-weight: 400;
+  line-height: 1.15;
+  letter-spacing: 0.01em;
+  color: var(--b57-color-text);
+}
+
+h1 {
+  font-size: clamp(2.25rem, 5vw, 4rem);
+}
+
+h2 {
+  font-size: clamp(1.75rem, 3.5vw, 2.75rem);
+}
+
+h3 {
+  font-size: clamp(1.375rem, 2.5vw, 1.875rem);
+}
+
+p {
+  margin: 0 0 1em;
+}
+
+a {
+  color: inherit;
+  text-decoration-color: var(--b57-color-accent);
+  text-underline-offset: 0.2em;
+  transition: color var(--b57-transition);
+
+  &:hover {
+    color: var(--b57-color-accent);
+  }
+}
+
+:focus-visible {
+  outline: 2px solid var(--b57-color-accent);
+  outline-offset: 2px;
+}
+
+::selection {
+  background: var(--b57-color-accent);
+  color: var(--b57-color-surface);
+}
+
+hr {
+  border: 0;
+  border-top: var(--b57-hairline);
+  margin: 2rem 0;
+}
+
+// Layout helpers shared by the placeholder pages.
+.b57-container {
+  width: 100%;
+  max-width: calc(var(--b57-container-width) + 2 * var(--b57-gutter));
+  margin-inline: auto;
+  padding-inline: var(--b57-gutter);
+}
+
+.b57-eyebrow {
+  display: inline-block;
+  margin-bottom: 1rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--b57-color-accent);
+}
+
+.b57-placeholder {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 100vh;
+  padding-block: 4rem;
+}
+
+.b57-placeholder__lead {
+  max-width: 36rem;
+  color: var(--b57-color-text-muted);
+}
+
+.b57-placeholder__links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 2rem;
+  margin: 2rem 0 0;
+  padding: 1.5rem 0 0;
+  list-style: none;
+  border-top: var(--b57-hairline);
+
+  a {
+    font-size: 0.8125rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    text-decoration: none;
+  }
+}
+
+.b57-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.875rem 1.75rem;
+  border: 1px solid var(--b57-color-text);
+  border-radius: var(--b57-radius);
+  background: transparent;
+  font-size: 0.8125rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  text-decoration: none;
+  transition:
+    background-color var(--b57-transition),
+    color var(--b57-transition),
+    border-color var(--b57-transition);
+
+  &:hover {
+    border-color: var(--b57-color-accent);
+    background: var(--b57-color-accent);
+    color: var(--b57-color-surface);
+  }
+}
+
+.b57-not-found__code {
+  margin-bottom: 0.25rem;
+  font-family: var(--b57-font-serif);
+  font-size: clamp(4rem, 12vw, 8rem);
+  line-height: 1;
+  color: var(--b57-color-accent);
+}
