@@ -30,7 +30,7 @@ const router = Router();
  *   get:
  *     operationId: listProperties
  *     summary: List properties with filters
- *     description: Returns a paginated list of active properties. Supports price, type, geo-radius, full-text search, and sorting.
+ *     description: Returns a paginated list of active properties. Supports price, type, geo-radius, full-text search, and sorting. On sites that hide prices (features.hidePublicPrices) every unit has price null plus priceLabel, and minPrice/maxPrice and sortBy=price are ignored.
  *     tags: [Properties]
  *     parameters:
  *       - $ref: '#/components/parameters/PageParam'
@@ -327,7 +327,7 @@ router.post(
  *       content:
  *         application/json:
  *           schema:
- *             $ref: '#/components/schemas/CreatePropertyRequest'
+ *             $ref: '#/components/schemas/UpdatePropertyRequest'
  *     responses:
  *       200:
  *         description: Property updated

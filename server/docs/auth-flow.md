@@ -45,7 +45,7 @@ sequenceDiagram
 
 ## Email Verification Flow
 
-1. On registration, server stores SHA-256 hash of verification token (24h expiry) and sends link: `{APP_URL}/verify-email?token={token}`
+1. On registration, server stores SHA-256 hash of verification token (24h expiry) and sends link: `{siteBaseUrl}/verify-email?token={token}` (see [Email links](#email-links))
 2. User submits token via `POST /auth/verify-email` (the `/verify-email` page calls this on load)
 3. If the browser already has auth tokens, the client refreshes the current user and notification queries after a successful verify, then `router.refresh()` so headers and dashboard reflect `isEmailVerified` without a manual reload
 4. Unverified users can still log in; `isEmailVerified` is exposed on the user object for client-side prompts
@@ -117,7 +117,7 @@ sequenceDiagram
 - `role` is optional and only applied on **first** Google sign-up (defaults to `buyer`; `agent` creates an `AgentProfile`)
 - Google users have no local password until they set one via password reset; `authProvider` is `google` or `both` when linked
 - Email/password accounts with the same verified Google email are **auto-linked** on Google sign-in — user can then sign in with either method
-- The same person may have **separate accounts per site** (Buytly vs Buildwise) with the same email or Google ID; uniqueness is `{ siteId, email }` and `{ siteId, googleId }`, not global across the database
+- The same person may have **separate accounts per site** (Buytly, Buildwise, Block 57) with the same email or Google ID; uniqueness is `{ siteId, email }` and `{ siteId, googleId }`, not global across the database
 - Google sign-in auto-verifies the account when Google confirms the email (`isEmailVerified=true`, verification tokens cleared)
 - On first Google sign-in, account linking, or later sign-in when the user has no avatar yet, the API downloads the Google profile photo from the ID token `picture` claim, stores it in GCS under `sites/{siteSlug}/avatars/`, and sets `users.avatar` (existing custom avatars are not overwritten)
 - Google-only accounts cannot change password until a password is set via reset; after reset, `authProvider` becomes `both` and password login/change-password are available
@@ -162,9 +162,17 @@ sequenceDiagram
 
 1. User submits email via `POST /auth/forgot-password`
 2. Server generates crypto-random token, stores SHA-256 hash in user document (1h expiry)
-3. Email sent with reset link: `{APP_URL}/reset-password?token={token}`
+3. Email sent with reset link: `{siteBaseUrl}/reset-password?token={token}` (see [Email links](#email-links))
 4. User submits token + new password via `POST /auth/reset-password`
 5. Password updated, all refresh tokens revoked
+
+## Email links
+
+Verify and reset emails (and notification email buttons) link to the **request site's** frontend, so a user finishes the flow on the site they registered on (accounts are per site):
+
+- `siteBaseUrl` = `resolveSitePublicBaseUrl(site)`: `SITE_PUBLIC_URL_BUYTLY` / `SITE_PUBLIC_URL_BUILDWISE` / `SITE_PUBLIC_URL_BLOCK57` when set; in development/test the local defaults `http://localhost:3000` / `3001` / `3002`; otherwise the site's `publicUrl` (or `https://{primaryDomain}`) from MongoDB.
+- `APP_URL` is only the fallback when no site URL is known (e.g. no request site).
+- Email subject, body and sender name use the site's display name (e.g. `Confirm your Block 57 account` from `Block 57 <SMTP_FROM>`); see `architecture.md` → Per-site branding.
 
 ## Change Password Flow (authenticated)
 

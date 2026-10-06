@@ -16,6 +16,9 @@ import {
   moderatePropertySchema,
   moderateProjectSchema,
   platformFeaturedSchema,
+  listAdminInquiriesSchema,
+  inquiryIdSchema,
+  updateInquiryStatusSchema,
 } from "./admin.validation.js";
 import { requirePlatformSite } from "../../middleware/resolveSite.js";
 import { catalogController } from "../catalog/catalog.controller.js";
@@ -479,6 +482,89 @@ router.patch(
   requirePlatformSite,
   validateMultiple({ params: projectIdSchema, body: platformFeaturedSchema }),
   asyncHandler(adminController.setProjectPlatformFeatured),
+);
+
+/**
+ * @swagger
+ * /admin/inquiries:
+ *   get:
+ *     operationId: adminListInquiries
+ *     summary: List contact form inquiries (admin)
+ *     description: Returns inquiries submitted through the public contact form on the current site only. Inquiries are private to each site — there is no cross-site `siteId` override, including for Buytly platform admins.
+ *     tags: [Admin]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - $ref: '#/components/parameters/PageParam'
+ *       - $ref: '#/components/parameters/LimitParam'
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           $ref: '#/components/schemas/InquiryStatus'
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *           maxLength: 200
+ *         description: Case-insensitive partial match on first name, last name, email, phone and message
+ *     responses:
+ *       200:
+ *         description: Inquiry list (newest first)
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/PaginatedInquiriesResponse'
+ *       400:
+ *         $ref: '#/components/responses/ValidationError'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ */
+router.get(
+  "/inquiries",
+  validate(listAdminInquiriesSchema, "query"),
+  asyncHandler(adminController.listInquiries),
+);
+
+/**
+ * @swagger
+ * /admin/inquiries/{id}:
+ *   patch:
+ *     operationId: adminUpdateInquiryStatus
+ *     summary: Update an inquiry's status
+ *     description: Sets the follow-up status of an inquiry on the current site. Inquiries from other sites return 404.
+ *     tags: [Admin]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - $ref: '#/components/parameters/ObjectIdParam'
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/UpdateInquiryStatusRequest'
+ *     responses:
+ *       200:
+ *         description: Inquiry status updated
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/InquirySuccessResponse'
+ *       400:
+ *         $ref: '#/components/responses/ValidationError'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ */
+router.patch(
+  "/inquiries/:id",
+  validateMultiple({ params: inquiryIdSchema, body: updateInquiryStatusSchema }),
+  asyncHandler(adminController.updateInquiryStatus),
 );
 
 /**

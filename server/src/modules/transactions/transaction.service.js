@@ -9,9 +9,25 @@ import {
 import { ROLES } from "../../shared/constants.js";
 import { syncParentProjectSoldStatus } from "../projects/project-sold-sync.js";
 import { getRequestSiteId } from "../../shared/requestContext.js";
+import { canManageProperty } from "../properties/property.service.js";
+import {
+  applyPopulatedUnitPriceVisibility,
+  requestSiteHidesPublicPrices,
+  withManagerFields,
+} from "../../shared/priceVisibility.js";
+
+/** Hidden prices: the unit's listing price is shown only to its managers. */
+const withTransactionPriceVisibility = (transaction, viewer) => ({
+  ...transaction.toObject(),
+  propertyId: applyPopulatedUnitPriceVisibility(
+    transaction.propertyId,
+    Boolean(transaction.propertyId) &&
+      canManageProperty(transaction.propertyId, viewer),
+  ),
+});
 
 export const transactionService = {
-  async create(buyerId, data) {
+  async create(buyerId, data, viewer) {
     const property = await Property.findOne({
       _id: data.propertyId,
       siteId: getRequestSiteId(),
@@ -31,8 +47,13 @@ export const transactionService = {
       notes: data.notes,
     });
 
+    // Parties and the unit share the request site.
+    const hidePrices = requestSiteHidesPublicPrices();
     const populated = await transaction.populate([
-      { path: "propertyId", select: "title slug price" },
+      {
+        path: "propertyId",
+        select: withManagerFields("title slug price", hidePrices),
+      },
       { path: "buyerId", select: "firstName lastName email" },
       { path: "sellerId", select: "firstName lastName email" },
       { path: "agentId", select: "firstName lastName email" },
@@ -52,20 +73,26 @@ export const transactionService = {
       transactionType: data.type,
     });
 
-    return populated;
+    return hidePrices
+      ? withTransactionPriceVisibility(populated, viewer)
+      : populated;
   },
 
-  async getMyTransactions(userId, query) {
+  async getMyTransactions(userId, query, viewer) {
     const { page, limit, skip } = parsePagination(query);
     const filter = {
       $or: [{ buyerId: userId }, { sellerId: userId }, { agentId: userId }],
     };
     if (query.status) filter.status = query.status;
     if (query.type) filter.type = query.type;
+    const hidePrices = requestSiteHidesPublicPrices();
 
     const [transactions, total] = await Promise.all([
       Transaction.find(filter)
-        .populate("propertyId", "title slug price location")
+        .populate(
+          "propertyId",
+          withManagerFields("title slug price location", hidePrices),
+        )
         .populate("buyerId", "firstName lastName email")
         .populate("sellerId", "firstName lastName email")
         .populate("agentId", "firstName lastName email")
@@ -76,14 +103,22 @@ export const transactionService = {
     ]);
 
     return {
-      transactions,
+      transactions: hidePrices
+        ? transactions.map((transaction) =>
+            withTransactionPriceVisibility(transaction, viewer),
+          )
+        : transactions,
       pagination: buildPaginationMeta(total, page, limit),
     };
   },
 
-  async getById(id, userId) {
+  async getById(id, userId, viewer) {
+    const hidePrices = requestSiteHidesPublicPrices();
     const transaction = await Transaction.findById(id)
-      .populate("propertyId", "title slug price location media")
+      .populate(
+        "propertyId",
+        withManagerFields("title slug price location media", hidePrices),
+      )
       .populate("buyerId", "firstName lastName email phone")
       .populate("sellerId", "firstName lastName email phone")
       .populate("agentId", "firstName lastName email phone");
@@ -97,7 +132,9 @@ export const transactionService = {
 
     if (!isParty) throw new AppError("Not authorized", 403);
 
-    return transaction;
+    return hidePrices
+      ? withTransactionPriceVisibility(transaction, viewer)
+      : transaction;
   },
 
   async updateStatus(id, data, user) {

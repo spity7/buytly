@@ -8,7 +8,11 @@ export const bookingController = {
   },
 
   getMy: async (req, res) => {
-    const result = await bookingService.getMyBookings(req.user._id, req.query);
+    const result = await bookingService.getMyBookings(
+      req.user._id,
+      req.query,
+      req.user,
+    );
     ApiResponse.paginated(res, result.bookings, result.pagination);
   },
 

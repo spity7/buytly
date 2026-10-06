@@ -10,7 +10,10 @@ import {
   parsePagination,
   buildPaginationMeta,
 } from "../../shared/pagination.js";
-import { buildPropertyTextFilter } from "../../shared/search.js";
+import {
+  buildPropertyTextFilter,
+  escapeRegex,
+} from "../../shared/search.js";
 import { notificationService } from "../notifications/notification.service.js";
 import {
   buildArchiveUpdate,
@@ -47,6 +50,15 @@ import {
   assertUnitPlatformVisibility,
 } from "../platform/platform-visibility.js";
 import { attachPropertyMediaUrls } from "../properties/property.service.js";
+import { Inquiry } from "../inquiries/inquiry.model.js";
+
+const INQUIRY_SEARCH_FIELDS = [
+  "firstName",
+  "lastName",
+  "email",
+  "phone",
+  "message",
+];
 
 const resolveListSiteId = (query, user) => {
   const requestSiteId = getRequestSiteId();
@@ -518,6 +530,45 @@ export const adminService = {
 
     const doc = project.toObject();
     return doc;
+  },
+
+  /**
+   * Inquiries are private to each site: always scoped to the request site,
+   * with no platform-admin `siteId` override.
+   */
+  async listInquiries(query) {
+    const { page, limit, skip } = parsePagination(query);
+    const filter = { siteId: getRequestSiteId() };
+
+    if (query.status) filter.status = query.status;
+
+    const term = query.search?.trim();
+    if (term) {
+      const pattern = new RegExp(escapeRegex(term), "i");
+      filter.$or = INQUIRY_SEARCH_FIELDS.map((field) => ({ [field]: pattern }));
+    }
+
+    const [inquiries, total] = await Promise.all([
+      Inquiry.find(filter)
+        .sort({ createdAt: -1, _id: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+      Inquiry.countDocuments(filter),
+    ]);
+
+    return { inquiries, pagination: buildPaginationMeta(total, page, limit) };
+  },
+
+  async updateInquiryStatus(inquiryId, status) {
+    const inquiry = await Inquiry.findOneAndUpdate(
+      { _id: inquiryId, siteId: getRequestSiteId() },
+      { status },
+      { new: true, runValidators: true },
+    ).lean();
+
+    if (!inquiry) throw new AppError("Inquiry not found", 404);
+    return inquiry;
   },
 
   async getAnalytics(query = {}, user) {

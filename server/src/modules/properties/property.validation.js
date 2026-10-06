@@ -31,6 +31,9 @@ const propertyBodySchema = z.object({
   bathrooms: z.number().int().min(0).optional(),
   area: areaSqmSchema.optional(),
   areaUnit: z.string().optional(),
+  // null (or a blank building) clears the stored value.
+  building: z.string().trim().max(50).nullable().optional(),
+  floor: z.number().int().min(-5).max(300).nullable().optional(),
   amenities: z.array(z.string()).optional(),
   floorPlans: z.array(floorPlanSchema).optional(),
   virtualTourUrl: z.string().url().max(2000).optional().or(z.literal("")),

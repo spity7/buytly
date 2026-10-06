@@ -15,16 +15,17 @@
 | bookings             | Bookings         | Visit scheduling                                |
 | transactions         | Transactions     | Purchase tracking                               |
 | notifications        | Notifications    | In-app notifications                            |
+| inquiries            | Contact / Admin  | Per-site contact form submissions               |
 | propertytypecatalogs | Catalog          | Admin-managed property types                    |
 | amenitycatalogs      | Catalog          | Per-site admin-managed amenities                |
 
 ## sites
 
-Multi-tenant registry. One document per public site (Buytly platform + partner tenants such as Buildwise).
+Multi-tenant registry. One document per public site (Buytly platform + partner tenants such as Buildwise and Block 57).
 
 ```javascript
 {
-  slug: String (unique, e.g. buytly, buildwise),
+  slug: String (unique, e.g. buytly, buildwise, block57),
   kind: enum [platform, tenant],
   name: String,
   primaryDomain: String,
@@ -35,7 +36,7 @@ Multi-tenant registry. One document per public site (Buytly platform + partner t
     siteDisplayName, logoUrl, contactInboxEmail
   },
   platformListingPolicy: enum [optIn, defaultVisibleOnPlatform],
-  features: Mixed,
+  features: Mixed (per-site flags, e.g. { hidePublicPrices: Boolean }),
   isActive: Boolean,
   timestamps
 }
@@ -43,7 +44,13 @@ Multi-tenant registry. One document per public site (Buytly platform + partner t
 
 **Indexes:** `slug` (unique), `primaryDomain`, `domains`, `isActive`
 
-**Seeding:** `siteService.ensureDefaultSites()` on API boot creates Buytly (`kind: platform`) and Buildwise (`kind: tenant`).
+**Seeding:** `siteService.ensureDefaultSites()` on API boot creates Buytly (`kind: platform`), Buildwise (`kind: tenant`) and Block 57 (`kind: tenant`, `block-57.com`, `contactInboxEmail: info@block-57.com`, `features.hidePublicPrices: true`). Entries are upserted with `$setOnInsert`, so an existing database gains a newly added site on the next boot and edits to existing sites are never overwritten.
+
+**Feature flags (`features`):**
+
+| Flag               | Type    | Description                                                                                                                                                                                                                                                                                         |
+| ------------------ | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `hidePublicPrices` | Boolean | When `true`, API responses for this site's units and projects omit prices for viewers who cannot manage the listing (unit `price: null`, project `priceMin`/`priceMax: null`, plus `priceLabel: "Price on request"`). Stored prices are unchanged. See [api-rules.md](./api-rules.md#hidden-prices) |
 
 ## users
 
@@ -57,7 +64,7 @@ Multi-tenant registry. One document per public site (Buytly platform + partner t
   role: enum [buyer, seller, agent, admin],
   platformPermissions: [cross_site_read, cross_site_moderate] (platform admins on Buytly),
   firstName, lastName, phone: String,
-  phoneCountryCode, phoneNumber: String (E.164 parts; `phone` kept as combined),
+  phoneCountryCode, phoneNumber: String (E.164 parts; `phone` kept as combined; code must be in `PHONE_COUNTRY_CODES` in `src/shared/phone.js`, e.g. +961, +233),
   avatar: { gcsKey, mimeType, size } — stored in GCS; API responses add a signed `url` at read time (not persisted).
   socialLinks: { instagram, linkedin, website },
   preferences: { budgetMin, budgetMax, locations[], propertyTypes[] },
@@ -136,12 +143,16 @@ Sellable **units** under a project. All listings are for **sale** (no `listingTy
   price: Number (whole USD), currency: String (USD),
   location: copied from project (GeoJSON Point + address fields),
   bedrooms, bathrooms, area, areaUnit,
+  building: String (optional, trimmed, max 50; e.g. block "A"),
+  floor: Number (optional integer; API accepts -5..300),
   amenities: [String],
   status: enum [draft, pending, active, sold, archived],
   media, floorPlans (`{ title, gcsKey }` per level, any property type), virtualTourUrl,
   agentId, ownerId, viewCount, deletedAt, timestamps
 }
 ```
+
+`building` and `floor` are optional inventory positions. Sending `null` (or a blank `building`) on create/update clears the value: the field is unset, so reads omit it exactly like a unit that never had one. They are not material fields (editing them does not send an active unit back to review).
 
 **Indexes:** `location` 2dsphere; `price`, `type`, `status`; `{ status, price }`; `{ projectId, sortOrder }`; text on title/description
 
@@ -232,6 +243,30 @@ Sellable **units** under a project. All listings are for **sale** (no `listingTy
 }
 ```
 
+## inquiries
+
+Public contact / inquire form submissions (`POST /contact`), private to the site they were submitted on. Admins read and update them via `/admin/inquiries`, always filtered by the request `siteId`.
+
+```javascript
+{
+  siteId: ObjectId → sites (required),
+  firstName, lastName, email: String (required),
+  phone, residenceType: String (default ""),
+  unitId: ObjectId → properties (default null; only stored when the unit belongs to the same site),
+  unitLabel: String (default ""; free text as submitted, e.g. "A-101"),
+  message: String (required),
+  pagePath: String (default ""; site-relative path the form was submitted from),
+  sourceUrl: String (site public base URL + pagePath),
+  status: enum [new, contacted, closed] (default new),
+  emailDelivered: Boolean (default false; true once the site inbox email was sent),
+  timestamps
+}
+```
+
+**Indexes:** `{ siteId: 1, createdAt: -1 }` (admin list, newest first), `{ siteId: 1, status: 1 }` (status filter). Both are `siteId`-prefixed, so they also serve plain `siteId` lookups.
+
+The inquiry is saved **before** any email is sent; delivery failures are logged and leave `emailDelivered: false`. Honeypot submissions (non-empty `website`) are not stored.
+
 ## propertytypecatalogs / amenitycatalogs
 
 ```javascript
@@ -251,6 +286,8 @@ Seeded from `catalog.defaults.js` on first catalog API access: **default ameniti
 
 **Default amenities:** Parking, Elevator, Balcony, Terrace, Garden, Swimming Pool, Gym, Security, Generator, Central AC, Furnished, Sea View, Mountain View, Smart Home, Pet Friendly.
 
+**Block 57 seeding:** `npm run seed:block57` (`scripts/seed-block57.js`, see deployment.md) writes only to the `block57` site. It inserts the six unit types (`executive-studio`, `one-bedroom`, `two-bedroom`, `townhouse`, `urban-villa`, `penthouse`) with `$setOnInsert`; inserts the default amenities, then keeps Swimming Pool, Security and the Block 57 amenities (Rooftop Lounge, Padel Court, Fitness Centre, Children's Play Area, Business Lounge, Underground Parking; stored value = label, like the defaults) active and Sea View, Mountain View and Generator inactive on every run, setting label/sortOrder only on insert. It also creates the `block57` admin user (`platformPermissions: []`), the draft `block-57` project and, with `--units`, its units (matched by `{ siteId, projectId, title }`, with `building`/`floor`, project location and owner). Re-runs create no duplicates and never change an existing project.
+
 To remove unused legacy auto-bootstrapped property types from an existing database, run `npm run catalog:prune-legacy-types` (deletes only types with zero listings).
 
 Protected property types (if any) cannot be edited, deleted, or deactivated via the admin catalog API.
@@ -267,6 +304,8 @@ erDiagram
   users ||--o{ notifications : receives
   users ||--o| agentprofiles : has
   users ||--o{ refreshtokens : has
+  sites ||--o{ inquiries : receives
+  properties |o--o{ inquiries : "asked about"
   properties ||--o{ favorites : favorited
   properties ||--o{ bookings : scheduled
   properties ||--o{ transactions : involved

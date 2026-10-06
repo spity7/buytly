@@ -48,7 +48,7 @@ Demo logins: `admin@buytly.demo`, `seller@buytly.demo`, `agent@buytly.demo`, `bu
 
 **`npm run seed:reset`** (recommended) wipes users, listings, and the **listing catalog** collections, then reloads demo property types (only those used by sample listings), amenities, and demo data. All demo listing prices use **`currency: USD`**, consistent with the API (create/update always store USD). Use **`npm run seed`** without reset only to append users when emails are new; catalog rows are skipped if types already exist (demo amenities are upserted).
 
-**Development only** — never seed production without intent.
+**Development only** — never seed production without intent. The Block 57 tenant has its own production-safe bootstrap: see [Block 57 bootstrap](#block-57-bootstrap-seedblock57).
 
 Generate JWT secrets:
 
@@ -74,7 +74,7 @@ The Next.js client fetches the live OpenAPI spec from `/api/docs.json` for Orval
 | GCS_PROJECT_ID            | Yes      | GCP project ID                                                                                                        |
 | GCS_BUCKET                | Yes      | GCS bucket name                                                                                                       |
 | GCS_KEY_FILE              | No       | Path to service account JSON                                                                                          |
-| APP_URL                   | Yes      | Frontend URL for password-reset links                                                                                 |
+| APP_URL                   | Yes      | Fallback frontend URL for email links when no site public URL is known (sites use `SITE_PUBLIC_URL_*` / `publicUrl`)  |
 | API_URL                   | Yes      | Public API base for Swagger and logs (e.g. `https://api.buytly.com/api/v1`)                                           |
 | CORS_ORIGIN               | Yes      | Allowed origins (comma-separated)                                                                                     |
 | SWAGGER_ENABLED           | No       | Expose `/api/docs` (default: on in dev, off in production)                                                            |
@@ -84,14 +84,15 @@ The Next.js client fetches the live OpenAPI spec from `/api/docs.json` for Orval
 | SMTP_PORT                 | No       | SMTP port (587 or 465; default 587)                                                                                   |
 | SMTP_USER                 | Cond.    | Required when `EMAIL_PROVIDER=smtp`                                                                                   |
 | SMTP_PASS                 | Cond.    | Required when `EMAIL_PROVIDER=smtp`                                                                                   |
-| SMTP_FROM                 | Yes      | From email address (verified sender for SendGrid)                                                                     |
-| CONTACT_INBOX_EMAIL       | No       | Receives `/contact` form submissions (default `buytlyonline@gmail.com`)                                               |
+| SMTP_FROM                 | Yes      | Sender address (verified sender for SendGrid); the display name is set per site, e.g. `Block 57 <address>`            |
+| CONTACT_INBOX_EMAIL       | No       | Receives `/contact` submissions for sites without `branding.contactInboxEmail` (default `buytlyonline@gmail.com`)     |
 | GCS_ORPHAN_GRACE_HOURS    | No       | Grace period for `npm run cleanup:gcs` (default 48)                                                                   |
 | OVERPASS_URL              | No       | Primary Overpass API URL for What's Nearby (falls back to public mirrors)                                             |
 | OVERPASS_USER_AGENT       | No       | User-Agent sent to Overpass (recommended in production)                                                               |
 | GOOGLE_CLIENT_ID          | Yes      | Google OAuth Web client ID (same as client `NEXT_PUBLIC_GOOGLE_CLIENT_ID`)                                            |
-| SITE_PUBLIC_URL_BUILDWISE | No       | Partner listing links from Buytly marketplace (`sourceSite.listingUrl`). Dev default `http://localhost:3001` if unset |
-| SITE_PUBLIC_URL_BUYTLY    | No       | Buytly first-party listing base in platform API metadata. Dev default `http://localhost:3000` if unset                |
+| SITE_PUBLIC_URL_BUILDWISE | No       | Buildwise base for partner `sourceSite.listingUrl` and email links. Dev default `http://localhost:3001` if unset      |
+| SITE_PUBLIC_URL_BUYTLY    | No       | Buytly base for platform API listing metadata and email links. Dev default `http://localhost:3000` if unset           |
+| SITE_PUBLIC_URL_BLOCK57   | No       | Block 57 base for partner listing links on Buytly and email links. Dev default `http://localhost:3002` if unset       |
 
 **Docker Compose (repo root `.env`):** copy `.env.example` → `.env` at the repo root. Never commit `.env`. Required for client build/runtime:
 
@@ -140,9 +141,9 @@ Use port **587** (STARTTLS). `SMTP_USER` and `SMTP_FROM` must be the same Gmail 
 | SMTP_PASS | 16-character app password |
 | SMTP_FROM | same as `SMTP_USER`       |
 
-`SMTP_FROM` must be a plain email address (no display name like `Buytly <...>`).
+`SMTP_FROM` must be a plain email address (no display name like `Buytly <...>`). The API adds the display name per site, e.g. `Block 57 <your-address>`.
 
-**Deliverability:** Set `APP_URL` to your real frontend domain in production (not `localhost`) so verification and password-reset links use a trusted domain. Action emails include a plain-text body and a visible URL fallback in addition to the button link.
+**Deliverability:** Verification, password-reset and notification links use the request site's public URL (`SITE_PUBLIC_URL_*` when set, otherwise `sites.publicUrl` in production), so each tenant's users land on their own domain. Keep `APP_URL` on your real Buytly domain in production (not `localhost`) — it is the fallback when no site URL is known. Action emails include a plain-text body and a visible URL fallback in addition to the button link.
 
 **Gmail limits:** ~500 emails/day for free accounts. For higher volume, use SendGrid below.
 
@@ -255,13 +256,13 @@ TRUST_PROXY=true
 MONGODB_URI=mongodb+srv://<user>:<pass>@<cluster>/<db>?retryWrites=true&w=majority
 APP_URL=https://buytly.com
 API_URL=https://api.buytly.com/api/v1
-CORS_ORIGIN=https://buytly.com,https://www.buytly.com,https://buildwise-engineering.com,https://www.buildwise-engineering.com
+CORS_ORIGIN=https://buytly.com,https://www.buytly.com,https://buildwise-engineering.com,https://www.buildwise-engineering.com,https://block-57.com,https://www.block-57.com
 SWAGGER_ENABLED=false
 GCS_KEY_FILE=./gcs-service-account.json
 GOOGLE_CLIENT_ID=<your-google-oauth-client-id>
 ```
 
-Optional in `server/.env`: `SITE_PUBLIC_URL_BUILDWISE` / `SITE_PUBLIC_URL_BUYTLY` override partner `listingUrl` bases; if unset in production, the API uses `sites.publicUrl` / `primaryDomain` from MongoDB (seeded on startup).
+Optional in `server/.env`: `SITE_PUBLIC_URL_BUILDWISE` / `SITE_PUBLIC_URL_BUYTLY` / `SITE_PUBLIC_URL_BLOCK57` override partner `listingUrl` bases and email link bases (verify/reset/notification buttons); if unset in production, the API uses `sites.publicUrl` / `primaryDomain` from MongoDB (seeded on startup).
 
 **Repo root `.env` (Next.js **build args** — rebake images after changes):**
 
@@ -280,7 +281,103 @@ Add Google OAuth authorized JavaScript origins: `https://buytly.com`, `https://w
 3. Build and run all services: `docker compose up -d --build` (`client`, `buildwise-web`, `server`).
 4. Nginx + TLS: same three-host layout and certbot commands as [Hostinger VPS — deployment](#hostinger-vps--deployment) above.
 
-Each frontend sends browser `Origin`; the API resolves tenant from host mapping in `sites`. Dev/tests may send `X-Site-Slug: buytly|buildwise`. Per-site accounts: the same email may exist independently on each site.
+Each frontend sends browser `Origin`; the API resolves tenant from host mapping in `sites`. Dev/tests may send `X-Site-Slug: buytly|buildwise|block57`. Per-site accounts: the same email may exist independently on each site.
+
+### Block 57 bootstrap (`seed:block57`)
+
+`scripts/seed-block57.js` prepares the `block57` tenant on any database, including production, after the API has been deployed. It is safe to run again: every step is an upsert, nothing is deleted, and edits made in the dashboard are kept. Steps:
+
+1. Ensure the default sites exist (`ensureDefaultSites`, as on API boot) and load `block57`.
+2. Create the Block 57 admin, or update an existing account with that email on `block57`: role `admin`, email verified, **no platform permissions** (it cannot see other sites' data). A new account gets the name "Block 57 Sales" and the site support phone. This account owns the project and its name, email and phone are shown on listings, so use a shared sales mailbox rather than a personal address.
+3. Property types (insert only; later label/order/active edits are kept): `executive-studio` Executive Studio, `one-bedroom` 1 Bedroom, `two-bedroom` 2 Bedroom, `townhouse` Townhouse, `urban-villa` Urban Villa, `penthouse` Penthouse.
+4. Amenities: inserts the catalog defaults (as the first catalog read would), then sets active on every run: Swimming Pool and Security (defaults, reused), Rooftop Lounge, Padel Court, Fitness Centre, Children's Play Area, Business Lounge, Underground Parking; and inactive: Sea View, Mountain View, Generator. Labels and sort order are only set when a row is inserted. Other sites' catalogs are untouched.
+5. Project "Block 57" (slug `block-57`): created once as **draft**, owned by the admin, with placeholder marketing copy, the Block 57 amenities and location "54E First Circular Crescent, Cantonments, Accra, Ghana". The default map pin (lat 5.5786, lng -0.1745) is approximate; confirm it, then pass `BLOCK57_LAT`/`BLOCK57_LNG` on the first run or move the pin in the dashboard. An existing project is never modified (status, copy, location and media belong to the dashboard). A project in the trash stops the script; restore it first.
+6. `--units <file>`: upsert units (see below).
+7. `--activate`: approve the project the same way an admin does in the dashboard (`adminService.moderateProject(..., "active")`): the project becomes active and its **pending** units become active; draft units stay draft. It needs at least one pending or active unit and is skipped (with the reason printed) otherwise, or when the project is already active with nothing pending, or sold. The owner gets the usual "project approved" notification and email.
+
+The script prints a summary (created / updated / unchanged counts, warnings) and next steps, exits non-zero on any error, and always disconnects.
+
+| Variable                      | Required | Description                                                                                                                                          |
+| ----------------------------- | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `BLOCK57_ADMIN_EMAIL`         | yes      | Admin account on `block57` (shared sales mailbox)                                                                                                    |
+| `BLOCK57_ADMIN_PASSWORD`      | yes      | 8–128 characters. Used when the account is created, or with `--reset-admin-password`; otherwise an existing password is left unchanged. Never logged |
+| `BLOCK57_LAT` / `BLOCK57_LNG` | no       | Project coordinates (set both). Only used when the project is first created                                                                          |
+
+| Flag                     | Effect                                                                                            |
+| ------------------------ | ------------------------------------------------------------------------------------------------- |
+| `--units <file>`         | Upsert units from a JSON array. Relative paths resolve from the directory the command is run from |
+| `--activate`             | Approve the project and its pending units (step 7)                                                |
+| `--reset-admin-password` | Set the admin password from `BLOCK57_ADMIN_PASSWORD` and revoke the account's refresh tokens      |
+| `--help`                 | Print usage                                                                                       |
+
+Local (the variables can also live in `server/.env`):
+
+```bash
+cd server
+BLOCK57_ADMIN_EMAIL=<sales-mailbox> BLOCK57_ADMIN_PASSWORD='<password>' \
+  npm run seed:block57 -- --units scripts/seed/block57-units.example.json --activate
+```
+
+Docker (runs inside the API container, so it uses the container's `MONGODB_URI` and GCS credentials). Read the password without echoing it, so it stays out of shell history:
+
+```bash
+read -rsp "Block 57 admin password: " BLOCK57_ADMIN_PASSWORD; echo
+docker compose exec \
+  -e BLOCK57_ADMIN_EMAIL=<sales-mailbox> \
+  -e BLOCK57_ADMIN_PASSWORD="$BLOCK57_ADMIN_PASSWORD" \
+  server npm run seed:block57
+
+# Units: copy the inventory file into the container, import it, then activate
+docker compose cp ./block57-units.json server:/tmp/block57-units.json
+docker compose exec \
+  -e BLOCK57_ADMIN_EMAIL=<sales-mailbox> \
+  -e BLOCK57_ADMIN_PASSWORD="$BLOCK57_ADMIN_PASSWORD" \
+  server npm run seed:block57 -- --units /tmp/block57-units.json --activate
+unset BLOCK57_ADMIN_PASSWORD
+```
+
+**Units file.** A JSON array; each entry is validated with the same rules as `POST /properties`, and the whole file is checked before any unit is written (unknown keys, duplicate titles and unknown or inactive types are errors):
+
+| Field                           | Rules                                                                                                                                 |
+| ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| `title`                         | Required, 3–200 characters, block-prefixed (e.g. `A-101`). Matched exactly per project on re-runs                                     |
+| `type`                          | Required; an active Block 57 property type (step 3)                                                                                   |
+| `price`                         | Required whole USD amount > 0 (hidden from the public; see api-rules.md)                                                              |
+| `building`, `floor`             | Optional; building up to 50 characters, floor a whole number −5…300. `null` clears on re-run                                          |
+| `bedrooms`, `bathrooms`, `area` | Optional; whole numbers, area in m² with up to 2 decimals                                                                             |
+| `sortOrder`                     | Optional whole number (default 999)                                                                                                   |
+| `status`                        | `pending` (default) or `sold`                                                                                                         |
+| `description`                   | Optional, ≥ 10 characters. New units without one get e.g. "2 Bedroom residence in Block C, floor 7, at Block 57, Cantonments, Accra." |
+
+```json
+[
+  {
+    "title": "A-101",
+    "type": "executive-studio",
+    "building": "A",
+    "floor": 1,
+    "bedrooms": 0,
+    "bathrooms": 1,
+    "area": 45,
+    "price": 150000
+  },
+  {
+    "title": "B-302",
+    "type": "two-bedroom",
+    "building": "B",
+    "floor": 3,
+    "bedrooms": 2,
+    "bathrooms": 2,
+    "area": 120,
+    "price": 350000,
+    "status": "sold"
+  }
+]
+```
+
+New units are created through the property service (location copied from the project, owner = project owner, `USD`). On re-runs, a unit whose title already exists on the project is updated with the fields that changed; omitted optional fields are kept. Status only moves forward: `pending` never downgrades an active unit, and a unit that is sold in the database stays sold (a warning is printed). Units in the trash are skipped, and units that are not in the file are left alone. Enter the full inventory before marking units sold: when every unit is sold the project becomes sold automatically and refuses new units.
+
+`scripts/seed/block57-units.example.json` holds six **example** units (one per type across Blocks A/B/C) with placeholder prices and "Example unit" descriptions, for local testing only; the script refuses to import a `*.example.json` file when `NODE_ENV=production`.
 
 ## MongoDB Atlas Setup
 
@@ -318,8 +415,8 @@ Email is anonymized on `DELETE /users/me`, so re-registration works with the par
 - [ ] Use strong, unique JWT secrets (`npm run generate-secrets`)
 - [ ] MongoDB Atlas with IP whitelist and TLS
 - [ ] GCS bucket with uniform access, no public ACLs
-- [ ] `CORS_ORIGIN` includes all frontend origins (Buytly + Buildwise domains for production)
-- [ ] `APP_URL=https://buytly.com` for password-reset links
+- [ ] `CORS_ORIGIN` includes all frontend origins (Buytly + Buildwise + Block 57 domains for production)
+- [ ] `APP_URL=https://buytly.com` (fallback only; email links use each site's `publicUrl` / `SITE_PUBLIC_URL_*`)
 - [ ] `API_URL=https://api.buytly.com/api/v1`
 - [ ] DNS A records for `@`, `www`, `api` → VPS IP
 - [ ] `docker compose up -d --build` running on VPS
@@ -349,7 +446,7 @@ Same layout as handiz-dashboard:
 | Repo root `.dockerignore`       | Build context for frontends; excludes `.env*`, `server/`, `packages/` |
 | Repo root `.gitignore`          | Secrets, `node_modules/`, `**/.next/`, coverage (workspaces)          |
 
-Frontend env for Docker comes from the repo root `.env` (see `.env.example`) via **compose build args** — values are embedded at image build time. Server runtime env comes from `server/.env` (`env_file` in compose). Optional: set `APP_URL` in `server/.env` to the public site users open in the browser (email/reset links); local dev often uses `http://localhost:3000` / `3001`, Docker frontends use `http://localhost:3025` / `3026`.
+Frontend env for Docker comes from the repo root `.env` (see `.env.example`) via **compose build args** — values are embedded at image build time. Server runtime env comes from `server/.env` (`env_file` in compose). Email/reset links use each site's public URL: in development the API defaults to `http://localhost:3000` (Buytly), `3001` (Buildwise) and `3002` (Block 57); when the Docker frontends run on other ports (e.g. `http://localhost:3025` / `3026`), set the matching `SITE_PUBLIC_URL_*` in `server/.env`. `APP_URL` is only the fallback.
 
 **BuildKit / buildx:** Frontend Dockerfiles use a plain `npm ci` layer so **classic** `docker compose build` works on minimal VPS images (no `buildx` required). If you see `Docker Compose requires buildx plugin`, it is usually a warning only. Optional faster rebuilds on a machine with BuildKit: `export DOCKER_BUILDKIT=1` before `docker compose build` (install `docker-buildx-plugin` if your distro documents it).
 

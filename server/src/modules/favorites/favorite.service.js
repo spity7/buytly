@@ -7,18 +7,28 @@ import {
   buildPaginationMeta,
 } from "../../shared/pagination.js";
 import { getRequestSiteId } from "../../shared/requestContext.js";
+import { canManageProperty } from "../properties/property.service.js";
+import {
+  applyPopulatedUnitPriceVisibility,
+  requestSiteHidesPublicPrices,
+  withManagerFields,
+} from "../../shared/priceVisibility.js";
+
+const FAVORITE_PROPERTY_FIELDS =
+  "title slug price currency type projectId location status media bedrooms bathrooms";
 
 export const favoriteService = {
-  async list(userId, query) {
+  async list(userId, query, viewer) {
     const { page, limit, skip } = parsePagination(query);
+    // Favorites are site-scoped (users and favorited units share the request site).
+    const hidePrices = requestSiteHidesPublicPrices();
 
     const [favorites, total] = await Promise.all([
       Favorite.find({ userId })
         .populate({
           path: "propertyId",
           match: { deletedAt: null },
-          select:
-            "title slug price currency type projectId location status media bedrooms bathrooms",
+          select: withManagerFields(FAVORITE_PROPERTY_FIELDS, hidePrices),
         })
         .sort({ createdAt: -1 })
         .skip(skip)
@@ -30,7 +40,12 @@ export const favoriteService = {
       favorites
         .filter((f) => f.propertyId)
         .map(async (f) => {
-          const property = f.propertyId.toObject();
+          const property = hidePrices
+            ? applyPopulatedUnitPriceVisibility(
+                f.propertyId,
+                canManageProperty(f.propertyId, viewer),
+              )
+            : f.propertyId.toObject();
           if (property.media?.[0]?.gcsKey) {
             property.thumbnail = await gcsService.getSignedUrl(
               property.media[0].gcsKey,

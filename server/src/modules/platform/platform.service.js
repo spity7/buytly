@@ -19,6 +19,11 @@ import {
   parsePartnersOnlyQuery,
 } from "./platform-query.js";
 import { resolveSitePublicBaseUrl } from "../sites/sitePublicUrl.js";
+import {
+  getHiddenPriceSiteIds,
+  hideProjectPriceRange,
+  hideUnitPrice,
+} from "../../shared/priceVisibility.js";
 
 const attachProjectMediaUrls = async (project) => {
   const doc = project.toObject ? project.toObject() : { ...project };
@@ -84,6 +89,54 @@ function resolveListingSourceSite(
     };
   }
   return buildSourceSiteMeta(siteDoc, { listingPath });
+}
+
+const populateUnitProject = (query) =>
+  query.populate("projectId", "title slug status siteId visibleOnPlatform");
+
+/**
+ * Price sort when some sites hide prices: priced units first (by price), then
+ * hidden-price units (newest first), paginated as one list so a unit's position
+ * never reveals its price.
+ */
+async function findUnitsSortedByPrice(
+  filter,
+  sortOrder,
+  hiddenSiteIds,
+  { skip, limit },
+) {
+  // `filter` scopes sites via its $or branches only (no top-level siteId here).
+  const pricedFilter = { ...filter, siteId: { $nin: hiddenSiteIds } };
+  const hiddenFilter = { ...filter, siteId: { $in: hiddenSiteIds } };
+  const [pricedTotal, hiddenTotal] = await Promise.all([
+    Property.countDocuments(pricedFilter),
+    Property.countDocuments(hiddenFilter),
+  ]);
+
+  const priced =
+    skip < pricedTotal
+      ? await populateUnitProject(
+          Property.find(pricedFilter)
+            .sort({ price: sortOrder })
+            .skip(skip)
+            .limit(limit),
+        )
+      : [];
+  const remaining = limit - priced.length;
+  const hidden =
+    remaining > 0
+      ? await populateUnitProject(
+          Property.find(hiddenFilter)
+            .sort({ createdAt: -1 })
+            .skip(Math.max(0, skip - pricedTotal))
+            .limit(remaining),
+        )
+      : [];
+
+  return {
+    properties: [...priced, ...hidden],
+    total: pricedTotal + hiddenTotal,
+  };
 }
 
 async function buildUnitCatalogScope(platformSite, query) {
@@ -172,30 +225,55 @@ export const platformService = {
       ...buildMarketplaceStatusFilter(query),
     };
 
+    // The listing's source site decides whether its price is public.
+    const hiddenSiteIds = await getHiddenPriceSiteIds();
+    const hiddenSiteIdSet = new Set(hiddenSiteIds.map(String));
+    const hasPriceFilter = Boolean(query.minPrice || query.maxPrice);
+
     if (query.type) filter.type = query.type;
     if (query.city) filter["location.city"] = new RegExp(query.city, "i");
     if (query.bedrooms) filter.bedrooms = { $gte: query.bedrooms };
-    if (query.minPrice || query.maxPrice) {
+    if (hasPriceFilter) {
       filter.price = {};
       if (query.minPrice) filter.price.$gte = query.minPrice;
       if (query.maxPrice) filter.price.$lte = query.maxPrice;
+      // Hidden-price units never match a price range.
+      if (hiddenSiteIds.length) filter.siteId = { $nin: hiddenSiteIds };
     }
     if (query.search) {
       filter.$text = { $search: query.search };
     }
 
-    const [properties, total] = await Promise.all([
-      Property.find(filter)
-        .sort(buildPropertySort(query))
-        .skip(skip)
-        .limit(limit)
-        .populate("projectId", "title slug status siteId visibleOnPlatform"),
-      Property.countDocuments(filter),
-    ]);
+    const sortHiddenLast =
+      query.sortBy === "price" && hiddenSiteIds.length > 0 && !hasPriceFilter;
+
+    let properties;
+    let total;
+    if (sortHiddenLast) {
+      ({ properties, total } = await findUnitsSortedByPrice(
+        filter,
+        query.sortOrder === "asc" ? 1 : -1,
+        hiddenSiteIds,
+        { skip, limit },
+      ));
+    } else {
+      [properties, total] = await Promise.all([
+        populateUnitProject(
+          Property.find(filter)
+            .sort(buildPropertySort(query))
+            .skip(skip)
+            .limit(limit),
+        ),
+        Property.countDocuments(filter),
+      ]);
+    }
 
     const enriched = await Promise.all(
       properties.map(async (property) => {
-        const doc = await attachPropertyMediaUrls(property);
+        const media = await attachPropertyMediaUrls(property);
+        const doc = hiddenSiteIdSet.has(String(property.siteId))
+          ? hideUnitPrice(media)
+          : media;
         const sourceSiteDoc = siteById.get(String(property.siteId));
         return {
           ...doc,
@@ -242,17 +320,22 @@ export const platformService = {
       filter.$text = { $search: query.search };
     }
 
-    const [projects, total] = await Promise.all([
+    const [projects, total, hiddenSiteIds] = await Promise.all([
       Project.find(filter)
         .sort(buildProjectSort(query))
         .skip(skip)
         .limit(limit),
       Project.countDocuments(filter),
+      getHiddenPriceSiteIds(),
     ]);
+    const hiddenSiteIdSet = new Set(hiddenSiteIds.map(String));
 
     const enriched = await Promise.all(
       projects.map(async (project) => {
-        const doc = await attachProjectMediaUrls(project);
+        const media = await attachProjectMediaUrls(project);
+        const doc = hiddenSiteIdSet.has(String(project.siteId))
+          ? hideProjectPriceRange(media)
+          : media;
         const sourceSiteDoc = siteById.get(String(project.siteId));
         const slug = project.slug;
         return {

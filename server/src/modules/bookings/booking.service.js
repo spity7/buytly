@@ -8,6 +8,12 @@ import {
 } from "../../shared/pagination.js";
 import { ROLES } from "../../shared/constants.js";
 import { getRequestSiteId } from "../../shared/requestContext.js";
+import { canManageProperty } from "../properties/property.service.js";
+import {
+  applyPopulatedUnitPriceVisibility,
+  requestSiteHidesPublicPrices,
+  withManagerFields,
+} from "../../shared/priceVisibility.js";
 
 export const bookingService = {
   async create(buyerId, data) {
@@ -52,14 +58,22 @@ export const bookingService = {
     return populated;
   },
 
-  async getMyBookings(buyerId, query) {
+  async getMyBookings(buyerId, query, viewer) {
     const { page, limit, skip } = parsePagination(query);
     const filter = { buyerId };
     if (query.status) filter.status = query.status;
+    // Buyers and booked units share the request site.
+    const hidePrices = requestSiteHidesPublicPrices();
 
     const [bookings, total] = await Promise.all([
       Booking.find(filter)
-        .populate("propertyId", "title slug price location status media")
+        .populate(
+          "propertyId",
+          withManagerFields(
+            "title slug price location status media",
+            hidePrices,
+          ),
+        )
         .populate("agentId", "firstName lastName email phone")
         .sort({ createdAt: -1 })
         .skip(skip)
@@ -67,7 +81,19 @@ export const bookingService = {
       Booking.countDocuments(filter),
     ]);
 
-    return { bookings, pagination: buildPaginationMeta(total, page, limit) };
+    return {
+      bookings: hidePrices
+        ? bookings.map((booking) => ({
+            ...booking.toObject(),
+            propertyId: applyPopulatedUnitPriceVisibility(
+              booking.propertyId,
+              booking.propertyId &&
+                canManageProperty(booking.propertyId, viewer),
+            ),
+          }))
+        : bookings,
+      pagination: buildPaginationMeta(total, page, limit),
+    };
   },
 
   async getAgentBookings(agentId, query) {

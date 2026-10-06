@@ -3,7 +3,11 @@ import { ApiResponse } from "../../shared/ApiResponse.js";
 
 export const transactionController = {
   create: async (req, res) => {
-    const transaction = await transactionService.create(req.user._id, req.body);
+    const transaction = await transactionService.create(
+      req.user._id,
+      req.body,
+      req.user,
+    );
     ApiResponse.created(res, transaction, "Transaction initiated");
   },
 
@@ -11,6 +15,7 @@ export const transactionController = {
     const result = await transactionService.getMyTransactions(
       req.user._id,
       req.query,
+      req.user,
     );
     ApiResponse.paginated(res, result.transactions, result.pagination);
   },
@@ -19,6 +24,7 @@ export const transactionController = {
     const transaction = await transactionService.getById(
       req.params.id,
       req.user._id,
+      req.user,
     );
     ApiResponse.success(res, transaction);
   },

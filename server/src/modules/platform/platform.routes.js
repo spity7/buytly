@@ -13,6 +13,7 @@ router.use(requirePlatformSite);
  *   get:
  *     operationId: listPlatformFeaturedListings
  *     summary: Partner listings visible on the platform site (Buytly)
+ *     description: Units from sites that hide prices (features.hidePublicPrices) have price null plus priceLabel, never match minPrice/maxPrice, and come after priced units when sortBy=price.
  *     tags: [Platform]
  *     parameters:
  *       - in: query
@@ -36,6 +37,7 @@ router.get(
  *   get:
  *     operationId: listPlatformFeaturedProjects
  *     summary: Partner projects visible on the platform site (Buytly)
+ *     description: Projects from sites that hide prices have priceMin/priceMax null plus priceLabel.
  *     tags: [Platform]
  *     parameters:
  *       - in: query

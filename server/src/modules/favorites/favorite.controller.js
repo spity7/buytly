@@ -3,7 +3,11 @@ import { ApiResponse } from "../../shared/ApiResponse.js";
 
 export const favoriteController = {
   list: async (req, res) => {
-    const result = await favoriteService.list(req.user._id, req.query);
+    const result = await favoriteService.list(
+      req.user._id,
+      req.query,
+      req.user,
+    );
     ApiResponse.paginated(res, result.favorites, result.pagination);
   },
 

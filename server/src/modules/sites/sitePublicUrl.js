@@ -4,6 +4,7 @@ import { SITE_SLUG } from "./site.constants.js";
 const DEV_DEFAULTS = {
   [SITE_SLUG.BUILDWISE]: "http://localhost:3001",
   [SITE_SLUG.BUYTLY]: "http://localhost:3000",
+  [SITE_SLUG.BLOCK57]: "http://localhost:3002",
 };
 
 function normalizeBase(url) {
@@ -24,6 +25,9 @@ export function resolveSitePublicBaseUrl(site) {
   }
   if (slug === SITE_SLUG.BUYTLY && env.SITE_PUBLIC_URL_BUYTLY) {
     return normalizeBase(env.SITE_PUBLIC_URL_BUYTLY);
+  }
+  if (slug === SITE_SLUG.BLOCK57 && env.SITE_PUBLIC_URL_BLOCK57) {
+    return normalizeBase(env.SITE_PUBLIC_URL_BLOCK57);
   }
 
   if (env.NODE_ENV === "development" || env.NODE_ENV === "test") {

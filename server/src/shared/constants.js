@@ -49,6 +49,8 @@ export const TRANSACTION_STATUSES = [
 
 export const TRANSACTION_TYPES = ["buy"];
 
+export const INQUIRY_STATUSES = ["new", "contacted", "closed"];
+
 export const NOTIFICATION_TYPES = {
   BOOKING: "booking",
   TRANSACTION: "transaction",

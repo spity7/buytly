@@ -601,7 +601,13 @@
  *           type: integer
  *         price:
  *           type: number
+ *           nullable: true
  *           example: 450000
+ *           description: Null when the listing's site hides prices (features.hidePublicPrices) and the viewer is not the owner, assigned agent or a site admin; see priceLabel.
+ *         priceLabel:
+ *           type: string
+ *           example: Price on request
+ *           description: Present only when the price is hidden.
  *         currency:
  *           type: string
  *           example: USD
@@ -622,6 +628,15 @@
  *         areaUnit:
  *           type: string
  *           example: sqm
+ *         building:
+ *           type: string
+ *           maxLength: 50
+ *           example: A
+ *           description: Optional building/block label (omitted when not set).
+ *         floor:
+ *           type: integer
+ *           example: 3
+ *           description: Optional floor number (omitted when not set).
  *         amenities:
  *           type: array
  *           items:
@@ -702,6 +717,19 @@
  *         areaUnit:
  *           type: string
  *           example: sqm
+ *         building:
+ *           type: string
+ *           maxLength: 50
+ *           nullable: true
+ *           example: A
+ *           description: Optional building/block label (trimmed). Null or blank clears it.
+ *         floor:
+ *           type: integer
+ *           minimum: -5
+ *           maximum: 300
+ *           nullable: true
+ *           example: 3
+ *           description: Optional floor number. Null clears it.
  *         amenities:
  *           type: array
  *           description: Values must match active catalog amenities (GET /catalog/amenities)
@@ -719,6 +747,65 @@
  *           type: string
  *           format: uri
  *           example: https://my.matterport.com/show/?m=example
+ *
+ *     UpdatePropertyRequest:
+ *       type: object
+ *       description: Partial update; every field is optional and projectId cannot be changed. Editing building/floor does not send an active listing back to review.
+ *       properties:
+ *         title:
+ *           type: string
+ *           minLength: 3
+ *           maxLength: 200
+ *         description:
+ *           type: string
+ *           minLength: 10
+ *         type:
+ *           $ref: '#/components/schemas/PropertyType'
+ *         sortOrder:
+ *           type: integer
+ *         price:
+ *           type: number
+ *           minimum: 0
+ *           exclusiveMinimum: true
+ *         currency:
+ *           type: string
+ *           enum: [USD]
+ *         bedrooms:
+ *           type: integer
+ *           minimum: 0
+ *         bathrooms:
+ *           type: number
+ *           minimum: 0
+ *         area:
+ *           type: number
+ *         areaUnit:
+ *           type: string
+ *         building:
+ *           type: string
+ *           maxLength: 50
+ *           nullable: true
+ *           description: Null or blank clears it.
+ *         floor:
+ *           type: integer
+ *           minimum: -5
+ *           maximum: 300
+ *           nullable: true
+ *           description: Null clears it.
+ *         amenities:
+ *           type: array
+ *           items:
+ *             type: string
+ *         status:
+ *           $ref: '#/components/schemas/PropertyStatus'
+ *         agentId:
+ *           $ref: '#/components/schemas/ObjectId'
+ *         floorPlans:
+ *           type: array
+ *           items:
+ *             $ref: '#/components/schemas/FloorPlanInput'
+ *         virtualTourUrl:
+ *           type: string
+ *           format: uri
  *
  *     FloorPlan:
  *       type: object
@@ -1597,9 +1684,14 @@
  *         priceMin:
  *           type: number
  *           nullable: true
+ *           description: Lowest public unit price; null when there are no public units or the site hides prices from this viewer (see priceLabel).
  *         priceMax:
  *           type: number
  *           nullable: true
+ *         priceLabel:
+ *           type: string
+ *           example: Price on request
+ *           description: Present only when prices are hidden (site features.hidePublicPrices, viewer is not the owner, assigned agent or a site admin).
  *         ownerId:
  *           oneOf:
  *             - $ref: '#/components/schemas/ObjectId'
@@ -1672,6 +1764,120 @@
  *           minLength: 10
  *           maxLength: 5000
  *           example: I would like help finding a property in Beirut.
+ *         phone:
+ *           type: string
+ *           maxLength: 40
+ *           example: '+233 244 777 772'
+ *         residenceType:
+ *           type: string
+ *           maxLength: 80
+ *           example: Penthouse
+ *         unitId:
+ *           allOf:
+ *             - $ref: '#/components/schemas/ObjectId'
+ *           description: Stored only when the unit belongs to the current site
+ *         unitLabel:
+ *           type: string
+ *           maxLength: 80
+ *           example: A-101
+ *         pagePath:
+ *           type: string
+ *           maxLength: 300
+ *           pattern: '^/(?!/)\S*$'
+ *           description: Site-relative path of the page the form was submitted from
+ *           example: /apartments/penthouse/
+ *         website:
+ *           type: string
+ *           maxLength: 200
+ *           description: Honeypot — leave empty. Any value returns the normal 201 response without storing or emailing.
+ *
+ *     InquiryStatus:
+ *       type: string
+ *       enum: [new, contacted, closed]
+ *       example: new
+ *
+ *     Inquiry:
+ *       type: object
+ *       properties:
+ *         _id:
+ *           $ref: '#/components/schemas/ObjectId'
+ *         siteId:
+ *           $ref: '#/components/schemas/ObjectId'
+ *         firstName:
+ *           type: string
+ *           example: Jane
+ *         lastName:
+ *           type: string
+ *           example: Smith
+ *         email:
+ *           type: string
+ *           format: email
+ *           example: jane@example.com
+ *         phone:
+ *           type: string
+ *           example: '+233 244 777 772'
+ *         residenceType:
+ *           type: string
+ *           example: Penthouse
+ *         unitId:
+ *           allOf:
+ *             - $ref: '#/components/schemas/ObjectId'
+ *           nullable: true
+ *         unitLabel:
+ *           type: string
+ *           example: A-101
+ *         message:
+ *           type: string
+ *           example: I would like to schedule a viewing.
+ *         pagePath:
+ *           type: string
+ *           example: /apartments/penthouse/
+ *         sourceUrl:
+ *           type: string
+ *           example: https://block-57.com/apartments/penthouse/
+ *         status:
+ *           $ref: '#/components/schemas/InquiryStatus'
+ *         emailDelivered:
+ *           type: boolean
+ *           description: True once the site inbox notification was sent
+ *         createdAt:
+ *           type: string
+ *           format: date-time
+ *         updatedAt:
+ *           type: string
+ *           format: date-time
+ *
+ *     UpdateInquiryStatusRequest:
+ *       type: object
+ *       required: [status]
+ *       properties:
+ *         status:
+ *           $ref: '#/components/schemas/InquiryStatus'
+ *
+ *     InquirySuccessResponse:
+ *       allOf:
+ *         - $ref: '#/components/schemas/SuccessResponse'
+ *         - type: object
+ *           properties:
+ *             data:
+ *               $ref: '#/components/schemas/Inquiry'
+ *
+ *     PaginatedInquiriesResponse:
+ *       type: object
+ *       required: [success, message, data, pagination]
+ *       properties:
+ *         success:
+ *           type: boolean
+ *           example: true
+ *         message:
+ *           type: string
+ *           example: Success
+ *         data:
+ *           type: array
+ *           items:
+ *             $ref: '#/components/schemas/Inquiry'
+ *         pagination:
+ *           $ref: '#/components/schemas/PaginationMeta'
  */
 
 export {};

@@ -1,6 +1,9 @@
 import { Project } from "./project.model.js";
 import { Property } from "../properties/property.model.js";
-import { attachPropertyMediaUrls } from "../properties/property.service.js";
+import {
+  attachPropertyMediaUrls,
+  canManageProperty,
+} from "../properties/property.service.js";
 import { buildSiteFolder, gcsService } from "../../services/gcs.service.js";
 import { getRequestSiteId } from "../../shared/requestContext.js";
 import { AppError } from "../../shared/AppError.js";
@@ -18,7 +21,6 @@ import { stripTenantPlatformVisibility } from "../platform/platform-visibility.j
 import {
   applyPublicListStatusToFilter,
   normalizeSellerStatus,
-  resolvePublicListStatus,
   hasMaterialChanges,
   buildArchiveUpdate,
   buildRestoreUpdate,
@@ -36,6 +38,11 @@ import {
   deleteGcsKeys,
   purgePropertyRecord,
 } from "../../services/listing-purge.service.js";
+import {
+  hideProjectPriceRange,
+  hideUnitPrice,
+  requestSiteHidesPublicPrices,
+} from "../../shared/priceVisibility.js";
 
 const EARTH_RADIUS_KM = 6378.1;
 
@@ -367,7 +374,9 @@ export const projectService = {
     );
 
     return {
-      projects: data,
+      projects: requestSiteHidesPublicPrices()
+        ? data.map(hideProjectPriceRange)
+        : data,
       pagination: buildPaginationMeta(total, page, limit),
     };
   },
@@ -398,16 +407,25 @@ export const projectService = {
 
     const statsMap = await aggregateUnitStats([project._id]);
     const forOwnerDashboard = Boolean(user && canManageProject(project, user));
-    const doc = await enrichProjectDoc(project, statsMap, {
+    const hidePrices = requestSiteHidesPublicPrices() && !forOwnerDashboard;
+    const enriched = await enrichProjectDoc(project, statsMap, {
       forOwnerDashboard,
     });
+    const doc = hidePrices ? hideProjectPriceRange(enriched) : enriched;
 
     if (includeUnits) {
       const units = await Property.find(buildUnitsQuery(project, user)).sort({
         sortOrder: 1,
         createdAt: 1,
       });
-      doc.units = await Promise.all(units.map(attachPropertyMediaUrls));
+      doc.units = await Promise.all(
+        units.map(async (unit) => {
+          const unitDoc = await attachPropertyMediaUrls(unit);
+          return hidePrices && !canManageProperty(unit, user)
+            ? hideUnitPrice(unitDoc)
+            : unitDoc;
+        }),
+      );
     }
 
     return doc;
@@ -641,10 +659,17 @@ export const projectService = {
       throw new AppError("Project not found", 404);
     }
 
-    return Property.find(buildUnitsQuery(project, user)).sort({
+    const units = await Property.find(buildUnitsQuery(project, user)).sort({
       sortOrder: 1,
       createdAt: 1,
     });
+
+    if (!requestSiteHidesPublicPrices() || canManageProject(project, user)) {
+      return units;
+    }
+    return units.map((unit) =>
+      canManageProperty(unit, user) ? unit : hideUnitPrice(unit),
+    );
   },
 
   async uploadMedia(id, file, user) {

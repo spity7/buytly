@@ -17,21 +17,35 @@
 | /auth/reset-password      | POST   | Public | token, password                        | success        |
 | /auth/change-password     | POST   | User   | currentPassword, newPassword           | success        |
 
-**Dependencies:** users (User model), token.service, email.service, notifications
+**Dependencies:** users (User model), token.service, email.service, siteBrand, notifications
+
+Verify and reset emails link to the request site's public URL (`buildSiteLink`, `APP_URL` only as fallback) and carry the site's name — see [auth-flow.md](./auth-flow.md#email-links).
 
 ---
 
 ## contact
 
-**Responsibility:** Public contact form — delivers inquiries to the support inbox.
+**Responsibility:** Public contact / inquire form — stores each submission as an `Inquiry` for the current site, then emails the site inbox.
 
-| Endpoint | Method | Auth   | Input                               | Output  |
-| -------- | ------ | ------ | ----------------------------------- | ------- |
-| /contact | POST   | Public | firstName, lastName, email, message | success |
+| Endpoint | Method | Auth   | Input                                                                                                               | Output  |
+| -------- | ------ | ------ | ------------------------------------------------------------------------------------------------------------------- | ------- |
+| /contact | POST   | Public | firstName, lastName, email, message; optional phone, residenceType, unitId, unitLabel, pagePath, website (honeypot) | success |
 
-Rate limit: 10 requests / hour / IP. Email to `CONTACT_INBOX_EMAIL` with Reply-To set to the submitter; auto-reply sent to the submitter.
+Rate limit: 10 requests / hour / IP.
 
-**Dependencies:** email.service
+**Payload:** `firstName`, `lastName` (1–80), `email`, `message` (10–5000) are required. Optional: `phone` (≤ 40), `residenceType` (≤ 80), `unitLabel` (≤ 80), `unitId` (24-hex ObjectId), `pagePath` (≤ 300, site path starting with a single `/`, no whitespace) and `website` (≤ 200). Strings are trimmed; blank optional fields count as not provided; unknown keys (e.g. `siteId`, `status`) are dropped.
+
+**Behaviour:**
+
+1. **Honeypot** — a non-empty `website` returns the normal `201` ("Your message has been sent.") but nothing is stored or emailed.
+2. **Store first** — an `inquiries` document is created with the request `siteId`, the submitted fields, `status: new` and `emailDelivered: false`. `unitId` is kept only when that unit belongs to the current site (otherwise stored as `null`; `unitLabel` is kept as sent). `sourceUrl` is the site public base URL (`resolveSitePublicBaseUrl`, falling back to `APP_URL`) plus `pagePath` when sent.
+3. **Inbox email** — sent to the site's `branding.contactInboxEmail`, falling back to `CONTACT_INBOX_EMAIL`, with Reply-To set to the submitter. Subject and body name the site (e.g. `Block 57 contact form — {name}`). Includes phone, residence type, unit label and the source URL when present. On success `emailDelivered` is set to `true`.
+4. **Auto-reply** — sent to the submitter after the inbox email, branded with the site name; Reply-To is the site's `branding.supportEmail` when set.
+5. Email failures are logged (`console.error`) and the request still returns `201`; an inbox failure leaves `emailDelivered: false` and skips the auto-reply.
+
+Admins review inquiries via `GET /admin/inquiries` (see [admin](#admin)).
+
+**Dependencies:** inquiries (Inquiry model), properties (unit ownership check), sites (public URL), email.service
 
 ---
 
@@ -130,9 +144,9 @@ Publish rules: ≥ 1 **live** (non-trashed) unit when status is `pending` or `ac
 | /properties/:id/reviews           | POST         | User                   | rating, title, text                                                                      | review                                   |
 | /properties/:id/reviews/:reviewId | DELETE       | Author/Admin           | —                                                                                        | success                                  |
 
-Create/update payloads accept optional `floorPlans[]` and `virtualTourUrl`. Each floor plan level has **title** and **image** (`gcsKey` from `/floor-plans/image`; unit sale price is only on the property). Floor plans are allowed for **any** catalog property type. Images are uploaded via `/floor-plans/image` and referenced by `gcsKey` in the array. Listing media supports multiple images plus **one** optional video (`POST /properties/:id/media` returns 400 when a second video is uploaded). Image `order` starts at 0 for the cover photo (cards, map pins, gallery hero). Reorder with `PUT /properties/:id/media/order` passing every image id exactly once. The public property page shows photos in the gallery and the video in a separate Video section. **What's Nearby** is not stored on the listing — it is generated from latitude/longitude via `GET /properties/:id/nearby`.
+Create/update payloads accept optional `floorPlans[]`, `virtualTourUrl`, `building` (string, max 50) and `floor` (integer -5..300); `null` (or a blank `building`) clears `building`/`floor`, and unset values are omitted from responses. Each floor plan level has **title** and **image** (`gcsKey` from `/floor-plans/image`; unit sale price is only on the property). Floor plans are allowed for **any** catalog property type. Images are uploaded via `/floor-plans/image` and referenced by `gcsKey` in the array. Listing media supports multiple images plus **one** optional video (`POST /properties/:id/media` returns 400 when a second video is uploaded). Image `order` starts at 0 for the cover photo (cards, map pins, gallery hero). Reorder with `PUT /properties/:id/media/order` passing every image id exactly once. The public property page shows photos in the gallery and the video in a separate Video section. **What's Nearby** is not stored on the listing — it is generated from latitude/longitude via `GET /properties/:id/nearby`.
 
-Non-admin create/update cannot publish directly: `status: "active"` is stored as `pending`. Omitting `status` on PATCH keeps the current status unless **material fields** change on an active listing (title, description, price, amenities, floor plans, etc.) — then status becomes `pending` again. Media add/remove on an active listing also triggers re-review. Non-admins may set `status: "sold"` only when the listing is currently **active**; `archived` remains admin-only (seller trash). Marking a unit sold syncs the parent project to `sold` when every non-trashed unit on the project is sold. Unit payloads must not include `location` (API rejects unknown `location` on create/update); each unit stores a copy of the parent project’s location for search/geo, refreshed on unit update and when the project location changes.
+Non-admin create/update cannot publish directly: `status: "active"` is stored as `pending`. Omitting `status` on PATCH keeps the current status unless **material fields** change on an active listing (title, description, price, amenities, floor plans, etc.) — then status becomes `pending` again. `building`, `floor` and `sortOrder` are not material. Media add/remove on an active listing also triggers re-review. Non-admins may set `status: "sold"` only when the listing is currently **active**; `archived` remains admin-only (seller trash). Marking a unit sold syncs the parent project to `sold` when every non-trashed unit on the project is sold. Unit payloads must not include `location` (API rejects unknown `location` on create/update); each unit stores a copy of the parent project’s location for search/geo, refreshed on unit update and when the project location changes.
 
 **Soft delete / trash:** `DELETE /properties/:id` sets `deletedAt` and `status: archived`. Trashed listings appear in `GET /properties/mine?trashed=true` only when the parent project is **not** trashed (units trashed with a project are restored via `PATCH /projects/:id/restore`, not per-unit restore). The default `GET /properties/mine` list also excludes units whose parent project is trashed. `PATCH /properties/:id/restore` clears `deletedAt` and sets `status: draft` when the parent project is active; returns **400** if the parent project is still in trash. Admin un-archive via moderate clears `deletedAt` when the parent project is not trashed; moderating an archived unit back to `active` also re-publishes a parent project that was demoted to `draft` when that unit was the last live listing. Admin archive via moderate uses the same soft-delete semantics.
 
@@ -145,6 +159,8 @@ Property detail responses populate `agentId` (when set) else `ownerId` with name
 Public `GET /properties` without a `status` query includes **active and sold** units whose parent project is `active` or `sold`. Pass `status=active` or `status=sold` to narrow results. The `projectId` query parameter is intersected with that allowlist (unknown or non-public projects return an empty page). The public list accepts only `active` or `sold` as a status filter (draft/pending/archived return 400). Public `GET /properties/:id` and `GET /properties/:id/nearby` require a public parent project for `active` and `sold` units. Public `GET /properties/:id` allows anonymous access for `active` and `sold` listings on public projects; `draft`, `pending`, and `archived` are visible only to the owner, assigned agent, or admin (optional auth). Agent profile listings (`GET` by agent) use the same parent-project filter. **Admins** may also `GET`/`PATCH` soft-deleted (`archived`) listings through the property endpoints; restoring via `PATCH` with a non-archived status clears `deletedAt` when the parent project is not trashed. New units cannot be added to **sold** projects.
 
 Pending unit submissions notify all active admins (includes `projectId` / `projectTitle` when available). Admin moderation notifies the listing owner.
+
+**Hidden prices:** on a site with `features.hidePublicPrices` (Block 57), unit and project reads by viewers who cannot manage the listing return `price: null` / `priceMin: null` / `priceMax: null` plus `priceLabel: "Price on request"`; the public list ignores price filters and price sort. The same applies to favorites, buyer bookings and transactions, and to the Buytly platform feeds (by the listing's source site). Full rules: [api-rules.md](./api-rules.md#hidden-prices).
 
 **Dependencies:** gcs.service, image.service (via gcs upload), notifications
 
@@ -217,7 +233,7 @@ Completing a transaction sets the property to `sold`, then sets the parent proje
 
 ## admin
 
-**Responsibility:** User management, listing moderation, platform analytics.
+**Responsibility:** User management, listing moderation, contact inquiries, platform analytics.
 
 | Endpoint                                | Method | Auth                  | Input                                                                          | Output                                             |
 | --------------------------------------- | ------ | --------------------- | ------------------------------------------------------------------------------ | -------------------------------------------------- |
@@ -232,13 +248,17 @@ Completing a transaction sets the property to `sold`, then sets the parent proje
 | /admin/projects/:id/platform-featured   | PATCH  | Admin (platform site) | `{ visibleOnPlatform }`                                                        | partner project marketplace featuring              |
 | /admin/projects                         | GET    | Admin                 | pagination, status, search, sortBy, sortOrder, `siteId` (platform admin)       | all projects                                       |
 | /admin/projects/:id/moderate            | PATCH  | Admin                 | status                                                                         | moderated project                                  |
+| /admin/inquiries                        | GET    | Admin                 | pagination, status (`new`/`contacted`/`closed`), search                        | current site's inquiries, newest first             |
+| /admin/inquiries/:id                    | PATCH  | Admin                 | `{ status }`                                                                   | updated inquiry (404 for other sites' inquiries)   |
 | /admin/analytics                        | GET    | Admin                 | —                                                                              | KPI analytics                                      |
 
 Moderation notifies the listing owner (in-app + email).
 
-**Dependencies:** users, properties, bookings, transactions, notifications
+**Dependencies:** users, properties, bookings, transactions, inquiries, notifications
 
 Platform admins (`platformPermissions` on Buytly `admin` users) may pass `?siteId=` on list/analytics endpoints to moderate partner tenants.
+
+**Inquiries are private to each site:** `/admin/inquiries` always filters by the request site (`getRequestSiteId()`), with no `?siteId=` override — a Buytly platform admin sees only Buytly inquiries, and tenant inquiries are visible only to that tenant's admins. `search` is a case-insensitive literal match (regex-escaped, ≤ 200 chars) on first name, last name, email, phone and message; `limit` ≤ 100.
 
 ---
 
@@ -254,6 +274,8 @@ Platform admins (`platformPermissions` on Buytly `admin` users) may pass `?siteI
 Requires resolved site `kind: platform` (Buytly Origin / `X-Site-Slug: buytly`). Default feeds include **Buytly first-party** listings (active/sold on the platform site) plus partner tenant rows (opt-in / default-visible rules). Pass `partnersOnly=true` for partner-only results (e.g. home “Partner developments” block).
 
 Featuring is **Buytly admin only** (`PATCH /admin/.../platform-featured` on the platform site). Tenant sellers cannot read or write `visibleOnPlatform` on standard property/project routes.
+
+Rows from a source site with `features.hidePublicPrices` (Block 57) carry `price: null` (units) or `priceMin`/`priceMax: null` (projects) plus `priceLabel: "Price on request"`; such units never match `minPrice`/`maxPrice` and are listed after priced units when `sortBy=price` ([api-rules.md](./api-rules.md#hidden-prices)).
 
 **Dependencies:** properties, projects, sites
 
@@ -271,8 +293,10 @@ Featuring is **Buytly admin only** (`PATCH /admin/.../platform-featured` on the 
 | /notifications/read-all     | PATCH  | User | —                            | all marked read   |
 | /notifications/unread-count | GET    | User | —                            | count             |
 
-**Dependencies:** email.service
+**Dependencies:** email.service, siteBrand (email link base, site name)
 
 **Internal API:** Domain modules call `notificationService.notifyFromEvent(eventKey, { userId, context })` or `notifyMany()`. Lower-level `notify()` remains available. Events are defined in `notification.catalog.js` (booking, transaction, property, auth). `notify()` skips deleted/inactive users and respects `users.notificationPreferences` for in-app/email delivery. Security token emails (verify/reset) bypass preferences and are sent directly via `email.service`.
+
+**Email links and branding:** catalog events return a relative `ctaPath`; `buildNotificationPayload` turns it into `emailData.ctaUrl` by prefixing the request site's public URL (`buildSiteLink`, `APP_URL` only without a site). The in-app `data.href` stays relative. `auth.welcome` is titled `Welcome to {site name}`, and emails use the site's name and sender name (see `architecture.md` → Per-site branding).
 
 **Notification `data` shape:** `{ event, entityType, entityId?, propertyId?, status?, href }` — client uses `href` for deep links when present.

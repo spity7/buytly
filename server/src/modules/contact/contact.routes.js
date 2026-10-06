@@ -13,7 +13,7 @@ const router = Router();
  *   post:
  *     operationId: submitContactInquiry
  *     summary: Submit a public contact form message
- *     description: Sends the inquiry to the configured support inbox and an auto-reply to the submitter.
+ *     description: Stores the inquiry for the current site (listed via `GET /admin/inquiries`), then emails the site's contact inbox (`branding.contactInboxEmail`, falling back to `CONTACT_INBOX_EMAIL`) and sends an auto-reply to the submitter. Email failures are logged and still return 201. A filled `website` honeypot returns the same 201 without storing or emailing.
  *     tags: [Contact]
  *     requestBody:
  *       required: true

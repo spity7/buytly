@@ -16,4 +16,5 @@ export const PLATFORM_PERMISSIONS = {
 export const SITE_SLUG = {
   BUYTLY: "buytly",
   BUILDWISE: "buildwise",
+  BLOCK57: "block57",
 };

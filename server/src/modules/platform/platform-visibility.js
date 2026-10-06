@@ -61,6 +61,7 @@ export function stripTenantPlatformVisibility(doc) {
   if (Array.isArray(doc)) {
     return doc.map(stripTenantPlatformVisibility);
   }
-  const { visibleOnPlatform: _omit, ...rest } = doc;
+  const rest = { ...doc };
+  delete rest.visibleOnPlatform;
   return rest;
 }

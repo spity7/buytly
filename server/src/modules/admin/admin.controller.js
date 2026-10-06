@@ -81,6 +81,19 @@ export const adminController = {
     ApiResponse.success(res, project, "Marketplace featuring updated");
   },
 
+  listInquiries: async (req, res) => {
+    const result = await adminService.listInquiries(req.query);
+    ApiResponse.paginated(res, result.inquiries, result.pagination);
+  },
+
+  updateInquiryStatus: async (req, res) => {
+    const inquiry = await adminService.updateInquiryStatus(
+      req.params.id,
+      req.body.status,
+    );
+    ApiResponse.success(res, inquiry, "Inquiry status updated");
+  },
+
   getAnalytics: async (req, res) => {
     const analytics = await adminService.getAnalytics(req.query, req.user);
     ApiResponse.success(res, analytics);

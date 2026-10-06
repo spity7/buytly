@@ -52,6 +52,15 @@ const propertySchema = new mongoose.Schema(
     bathrooms: { type: Number, min: 0 },
     area: { type: Number, min: 0 },
     areaUnit: { type: String, default: "sqm" },
+    // Optional inventory position (e.g. block "A", floor 3); not a material field.
+    building: { type: String, trim: true, maxlength: 50 },
+    floor: {
+      type: Number,
+      validate: {
+        validator: Number.isInteger,
+        message: "Floor must be a whole number",
+      },
+    },
     amenities: [{ type: String }],
     status: {
       type: String,

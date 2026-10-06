@@ -1,5 +1,9 @@
 import { z } from "zod";
-import { ROLES, PROPERTY_STATUSES } from "../../shared/constants.js";
+import {
+  ROLES,
+  PROPERTY_STATUSES,
+  INQUIRY_STATUSES,
+} from "../../shared/constants.js";
 
 export const listUsersSchema = z.object({
   page: z.coerce.number().int().positive().optional(),
@@ -64,4 +68,19 @@ export const moderateProjectSchema = z.object({
 
 export const platformFeaturedSchema = z.object({
   visibleOnPlatform: z.boolean(),
+});
+
+export const listAdminInquiriesSchema = z.object({
+  page: z.coerce.number().int().positive().optional(),
+  limit: z.coerce.number().int().positive().max(100).optional(),
+  status: z.enum(INQUIRY_STATUSES).optional(),
+  search: z.string().trim().max(200).optional(),
+});
+
+export const inquiryIdSchema = z.object({
+  id: objectIdString,
+});
+
+export const updateInquiryStatusSchema = z.object({
+  status: z.enum(INQUIRY_STATUSES),
 });

@@ -91,6 +91,7 @@ Refresh expired access tokens via `POST /api/v1/auth/refresh` with the refresh t
 - **`area`** — optional; when set, positive number with **at most 2 decimal places** (sqm).
 - **Floor plan `price`** — optional non-negative **integer** USD.
 - **Floor plan `area`** — same rules as listing `area`.
+- **`building`** — optional string (trimmed, max 50), e.g. block `"A"`. **`floor`** — optional **integer** from -5 to 300. Send `null` (or a blank `building`) to clear; cleared and never-set values are both omitted from responses. Neither is a material field, so editing them keeps an active unit active.
 
 ## Sorting & Filtering
 
@@ -103,12 +104,31 @@ Property list supports:
 - Public `GET /properties/:id` — `active` and `sold` listings on public parent projects are visible without auth; other statuses require owner, agent, or admin
 - `viewCount` — incremented on `GET /properties/:id` and `GET /projects/:id` (and slug) only for `active` records and only when the request is not from a user who can manage that listing (owner, agent, or admin)
 - Public `GET /projects` — `kind`, `city`, geo radius, `search`, pagination; list items include `unitCount`, `priceMin`, `priceMax`
+- Sites that hide prices ignore `minPrice`/`maxPrice` and `sortBy=price` on public lists — see [Hidden prices](#hidden-prices)
 - `search` — Full-text search on title/description
 - `lat`, `lng`, `radiusKm` — Geo-radius search (all three required). When combined with `search`, radius filtering uses `$geoWithin` instead of distance sorting so MongoDB accepts the query.
 
 `GET /properties/:id/nearby` returns schools, medical facilities, and transit stops within 5 km using OpenStreetMap (Overpass API). The server tries multiple public Overpass mirrors (configurable via `OVERPASS_URL`) with a `User-Agent` header. Same visibility rules as `GET /properties/:id`. When all mirrors fail, the endpoint still returns 200 with empty categories and `unavailable: true` (failures are not cached).
 
 `GET /catalog/nearby?lat=&lng=` uses the same Overpass lookup for dashboard map previews before a listing is saved (public, no auth).
+
+## Hidden prices
+
+A site with `features.hidePublicPrices: true` (Block 57) does not reveal listing prices to viewers who cannot manage the listing. **Managers** are the unit/project owner, its assigned agent, and admins of that site (the same rule as `canManageProperty` / `canManageProject`). Everyone else, including anonymous visitors and logged-in buyers, gets:
+
+- units: `price: null` and `priceLabel: "Price on request"` (other fields unchanged);
+- projects: `priceMin: null`, `priceMax: null` and `priceLabel: "Price on request"`.
+
+Stored prices are never changed, and responses for sites without the flag are unchanged (no `priceLabel` key). Implemented in `src/shared/priceVisibility.js`; site flags come from the cached `siteService` site list (no per-listing queries).
+
+| Read path                                                                                                                           | Rule                                                                                                                                                                                                                                                               |
+| ----------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `GET /properties`, `GET /projects`, `GET /agents/:id/properties`                                                                    | Public, no auth: always hidden on such a site. `minPrice`/`maxPrice` are ignored and `sortBy=price` falls back to `createdAt`, so results do not reveal prices.                                                                                                    |
+| `GET /properties/:id`, `GET /projects/:id`, `GET /projects/slug/:slug` (project + embedded `units`), `GET /projects/:id/properties` | Optional auth: hidden unless the caller manages the project (project range and all units) or the unit (that unit).                                                                                                                                                 |
+| `GET /favorites`, `GET /bookings/my`, `GET /transactions/my`, `GET /transactions/:id`, `POST /transactions` response                | Populated `property` / `propertyId` is hidden unless the caller manages that unit. Transaction `amount` (the buyer's own offer) is not hidden.                                                                                                                     |
+| `GET /platform/featured-listings`, `GET /platform/featured-projects` (Buytly)                                                       | The listing's **source** site decides, not the request site; no viewer counts as a manager. Hidden-price units never match `minPrice`/`maxPrice`, and with `sortBy=price` they are listed after all priced units (newest first) so position does not reveal price. |
+
+Dashboard and moderation reads (`/properties/mine`, `/projects/mine`, `/admin/*`, `GET /bookings/agent`) and write responses (create/update/restore by a manager) keep real prices. Buytly platform admins moderating partner listings through `/admin/*` count as managers there.
 
 ## Versioning
 
@@ -118,6 +138,7 @@ Current version: `v1`. All routes are prefixed with `/api/v1`.
 
 - Global: 200 requests per 15 minutes per IP
 - Auth endpoints: 20 requests per 15 minutes per IP
+- Contact form (`POST /contact`): 10 requests per hour per IP
 
 ## Notifications
 
@@ -177,12 +198,13 @@ module.exports = defineConfig({
 
 ## Buytly platform marketplace (cross-site)
 
-- Tenant sites (e.g. Buildwise) scope `GET /properties` and `GET /projects` to their own `siteId` (`X-Site-Slug`).
+- Tenant sites (e.g. Buildwise, Block 57) scope `GET /properties` and `GET /projects` to their own `siteId` (`X-Site-Slug: buildwise`, `X-Site-Slug: block57`).
 - The Buytly platform site (`X-Site-Slug: buytly`) uses `GET /platform/featured-listings` and `GET /platform/featured-projects` for the public marketplace: **Buytly first-party** active/sold listings plus partner tenants (opt-in rules). Use `partnersOnly=true` for partner-only feeds. Partner rows include `sourceSite.listingUrl` for off-site links; first-party rows use on-site URLs.
 - Tenants with `platformListingPolicy: optIn` appear on the marketplace only when `visibleOnPlatform: true` on the **project** and each **unit** (defaults `false`). Sellers cannot set this flag — `PATCH /properties` and `PATCH /projects` reject `visibleOnPlatform` with **403**. Tenant-site owner JSON omits `visibleOnPlatform`.
 - Buytly platform admins (`role: admin` on `X-Site-Slug: buytly`) set featuring via `PATCH /admin/properties/:id/platform-featured` and `PATCH /admin/projects/:id/platform-featured` with `{ visibleOnPlatform: boolean }` (target must be a partner tenant listing; enable only when status is `active` or `sold`; units require the parent project featured first).
 - Public marketplace status filter: omit `status` → `active` + `sold`; `status=sold` or `status=active` narrows the set.
 - Buytly platform admins (`role: admin` on the platform site) on `GET /admin/properties` and `GET /admin/projects`: omit `siteId` to list all active **tenant** partner sites plus the Buytly platform site; pass `?siteId=` to scope to one site.
+- Contact inquiries are **never** cross-site: `GET /admin/inquiries` and `PATCH /admin/inquiries/:id` always use the request site (a `siteId` query is ignored), so Buytly platform admins only see Buytly inquiries and other sites' ids return 404.
 
 **Client generation workflow**
 

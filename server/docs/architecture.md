@@ -12,7 +12,7 @@ server/src/
 ├── shared/           # ApiResponse, AppError, constants, pagination
 ├── config/           # env, db, swagger, swagger.schemas
 ├── middleware/       # auth, validate, sanitize, errorHandler, rateLimit
-├── services/         # Cross-cutting services (GCS, image, email, email.templates, cache, tokens)
+├── services/         # Cross-cutting services (GCS, image, email, email.templates, siteBrand, cache, tokens)
 ├── utils/            # Helpers (asyncHandler, pick, slugify)
 ├── routes/           # Route aggregator
 ├── app.js            # Express app configuration
@@ -46,6 +46,9 @@ flowchart LR
   PropertyReviews --> Notifications
   Auth --> Notifications
   Admin --> Notifications
+  Contact --> Inquiries
+  Contact --> Email
+  Admin --> Inquiries
   Notifications --> Email
   Notifications --> Users
 ```
@@ -80,6 +83,16 @@ Agent → PATCH /bookings/:id/status → Status update → notifyFromEvent("book
 Buyer cancel → notifyFromEvent("booking.cancelled") → Agent
 ```
 
+### Contact Inquiry Flow
+
+```
+Visitor → POST /contact → Zod validation → honeypot (`website` filled → 201, nothing stored)
+  → Inquiry saved (request siteId; unitId kept only if the unit is on the same site)
+  → email.service: inbox (site branding.contactInboxEmail || CONTACT_INBOX_EMAIL) → emailDelivered = true → auto-reply to submitter (Reply-To: site branding.supportEmail)
+  → 201 (email failures are logged, the inquiry is kept)
+Admin → GET /admin/inquiries, PATCH /admin/inquiries/:id → always scoped to the request site (no platform-admin siteId override)
+```
+
 ### Transaction Flow
 
 ```
@@ -100,6 +113,22 @@ Auth register → notifyFromEvent("auth.welcome"); verify email → auth.email_v
 
 Test env skips network send entirely.
 
+### Per-site branding
+
+Every email is sent inside an HTTP request, so `services/siteBrand.js` reads the request site (`getRequestSite()`) and `email.service` passes the brand to the templates:
+
+| Field          | Request site                                                                                | No request site (scripts, unit tests) |
+| -------------- | ------------------------------------------------------------------------------------------- | ------------------------------------- |
+| `name`         | `branding.siteDisplayName` → `name`                                                         | `Buytly`                              |
+| `url`          | `resolveSitePublicBaseUrl(site)` (`SITE_PUBLIC_URL_*` → dev default → `sites.publicUrl`)    | `APP_URL`                             |
+| `supportEmail` | `branding.supportEmail` (may be empty)                                                      | `CONTACT_INBOX_EMAIL`                 |
+
+- **Templates** (`email.templates.js`) take `{ brand, ...params }`; `brand.name` replaces the product name in subjects, header, body and footer (`Buytly` only when no brand is passed). Layout and colours are shared by all sites.
+- **Sender** — the address comes from `SMTP_FROM` (a bare `addr`, or the address inside `Name <addr>`) and the display name is the brand, e.g. `Block 57 <noreply@…>`, for both SMTP and SendGrid.
+- **Reply-To** — the contact auto-reply uses the site's `branding.supportEmail` when set; the inbox email keeps the submitter.
+- **Links** — verify/reset links (`auth.service`) and notification CTAs use `buildSiteLink(path)` = site public base URL (or `APP_URL`) + path, so tenant users land on their own site. Catalog events return a relative `ctaPath`; `buildNotificationPayload` prefixes the base once. The `auth.welcome` title names the site (`Welcome to Block 57`).
+- Within a request, notification emails only reach users of the request site (`notify()` looks users up by request `siteId`; cross-site moderation drops them), so the brand always matches the recipient's site. Without a request site the Buytly fallback applies.
+
 ## Database seeding
 
 `scripts/seed.js` (`npm run seed`, `npm run seed:reset`) loads demo users, agent profiles, projects with sellable units across Dubai/Abu Dhabi/Sharjah (including land, archived, sold/pending/draft statuses and map coordinates), reviews, favorites, bookings, buy-only transactions, saved searches, and notifications.
@@ -107,6 +136,8 @@ Test env skips network send entirely.
 **Listing catalog:** `seed:reset` clears and repopulates `propertytypecatalogs` and `amenitycatalogs` (defaults from `src/modules/catalog/catalog.defaults.js` plus demo-only amenities in `scripts/seed/catalog.js`). Demo properties use **USD** and amenity strings that exist in that catalog so they match API validation. Non-reset seed upserts missing demo amenities when types already exist.
 
 **Fixture data** (users, property titles, coordinates) lives in `scripts/seed/catalog.js` — not to be confused with the runtime **catalog module** (`src/modules/catalog/`). Smoke test: `tests/seed.test.js`.
+
+**Block 57 tenant bootstrap:** `scripts/seed-block57.js` (`npm run seed:block57`; CLI) wraps `seedBlock57()` in `scripts/seed/block57.js`. Unlike the demo seed it is meant for production and safe to re-run (upserts only, nothing deleted). It runs inside `runWithRequestContext({ site: block57 })` and reuses the services, so the API's rules apply: `projectService.create`, `propertyService.create`/`update` (catalog validation, slugs, project location, sold-project sync) and `adminService.moderateProject` for `--activate`. Steps and the units file format: `deployment.md`. Tests: `tests/seed-block57.test.js`.
 
 ## GCS orphan cleanup
 

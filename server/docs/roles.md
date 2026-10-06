@@ -57,15 +57,15 @@ When a user registers (or first Google sign-up) as **`agent`**, an `AgentProfile
 
 ### Capabilities
 
-| Area           | What buyers can do                                                    |
-| -------------- | --------------------------------------------------------------------- |
-| Browse         | View public active/sold listings and projects                         |
-| Favorites      | Add/remove favorites (any authenticated user)                         |
-| Saved searches | Manage saved searches on profile                                      |
-| Bookings       | Create visit requests, view own bookings, cancel pending ones         |
-| Transactions   | Initiate purchase transactions, view transactions they participate in |
-| Reviews        | Submit one review per active property                                 |
-| Profile        | Update own profile, notification prefs, avatar                        |
+| Area           | What buyers can do                                                                                                                                        |
+| -------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Browse         | View public active/sold listings and projects (prices hidden on sites with `features.hidePublicPrices`, see [api-rules.md](./api-rules.md#hidden-prices)) |
+| Favorites      | Add/remove favorites (any authenticated user)                                                                                                             |
+| Saved searches | Manage saved searches on profile                                                                                                                          |
+| Bookings       | Create visit requests, view own bookings, cancel pending ones                                                                                             |
+| Transactions   | Initiate purchase transactions, view transactions they participate in                                                                                     |
+| Reviews        | Submit one review per active property                                                                                                                     |
+| Profile        | Update own profile, notification prefs, avatar                                                                                                            |
 
 ### Route-level blocks
 
@@ -162,11 +162,11 @@ Same buyer-route restrictions as seller (cannot create bookings or initiate tran
 
 **Purpose:** Platform operator — moderation, user management, analytics, and override powers.
 
-**Cannot self-register.** Must be seeded or promoted by another admin.
+**Cannot self-register.** Must be seeded or promoted by another admin. The Block 57 tenant admin is created by `npm run seed:block57` (see deployment.md) with no platform permissions.
 
 All `/admin/*` routes require `authenticate` + `authorize(ROLES.ADMIN)` on the **current site**.
 
-**Platform admins** (Buytly site `admin` users with `platformPermissions`: `cross_site_read`, `cross_site_moderate`) may list or moderate partner tenant data via optional `?siteId=` on admin list/analytics endpoints.
+**Platform admins** (Buytly site `admin` users with `platformPermissions`: `cross_site_read`, `cross_site_moderate`) may list or moderate partner tenant data via optional `?siteId=` on admin list/analytics endpoints. **Exception:** contact inquiries (`/admin/inquiries`) are private to each site and have no cross-site override — every admin, including platform admins, sees only the current site's inquiries.
 
 ### Admin-only capabilities
 
@@ -178,6 +178,8 @@ All `/admin/*` routes require `authenticate` + `authorize(ROLES.ADMIN)` on the *
 | `PATCH /admin/users/:id/role`          | Change any user's role                                     |
 | `GET /admin/properties`                | All listings including draft/pending/archived              |
 | `PATCH /admin/properties/:id/moderate` | Set any property status                                    |
+| `GET /admin/inquiries`                 | Current site's contact inquiries (status filter, search)   |
+| `PATCH /admin/inquiries/:id`           | Set inquiry status (`new` / `contacted` / `closed`)        |
 | `GET /admin/analytics`                 | Platform KPIs                                              |
 
 ### Property superpowers
@@ -189,7 +191,7 @@ All `/admin/*` routes require `authenticate` + `authorize(ROLES.ADMIN)` on the *
 
 ### Cross-cutting overrides
 
-- `canManageProperty` — any property
+- `canManageProperty` — any property (also decides who sees real prices on sites with `features.hidePublicPrices`)
 - `canViewNonActiveProperty` — draft/pending/archived listings
 - Booking/transaction status — any booking or transaction
 - Review deletion — any review (not just own)

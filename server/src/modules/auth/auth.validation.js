@@ -6,7 +6,7 @@ import {
   normalizePhoneNumber,
 } from "../../shared/phone.js";
 
-const passwordSchema = z.string().min(8).max(128);
+export const passwordSchema = z.string().min(8).max(128);
 
 const phoneCountryCodeSchema = z
   .string()

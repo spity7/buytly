@@ -2,6 +2,7 @@ import nodemailer from "nodemailer";
 import sgMail from "@sendgrid/mail";
 import { env } from "../config/env.js";
 import { emailTemplates } from "./email.templates.js";
+import { resolveSiteBrand } from "./siteBrand.js";
 
 let transporter = null;
 let sendgridReady = false;
@@ -28,16 +29,30 @@ const ensureSendgrid = () => {
   }
 };
 
-const renderTemplate = (template, data) =>
-  emailTemplates[template]?.(data) || emailTemplates.generic(data);
+/**
+ * Sender for a site: the address from SMTP_FROM (bare `addr` or `Name <addr>`)
+ * with the site brand as display name, e.g. `Block 57 <noreply@buytly.com>`.
+ */
+export const buildEmailSender = (smtpFrom, brandName) => {
+  const raw = String(smtpFrom || "").trim();
+  const address = (raw.match(/<([^<>]+)>\s*$/)?.[1] ?? raw).trim();
+  const name = String(brandName || "").trim();
+  return name ? { name, address } : { address };
+};
+
+const renderTemplate = (template, data, brand) => {
+  const payload = { ...data, brand };
+  return emailTemplates[template]?.(payload) || emailTemplates.generic(payload);
+};
 
 const deliver = async (to, tpl, options = {}) => {
-  const { replyTo } = options;
+  const { replyTo, brand } = options;
+  const sender = buildEmailSender(env.SMTP_FROM, brand?.name);
   if (env.EMAIL_PROVIDER === "sendgrid") {
     ensureSendgrid();
     await sgMail.send({
       to,
-      from: env.SMTP_FROM,
+      from: { email: sender.address, name: sender.name },
       replyTo: replyTo || undefined,
       subject: tpl.subject,
       text: tpl.text,
@@ -48,7 +63,7 @@ const deliver = async (to, tpl, options = {}) => {
 
   const transport = getTransporter();
   await transport.sendMail({
-    from: env.SMTP_FROM,
+    from: sender,
     to,
     replyTo: replyTo || undefined,
     subject: tpl.subject,
@@ -59,7 +74,8 @@ const deliver = async (to, tpl, options = {}) => {
 
 export const emailService = {
   async send(to, template, data, options = {}) {
-    const tpl = renderTemplate(template, data);
+    const brand = resolveSiteBrand();
+    const tpl = renderTemplate(template, data, brand);
 
     if (env.NODE_ENV === "test") {
       return;
@@ -69,7 +85,7 @@ export const emailService = {
       console.log(`[Email] To: ${to} | Subject: ${tpl.subject}`);
     }
 
-    await deliver(to, tpl, options);
+    await deliver(to, tpl, { ...options, brand });
   },
 
   async sendPasswordReset(to, data) {
@@ -93,7 +109,8 @@ export const emailService = {
   },
 
   async sendContactInquiry(inbox, data) {
-    const tpl = renderTemplate("contactInquiry", data);
+    const brand = resolveSiteBrand();
+    const tpl = renderTemplate("contactInquiry", data, brand);
 
     if (env.NODE_ENV === "test") {
       return;
@@ -105,10 +122,14 @@ export const emailService = {
       );
     }
 
-    await deliver(inbox, tpl, { replyTo: data.email });
+    await deliver(inbox, tpl, { replyTo: data.email, brand });
   },
 
+  /** Replies to the auto-reply go to the site's support inbox when it has one. */
   async sendContactAutoReply(to, data) {
-    return this.send(to, "contactAutoReply", data);
+    const { supportEmail } = resolveSiteBrand();
+    return this.send(to, "contactAutoReply", data, {
+      replyTo: supportEmail || undefined,
+    });
   },
 };

@@ -15,9 +15,9 @@ import { applyPhoneFields } from "../../shared/phone.js";
 import { emailService } from "../../services/email.service.js";
 import { notificationService } from "../notifications/notification.service.js";
 import { ROLES } from "../../shared/constants.js";
-import { env } from "../../config/env.js";
 import { googleService } from "../../services/google.service.js";
 import { syncGoogleAvatarIfMissing } from "../../services/googleAvatar.service.js";
+import { buildSiteLink } from "../../services/siteBrand.js";
 import { getRequestSiteId } from "../../shared/requestContext.js";
 
 const SALT_ROUNDS = 12;
@@ -38,8 +38,10 @@ const issueTokenPair = async (user) => {
   return { accessToken, refreshToken };
 };
 
+// Links open the request site's frontend so users finish the flow on the
+// site they signed up on (accounts are per site).
 const sendVerificationEmail = async (user, plainToken) => {
-  const verifyUrl = `${env.APP_URL}/verify-email?token=${plainToken}`;
+  const verifyUrl = buildSiteLink(`/verify-email?token=${plainToken}`);
   await emailService.sendEmailVerification(user.email, {
     name: user.firstName || user.email,
     verifyUrl,
@@ -452,7 +454,7 @@ export const authService = {
     user.passwordResetExpires = expires;
     await user.save();
 
-    const resetUrl = `${env.APP_URL}/reset-password?token=${token}`;
+    const resetUrl = buildSiteLink(`/reset-password?token=${token}`);
 
     await emailService.sendPasswordReset(user.email, {
       name: user.firstName || user.email,

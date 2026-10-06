@@ -45,6 +45,7 @@ export const PHONE_COUNTRY_CODES = [
   "+84",
   "+90",
   "+27",
+  "+233",
   "+234",
   "+254",
   "+55",

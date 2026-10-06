@@ -31,7 +31,6 @@ import {
   shouldIncrementListingView,
   normalizeSellerStatus,
   applyPublicListStatusToFilter,
-  resolvePublicListStatus,
   hasMaterialChanges,
   buildArchiveUpdate,
   buildRestoreUpdate,
@@ -40,10 +39,14 @@ import {
   resolveFloorPlansForPropertyType,
   sanitizeFloorPlanForStorage,
 } from "./floor-plans.js";
+import {
+  hideUnitPrice,
+  requestSiteHidesPublicPrices,
+} from "../../shared/priceVisibility.js";
 
 const EARTH_RADIUS_KM = 6378.1;
 
-const canManageProperty = (property, user) =>
+export const canManageProperty = (property, user) =>
   Boolean(
     user &&
     (user.role === ROLES.ADMIN ||
@@ -275,6 +278,14 @@ const applyListingCatalogRules = async (payload) => {
   payload.currency = DEFAULT_CURRENCY;
 };
 
+/** `null` (or a blank building) clears the optional unit position: undefined is $unset on save. */
+const normalizeUnitPosition = (payload) => {
+  if (payload.building === null || payload.building === "") {
+    payload.building = undefined;
+  }
+  if (payload.floor === null) payload.floor = undefined;
+};
+
 export const propertyService = {
   async create(data, user) {
     const siteId = getRequestSiteId();
@@ -301,6 +312,7 @@ export const propertyService = {
     const isAdmin = user.role === ROLES.ADMIN;
 
     await applyListingCatalogRules(payload);
+    normalizeUnitPosition(payload);
 
     if (payload.floorPlans !== undefined) {
       payload.floorPlans = resolveFloorPlansForPropertyType(
@@ -352,7 +364,10 @@ export const propertyService = {
     filter.projectId = { $in: publicProjectIds };
     const publicProjectIdSet = new Set(publicProjectIds.map(String));
 
-    if (query.minPrice || query.maxPrice) {
+    // Hidden prices: ignore price filters/sort so results do not reveal them.
+    const hidePrices = requestSiteHidesPublicPrices();
+
+    if (!hidePrices && (query.minPrice || query.maxPrice)) {
       filter.price = {};
       if (query.minPrice) filter.price.$gte = query.minPrice;
       if (query.maxPrice) filter.price.$lte = query.maxPrice;
@@ -397,7 +412,10 @@ export const propertyService = {
       }
     }
 
-    const sortField = query.sortBy || "createdAt";
+    const sortField =
+      hidePrices && query.sortBy === "price"
+        ? "createdAt"
+        : query.sortBy || "createdAt";
     const sortOrder = query.sortOrder === "asc" ? 1 : -1;
     const sort = { [sortField]: sortOrder };
 
@@ -415,7 +433,7 @@ export const propertyService = {
     const data = await Promise.all(properties.map(attachMediaUrls));
 
     return {
-      properties: data,
+      properties: hidePrices ? data.map(hideUnitPrice) : data,
       pagination: buildPaginationMeta(total, page, limit),
     };
   },
@@ -450,7 +468,10 @@ export const propertyService = {
       await property.save({ validateBeforeSave: false });
     }
 
-    return attachMediaUrls(property);
+    const doc = await attachMediaUrls(property);
+    return requestSiteHidesPublicPrices() && !canManageProperty(property, user)
+      ? hideUnitPrice(doc)
+      : doc;
   },
 
   async getNearby(id, { user } = {}) {
@@ -553,6 +574,7 @@ export const propertyService = {
     delete patch.location;
     delete patch.projectId;
 
+    normalizeUnitPosition(patch);
     await applyFloorPlansOnWrite(property, patch);
 
     const materialChanges =
@@ -866,7 +888,9 @@ export const propertyService = {
     const data = await Promise.all(properties.map(attachMediaUrls));
 
     return {
-      properties: data,
+      properties: requestSiteHidesPublicPrices()
+        ? data.map(hideUnitPrice)
+        : data,
       pagination: buildPaginationMeta(total, page, limit),
     };
   },

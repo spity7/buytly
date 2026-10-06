@@ -100,6 +100,24 @@ export const siteService = {
           supportPhoneDisplay: "+961 71 703 703",
         },
       },
+      {
+        slug: SITE_SLUG.BLOCK57,
+        kind: SITE_KIND.TENANT,
+        name: "Block 57",
+        primaryDomain: "block-57.com",
+        domains: ["www.block-57.com"],
+        publicUrl: "https://block-57.com",
+        platformListingPolicy: PLATFORM_LISTING_POLICY.OPT_IN,
+        branding: {
+          siteDisplayName: "Block 57",
+          supportEmail: "info@block-57.com",
+          supportPhone: "+233244777772",
+          supportPhoneDisplay: "+233 244 777 772",
+          contactInboxEmail: "info@block-57.com",
+        },
+        // hidePublicPrices: hide listing prices from public viewers (see api-rules.md)
+        features: { hidePublicPrices: true },
+      },
     ];
 
     for (const entry of defaults) {
@@ -180,8 +198,10 @@ export const siteService = {
         if (normalized === "localhost") {
           origins.add("http://localhost:3000");
           origins.add("http://localhost:3001");
+          origins.add("http://localhost:3002");
           origins.add("http://127.0.0.1:3000");
           origins.add("http://127.0.0.1:3001");
+          origins.add("http://127.0.0.1:3002");
           continue;
         }
         origins.add(`https://${normalized}`);

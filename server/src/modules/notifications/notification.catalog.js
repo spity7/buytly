@@ -1,5 +1,5 @@
 import { NOTIFICATION_TYPES } from "../../shared/constants.js";
-import { env } from "../../config/env.js";
+import { buildSiteLink, resolveSiteBrand } from "../../services/siteBrand.js";
 
 const statusMessages = {
   active: "Your listing has been approved and is now live.",
@@ -29,7 +29,7 @@ export const NOTIFICATION_EVENTS = {
     defaultSendEmail: true,
     emailTemplate: "welcome",
     entityType: "user",
-    buildTitle: () => "Welcome to Buytly",
+    buildTitle: () => `Welcome to ${resolveSiteBrand().name}`,
     buildMessage: () => "Your account has been created successfully.",
     buildHref: () => "/dashboard-home",
     buildEmailData: ({ name }) => ({ name }),
@@ -56,7 +56,7 @@ export const NOTIFICATION_EVENTS = {
     buildHref: () => "/dashboard-my-profile",
     buildEmailData: ({ name }) => ({
       name,
-      ctaUrl: `${env.APP_URL}/dashboard-my-profile`,
+      ctaPath: "/dashboard-my-profile",
       ctaLabel: "Review account settings",
     }),
   },
@@ -77,7 +77,7 @@ export const NOTIFICATION_EVENTS = {
       title,
       message,
       propertyTitle,
-      ctaUrl: `${env.APP_URL}/dashboard-bookings`,
+      ctaPath: "/dashboard-bookings",
       ctaLabel: "View bookings",
     }),
   },
@@ -98,9 +98,9 @@ export const NOTIFICATION_EVENTS = {
       name,
       status,
       propertyTitle,
-      ctaUrl: bookingId
-        ? `${env.APP_URL}/dashboard-bookings?highlight=${bookingId}`
-        : `${env.APP_URL}/dashboard-bookings`,
+      ctaPath: bookingId
+        ? `/dashboard-bookings?highlight=${bookingId}`
+        : "/dashboard-bookings",
       ctaLabel: "View booking",
     }),
   },
@@ -138,9 +138,9 @@ export const NOTIFICATION_EVENTS = {
       title,
       message,
       propertyTitle,
-      ctaUrl: transactionId
-        ? `${env.APP_URL}/dashboard-transactions?highlight=${transactionId}`
-        : `${env.APP_URL}/dashboard-transactions`,
+      ctaPath: transactionId
+        ? `/dashboard-transactions?highlight=${transactionId}`
+        : "/dashboard-transactions",
       ctaLabel: "View transaction",
     }),
   },
@@ -166,9 +166,9 @@ export const NOTIFICATION_EVENTS = {
       name,
       status,
       propertyTitle,
-      ctaUrl: transactionId
-        ? `${env.APP_URL}/dashboard-transactions?highlight=${transactionId}`
-        : `${env.APP_URL}/dashboard-transactions`,
+      ctaPath: transactionId
+        ? `/dashboard-transactions?highlight=${transactionId}`
+        : "/dashboard-transactions",
       ctaLabel: "View transaction",
     }),
   },
@@ -199,11 +199,11 @@ export const NOTIFICATION_EVENTS = {
       message,
       propertyTitle: projectTitle || propertyTitle,
       projectTitle,
-      ctaUrl: projectId
-        ? `${env.APP_URL}/dashboard-admin-projects?highlight=${projectId}`
+      ctaPath: projectId
+        ? `/dashboard-admin-projects?highlight=${projectId}`
         : propertyId
-          ? `${env.APP_URL}/dashboard-admin-properties?highlight=${propertyId}`
-          : `${env.APP_URL}/dashboard-admin-properties`,
+          ? `/dashboard-admin-properties?highlight=${propertyId}`
+          : "/dashboard-admin-properties",
       ctaLabel: "Review listing",
     }),
   },
@@ -225,9 +225,9 @@ export const NOTIFICATION_EVENTS = {
       message,
       projectTitle,
       propertyTitle: projectTitle,
-      ctaUrl: projectId
-        ? `${env.APP_URL}/dashboard-admin-projects?highlight=${projectId}`
-        : `${env.APP_URL}/dashboard-admin-projects`,
+      ctaPath: projectId
+        ? `/dashboard-admin-projects?highlight=${projectId}`
+        : "/dashboard-admin-projects",
       ctaLabel: "Review project",
     }),
   },
@@ -259,9 +259,9 @@ export const NOTIFICATION_EVENTS = {
       status,
       title,
       message,
-      ctaUrl: projectId
-        ? `${env.APP_URL}/dashboard-my-projects?highlight=${projectId}`
-        : `${env.APP_URL}/dashboard-my-projects`,
+      ctaPath: projectId
+        ? `/dashboard-my-projects?highlight=${projectId}`
+        : "/dashboard-my-projects",
       ctaLabel: "View project",
     }),
   },
@@ -297,9 +297,9 @@ export const NOTIFICATION_EVENTS = {
       status,
       title,
       message,
-      ctaUrl: propertyId
-        ? `${env.APP_URL}/dashboard-my-properties?highlight=${propertyId}`
-        : `${env.APP_URL}/dashboard-my-properties`,
+      ctaPath: propertyId
+        ? `/dashboard-my-properties?highlight=${propertyId}`
+        : "/dashboard-my-properties",
       ctaLabel: "View listing",
     }),
   },
@@ -318,9 +318,9 @@ export const NOTIFICATION_EVENTS = {
       name,
       propertyTitle,
       rating,
-      ctaUrl: propertyId
-        ? `${env.APP_URL}/single-v1/${propertyId}#property-reviews`
-        : `${env.APP_URL}/dashboard-my-properties`,
+      ctaPath: propertyId
+        ? `/single-v1/${propertyId}#property-reviews`
+        : "/dashboard-my-properties",
       ctaLabel: "View reviews",
     }),
   },
@@ -346,6 +346,14 @@ export const buildNotificationPayload = (eventKey, context = {}) => {
     toId(context.propertyId) ||
     toId(context.userId);
 
+  // Events return a relative ctaPath; the request site's public URL is
+  // prefixed here so email links open the site the recipient belongs to.
+  const { ctaPath, ...emailData } = event.buildEmailData({
+    ...context,
+    title,
+    message,
+  });
+
   const data = {
     event: eventKey,
     entityType: event.entityType,
@@ -363,7 +371,9 @@ export const buildNotificationPayload = (eventKey, context = {}) => {
     data,
     sendEmail: event.defaultSendEmail,
     emailTemplate: event.emailTemplate,
-    emailData: event.buildEmailData({ ...context, title, message }),
+    emailData: ctaPath
+      ? { ...emailData, ctaUrl: buildSiteLink(ctaPath) }
+      : emailData,
   };
 };
 
