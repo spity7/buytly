@@ -115,6 +115,7 @@ router.get(
  *   get:
  *     operationId: getProjectBySlug
  *     summary: Get project by slug with units
+ *     description: Same visibility as GET /projects/{id}, but only non-trashed projects match. Units are limited to active and sold for viewers who do not manage the project.
  *     tags: [Projects]
  *     parameters:
  *       - in: path
@@ -135,6 +136,7 @@ router.get(
  *   get:
  *     operationId: getProjectById
  *     summary: Get project by ID
+ *     description: Active and sold projects are public. Draft, pending, archived and trashed projects are only visible to the owner, assigned agent, or admin; any other logged-in user gets the same result as an anonymous visitor.
  *     tags: [Projects]
  *     parameters:
  *       - $ref: '#/components/parameters/ObjectIdParam'
@@ -157,6 +159,7 @@ router.get(
  *   get:
  *     operationId: listProjectUnits
  *     summary: List units in a project
+ *     description: Same project visibility as GET /projects/{id}. Viewers who do not manage the project only get active and sold units.
  *     tags: [Projects]
  *     parameters:
  *       - $ref: '#/components/parameters/ObjectIdParam'

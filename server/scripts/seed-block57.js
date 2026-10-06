@@ -3,7 +3,7 @@
  * Block 57 tenant bootstrap. Safe to re-run.
  *
  *   BLOCK57_ADMIN_EMAIL=... BLOCK57_ADMIN_PASSWORD=... npm run seed:block57 -- \
- *     [--units <file.json>] [--activate] [--reset-admin-password]
+ *     [--units <file.json>] [--activate] [--reset-admin-password] [--promote-existing]
  *
  * Docker: docker compose exec server npm run seed:block57 (see docs/deployment.md).
  */
@@ -21,13 +21,16 @@ const USAGE = `Usage: npm run seed:block57 -- [options]
 
 Environment:
   BLOCK57_ADMIN_EMAIL       Admin account (shared sales mailbox; it owns the project)
-  BLOCK57_ADMIN_PASSWORD    8-128 characters; only applied on create or with --reset-admin-password
+  BLOCK57_ADMIN_PASSWORD    8-128 characters; applied on create, with --reset-admin-password or --promote-existing
   BLOCK57_LAT, BLOCK57_LNG  Optional project coordinates (set both; first insert only)
 
 Options:
-  --units <file>            Upsert units from a JSON array (see scripts/seed/block57-units.example.json)
+  --units <file>            Upsert units from a JSON array (see scripts/seed/block57-units.example.json);
+                            unit fields in the file overwrite dashboard edits (each change is printed)
   --activate                Approve the project and its pending units (needs a pending or active unit)
   --reset-admin-password    Overwrite an existing admin's password and sign out its sessions
+  --promote-existing        Make an existing non-admin account with BLOCK57_ADMIN_EMAIL the admin
+                            (only if you control it: password reset, sessions signed out)
   -h, --help                Show this help`;
 
 function parseCoordinates() {
@@ -85,6 +88,13 @@ function printSummary(summary) {
     );
   }
 
+  if (units?.changes.length) {
+    console.log(
+      "\nUnit fields overwritten from the file (previous value -> file value):",
+    );
+    for (const change of units.changes) console.log(`  - ${change}`);
+  }
+
   if (summary.warnings.length) {
     console.log("\nWarnings:");
     for (const warning of summary.warnings) console.log(`  - ${warning}`);
@@ -115,6 +125,7 @@ async function main() {
       units: { type: "string" },
       activate: { type: "boolean", default: false },
       "reset-admin-password": { type: "boolean", default: false },
+      "promote-existing": { type: "boolean", default: false },
       help: { type: "boolean", short: "h", default: false },
     },
   });
@@ -142,6 +153,7 @@ async function main() {
     adminEmail: process.env.BLOCK57_ADMIN_EMAIL,
     adminPassword: process.env.BLOCK57_ADMIN_PASSWORD,
     resetAdminPassword: values["reset-admin-password"],
+    promoteExisting: values["promote-existing"],
     unitsFile,
     activate: values.activate,
     coordinates,

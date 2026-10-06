@@ -25,6 +25,13 @@ export const submitContactSchema = z.object({
       .max(300)
       .regex(/^\/(?!\/)\S*$/, "pagePath must be a path starting with /"),
   ),
-  // Honeypot — hidden from real visitors; any value marks the request as a bot.
-  website: z.string().trim().max(200).optional(),
+  // Honeypot — hidden from real visitors. Any value other than "" or null
+  // (whitespace, a long URL, a number) marks the request as a bot. It is never
+  // rejected here, so a bot always gets the normal 201 and no hint about the
+  // field; parsed to a boolean so the value itself is not kept.
+  website: z
+    .unknown()
+    .transform(
+      (value) => value !== undefined && value !== null && value !== "",
+    ),
 });

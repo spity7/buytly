@@ -46,7 +46,7 @@ describe("submitContactSchema", () => {
       unitId: "507f1f77bcf86cd799439011",
       unitLabel: "A-101",
       pagePath: "/apartments/penthouse/",
-      website: "",
+      website: false,
     });
   });
 
@@ -85,12 +85,29 @@ describe("submitContactSchema", () => {
     ["pagePath", "//evil.example.com"],
     ["pagePath", "/has space"],
     ["pagePath", `/${"a".repeat(300)}`],
-    ["website", "x".repeat(201)],
   ])("rejects invalid %s", (field, value) => {
     const result = submitContactSchema.safeParse({
       ...basePayload,
       [field]: value,
     });
     expect(result.success).toBe(false);
+  });
+
+  it.each([
+    ["a URL", "https://spam.example.com", true],
+    ["an over-long value", "x".repeat(5000), true],
+    ["whitespace only", "   ", true],
+    ["a number", 0, true],
+    ["an object", { url: "x" }, true],
+    ["an empty string", "", false],
+    ["null", null, false],
+    ["nothing", undefined, false],
+  ])("never rejects the website honeypot: %s", (_label, value, filled) => {
+    const result = submitContactSchema.safeParse({
+      ...basePayload,
+      website: value,
+    });
+    expect(result.success).toBe(true);
+    expect(result.data.website).toBe(filled);
   });
 });

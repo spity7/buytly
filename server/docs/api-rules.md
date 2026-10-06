@@ -101,7 +101,7 @@ Property list supports:
 - `sortOrder` — `asc`, `desc`
 - `minPrice`, `maxPrice`, `type`, `status`, `city`, `bedrooms`
 - `status` on public `GET /properties` and `GET /projects` — omit for **active + sold**, or pass `active` or `sold` to filter; other values return 400
-- Public `GET /properties/:id` — `active` and `sold` listings on public parent projects are visible without auth; other statuses require owner, agent, or admin
+- Public `GET /properties/:id` — `active` and `sold` listings on public parent projects are visible without auth; other statuses require owner, agent, or admin — see [Detail read visibility](#detail-read-visibility)
 - `viewCount` — incremented on `GET /properties/:id` and `GET /projects/:id` (and slug) only for `active` records and only when the request is not from a user who can manage that listing (owner, agent, or admin)
 - Public `GET /projects` — `kind`, `city`, geo radius, `search`, pagination; list items include `unitCount`, `priceMin`, `priceMax`
 - Sites that hide prices ignore `minPrice`/`maxPrice` and `sortBy=price` on public lists — see [Hidden prices](#hidden-prices)
@@ -111,6 +111,22 @@ Property list supports:
 `GET /properties/:id/nearby` returns schools, medical facilities, and transit stops within 5 km using OpenStreetMap (Overpass API). The server tries multiple public Overpass mirrors (configurable via `OVERPASS_URL`) with a `User-Agent` header. Same visibility rules as `GET /properties/:id`. When all mirrors fail, the endpoint still returns 200 with empty categories and `unavailable: true` (failures are not cached).
 
 `GET /catalog/nearby?lat=&lng=` uses the same Overpass lookup for dashboard map previews before a listing is saved (public, no auth).
+
+## Detail read visibility
+
+Detail reads use optional auth: `GET /projects/:id`, `GET /projects/slug/:slug`, `GET /projects/:id/properties`, `GET /properties/:id` and `GET /properties/:id/nearby`. A logged-in user who does not manage the listing (a buyer, another seller, an agent who is not assigned) sees exactly what an anonymous visitor sees. Sending a Bearer token never turns a public listing into a 404.
+
+| Viewer                                               | Non-deleted `active` / `sold`                                  | Non-deleted `draft` / `pending` / `archived` | Trashed (`deletedAt` set) |
+| ---------------------------------------------------- | -------------------------------------------------------------- | -------------------------------------------- | ------------------------- |
+| Anonymous, or logged in without managing the listing | 200; a unit also needs an `active`/`sold`, non-trashed project | 404                                          | 404                       |
+| Owner or assigned agent of that project/unit         | 200                                                            | 200                                          | 200 by id (for restore)   |
+| Admin of the request site                            | 200                                                            | 200                                          | 200 by id                 |
+
+`GET /projects/slug/:slug` only matches non-trashed projects, for every viewer.
+
+Non-managers only see units with status `active` or `sold` in a project's embedded `units` and in `GET /projects/:id/properties`. Views of `active` listings by non-managers are counted (managers' views are not), and on a hidden-price site non-managers get masked prices (see [Hidden prices](#hidden-prices)). The listing must belong to the request site; an admin of another site gets 404.
+
+Writes are stricter. A seller or agent can only `PATCH` (including marking sold), permanently delete, or change the media or floor plans of a listing they own or are the agent on; any other listing returns **404**, even a public one. `DELETE` (trash) and `PATCH .../restore` look the listing up without that filter and return **403** when the caller does not manage it. Buyers get **403** from every listing write route. Implemented by `buildProjectReadFilter` / `buildPropertyReadFilter` (reads) and `buildProjectIdFilter` / `buildPropertyIdFilter` (writes) in the project and property services.
 
 ## Hidden prices
 

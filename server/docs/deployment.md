@@ -285,58 +285,79 @@ Each frontend sends browser `Origin`; the API resolves tenant from host mapping 
 
 ### Block 57 bootstrap (`seed:block57`)
 
-`scripts/seed-block57.js` prepares the `block57` tenant on any database, including production, after the API has been deployed. It is safe to run again: every step is an upsert, nothing is deleted, and edits made in the dashboard are kept. Steps:
+`scripts/seed-block57.js` prepares the `block57` tenant on any database, including production, after the API has been deployed. **Run it straight after deploying the API, before the domain is announced:** API boot creates the `block57` site, so from then on anyone can register on it. It is safe to run again: every step is an upsert and nothing is deleted. What a re-run keeps and what it re-applies:
+
+- **Kept as edited in the dashboard** (only written when first created): the project (title, copy, status, location, media), property-type labels/order/active flags, amenity labels and order, and an existing admin's password (unless `--reset-admin-password`).
+- **Re-applied on every run:** the admin's `admin` role and empty platform permissions (step 2), the amenity active flags (step 4), and the unit fields listed in the units file (see below; the file wins and every overwritten field is printed).
+
+Steps:
 
 1. Ensure the default sites exist (`ensureDefaultSites`, as on API boot) and load `block57`.
-2. Create the Block 57 admin, or update an existing account with that email on `block57`: role `admin`, email verified, **no platform permissions** (it cannot see other sites' data). A new account gets the name "Block 57 Sales" and the site support phone. This account owns the project and its name, email and phone are shown on listings, so use a shared sales mailbox rather than a personal address.
+2. Create the Block 57 admin (email verified, **no platform permissions**, so it cannot see other sites' data). A new account gets the name "Block 57 Sales" and the site support phone. This account owns the project and its name, email and phone are shown on listings, so use a shared sales mailbox rather than a personal address. If an account with that email already exists on `block57`:
+   - an **admin** is kept (platform permissions are removed; the password only changes with `--reset-admin-password`);
+   - any **other role stops the script**. Registration is open, so someone else may have registered the mailbox and still hold its password and sessions. Use another email, or pass `--promote-existing` if you control the account: it becomes admin, gets the password from `BLOCK57_ADMIN_PASSWORD`, its reset/verification tokens are cleared and its refresh tokens revoked (access tokens already issued stay valid until they expire, `JWT_ACCESS_EXPIRES_IN`). Its email-verified flag is left as it is.
 3. Property types (insert only; later label/order/active edits are kept): `executive-studio` Executive Studio, `one-bedroom` 1 Bedroom, `two-bedroom` 2 Bedroom, `townhouse` Townhouse, `urban-villa` Urban Villa, `penthouse` Penthouse.
 4. Amenities: inserts the catalog defaults (as the first catalog read would), then sets active on every run: Swimming Pool and Security (defaults, reused), Rooftop Lounge, Padel Court, Fitness Centre, Children's Play Area, Business Lounge, Underground Parking; and inactive: Sea View, Mountain View, Generator. Labels and sort order are only set when a row is inserted. Other sites' catalogs are untouched.
-5. Project "Block 57" (slug `block-57`): created once as **draft**, owned by the admin, with placeholder marketing copy, the Block 57 amenities and location "54E First Circular Crescent, Cantonments, Accra, Ghana". The default map pin (lat 5.5786, lng -0.1745) is approximate; confirm it, then pass `BLOCK57_LAT`/`BLOCK57_LNG` on the first run or move the pin in the dashboard. An existing project is never modified (status, copy, location and media belong to the dashboard). A project in the trash stops the script; restore it first.
+5. Project "Block 57" (slug `block-57`): created once as **draft**, owned by the admin, with placeholder marketing copy, the Block 57 amenities and location "54E First Circular Crescent, Cantonments, Accra, Ghana". The default map pin (lat 5.5786, lng -0.1745) is approximate; confirm it, then pass `BLOCK57_LAT`/`BLOCK57_LNG` on the first run or move the pin in the dashboard. An existing project is never modified (status, copy, location and media belong to the dashboard). The project is found by its slug, and the script stops before writing the project or any unit when:
+   - the `block-57` project is owned by an account that is not a `block57` admin (for example a seller registered it first). Units would be created under that owner and `--activate` would publish it, so rename or delete it from the admin dashboard first. A project owned by another `block57` admin is used, with a warning;
+   - the `block-57` project is in the trash; restore it first;
+   - there is no `block-57` project but a `block57` admin already owns another project. **Do not rename the project:** a new title changes the slug, the website loads the project by `block-57` (`NEXT_PUBLIC_BLOCK57_PROJECT_SLUG`), and a re-run would otherwise create a duplicate. Rename it back to "Block 57" and re-run.
 6. `--units <file>`: upsert units (see below).
 7. `--activate`: approve the project the same way an admin does in the dashboard (`adminService.moderateProject(..., "active")`): the project becomes active and its **pending** units become active; draft units stay draft. It needs at least one pending or active unit and is skipped (with the reason printed) otherwise, or when the project is already active with nothing pending, or sold. The owner gets the usual "project approved" notification and email.
 
 The script prints a summary (created / updated / unchanged counts, warnings) and next steps, exits non-zero on any error, and always disconnects.
 
-| Variable                      | Required | Description                                                                                                                                          |
-| ----------------------------- | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `BLOCK57_ADMIN_EMAIL`         | yes      | Admin account on `block57` (shared sales mailbox)                                                                                                    |
-| `BLOCK57_ADMIN_PASSWORD`      | yes      | 8–128 characters. Used when the account is created, or with `--reset-admin-password`; otherwise an existing password is left unchanged. Never logged |
-| `BLOCK57_LAT` / `BLOCK57_LNG` | no       | Project coordinates (set both). Only used when the project is first created                                                                          |
+| Variable                      | Required | Description                                                                                                                                                                    |
+| ----------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `BLOCK57_ADMIN_EMAIL`         | yes      | Admin account on `block57` (shared sales mailbox)                                                                                                                              |
+| `BLOCK57_ADMIN_PASSWORD`      | yes      | 8–128 characters. Used when the account is created, with `--reset-admin-password` or with `--promote-existing`; otherwise an existing password is left unchanged. Never logged |
+| `BLOCK57_LAT` / `BLOCK57_LNG` | no       | Project coordinates (set both). Only used when the project is first created                                                                                                    |
 
-| Flag                     | Effect                                                                                            |
-| ------------------------ | ------------------------------------------------------------------------------------------------- |
-| `--units <file>`         | Upsert units from a JSON array. Relative paths resolve from the directory the command is run from |
-| `--activate`             | Approve the project and its pending units (step 7)                                                |
-| `--reset-admin-password` | Set the admin password from `BLOCK57_ADMIN_PASSWORD` and revoke the account's refresh tokens      |
-| `--help`                 | Print usage                                                                                       |
+| Flag                     | Effect                                                                                              |
+| ------------------------ | --------------------------------------------------------------------------------------------------- |
+| `--units <file>`         | Upsert units from a JSON array. Relative paths resolve from the directory the command is run from   |
+| `--activate`             | Approve the project and its pending units (step 7)                                                  |
+| `--reset-admin-password` | Set the admin password from `BLOCK57_ADMIN_PASSWORD` and revoke the account's refresh tokens        |
+| `--promote-existing`     | Make an existing non-admin account with that email the admin, with a forced password reset (step 2) |
+| `--help`                 | Print usage                                                                                         |
+
+Keep the password out of shell history and out of process arguments (`ps` shows every local user the arguments of running commands): read it without echo, `export` it, and let the command inherit it from the environment. Never write `BLOCK57_ADMIN_PASSWORD=<value>` on a command line.
 
 Local (the variables can also live in `server/.env`):
 
 ```bash
 cd server
-BLOCK57_ADMIN_EMAIL=<sales-mailbox> BLOCK57_ADMIN_PASSWORD='<password>' \
-  npm run seed:block57 -- --units scripts/seed/block57-units.example.json --activate
-```
-
-Docker (runs inside the API container, so it uses the container's `MONGODB_URI` and GCS credentials). Read the password without echoing it, so it stays out of shell history:
-
-```bash
 read -rsp "Block 57 admin password: " BLOCK57_ADMIN_PASSWORD; echo
-docker compose exec \
-  -e BLOCK57_ADMIN_EMAIL=<sales-mailbox> \
-  -e BLOCK57_ADMIN_PASSWORD="$BLOCK57_ADMIN_PASSWORD" \
-  server npm run seed:block57
-
-# Units: copy the inventory file into the container, import it, then activate
-docker compose cp ./block57-units.json server:/tmp/block57-units.json
-docker compose exec \
-  -e BLOCK57_ADMIN_EMAIL=<sales-mailbox> \
-  -e BLOCK57_ADMIN_PASSWORD="$BLOCK57_ADMIN_PASSWORD" \
-  server npm run seed:block57 -- --units /tmp/block57-units.json --activate
+export BLOCK57_ADMIN_PASSWORD
+BLOCK57_ADMIN_EMAIL=<sales-mailbox> \
+  npm run seed:block57 -- --units scripts/seed/block57-units.example.json --activate
 unset BLOCK57_ADMIN_PASSWORD
 ```
 
-**Units file.** A JSON array; each entry is validated with the same rules as `POST /properties`, and the whole file is checked before any unit is written (unknown keys, duplicate titles and unknown or inactive types are errors):
+Docker (runs inside the API container, so it uses the container's `MONGODB_URI` and GCS credentials). `-e BLOCK57_ADMIN_PASSWORD` with no `=value` makes `docker compose exec` take the value from your exported shell variable, so it never appears in the process list:
+
+```bash
+read -rsp "Block 57 admin password: " BLOCK57_ADMIN_PASSWORD; echo
+export BLOCK57_ADMIN_PASSWORD
+docker compose exec \
+  -e BLOCK57_ADMIN_EMAIL=<sales-mailbox> \
+  -e BLOCK57_ADMIN_PASSWORD \
+  server npm run seed:block57
+
+# Units: copy the inventory file (kept outside the repository) into the
+# container, import it, activate, then delete the copy
+docker compose cp ~/block57-units.json server:/tmp/block57-units.json
+docker compose exec \
+  -e BLOCK57_ADMIN_EMAIL=<sales-mailbox> \
+  -e BLOCK57_ADMIN_PASSWORD \
+  server npm run seed:block57 -- --units /tmp/block57-units.json --activate
+docker compose exec server rm /tmp/block57-units.json
+unset BLOCK57_ADMIN_PASSWORD
+```
+
+**Units file.** The real inventory holds every unit's price, which `hidePublicPrices` exists to protect. **Keep it outside the repository** (e.g. `~/block57-units.json`); never commit it or leave it in the server folder at build time. As a safety net `server/.gitignore` and `server/.dockerignore` exclude `server/scripts/seed/block57-units*.json` (except the example), but the repo-root `.gitignore` does not cover other paths.
+
+A JSON array; each entry is validated with the same rules as `POST /properties`, and the whole file is checked before any unit is written (unknown keys, duplicate titles and unknown or inactive types are errors):
 
 | Field                           | Rules                                                                                                                                 |
 | ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
@@ -375,7 +396,9 @@ unset BLOCK57_ADMIN_PASSWORD
 ]
 ```
 
-New units are created through the property service (location copied from the project, owner = project owner, `USD`). On re-runs, a unit whose title already exists on the project is updated with the fields that changed; omitted optional fields are kept. Status only moves forward: `pending` never downgrades an active unit, and a unit that is sold in the database stays sold (a warning is printed). Units in the trash are skipped, and units that are not in the file are left alone. Enter the full inventory before marking units sold: when every unit is sold the project becomes sold automatically and refuses new units.
+New units are created through the property service (location copied from the project, owner = project owner, `USD`). On re-runs, a unit whose title already exists on the project is updated with every field whose file value differs from the database: **the file wins, so a price, type, description or other field edited in the dashboard is overwritten** by the file's value. The summary lists each overwritten field with its previous value ("Unit fields overwritten from the file"). Keep the file in step with dashboard edits, or leave a field out of the file to keep the database value (omitted optional fields are kept; `type` and `price` are required, so they are always applied). Status only moves forward: `pending` never downgrades an active unit, and a unit that is sold in the database stays sold (a warning is printed). Units in the trash are skipped, and units that are not in the file are left alone.
+
+Entries are applied in this order: new units, then field updates, then units that become `sold`. When every live unit is sold the project becomes sold automatically and refuses new units, so one file can sell the last units of a phase and add the next phase's units. If the project is already sold, a file with new units stops the script before anything is written; an admin has to change the project status first.
 
 `scripts/seed/block57-units.example.json` holds six **example** units (one per type across Blocks A/B/C) with placeholder prices and "Example unit" descriptions, for local testing only; the script refuses to import a `*.example.json` file when `NODE_ENV=production`.
 

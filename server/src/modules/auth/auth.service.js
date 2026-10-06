@@ -336,9 +336,11 @@ export const authService = {
   async verifyEmail(token) {
     const hashed = hashToken(token);
 
+    // Accounts are per site: a token only works on the site that issued it.
     const user = await User.findOne({
       emailVerificationToken: hashed,
       emailVerificationExpires: { $gt: new Date() },
+      siteId: getRequestSiteId(),
       deletedAt: null,
     }).select("+emailVerificationToken +emailVerificationExpires");
 
@@ -467,9 +469,11 @@ export const authService = {
   async resetPassword(token, password) {
     const hashed = hashToken(token);
 
+    // Accounts are per site: a token only works on the site that issued it.
     const user = await User.findOne({
       passwordResetToken: hashed,
       passwordResetExpires: { $gt: new Date() },
+      siteId: getRequestSiteId(),
       deletedAt: null,
     }).select("+passwordResetToken +passwordResetExpires");
 

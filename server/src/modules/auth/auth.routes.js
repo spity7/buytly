@@ -247,7 +247,7 @@ router.post(
  *   post:
  *     operationId: resetPassword
  *     summary: Reset password with token
- *     description: Sets a new password using the token from the reset email. Revokes all existing refresh tokens.
+ *     description: Sets a new password using the token from the reset email. The token only works on the site that issued it (X-Site-Slug). Revokes all existing refresh tokens.
  *     tags: [Auth]
  *     requestBody:
  *       required: true
@@ -292,7 +292,7 @@ router.post(
  *   post:
  *     operationId: verifyEmail
  *     summary: Verify email address with token
- *     description: Marks the user's email as verified using the token from the verification email.
+ *     description: Marks the user's email as verified using the token from the verification email. The token only works on the site that issued it (X-Site-Slug).
  *     tags: [Auth]
  *     requestBody:
  *       required: true

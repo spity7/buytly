@@ -30,8 +30,9 @@ const ensureSendgrid = () => {
 };
 
 /**
- * Sender for a site: the address from SMTP_FROM (bare `addr` or `Name <addr>`)
- * with the site brand as display name, e.g. `Block 57 <noreply@buytly.com>`.
+ * Sender for a site: the SMTP_FROM address with the site brand as display name,
+ * e.g. `Block 57 <noreply@buytly.com>`. env.js only accepts a plain address; the
+ * `Name <addr>` parsing is defensive.
  */
 export const buildEmailSender = (smtpFrom, brandName) => {
   const raw = String(smtpFrom || "").trim();

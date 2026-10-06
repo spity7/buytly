@@ -12,3 +12,6 @@ npm-debug.log*
 .DS_Store
 coverage
 *.md
+# Block 57 unit inventory (real prices) must not be baked into the image
+scripts/seed/block57-units*.json
+!scripts/seed/block57-units.example.json

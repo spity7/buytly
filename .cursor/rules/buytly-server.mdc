@@ -37,6 +37,7 @@ Routes: `router → validate → authenticate/authorize → asyncHandler(control
 - Validate with Zod via `validate()` / `validateMultiple()` middleware
 - Cross-cutting concerns: `server/src/services/` (email, GCS, cache, tokens)
 - Notifications: call `notificationService.notify()` — never email from controllers
+- Listing detail reads use `buildProjectReadFilter` / `buildPropertyReadFilter` (anyone sees non-trashed docs; status checks then hide drafts); writes keep `buildProjectIdFilter` / `buildPropertyIdFilter` (owner/agent or admin only)
 - Listing prices can be hidden per site (`features.hidePublicPrices`): any read path that returns unit `price` or project `priceMin`/`priceMax` to non-managers must go through `src/shared/priceVisibility.js` (`hideUnitPrice` / `hideProjectPriceRange`); see `docs/api-rules.md` "Hidden prices"
 - Email links and branding are per site: build frontend URLs with `buildSiteLink(path)` (`services/siteBrand.js`), not `env.APP_URL` (fallback only), and never hard-code "Buytly" in email copy — templates get `brand.name`
 - Scripts that write tenant data (`server/scripts/`, e.g. `seed/block57.js`) run inside `runWithRequestContext({ site })` and call the module services rather than raw model writes, so validation, status rules, notifications and branding match the API; production bootstraps must be safe to re-run

@@ -86,15 +86,10 @@ const expectHiddenProject = (project) => {
 const expectNoLeak = (res) =>
   expect(JSON.stringify(res.body)).not.toContain(String(HIDDEN_PRICE));
 
-/**
- * Detail reads by a logged-in non-manager currently return 404 (pre-existing:
- * buildPropertyIdFilter/buildProjectIdFilter limit non-admin users to their own
- * listings). Whenever such a read succeeds, the price must still be hidden.
- */
-const expectHiddenOrNotFound = (res, check) => {
+/** Detail read by a logged-in non-manager: 200, with the price hidden. */
+const expectHiddenRead = (res, check) => {
   expectNoLeak(res);
-  if (res.status === 404) return;
-  expect(res.status).toBe(200);
+  expect(res.status, res.body?.message).toBe(200);
   check(res.body.data);
 };
 
@@ -225,17 +220,45 @@ describe.skipIf(!mongoAvailable)("hidden prices (block57)", () => {
 
   it("ignores price filters and price sort on the public list", async () => {
     const app = await getApp();
-    const { unitId } = await seedBlock57(app);
+    const { unitId, projectId, seller } = await seedBlock57(app);
     const block57 = api(app, BLOCK57);
 
-    for (const query of [
-      "minPrice=999999999",
-      "maxPrice=1",
-      "sortBy=price&sortOrder=asc",
-    ]) {
+    // A cheaper, newer unit: price order is the reverse of createdAt order.
+    const cheaper = await block57
+      .post("/api/v1/properties")
+      .set(bearer(seller.token))
+      .send(propertyPayload(projectId, { title: "A-102", price: 1000 }));
+    expect(cheaper.status, cheaper.body?.message).toBe(201);
+    const cheaperId = cheaper.body.data._id;
+    await Property.findByIdAndUpdate(cheaperId, { status: "active" });
+    // Raw driver writes: Mongoose treats createdAt as immutable.
+    await Property.collection.updateOne(
+      { _id: new Property.base.Types.ObjectId(unitId) },
+      { $set: { createdAt: new Date("2026-01-01T00:00:00Z") } },
+    );
+    await Property.collection.updateOne(
+      { _id: new Property.base.Types.ObjectId(cheaperId) },
+      { $set: { createdAt: new Date("2026-01-02T00:00:00Z") } },
+    );
+
+    for (const query of ["minPrice=999999999", "maxPrice=1"]) {
       const res = await block57.get(`/api/v1/properties?${query}`);
       expect(res.status).toBe(200);
       expect(res.body.data.map((row) => row._id)).toContain(unitId);
+      expect(res.body.data.map((row) => row._id)).toContain(cheaperId);
+      expectNoLeak(res);
+    }
+
+    // sortBy=price falls back to createdAt in the requested direction.
+    for (const [sortOrder, expected] of [
+      ["asc", [unitId, cheaperId]],
+      ["desc", [cheaperId, unitId]],
+    ]) {
+      const res = await block57.get(
+        `/api/v1/properties?sortBy=price&sortOrder=${sortOrder}`,
+      );
+      expect(res.status).toBe(200);
+      expect(res.body.data.map((row) => row._id)).toEqual(expected);
       expectNoLeak(res);
     }
   });
@@ -254,12 +277,12 @@ describe.skipIf(!mongoAvailable)("hidden prices (block57)", () => {
     const detail = await block57
       .get(`/api/v1/properties/${unitId}`)
       .set(bearer(buyer.token));
-    expectHiddenOrNotFound(detail, expectHiddenUnit);
+    expectHiddenRead(detail, expectHiddenUnit);
 
     const bySlug = await block57
       .get(`/api/v1/projects/slug/${slug}`)
       .set(bearer(buyer.token));
-    expectHiddenOrNotFound(bySlug, (project) => {
+    expectHiddenRead(bySlug, (project) => {
       expectHiddenProject(project);
       expectHiddenUnit(project.units[0]);
     });
@@ -267,7 +290,7 @@ describe.skipIf(!mongoAvailable)("hidden prices (block57)", () => {
     const units = await block57
       .get(`/api/v1/projects/${projectId}/properties`)
       .set(bearer(buyer.token));
-    expectHiddenOrNotFound(units, (rows) => expectHiddenUnit(rows[0]));
+    expectHiddenRead(units, (rows) => expectHiddenUnit(rows[0]));
 
     // Public lists carry no auth: hidden for everyone.
     const list = await block57

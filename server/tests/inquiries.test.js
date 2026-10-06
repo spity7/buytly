@@ -246,12 +246,16 @@ describe.skipIf(!mongoAvailable)("POST /api/v1/contact (stored inquiries)", () =
     );
   });
 
-  it("answers a filled honeypot like a success without storing or emailing", async () => {
+  it.each([
+    ["a URL", "https://spam.example.com"],
+    ["whitespace only", "   "],
+    ["an over-long value", `https://${"x".repeat(300)}.example.com`],
+  ])("answers a filled honeypot (%s) like a success without storing or emailing", async (_label, website) => {
     const app = await getApp();
 
     const res = await api(app, SITE_SLUG.BLOCK57)
       .post("/api/v1/contact")
-      .send(contactPayload({ website: "https://spam.example.com" }));
+      .send(contactPayload({ website }));
 
     expect(res.status).toBe(201);
     expect(res.body).toEqual({

@@ -173,6 +173,10 @@ const maybeRependActiveListing = async (
   return true;
 };
 
+/**
+ * Write filter (update, permanent delete, media, floor plans): non-admins
+ * only match listings they own or are the agent on, trashed or not.
+ */
 const buildPropertyIdFilter = (id, user) => {
   const filter = { _id: id, siteId: getRequestSiteId() };
   if (!user) {
@@ -187,14 +191,47 @@ const buildPropertyIdFilter = (id, user) => {
   return filter;
 };
 
+/**
+ * Detail-read filter (public detail, nearby): owners/agents also match their
+ * own trashed listings; every other user matches non-deleted listings like an
+ * anonymous visitor. Callers still apply the status and parent-project checks
+ * (isPublicPropertyViewStatus / canViewNonActiveProperty /
+ * assertPublicParentProject).
+ */
+const buildPropertyReadFilter = (id, user) => {
+  const filter = { _id: id, siteId: getRequestSiteId() };
+  if (!user) {
+    filter.deletedAt = null;
+    return filter;
+  }
+  if (user.role === ROLES.ADMIN) {
+    return filter;
+  }
+
+  filter.$or = [
+    { ownerId: user._id },
+    { agentId: user._id },
+    { deletedAt: null },
+  ];
+  return filter;
+};
+
 const listingContactUserFields =
   "firstName lastName email phone phoneCountryCode phoneNumber role avatar";
 
-const findPropertyById = (id, user) =>
-  Property.findOne(buildPropertyIdFilter(id, user))
+const populatePropertyContacts = (query) =>
+  query
     .populate("projectId", "title slug status")
     .populate("agentId", listingContactUserFields)
     .populate("ownerId", listingContactUserFields);
+
+const findPropertyById = (id, user) =>
+  populatePropertyContacts(Property.findOne(buildPropertyIdFilter(id, user)));
+
+const findPropertyForRead = (id, user) =>
+  populatePropertyContacts(
+    Property.findOne(buildPropertyReadFilter(id, user)),
+  );
 
 const projectLocationSnapshot = (project) => {
   const loc = project.location?.toObject
@@ -439,7 +476,7 @@ export const propertyService = {
   },
 
   async getById(id, { incrementView = true, user } = {}) {
-    const property = await findPropertyById(id, user);
+    const property = await findPropertyForRead(id, user);
 
     if (!property) throw new AppError("Property not found", 404);
 
@@ -475,7 +512,7 @@ export const propertyService = {
   },
 
   async getNearby(id, { user } = {}) {
-    const property = await findPropertyById(id, user);
+    const property = await findPropertyForRead(id, user);
 
     if (!property) throw new AppError("Property not found", 404);
 
@@ -486,7 +523,10 @@ export const propertyService = {
       throw new AppError("Property not found", 404);
     }
 
-    if (!canManageProperty(property, user) && property.status === "active") {
+    if (
+      !canManageProperty(property, user) &&
+      isPublicPropertyViewStatus(property.status)
+    ) {
       await assertPublicParentProject(property);
     }
 

@@ -143,6 +143,7 @@ describe.skipIf(!mongoAvailable)("Block 57 seed script", () => {
       updated: 0,
       unchanged: 0,
       skipped: 0,
+      changes: [],
     });
     expect(second.units).toEqual({
       inFile: 6,
@@ -150,6 +151,7 @@ describe.skipIf(!mongoAvailable)("Block 57 seed script", () => {
       updated: 0,
       unchanged: 6,
       skipped: 0,
+      changes: [],
     });
     expect(second.warnings).toEqual([]);
 
@@ -259,17 +261,87 @@ describe.skipIf(!mongoAvailable)("Block 57 seed script", () => {
     expect(otherSite.status).toBe(401);
   });
 
-  it("promotes an existing account but keeps its password unless a reset is requested", async () => {
+  it("refuses to promote an existing non-admin account unless --promote-existing is passed", async () => {
+    // Anyone can register the admin mailbox on block57 before the seed runs.
+    const app = await getApp();
+    const squatterPassword = "Squatter-Pass-1";
+    const register = await api(app, SITE_SLUG.BLOCK57)
+      .post("/api/v1/auth/register")
+      .send({
+        email: ADMIN_EMAIL,
+        password: squatterPassword,
+        confirmPassword: squatterPassword,
+        firstName: "Not",
+        role: "buyer",
+      });
+    expect(register.status, register.body?.message).toBe(201);
     const siteId = await getSiteId();
-    const originalPassword = "Original-Pass-1";
-    const existing = await User.create({
-      siteId,
-      email: ADMIN_EMAIL,
-      passwordHash: await bcrypt.hash(originalPassword, 4),
-      role: "buyer",
-      platformPermissions: [PLATFORM_PERMISSIONS.CROSS_SITE_READ],
-      isEmailVerified: false,
+    const existing = await User.findOne({ siteId, email: ADMIN_EMAIL });
+    await User.updateOne(
+      { _id: existing._id },
+      {
+        platformPermissions: [PLATFORM_PERMISSIONS.CROSS_SITE_READ],
+        passwordResetToken: "pending-reset-hash",
+        passwordResetExpires: new Date(Date.now() + 60_000),
+      },
+    );
+    expect(await RefreshToken.countDocuments({ userId: existing._id })).toBe(1);
+
+    const error = await runSeed().catch((err) => err);
+    expect(error.message).toMatch(
+      /already has a buyer account on block57 that this script did not create/,
+    );
+    expect(error.message).toContain("--promote-existing");
+    let user = await User.findById(existing._id).select("+passwordHash");
+    expect(user.role).toBe("buyer");
+    expect(await bcrypt.compare(squatterPassword, user.passwordHash)).toBe(
+      true,
+    );
+    expect(await Project.countDocuments({ siteId })).toBe(0);
+
+    // Explicit promotion is a forced password reset: only the operator's
+    // password works and the registrant's sessions are revoked.
+    const promoted = await runSeed({ promoteExisting: true });
+    user = await User.findById(existing._id).select(
+      "+passwordHash +passwordResetToken +emailVerificationToken",
+    );
+    expect(promoted.admin).toMatchObject({
+      created: false,
+      passwordReset: true,
+      changes: ["role buyer -> admin", "platform permissions removed"],
     });
+    expect(user.role).toBe("admin");
+    expect(user.platformPermissions).toEqual([]);
+    expect(user.isEmailVerified).toBe(false);
+    expect(user.passwordResetToken).toBeUndefined();
+    expect(user.emailVerificationToken).toBeUndefined();
+    expect(await bcrypt.compare(ADMIN_PASSWORD, user.passwordHash)).toBe(true);
+    expect(
+      await RefreshToken.countDocuments({
+        userId: existing._id,
+        revokedAt: null,
+      }),
+    ).toBe(0);
+
+    const oldLogin = await api(app, SITE_SLUG.BLOCK57)
+      .post("/api/v1/auth/login")
+      .send({ email: ADMIN_EMAIL, password: squatterPassword });
+    expect(oldLogin.status).toBe(401);
+    expect(await User.countDocuments({ siteId })).toBe(1);
+  });
+
+  it("keeps an existing admin's password unless a reset is requested", async () => {
+    await runSeed();
+    const siteId = await getSiteId();
+    const existing = await User.findOne({ siteId, email: ADMIN_EMAIL });
+    const changedPassword = "Changed-In-Dashboard-1";
+    await User.updateOne(
+      { _id: existing._id },
+      {
+        passwordHash: await bcrypt.hash(changedPassword, 4),
+        platformPermissions: [PLATFORM_PERMISSIONS.CROSS_SITE_READ],
+      },
+    );
     await RefreshToken.create({
       userId: existing._id,
       siteId,
@@ -279,16 +351,13 @@ describe.skipIf(!mongoAvailable)("Block 57 seed script", () => {
 
     const kept = await runSeed();
     let admin = await User.findById(existing._id).select("+passwordHash");
-    expect(kept.admin).toMatchObject({ created: false, passwordReset: false });
-    expect(kept.admin.changes).toEqual([
-      "role buyer -> admin",
-      "email marked verified",
-      "platform permissions removed",
-    ]);
-    expect(admin.role).toBe("admin");
-    expect(admin.isEmailVerified).toBe(true);
+    expect(kept.admin).toMatchObject({
+      created: false,
+      passwordReset: false,
+      changes: ["platform permissions removed"],
+    });
     expect(admin.platformPermissions).toEqual([]);
-    expect(await bcrypt.compare(originalPassword, admin.passwordHash)).toBe(
+    expect(await bcrypt.compare(changedPassword, admin.passwordHash)).toBe(
       true,
     );
     expect(
@@ -449,6 +518,13 @@ describe.skipIf(!mongoAvailable)("Block 57 seed script", () => {
       updated: 2,
       unchanged: 1,
       skipped: 0,
+      changes: [
+        "A-101 price: 150000 -> 155000",
+        "A-101 description: replaced",
+        "A-101 floor: 1 -> 2",
+        'A-204 building: "A" -> (empty)',
+        'A-204 status: "pending" -> "sold"',
+      ],
     });
     expect(summary.warnings).toEqual([
       'Unit "B-302" is sold in the database; kept as sold',
@@ -572,5 +648,175 @@ describe.skipIf(!mongoAvailable)("Block 57 seed script", () => {
     );
     expect(await Project.countDocuments({ siteId })).toBe(1);
     expect(await Property.countDocuments({ siteId })).toBe(0);
+  });
+
+  it("refuses a block-57 project created by another account and leaves it untouched", async () => {
+    // A self-registered seller grabs the slug before the first seed run.
+    const app = await getApp();
+    const register = await api(app, SITE_SLUG.BLOCK57)
+      .post("/api/v1/auth/register")
+      .send({
+        email: "squatter@example.com",
+        password: "Squatter-Pass-1",
+        confirmPassword: "Squatter-Pass-1",
+        firstName: "Squatter",
+        role: "seller",
+      });
+    expect(register.status, register.body?.message).toBe(201);
+    const created = await api(app, SITE_SLUG.BLOCK57)
+      .post("/api/v1/projects")
+      .set("Authorization", `Bearer ${register.body.data.accessToken}`)
+      .send({
+        title: "Block 57",
+        description: "A project that is not the official development.",
+        location: {
+          coordinates: [-0.1745, 5.5786],
+          address: "Somewhere",
+          city: "Accra",
+          country: "Ghana",
+        },
+        amenities: [],
+        status: "draft",
+      });
+    expect(created.status, created.body?.message).toBe(201);
+    expect(created.body.data.slug).toBe(BLOCK57_PROJECT_SLUG);
+
+    const error = await runSeed({
+      unitsFile: EXAMPLE_UNITS_FILE,
+      activate: true,
+    }).catch((err) => err);
+    expect(error.message).toBe(
+      'The "block-57" project is owned by squatter@example.com (seller), not by a block57 admin. ' +
+        "Refusing to add units to it or publish it. Rename or delete it from the admin dashboard, then re-run.",
+    );
+
+    const siteId = await getSiteId();
+    const project = await Project.findById(created.body.data._id);
+    expect(project.status).toBe("draft");
+    expect(await Project.countDocuments({ siteId })).toBe(1);
+    expect(await Property.countDocuments({ siteId })).toBe(0);
+  });
+
+  it("adopts a block-57 project owned by another Block 57 admin, with a warning", async () => {
+    const first = await runSeed();
+    const siteId = await getSiteId();
+    const other = await User.create({
+      siteId,
+      email: "previous-sales@block57.test",
+      passwordHash: await bcrypt.hash("Previous-Pass-1", 4),
+      role: "admin",
+    });
+    await Project.updateOne({ _id: first.project.id }, { ownerId: other._id });
+
+    const summary = await runSeed({ units: [unit()] });
+    expect(summary.warnings).toEqual([
+      "The project is owned by another block57 admin (previous-sales@block57.test); units are created under that account",
+    ]);
+    const [created] = await Property.find({ siteId });
+    expect(String(created.ownerId)).toBe(String(other._id));
+  });
+
+  it("stops instead of creating a duplicate project after the project is renamed", async () => {
+    const first = await runSeed({ unitsFile: EXAMPLE_UNITS_FILE });
+    const siteId = await getSiteId();
+    const app = await getApp();
+    const login = await api(app, SITE_SLUG.BLOCK57)
+      .post("/api/v1/auth/login")
+      .send({ email: ADMIN_EMAIL, password: ADMIN_PASSWORD });
+    const auth = { Authorization: `Bearer ${login.body.data.accessToken}` };
+
+    const renamed = await api(app, SITE_SLUG.BLOCK57)
+      .patch(`/api/v1/projects/${first.project.id}`)
+      .set(auth)
+      .send({ title: "Block 57 Cantonments" });
+    expect(renamed.status, renamed.body?.message).toBe(200);
+    expect(renamed.body.data.slug).toBe("block-57-cantonments");
+
+    await expect(runSeed({ unitsFile: EXAMPLE_UNITS_FILE })).rejects.toThrow(
+      'No project has the slug "block-57", but block57 admins already own "Block 57 Cantonments" (/block-57-cantonments). ' +
+        "The Block 57 project was probably renamed in the dashboard (a new title changes the slug). " +
+        'Rename it back to "Block 57" so its slug is "block-57" again (the website loads the project by that slug), then re-run.',
+    );
+    expect(await Project.countDocuments({ siteId })).toBe(1);
+    expect(await Property.countDocuments({ siteId })).toBe(6);
+
+    // Renaming it back restores the slug and the seed carries on.
+    const restored = await api(app, SITE_SLUG.BLOCK57)
+      .patch(`/api/v1/projects/${first.project.id}`)
+      .set(auth)
+      .send({ title: "Block 57" });
+    expect(restored.body.data.slug).toBe(BLOCK57_PROJECT_SLUG);
+    const rerun = await runSeed({ unitsFile: EXAMPLE_UNITS_FILE });
+    expect(rerun.project).toMatchObject({ created: false });
+    expect(rerun.units.unchanged).toBe(6);
+  });
+
+  it("applies sold transitions after new units, so one file can sell the last units and add more", async () => {
+    await runSeed({
+      units: [unit(), unit({ title: "A-102" })],
+      activate: true,
+    });
+
+    // Sold entries come first in the file; applying them in file order would
+    // turn the project sold before B-201 is created.
+    const summary = await runSeed({
+      units: [
+        unit({ status: "sold" }),
+        unit({ title: "A-102", status: "sold" }),
+        unit({ title: "B-201", type: "two-bedroom", building: "B" }),
+      ],
+    });
+
+    expect(summary.units).toMatchObject({ created: 1, updated: 2 });
+    expect(summary.project).toMatchObject({
+      status: "active",
+      unitsByStatus: { pending: 1, sold: 2 },
+    });
+    const notifications = await Notification.find({
+      title: "Project status: sold",
+    });
+    expect(notifications).toHaveLength(0);
+  });
+
+  it("refuses new units for a sold project before writing anything", async () => {
+    await runSeed({ units: [unit()], activate: true });
+    await runSeed({ units: [unit({ status: "sold" })] });
+    const siteId = await getSiteId();
+    expect(
+      (await Project.findOne({ siteId, slug: BLOCK57_PROJECT_SLUG })).status,
+    ).toBe("sold");
+
+    await expect(
+      runSeed({
+        units: [
+          unit({ status: "sold", price: 999000 }),
+          unit({ title: "C-301", type: "penthouse", building: "C" }),
+        ],
+      }),
+    ).rejects.toThrow(
+      "The project is sold (every unit is sold), so it cannot accept the 1 new unit(s) in the file (C-301). Nothing was written.",
+    );
+    const units = await unitsByTitle(siteId);
+    expect(units.size).toBe(1);
+    expect(units.get("A-101").price).toBe(150000);
+  });
+
+  it("reports every unit field the file overwrites after a dashboard edit", async () => {
+    await runSeed({ units: [unit()], activate: true });
+    const siteId = await getSiteId();
+    // Sales staff edit the unit in the dashboard.
+    await Property.updateOne(
+      { siteId, title: "A-101" },
+      { price: 165000, description: "Edited in the dashboard." },
+    );
+
+    const summary = await runSeed({
+      units: [unit({ description: "Executive Studio from the file." })],
+    });
+    expect(summary.units).toMatchObject({ updated: 1 });
+    expect(summary.units.changes).toEqual([
+      "A-101 price: 165000 -> 150000",
+      "A-101 description: replaced",
+    ]);
   });
 });

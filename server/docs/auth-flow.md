@@ -19,7 +19,7 @@ Buytly uses a dual-token authentication system:
 }
 ```
 
-Access and refresh flows are scoped to the resolved request site (`resolveSite` middleware). Register/login lookups match `email` + `siteId`; `authenticate` rejects tokens whose `siteId` does not match the current site or user record. Refresh tokens are stored with `siteId` and rotated within the same tenant.
+Access and refresh flows are scoped to the resolved request site (`resolveSite` middleware). Register/login lookups match `email` + `siteId`; `authenticate` rejects tokens whose `siteId` does not match the current site or user record. Refresh tokens are stored with `siteId` and rotated within the same tenant. Email-verification and password-reset tokens are looked up by hash **and** `siteId`, so they only work on the site that issued them.
 
 ## Register Flow
 
@@ -46,7 +46,7 @@ sequenceDiagram
 ## Email Verification Flow
 
 1. On registration, server stores SHA-256 hash of verification token (24h expiry) and sends link: `{siteBaseUrl}/verify-email?token={token}` (see [Email links](#email-links))
-2. User submits token via `POST /auth/verify-email` (the `/verify-email` page calls this on load)
+2. User submits token via `POST /auth/verify-email` (the `/verify-email` page calls this on load). The lookup matches the token hash **and** the request site (`siteId: getRequestSiteId()`), so a token only works on the site that issued it; on another site it returns `400 Invalid or expired verification token`
 3. If the browser already has auth tokens, the client refreshes the current user and notification queries after a successful verify, then `router.refresh()` so headers and dashboard reflect `isEmailVerified` without a manual reload
 4. Unverified users can still log in; `isEmailVerified` is exposed on the user object for client-side prompts
 5. Resend via `POST /auth/resend-verification` (generic response to avoid email enumeration)
@@ -163,7 +163,7 @@ sequenceDiagram
 1. User submits email via `POST /auth/forgot-password`
 2. Server generates crypto-random token, stores SHA-256 hash in user document (1h expiry)
 3. Email sent with reset link: `{siteBaseUrl}/reset-password?token={token}` (see [Email links](#email-links))
-4. User submits token + new password via `POST /auth/reset-password`
+4. User submits token + new password via `POST /auth/reset-password`. As with verification, the token is matched together with the request site, so a reset token issued on Block 57 returns `400 Invalid or expired reset token` with `X-Site-Slug: buytly` and never changes another site's account with the same email
 5. Password updated, all refresh tokens revoked
 
 ## Email links
@@ -215,6 +215,7 @@ For full role definitions, assignment rules, two-layer authorization, and client
 - Refresh tokens stored as SHA-256 hashes (never plaintext)
 - Password reset tokens hashed in database
 - Email verification tokens hashed in database
+- Verification and reset tokens only match on the site that issued them (lookup by hash + `siteId`)
 - All refresh tokens revoked on password reset and account deletion
 - Rate limiting on auth endpoints (20 req/15min)
 - JWT secrets validated at startup (min 32 chars)

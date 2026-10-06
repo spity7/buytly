@@ -603,7 +603,7 @@
  *           type: number
  *           nullable: true
  *           example: 450000
- *           description: Null when the listing's site hides prices (features.hidePublicPrices) and the viewer is not the owner, assigned agent or a site admin; see priceLabel.
+ *           description: "Null when the listing's site hides prices (features.hidePublicPrices; see api-rules.md \"Hidden prices\"). Public lists (GET /properties, GET /projects, GET /agents/{id}/properties) and the /platform/* feeds always hide them, even for the owner or an admin. Detail reads (GET /properties/{id}, GET /projects/{id}, GET /projects/slug/{slug}, GET /projects/{id}/properties) and personal records (favorites, bookings, transactions) hide them unless the caller is the owner, assigned agent or a site admin. Dashboard reads (/properties/mine, /projects/mine, /admin/*) keep real prices. See priceLabel."
  *         priceLabel:
  *           type: string
  *           example: Price on request
@@ -1684,14 +1684,14 @@
  *         priceMin:
  *           type: number
  *           nullable: true
- *           description: Lowest public unit price; null when there are no public units or the site hides prices from this viewer (see priceLabel).
+ *           description: Lowest public unit price; null when there are no public units or the site hides prices from this viewer (same rules as Property.price; see priceLabel).
  *         priceMax:
  *           type: number
  *           nullable: true
  *         priceLabel:
  *           type: string
  *           example: Price on request
- *           description: Present only when prices are hidden (site features.hidePublicPrices, viewer is not the owner, assigned agent or a site admin).
+ *           description: "Present only when prices are hidden (site features.hidePublicPrices). GET /projects and GET /platform/featured-projects always hide them, even for the owner or an admin; GET /projects/{id} and GET /projects/slug/{slug} hide them unless the caller is the owner, assigned agent or a site admin; /projects/mine keeps them. See api-rules.md \"Hidden prices\"."
  *         ownerId:
  *           oneOf:
  *             - $ref: '#/components/schemas/ObjectId'
@@ -1788,8 +1788,7 @@
  *           example: /apartments/penthouse/
  *         website:
  *           type: string
- *           maxLength: 200
- *           description: Honeypot — leave empty. Any value returns the normal 201 response without storing or emailing.
+ *           description: Honeypot — leave empty or omit. Any other value (including whitespace or a value of any length) returns the normal 201 response without storing or emailing; it never causes a validation error.
  *
  *     InquiryStatus:
  *       type: string

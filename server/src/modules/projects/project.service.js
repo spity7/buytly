@@ -213,6 +213,10 @@ const maybeRependActiveProject = async (
   return true;
 };
 
+/**
+ * Write filter (update, permanent delete, media): non-admins only match
+ * projects they own or are the agent on, trashed or not.
+ */
 const buildProjectIdFilter = (id, user) => {
   const filter = { _id: id, siteId: getRequestSiteId() };
   if (!user) {
@@ -227,10 +231,40 @@ const buildProjectIdFilter = (id, user) => {
   return filter;
 };
 
-const findProjectById = (id, user) =>
-  Project.findOne(buildProjectIdFilter(id, user))
+/**
+ * Detail-read filter (public detail, slug, units list): owners/agents also
+ * match their own trashed projects; every other user matches non-deleted
+ * projects like an anonymous visitor. Callers still apply the status check
+ * (PUBLIC_PROJECT_VIEW_STATUSES / canViewNonActiveProject).
+ */
+const buildProjectReadFilter = (id, user) => {
+  const filter = { _id: id, siteId: getRequestSiteId() };
+  if (!user) {
+    filter.deletedAt = null;
+    return filter;
+  }
+  if (user.role === ROLES.ADMIN) {
+    return filter;
+  }
+
+  filter.$or = [
+    { ownerId: user._id },
+    { agentId: user._id },
+    { deletedAt: null },
+  ];
+  return filter;
+};
+
+const populateProjectContacts = (query) =>
+  query
     .populate("agentId", "firstName lastName email phone avatar")
     .populate("ownerId", "firstName lastName email phone");
+
+const findProjectById = (id, user) =>
+  populateProjectContacts(Project.findOne(buildProjectIdFilter(id, user)));
+
+const findProjectForRead = (id, user) =>
+  populateProjectContacts(Project.findOne(buildProjectReadFilter(id, user)));
 
 const applyAdminStatusTransition = (project, normalizedStatus) => {
   if (normalizedStatus === "archived") {
@@ -382,7 +416,7 @@ export const projectService = {
   },
 
   async getById(id, { incrementView = true, user, includeUnits = false } = {}) {
-    const project = await findProjectById(id, user);
+    const project = await findProjectForRead(id, user);
 
     if (!project) throw new AppError("Project not found", 404);
 
@@ -649,7 +683,7 @@ export const projectService = {
   },
 
   async listUnits(projectId, user) {
-    const project = await findProjectById(projectId, user);
+    const project = await findProjectForRead(projectId, user);
     if (!project) throw new AppError("Project not found", 404);
 
     if (

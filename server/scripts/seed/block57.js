@@ -1,6 +1,9 @@
 /**
  * Block 57 tenant bootstrap (npm run seed:block57). Safe to re-run: every step
- * is an upsert, existing dashboard edits are kept, and nothing is deleted.
+ * is an upsert and nothing is deleted. The project, property-type labels and
+ * amenity labels are only written on insert, so dashboard edits to them are
+ * kept; the admin role, amenity active flags and unit fields listed in the
+ * units file are re-applied on every run (overwritten unit fields are reported).
  * CLI wrapper: scripts/seed-block57.js. Docs: docs/deployment.md.
  */
 import fs from "node:fs/promises";
@@ -200,7 +203,11 @@ async function loadUnits({ units, unitsFile }) {
   return parseBlock57Units(raw);
 }
 
-async function ensureAdmin(site, { email, password, resetPassword }, warnings) {
+async function ensureAdmin(
+  site,
+  { email, password, resetPassword, promoteExisting },
+  warnings,
+) {
   const user = await User.findOne({
     siteId: site._id,
     email,
@@ -228,34 +235,46 @@ async function ensureAdmin(site, { email, password, resetPassword }, warnings) {
     return { user: created, created: true, changes: [], passwordReset: false };
   }
 
+  // Registration is open to anyone, so an account with this email may belong
+  // to someone else (its password, sessions and unverified email are theirs).
+  // Never hand it admin rights silently.
+  const promoting = user.role !== ROLES.ADMIN;
+  if (promoting && !promoteExisting) {
+    throw new Error(
+      `${email} already has a ${user.role} account on ${site.slug} that this script did not create. ` +
+        "Refusing to make it an admin: anyone can register an account, so its password and sessions may not be yours. " +
+        "Use another BLOCK57_ADMIN_EMAIL, or pass --promote-existing if you control this account " +
+        "(it gets the password from BLOCK57_ADMIN_PASSWORD and its sessions are signed out).",
+    );
+  }
+
   const changes = [];
-  if (user.role !== ROLES.ADMIN) {
+  if (promoting) {
     changes.push(`role ${user.role} -> admin`);
     user.role = ROLES.ADMIN;
-  }
-  if (!user.isEmailVerified) {
-    changes.push("email marked verified");
-    user.isEmailVerified = true;
-    user.emailVerificationToken = undefined;
-    user.emailVerificationExpires = undefined;
   }
   if (user.platformPermissions?.length) {
     changes.push("platform permissions removed");
     user.platformPermissions = [];
   }
 
-  // Same effect as a password reset: new hash, pending reset token cleared,
-  // existing sessions revoked.
-  if (resetPassword) {
+  // Same effect as a password reset: new hash, pending reset and verification
+  // tokens cleared, existing sessions revoked. Always applied on promotion so
+  // only the operator's password works afterwards. isEmailVerified is left as
+  // is: the script did not create this account.
+  const applyPassword = resetPassword || promoting;
+  if (applyPassword) {
     user.passwordHash = await bcrypt.hash(password, SALT_ROUNDS);
     user.passwordResetToken = undefined;
     user.passwordResetExpires = undefined;
+    user.emailVerificationToken = undefined;
+    user.emailVerificationExpires = undefined;
     if (user.authProvider === "google") user.authProvider = "both";
   }
 
-  if (changes.length || resetPassword) await user.save();
+  if (changes.length || applyPassword) await user.save();
 
-  if (resetPassword) {
+  if (applyPassword) {
     await RefreshToken.updateMany(
       { userId: user._id, revokedAt: null },
       { revokedAt: new Date() },
@@ -272,7 +291,7 @@ async function ensureAdmin(site, { email, password, resetPassword }, warnings) {
     );
   }
 
-  return { user, created: false, changes, passwordReset: resetPassword };
+  return { user, created: false, changes, passwordReset: applyPassword };
 }
 
 // Existing rows are read first: updateOne always adds $set.updatedAt
@@ -348,7 +367,15 @@ async function ensureAmenities(siteId) {
   return summary;
 }
 
-/** Creates the project once; an existing project's content and status are never changed. */
+/** Non-deleted admins of the site (the accounts allowed to own the project). */
+const siteAdminIds = (siteId) =>
+  User.find({ siteId, role: ROLES.ADMIN, deletedAt: null }).distinct("_id");
+
+/**
+ * Creates the project once; an existing project's content and status are never changed.
+ * The project is found by slug, so a project anyone else created with that slug, or
+ * a renamed project (a new title changes the slug), stops the script.
+ */
 async function ensureProject(site, admin, coordinates, warnings) {
   const existing = await Project.findOne({
     siteId: site._id,
@@ -356,17 +383,51 @@ async function ensureProject(site, admin, coordinates, warnings) {
   });
 
   if (existing) {
+    if (!existing.ownerId.equals(admin._id)) {
+      // Units are created under the project owner and --activate publishes the
+      // project, so only adopt a project another Block 57 admin owns.
+      const owner = await User.findById(existing.ownerId).select(
+        "email role siteId deletedAt",
+      );
+      const ownerIsSiteAdmin =
+        owner &&
+        !owner.deletedAt &&
+        owner.role === ROLES.ADMIN &&
+        owner.siteId?.equals(site._id);
+      if (!ownerIsSiteAdmin) {
+        throw new Error(
+          `The "${BLOCK57_PROJECT_SLUG}" project is owned by ${owner ? `${owner.email} (${owner.role})` : "a deleted account"}, not by a ${site.slug} admin. ` +
+            "Refusing to add units to it or publish it. Rename or delete it from the admin dashboard, then re-run.",
+        );
+      }
+      warnings.push(
+        `The project is owned by another ${site.slug} admin (${owner.email}); units are created under that account`,
+      );
+    }
     if (existing.deletedAt) {
       throw new Error(
         `The "${BLOCK57_PROJECT_SLUG}" project is in the trash (status ${existing.status}). Restore it from the dashboard, then re-run.`,
       );
     }
-    if (!existing.ownerId.equals(admin._id)) {
-      warnings.push(
-        "The project is owned by another account; units are created under the project owner",
-      );
-    }
     return { project: existing, created: false };
+  }
+
+  const adminProjects = await Project.find({
+    siteId: site._id,
+    ownerId: { $in: await siteAdminIds(site._id) },
+    deletedAt: null,
+  })
+    .select("title slug")
+    .limit(5);
+  if (adminProjects.length) {
+    const list = adminProjects
+      .map((row) => `"${row.title}" (/${row.slug})`)
+      .join(", ");
+    throw new Error(
+      `No project has the slug "${BLOCK57_PROJECT_SLUG}", but ${site.slug} admins already own ${list}. ` +
+        `The Block 57 project was probably renamed in the dashboard (a new title changes the slug). ` +
+        `Rename it back to "${BLOCK57_PROJECT_TITLE}" so its slug is "${BLOCK57_PROJECT_SLUG}" again (the website loads the project by that slug), then re-run.`,
+    );
   }
 
   await projectService.create(
@@ -416,7 +477,11 @@ const OPTIONAL_UNIT_FIELDS = [
   "sortOrder",
 ];
 
-/** Fields of `unit` that differ from `existing` (undefined in the file = keep). */
+/**
+ * Fields of `unit` that differ from `existing` (undefined in the file = keep).
+ * The file wins: a value edited in the dashboard is overwritten by the file's
+ * value, and each overwrite is reported (describeUnitChanges).
+ */
 function buildUnitPatch(existing, unit, warnings) {
   const patch = {};
 
@@ -456,6 +521,20 @@ function buildUnitPatch(existing, unit, warnings) {
   return patch;
 }
 
+const formatUnitValue = (value) => {
+  if (value === undefined || value === null || value === "") return "(empty)";
+  return typeof value === "string" ? `"${value}"` : String(value);
+};
+
+/** One line per field the file overwrites, e.g. `A-101 price: 165000 -> 150000`. */
+function describeUnitChanges(existing, patch) {
+  return Object.entries(patch).map(([field, next]) =>
+    field === "description"
+      ? `${existing.title} description: replaced`
+      : `${existing.title} ${field}: ${formatUnitValue(existing[field])} -> ${formatUnitValue(next)}`,
+  );
+}
+
 async function upsertUnits(site, project, admin, units, warnings) {
   const activeTypes = await PropertyTypeCatalog.find({
     siteId: site._id,
@@ -474,9 +553,18 @@ async function upsertUnits(site, project, admin, units, warnings) {
     );
   }
 
-  const summary = { created: 0, updated: 0, unchanged: 0, skipped: 0 };
-  let markedSold = false;
+  const summary = {
+    created: 0,
+    updated: 0,
+    unchanged: 0,
+    skipped: 0,
+    changes: [],
+  };
 
+  // Plan every entry before writing anything.
+  const creates = [];
+  const updates = [];
+  const soldUpdates = [];
   for (const unit of units) {
     const matches = await Property.find({
       siteId: site._id,
@@ -495,41 +583,74 @@ async function upsertUnits(site, project, admin, units, warnings) {
     }
 
     const [existing] = matches;
-    try {
-      if (!existing) {
-        await propertyService.create(
-          {
-            ...unit,
-            description:
-              unit.description ??
-              defaultUnitDescription(unit, typeLabels.get(unit.type)),
-            projectId: project._id,
-          },
-          admin,
-        );
-        summary.created += 1;
-        if (unit.status === "sold") markedSold = true;
-        continue;
-      }
-
-      if (existing.deletedAt) {
-        warnings.push(
-          `Unit "${unit.title}" is in the trash; skipped (restore it from the dashboard)`,
-        );
-        summary.skipped += 1;
-        continue;
-      }
-
-      const patch = buildUnitPatch(existing, unit, warnings);
-      if (!Object.keys(patch).length) {
-        summary.unchanged += 1;
-        continue;
-      }
-      await propertyService.update(existing._id, patch, admin);
-      summary.updated += 1;
-    } catch (error) {
-      throw new Error(`Unit "${unit.title}": ${error.message}`);
+    if (!existing) {
+      creates.push(unit);
+      continue;
     }
+
+    if (existing.deletedAt) {
+      warnings.push(
+        `Unit "${unit.title}" is in the trash; skipped (restore it from the dashboard)`,
+      );
+      summary.skipped += 1;
+      continue;
+    }
+
+    const patch = buildUnitPatch(existing, unit, warnings);
+    if (!Object.keys(patch).length) {
+      summary.unchanged += 1;
+      continue;
+    }
+    (patch.status === "sold" ? soldUpdates : updates).push({
+      unit,
+      existing,
+      patch,
+    });
+  }
+
+  if (creates.length && project.status === "sold") {
+    throw new Error(
+      `The project is sold (every unit is sold), so it cannot accept the ${creates.length} new unit(s) in the file ` +
+        `(${creates.map((unit) => unit.title).join(", ")}). Nothing was written. ` +
+        "Change the project status in the admin dashboard first, then re-run.",
+    );
+  }
+
+  const apply = async (title, write) => {
+    try {
+      await write();
+    } catch (error) {
+      throw new Error(`Unit "${title}": ${error.message}`);
+    }
+  };
+
+  // New units first and sold transitions last: marking the last live unit sold
+  // turns an active project sold (syncParentProjectSoldStatus), and a sold
+  // project refuses new units.
+  let markedSold = false;
+  for (const unit of creates) {
+    await apply(unit.title, () =>
+      propertyService.create(
+        {
+          ...unit,
+          description:
+            unit.description ??
+            defaultUnitDescription(unit, typeLabels.get(unit.type)),
+          projectId: project._id,
+        },
+        admin,
+      ),
+    );
+    summary.created += 1;
+    if (unit.status === "sold") markedSold = true;
+  }
+
+  for (const { unit, existing, patch } of [...updates, ...soldUpdates]) {
+    await apply(unit.title, () =>
+      propertyService.update(existing._id, patch, admin),
+    );
+    summary.updated += 1;
+    summary.changes.push(...describeUnitChanges(existing, patch));
   }
 
   // Created-as-sold units skip the update path's sync; mirror it once here.
@@ -624,6 +745,7 @@ async function activateProject(projectId, admin) {
  * @param {string} options.adminEmail - BLOCK57_ADMIN_EMAIL
  * @param {string} options.adminPassword - BLOCK57_ADMIN_PASSWORD (never logged)
  * @param {boolean} [options.resetAdminPassword] - overwrite an existing admin's password
+ * @param {boolean} [options.promoteExisting] - make an existing non-admin account the admin (forces a password reset)
  * @param {string} [options.unitsFile] - path to a units JSON array
  * @param {object[]} [options.units] - units array (instead of unitsFile)
  * @param {boolean} [options.activate] - approve the project and its pending units
@@ -634,6 +756,7 @@ export async function seedBlock57({
   adminEmail,
   adminPassword,
   resetAdminPassword = false,
+  promoteExisting = false,
   unitsFile,
   units: unitsInput,
   activate = false,
@@ -667,6 +790,7 @@ export async function seedBlock57({
         email: adminInput.adminEmail,
         password: adminInput.adminPassword,
         resetPassword: resetAdminPassword,
+        promoteExisting,
       },
       warnings,
     );

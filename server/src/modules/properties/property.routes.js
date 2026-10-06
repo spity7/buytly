@@ -252,7 +252,7 @@ router.get(
  *   get:
  *     operationId: getPropertyById
  *     summary: Get property by ID
- *     description: Returns full property details with media signed URLs. Increments view count for active listings. Non-active listings are only visible to the owner, assigned agent, or admin.
+ *     description: Returns full property details with media signed URLs. Increments view count for active listings (not for managers). Non-active and trashed listings are only visible to the owner, assigned agent, or admin; any other logged-in user gets the same result as an anonymous visitor.
  *     tags: [Properties]
  *     parameters:
  *       - $ref: '#/components/parameters/ObjectIdParam'

@@ -124,7 +124,7 @@ Every email is sent inside an HTTP request, so `services/siteBrand.js` reads the
 | `supportEmail` | `branding.supportEmail` (may be empty)                                                      | `CONTACT_INBOX_EMAIL`                 |
 
 - **Templates** (`email.templates.js`) take `{ brand, ...params }`; `brand.name` replaces the product name in subjects, header, body and footer (`Buytly` only when no brand is passed). Layout and colours are shared by all sites.
-- **Sender** — the address comes from `SMTP_FROM` (a bare `addr`, or the address inside `Name <addr>`) and the display name is the brand, e.g. `Block 57 <noreply@…>`, for both SMTP and SendGrid.
+- **Sender** — the address is `SMTP_FROM`, which must be a plain email address (`env.js` rejects `Name <addr>` at startup), and the display name is the brand, e.g. `Block 57 <noreply@…>`, for both SMTP and SendGrid.
 - **Reply-To** — the contact auto-reply uses the site's `branding.supportEmail` when set; the inbox email keeps the submitter.
 - **Links** — verify/reset links (`auth.service`) and notification CTAs use `buildSiteLink(path)` = site public base URL (or `APP_URL`) + path, so tenant users land on their own site. Catalog events return a relative `ctaPath`; `buildNotificationPayload` prefixes the base once. The `auth.welcome` title names the site (`Welcome to Block 57`).
 - Within a request, notification emails only reach users of the request site (`notify()` looks users up by request `siteId`; cross-site moderation drops them), so the brand always matches the recipient's site. Without a request site the Buytly fallback applies.
