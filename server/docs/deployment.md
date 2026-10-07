@@ -108,16 +108,24 @@ The Next.js client fetches the live OpenAPI spec from `/api/docs.json` for Orval
 | `BUILDWISE_SUPPORT_PHONE_DISPLAY`   | No                       | Buildwise display number (default `+961 71 703 703`)                                                                                                                                                                      |
 | `BUILDWISE_SUPPORT_EMAIL`           | No                       | Buildwise support email (default `info@buildwise-engineering.com`)                                                                                                                                                        |
 | `BUILDWISE_SITE_PUBLIC_URL`         | No                       | Buildwise public site URL for invoice links/metadata (default `https://buildwise-engineering.com`) — `buildwise-web` build arg only; not the API partner-link override (use `SITE_PUBLIC_URL_BUILDWISE` in `server/.env`) |
+| `BLOCK57_SITE_PUBLIC_URL`           | No                       | Block 57 public site URL for canonical links and sitemap (default `https://block-57.com`) — `block57-web` build arg only; not the API partner-link override (use `SITE_PUBLIC_URL_BLOCK57` in `server/.env`)              |
+| `BLOCK57_PROJECT_SLUG`              | No                       | Slug of the project the Block 57 site loads (default `block-57`, created by `seed:block57`). Renaming the project changes its slug, so don't rename it                                                                    |
+| `BLOCK57_SHOW_PRICES`               | No                       | `true` shows unit prices on the Block 57 site (default `false`, "Inquire" instead). The API only returns prices to the public once the site's `features.hidePublicPrices` is off                                          |
+| `BLOCK57_SUPPORT_PHONE`             | No                       | Block 57 footer/WhatsApp (default `+233244777772`) — `block57-web` build arg                                                                                                                                              |
+| `BLOCK57_SUPPORT_PHONE_DISPLAY`     | No                       | Block 57 display number (default `+233 244 777 772`)                                                                                                                                                                      |
+| `BLOCK57_SUPPORT_EMAIL`             | No                       | Block 57 support email (default `info@block-57.com`)                                                                                                                                                                      |
 
-**Per-app Next.js env** (local dev: `client/.env.local` or `apps/buildwise-web/.env.local`; see each app’s `.env.example`):
+**Per-app Next.js env** (local dev: `client/.env.local`, `apps/buildwise-web/.env.local` or `apps/block57-web/.env.local`; see each app’s `.env.example`):
 
-| Variable                      | Buytly (`client`) | Buildwise (`apps/buildwise-web`)                                                                                              |
-| ----------------------------- | ----------------- | ----------------------------------------------------------------------------------------------------------------------------- |
-| `NEXT_PUBLIC_SITE_SLUG`       | `buytly`          | `buildwise`                                                                                                                   |
-| `NEXT_PUBLIC_SITE_NAME`       | `Buytly`          | `Buildwise Engineering`                                                                                                       |
-| `NEXT_PUBLIC_SITE_PUBLIC_URL` | — (optional)      | Buildwise: canonical URL in UI/metadata (local dev: `http://localhost:3001`). Buytly client: optional `http://localhost:3000` |
+| Variable                           | Buytly (`client`) | Buildwise (`apps/buildwise-web`)                                                                                              | Block 57 (`apps/block57-web`)                                                                   |
+| ---------------------------------- | ----------------- | ----------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| `NEXT_PUBLIC_SITE_SLUG`            | `buytly`          | `buildwise`                                                                                                                   | `block57`                                                                                       |
+| `NEXT_PUBLIC_SITE_NAME`            | `Buytly`          | `Buildwise Engineering`                                                                                                       | `Block 57`                                                                                      |
+| `NEXT_PUBLIC_SITE_PUBLIC_URL`      | — (optional)      | Buildwise: canonical URL in UI/metadata (local dev: `http://localhost:3001`). Buytly client: optional `http://localhost:3000` | `https://block-57.com`: canonical URLs, sitemap, OpenGraph (local dev: `http://localhost:3002`) |
+| `NEXT_PUBLIC_BLOCK57_PROJECT_SLUG` | —                 | —                                                                                                                             | `block-57` (the project created by `seed:block57`)                                              |
+| `NEXT_PUBLIC_SHOW_PRICES`          | —                 | —                                                                                                                             | `false`; `true` shows prices the API returns (see `BLOCK57_SHOW_PRICES`)                        |
 
-`docker-compose.yml` passes site slug/name, public URL, and support fields as **build args** only (`NEXT_PUBLIC_*` is baked at `docker compose build` time). Changing root `.env` requires `docker compose build client buildwise-web` (or `--build` on `up`).
+`docker-compose.yml` passes site slug/name, public URL, and support fields as **build args** only (`NEXT_PUBLIC_*` is baked at `docker compose build` time). Changing root `.env` requires `docker compose build client buildwise-web block57-web` (or `--build` on `up`).
 
 Production setup: copy `server/.env.example` → `.env` on the server, then comment local lines and uncomment the prod line below each pair. Default email is **SMTP** (Gmail); switch to **SendGrid** for higher volume.
 
@@ -211,6 +219,7 @@ Same flow as handiz-dashboard: Docker Compose on the VPS, host nginx + certbot f
 | ------------- | --------- | --------------------------- |
 | client        | 3025      | buytly.com / www            |
 | buildwise-web | 3026      | buildwise-engineering.com   |
+| block57-web   | 3027      | block-57.com / www          |
 | server        | 5025      | api.buytly.com (shared API) |
 
 (handiz-dashboard uses 3016 / 5016 on the same VPS — no conflict)
@@ -223,17 +232,52 @@ cp .env.example .env
 # Edit server/.env — comment local lines, uncomment prod below each pair (include TRUST_PROXY=true, Atlas MONGODB_URI)
 # Edit .env — uncomment prod NEXT_PUBLIC_API_URL; set NEXT_PUBLIC_GOOGLE_CLIENT_ID (same as GOOGLE_CLIENT_ID);
 #   optional NEXT_PUBLIC_GOOGLE_MAPS_API_KEY; confirm BUILDWISE_SITE_PUBLIC_URL and BUILDWISE_SUPPORT_* for buildwise-web
+#   and the BLOCK57_* values for block57-web
 # Upload gcs-service-account.json to server/
 docker compose up -d --build
 ```
 
-Point **host nginx** at loopback (three virtual hosts):
+Point **host nginx** at loopback (four virtual hosts):
 
 | Public host                         | Upstream         |
 | ----------------------------------- | ---------------- |
 | `buytly.com` / `www.buytly.com`     | `127.0.0.1:3025` |
 | `buildwise-engineering.com` / `www` | `127.0.0.1:3026` |
+| `block-57.com` (`www` → apex, 301)  | `127.0.0.1:3027` |
 | `api.buytly.com`                    | `127.0.0.1:5025` |
+
+Block 57 vhost (`/etc/nginx/sites-available/block-57.com`, linked into `sites-enabled/`). The site's URLs end with `/` like the WordPress ones, and `www` redirects to the apex:
+
+```nginx
+server {
+    listen 80;
+    listen [::]:80;
+    server_name www.block-57.com;
+    return 301 https://block-57.com$request_uri;
+}
+
+server {
+    listen 80;
+    listen [::]:80;
+    server_name block-57.com;
+
+    # Old WordPress URLs the new app does not serve (see the cutover checklist)
+    if ($block57_legacy_redirect) {
+        return 301 $block57_legacy_redirect;
+    }
+
+    location / {
+        proxy_pass http://127.0.0.1:3027;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+```
+
+`$block57_legacy_redirect` comes from a `map` in the `http` context (e.g. `/etc/nginx/conf.d/block57-redirects.conf`); see [Block 57 cutover from WordPress](#block-57-cutover-from-wordpress). certbot adds the `443` listeners and the HTTP → HTTPS redirects to both server blocks.
 
 TLS (certbot; run after nginx proxies are in place):
 
@@ -241,6 +285,7 @@ TLS (certbot; run after nginx proxies are in place):
 sudo certbot --nginx -d buytly.com -d www.buytly.com
 sudo certbot --nginx -d api.buytly.com
 sudo certbot --nginx -d buildwise-engineering.com -d www.buildwise-engineering.com
+sudo certbot --nginx -d block-57.com -d www.block-57.com
 ```
 
 Verify: `curl https://api.buytly.com/api/v1/health`
@@ -270,16 +315,17 @@ Optional in `server/.env`: `SITE_PUBLIC_URL_BUILDWISE` / `SITE_PUBLIC_URL_BUYTLY
 NEXT_PUBLIC_API_URL=https://api.buytly.com/api/v1
 NEXT_PUBLIC_GOOGLE_CLIENT_ID=<same-as-GOOGLE_CLIENT_ID>
 BUILDWISE_SITE_PUBLIC_URL=https://buildwise-engineering.com
+BLOCK57_SITE_PUBLIC_URL=https://block-57.com
 ```
 
-Add Google OAuth authorized JavaScript origins: `https://buytly.com`, `https://www.buytly.com`, `https://buildwise-engineering.com`, `https://www.buildwise-engineering.com`.
+Add Google OAuth authorized JavaScript origins: `https://buytly.com`, `https://www.buytly.com`, `https://buildwise-engineering.com`, `https://www.buildwise-engineering.com`, `https://block-57.com`, `https://www.block-57.com`.
 
 ### Multi-site rollout
 
 1. Deploy API with site middleware (`resolveSite` + seeded `sites` collection).
 2. Run once on production DB (skip on a fresh empty DB if you rely on startup seed only): `npm run migrate:multi-site -w server` (from repo root) or `node scripts/migrate-multi-site.js` in `server/`. This backfills `siteId`, grants platform admin permissions, and drops legacy catalog unique index `value_1` in favor of `{ siteId, value }`. New API processes also run that index sync on startup.
-3. Build and run all services: `docker compose up -d --build` (`client`, `buildwise-web`, `server`).
-4. Nginx + TLS: same three-host layout and certbot commands as [Hostinger VPS — deployment](#hostinger-vps--deployment) above.
+3. Build and run all services: `docker compose up -d --build` (`client`, `buildwise-web`, `block57-web`, `server`).
+4. Nginx + TLS: same four-host layout and certbot commands as [Hostinger VPS — deployment](#hostinger-vps--deployment) above.
 
 Each frontend sends browser `Origin`; the API resolves tenant from host mapping in `sites`. Dev/tests may send `X-Site-Slug: buytly|buildwise|block57`. Per-site accounts: the same email may exist independently on each site.
 
@@ -402,6 +448,50 @@ Entries are applied in this order: new units, then field updates, then units tha
 
 `scripts/seed/block57-units.example.json` holds six **example** units (one per type across Blocks A/B/C) with placeholder prices and "Example unit" descriptions, for local testing only; the script refuses to import a `*.example.json` file when `NODE_ENV=production`.
 
+### Block 57 cutover from WordPress
+
+block-57.com runs on WordPress until its DNS records are switched (step 8); nothing changes for visitors before then.
+
+**Ahead of the switch**
+
+1. **Lower the DNS TTL.** At block-57.com's DNS provider, set the TTL of the `@` and `www` A/AAAA records to 300 s, at least the current TTL ahead of the switch (24–48 h is safe), so the switch, and a rollback if needed, take effect within minutes.
+2. **Keep the mail records.** Only the web records change. Leave MX, SPF, DKIM and DMARC exactly as they are: info@block-57.com receives the site's inquiries. If the zone moves to another DNS provider, recreate every record there (MX, SPF/DKIM/DMARC, verification TXT) before changing nameservers.
+3. **Back up WordPress**: files (`wp-content/`, including `uploads/`) and a database export, stored off the old host. Keep the backup, and the old hosting, until the new site has run cleanly for a few weeks.
+4. **Build the 301 map** from the WordPress sitemap captured in Phase 0 (`/wp-sitemap.xml` or Yoast's `/sitemap_index.xml`) and any redirect-plugin rules. The app serves `/`, `/life-style/`, `/apartments/`, `/apartments/<type>/`, `/amenities/`, `/inquire/`, `/sitemap.xml` and `/robots.txt`; every other indexed URL needs a target or it returns 404: attachment pages, `/feed/` and `/comments/feed/`, archives, `/wp-content/uploads/…` media and old page slugs. Send media to its new copy under `/images/block57/` where there is one, otherwise to the page that showed it:
+
+   ```nginx
+   # /etc/nginx/conf.d/block57-redirects.conf (http context).
+   # $uri excludes the query string. Exact entries win over regex (~) entries.
+   map $uri $block57_legacy_redirect {
+       default                               "";
+       ~^/feed/?$                            /;
+       ~^/comments/feed/?$                   /;
+       ~^/(wp-sitemap|sitemap_index)\.xml$   /sitemap.xml;
+       # Examples: one line per URL from the sitemap
+       /wp-content/uploads/2024/01/penthouse.jpg  /images/block57/penthouse.jpg;
+       /apartments/penthouse-2/              /apartments/penthouse/;
+   }
+   ```
+
+5. **Carry over tracking tags.** Add the analytics/GTM, pixel and `google-site-verification` IDs recorded in Phase 0 to the new app before the switch, so Search Console ownership and analytics history continue (a DNS TXT verification needs no change as long as the TXT record stays).
+
+**Deploy (DNS still on WordPress)**
+
+6. **API first.** Deploy the server with `https://block-57.com,https://www.block-57.com` in `CORS_ORIGIN`; API boot creates the `block57` site. Straight away run [`seed:block57`](#block-57-bootstrap-seedblock57), enter the full unit inventory (`--units`), check it in the dashboard and activate the project (`--activate`).
+7. **Frontend and nginx.** Set the `BLOCK57_*` values in the repo-root `.env`, run `docker compose up -d --build block57-web`, and check `curl -I http://127.0.0.1:3027/` on the VPS. Add the [vhost](#hostinger-vps--deployment) and the redirect map, run `sudo nginx -t && sudo systemctl reload nginx`, then test through nginx before DNS changes: `curl -I --resolve block-57.com:80:<VPS IPv4> http://block-57.com/apartments/` (and a few map entries). Add `https://block-57.com` and `https://www.block-57.com` to the Google OAuth authorized JavaScript origins.
+
+**Switch**
+
+8. **DNS.** Point the `@` and `www` A records at the VPS IPv4. Point the AAAA records at the VPS IPv6 or delete them: a leftover AAAA record keeps sending IPv6 visitors to WordPress.
+9. **TLS.** certbot's HTTP challenge needs the names to resolve to the VPS, so run `sudo certbot --nginx -d block-57.com -d www.block-57.com` as soon as they do; until then HTTPS visitors get a certificate error. To avoid that window, issue the certificate before the switch with a DNS challenge (`sudo certbot certonly --manual --preferred-challenges dns -d block-57.com -d www.block-57.com`); a manual certificate does not renew by itself, so after the switch re-run the `--nginx` command and choose _Renew & replace_.
+10. **Verify.** `https://www.block-57.com/` and `http://block-57.com/` answer 301 to `https://block-57.com/`; every page answers 200; map entries answer 301; an unknown URL answers 404. Send a test inquiry: it must reach info@block-57.com and appear in the admin inquiries (`GET /admin/inquiries`). Sign in, including with Google.
+
+**After**
+
+11. In Search Console, submit `https://block-57.com/sitemap.xml`, then watch the page-indexing (404) report for a few weeks and add missing URLs to the map.
+12. Watch the API logs for `429` responses: the rate limit is per IP, and mobile networks in Ghana share IPs widely.
+13. Optional: a Buytly platform admin features Block 57 on the marketplace.
+
 ## MongoDB Atlas Setup
 
 1. Create a cluster at [cloud.mongodb.com](https://cloud.mongodb.com)
@@ -451,6 +541,7 @@ Email is anonymized on `DELETE /users/me`, so re-registration works with the par
 - [ ] Repo root `.env` for Docker Compose — prod `NEXT_PUBLIC_API_URL` and matching `NEXT_PUBLIC_GOOGLE_CLIENT_ID`; rebuild frontends after changes — never committed
 - [ ] `server/.env` never committed — use server-only secrets
 - [ ] GitHub Actions CI passing (`.github/workflows/ci.yml`)
+- [ ] Block 57: [bootstrap](#block-57-bootstrap-seedblock57) run and the [WordPress cutover](#block-57-cutover-from-wordpress) checklist done
 - [ ] MongoDB indexes created (auto-created on first run via Mongoose)
 - [ ] Graceful shutdown tested (SIGTERM handling)
 - [ ] Backup strategy for MongoDB
@@ -462,24 +553,26 @@ Same layout as handiz-dashboard:
 
 | File                            | Purpose                                                               |
 | ------------------------------- | --------------------------------------------------------------------- |
-| `docker-compose.yml`            | `client`, `buildwise-web`, `server`; ports, volumes                   |
+| `docker-compose.yml`            | `client`, `buildwise-web`, `block57-web`, `server`; ports, volumes    |
 | `client/Dockerfile`             | Buytly Next.js standalone → `node server.js` :3025                    |
 | `apps/buildwise-web/Dockerfile` | Buildwise Next.js standalone → `node server.js` :3026                 |
+| `apps/block57-web/Dockerfile`   | Block 57 Next.js standalone → `node server.js` :3027                  |
 | `server/Dockerfile`             | `npm ci --omit=dev` → `npm start` :5025                               |
 | Repo root `.dockerignore`       | Build context for frontends; excludes `.env*`, `server/`, `packages/` |
 | Repo root `.gitignore`          | Secrets, `node_modules/`, `**/.next/`, coverage (workspaces)          |
 
-Frontend env for Docker comes from the repo root `.env` (see `.env.example`) via **compose build args** — values are embedded at image build time. Server runtime env comes from `server/.env` (`env_file` in compose). Email/reset links use each site's public URL: in development the API defaults to `http://localhost:3000` (Buytly), `3001` (Buildwise) and `3002` (Block 57); when the Docker frontends run on other ports (e.g. `http://localhost:3025` / `3026`), set the matching `SITE_PUBLIC_URL_*` in `server/.env`. `APP_URL` is only the fallback.
+Frontend env for Docker comes from the repo root `.env` (see `.env.example`) via **compose build args** — values are embedded at image build time. Server runtime env comes from `server/.env` (`env_file` in compose). Email/reset links use each site's public URL: in development the API defaults to `http://localhost:3000` (Buytly), `3001` (Buildwise) and `3002` (Block 57); when the Docker frontends run on other ports (e.g. `http://localhost:3025` / `3026` / `3027`), set the matching `SITE_PUBLIC_URL_*` in `server/.env`. `APP_URL` is only the fallback.
 
 **BuildKit / buildx:** Frontend Dockerfiles use a plain `npm ci` layer so **classic** `docker compose build` works on minimal VPS images (no `buildx` required). If you see `Docker Compose requires buildx plugin`, it is usually a warning only. Optional faster rebuilds on a machine with BuildKit: `export DOCKER_BUILDKIT=1` before `docker compose build` (install `docker-buildx-plugin` if your distro documents it).
 
-All three services define **healthchecks** in `docker-compose.yml` and in their Dockerfiles:
+All four services define **healthchecks** in `docker-compose.yml` and in their Dockerfiles:
 
 | Service       | Check                                     |
 | ------------- | ----------------------------------------- |
 | server        | `GET http://127.0.0.1:5025/api/v1/health` |
 | client        | `GET http://127.0.0.1:3025`               |
 | buildwise-web | `GET http://127.0.0.1:3026`               |
+| block57-web   | `GET http://127.0.0.1:3027`               |
 
 ## CI/CD
 
@@ -490,8 +583,9 @@ GitHub Actions workflow [`.github/workflows/ci.yml`](../../.github/workflows/ci.
 | **server**        | `npm ci --no-workspaces`, `npm run lint`, `npm test` (MongoDB 7 service container) |
 | **client**        | `npm ci --no-workspaces`, `npm run build` (uses committed `src/api/generated/`)    |
 | **buildwise-web** | `npm ci --no-workspaces`, `npm run build` (Buildwise tenant env)                   |
+| **block57-web**   | `npm ci --no-workspaces`, `npm run build` (Block 57 tenant env)                    |
 
-Regenerate and commit `client/src/api/generated/` after OpenAPI changes (`npm run gen:api` with the API running locally).
+Regenerate and commit `src/api/generated/` in `client/`, `apps/buildwise-web/` and `apps/block57-web/` after OpenAPI changes (`npm run gen:api` in each app with the API running locally).
 
 ## Health Check
 

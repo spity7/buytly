@@ -69,6 +69,40 @@ services:
       retries: 3
       start_period: 60s
 
+  block57-web:
+    build:
+      context: .
+      dockerfile: apps/block57-web/Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
+        NEXT_PUBLIC_SITE_SLUG: block57
+        NEXT_PUBLIC_SITE_NAME: Block 57
+        NEXT_PUBLIC_SITE_PUBLIC_URL: ${BLOCK57_SITE_PUBLIC_URL:-https://block-57.com}
+        NEXT_PUBLIC_BLOCK57_PROJECT_SLUG: ${BLOCK57_PROJECT_SLUG:-block-57}
+        NEXT_PUBLIC_SHOW_PRICES: "${BLOCK57_SHOW_PRICES:-false}"
+        NEXT_PUBLIC_GOOGLE_CLIENT_ID: ${NEXT_PUBLIC_GOOGLE_CLIENT_ID}
+        NEXT_PUBLIC_GOOGLE_MAPS_API_KEY: ${NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}
+        NEXT_PUBLIC_SUPPORT_PHONE: ${BLOCK57_SUPPORT_PHONE:-+233244777772}
+        NEXT_PUBLIC_SUPPORT_PHONE_DISPLAY: "${BLOCK57_SUPPORT_PHONE_DISPLAY:-+233 244 777 772}"
+        NEXT_PUBLIC_SUPPORT_EMAIL: ${BLOCK57_SUPPORT_EMAIL:-info@block-57.com}
+    ports:
+      - "127.0.0.1:3027:3027"
+    depends_on:
+      - server
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          'node -e "fetch(''http://127.0.0.1:3027'').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"',
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
   server:
     build:
       context: ./server

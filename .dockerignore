@@ -1,5 +1,5 @@
-# Repo-root context for docker compose (client + buildwise-web)
-# Note: client/.dockerignore and apps/buildwise-web/.dockerignore apply only when
+# Repo-root context for docker compose (client + buildwise-web + block57-web)
+# Note: client/.dockerignore and apps/*/.dockerignore apply only when
 # build context is that subfolder; compose uses context "." so this file wins.
 
 **/node_modules
@@ -13,6 +13,7 @@
 !README.md
 client/.env*
 apps/buildwise-web/.env*
+apps/block57-web/.env*
 # API + shared packages not copied into frontend Dockerfiles
 server/
 packages/

@@ -6,6 +6,14 @@ alwaysApply: false
 
 # Buytly Client
 
+## Tenant apps (`apps/`)
+
+- The same API also serves tenant frontends that started as copies of `client/`: `apps/buildwise-web` (slug `buildwise`, dev port 3001) and `apps/block57-web` (slug `block57`, dev port 3002, copied from buildwise-web). Each has its own `package-lock.json`, `src/api/generated/` and copy of the shared code (`src/lib`, hooks, dashboard components), so a fix made here may need applying to each app.
+- `apps/block57-web` differs from `client/`:
+  - **Two root layouts** (route groups; moving between them reloads the page): `src/app/(site)` is the public Block 57 site with its own design system (`src/styles/block57/`, CSS Modules in `src/components/block57/`, no Bootstrap or Homez classes); `src/app/(app)` holds auth and `dashboard-*` pages on the Homez/Bootstrap theme (`--primary-color` `#9a7b4f`).
+  - `trailingSlash: true` (WordPress URLs): `next.config.js` redirect sources end with `/`; compare pathnames with `normalizePath` / `isSamePath` (`src/lib/url/normalizePath.js`).
+  - Sign-in is the `/login/` page (`AUTH_ENTRY_PATH`, `buildAuthEntryUrl()`), not the `?auth=` modal; never use `FavoriteButton` or `openAuthModal` in `(site)`.
+
 ## Page titles (browser tabs)
 
 - Root layout (`client/src/app/layout.js`) uses `SITE_NAME` from `client/src/lib/siteMetadata.js` (`NEXT_PUBLIC_SITE_NAME` or `Buytly`) with template `%s | ${SITE_NAME}`.

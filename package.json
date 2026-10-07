@@ -5,14 +5,17 @@
     "server",
     "client",
     "packages/web-core",
-    "apps/buildwise-web"
+    "apps/buildwise-web",
+    "apps/block57-web"
   ],
   "scripts": {
     "dev:api": "npm run dev -w server",
     "dev:buytly": "npm run dev -w client",
     "dev:buildwise": "npm run dev -w apps/buildwise-web",
+    "dev:block57": "npm run dev -w apps/block57-web",
     "test:api": "npm test -w server",
     "build:buytly": "npm run build -w client",
-    "build:buildwise": "npm run build -w apps/buildwise-web"
+    "build:buildwise": "npm run build -w apps/buildwise-web",
+    "build:block57": "npm run build -w apps/block57-web"
   }
 }
