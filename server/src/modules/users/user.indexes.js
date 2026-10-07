@@ -1,4 +1,5 @@
 import { User } from "./user.model.js";
+import { listCollectionIndexes } from "../../shared/collectionIndexes.js";
 
 function isLegacyGlobalEmailIndex(index) {
   if (!index?.unique || index.key?.siteId) return false;
@@ -23,7 +24,7 @@ async function dropLegacyIndexIfPresent(collection, index, label) {
 /** Drop pre–multi-site unique indexes and align with Mongoose schema indexes. */
 export async function ensureUserIndexes() {
   const collection = User.collection;
-  const indexes = await collection.indexes();
+  const indexes = await listCollectionIndexes(collection);
 
   await dropLegacyIndexIfPresent(
     collection,
