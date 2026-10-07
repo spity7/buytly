@@ -6,9 +6,11 @@ import DashboardBtnIcon, {
 } from "@/components/property/dashboard/DashboardBtnIcon";
 import StatusBadge from "@/components/common/StatusBadge";
 import { useAdminAnalytics } from "@/hooks/useAdminAnalytics";
+import { usePropertyTypeOptions } from "@/hooks/useCatalog";
 
 export default function AdminAnalyticsPanel() {
   const { data, isLoading, isError } = useAdminAnalytics();
+  const { getLabel: getPropertyTypeLabel } = usePropertyTypeOptions();
 
   if (isLoading) {
     return <p className="text mb0">Loading analytics...</p>;
@@ -92,7 +94,9 @@ export default function AdminAnalyticsPanel() {
               >
                 <span className="d-inline-flex flex-wrap align-items-center gap-2">
                   <span className="text-capitalize">
-                    {(row._id?.type || "unknown").toString()}
+                    {row._id?.type
+                      ? getPropertyTypeLabel(row._id.type)
+                      : "unknown"}
                   </span>
                   <StatusBadge
                     domain="listing"

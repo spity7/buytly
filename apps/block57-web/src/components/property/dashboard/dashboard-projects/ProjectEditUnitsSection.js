@@ -14,6 +14,7 @@ import DashboardBtnIcon, {
 import { DEFAULT_UNIT_SORT_ORDER } from "@/lib/properties/unitSortOrder";
 import { getPublicUnitHref } from "@/lib/properties/publicListingPaths";
 import { formatUnitPosition } from "@/lib/properties/unitPosition";
+import { usePropertyTypeOptions } from "@/hooks/useCatalog";
 
 const PLACEHOLDER_IMAGE = "/images/listings/list-1.jpg";
 
@@ -30,11 +31,6 @@ function getUnitsEmptyCopy(minUnits) {
     title: "No units yet",
     description: `Add at least ${minUnits} sellable listings under this project before you submit for admin review.`,
   };
-}
-
-function formatUnitType(type) {
-  if (!type) return "—";
-  return type.charAt(0).toUpperCase() + type.slice(1);
 }
 
 function getUnitThumbnail(unit) {
@@ -62,6 +58,8 @@ export default function ProjectEditUnitsSection({
   canAddUnit,
   trashedUnitCount = 0,
 }) {
+  // Catalog labels ("Urban Villa"), not the stored slug ("urban-villa").
+  const { getLabel: getPropertyTypeLabel } = usePropertyTypeOptions();
   const unitCount = units.length;
   const addUnitHref = `/dashboard-add-property?projectId=${projectId}`;
   const { title: emptyTitle, description: emptyDescription } =
@@ -192,7 +190,7 @@ export default function ProjectEditUnitsSection({
                   <div className="project-edit-unit-card__top">
                     <div className="project-edit-unit-card__title-wrap">
                       <p className="project-edit-unit-card__type mb0">
-                        {formatUnitType(unit.type)}
+                        {getPropertyTypeLabel(unit.type)}
                       </p>
                       <h5 className="project-edit-unit-card__title mb0">
                         {unit.title || "Untitled unit"}
