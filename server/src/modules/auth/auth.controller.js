@@ -24,7 +24,7 @@ export const authController = {
 
   forgotPassword: async (req, res) => {
     const result = await authService.forgotPassword(req.body.email);
-    ApiResponse.success(res, result);
+    ApiResponse.success(res, result, result.message);
   },
 
   resetPassword: async (req, res) => {
@@ -32,7 +32,7 @@ export const authController = {
       req.body.token,
       req.body.password,
     );
-    ApiResponse.success(res, result);
+    ApiResponse.success(res, result, result.message);
   },
 
   verifyEmail: async (req, res) => {
@@ -42,7 +42,7 @@ export const authController = {
 
   resendVerification: async (req, res) => {
     const result = await authService.resendVerification(req.body.email);
-    ApiResponse.success(res, result);
+    ApiResponse.success(res, result, result.message);
   },
 
   changePassword: async (req, res) => {

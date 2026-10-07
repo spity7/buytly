@@ -39,6 +39,7 @@ describe.skipIf(!mongoAvailable)("auth password recovery", () => {
       .send({ token, password: "newpassword123" });
 
     expect(resetRes.status).toBe(200);
+    expect(resetRes.body.message).toMatch(/password reset successfully/i);
 
     const oldLogin = await api(app)
       .post("/api/v1/auth/login")
@@ -61,9 +62,9 @@ describe.skipIf(!mongoAvailable)("auth password recovery", () => {
       .send({ email: "missing-user@example.com" });
 
     expect(res.status).toBe(200);
-    expect(res.body.data?.message || res.body.message).toMatch(
-      /reset link has been sent/i,
-    );
+    // Top-level message is what the frontends show (not the default "Success").
+    expect(res.body.message).toMatch(/reset link has been sent/i);
+    expect(res.body.data?.message).toMatch(/reset link has been sent/i);
   });
 
   it("logs out by revoking refresh tokens", async () => {
