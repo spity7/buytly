@@ -1,7 +1,7 @@
 "use client";
 
 import DefaultHeader from "@/components/common/DefaultHeader";
-import Footer from "@/components/common/default-footer";
+import AccountFooter from "@/components/common/AccountFooter";
 import MobileMenu from "@/components/common/mobile-menu";
 import { buytlyApi } from "@/api/generated";
 import { getApiError } from "@/lib/auth/getApiError";
@@ -120,7 +120,7 @@ const VerifyEmailContent = () => {
         </div>
       </section>
 
-      <Footer />
+      <AccountFooter />
     </>
   );
 };

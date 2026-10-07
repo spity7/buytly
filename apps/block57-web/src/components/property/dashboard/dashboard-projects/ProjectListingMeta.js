@@ -4,6 +4,7 @@ import Link from "next/link";
 import StatusBadge from "@/components/common/StatusBadge";
 import { formatProjectTimestamp } from "@/lib/properties/projectForm";
 import { getProjectStatusBadgeProps } from "@/lib/statusBadges";
+import { PUBLIC_PROJECT_HREF } from "@/lib/properties/publicListingPaths";
 
 function MetaRow({ label, children }) {
   return (
@@ -44,8 +45,8 @@ export default function ProjectListingMeta({ project }) {
         </MetaRow>
         <MetaRow label="Public URL">
           {showPublicLink ? (
-            <Link href={`/project/${project.slug}`} className="text-thm">
-              /project/{project.slug}
+            <Link href={PUBLIC_PROJECT_HREF} className="text-thm">
+              {PUBLIC_PROJECT_HREF}
             </Link>
           ) : (
             <span className="text-muted">Available after publishing</span>

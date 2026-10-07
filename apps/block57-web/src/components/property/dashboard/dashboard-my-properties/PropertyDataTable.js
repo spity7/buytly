@@ -33,7 +33,7 @@ import DashboardTableEmptyState, {
   DashboardTableErrorState,
 } from "@/components/property/dashboard/DashboardTableEmptyState";
 import { getPropertiesTableEmptyState } from "@/lib/dashboard/tableEmptyStates";
-import { getPropertyTypeLabel } from "@/lib/dashboard/filterOptions";
+import { usePropertyTypeOptions } from "@/hooks/useCatalog";
 import {
   canMarkPropertySold,
   isUnitPublicOnMarket,
@@ -41,6 +41,8 @@ import {
   resolveParentProject,
 } from "@/lib/properties/mapProperty";
 import { remoteImageProps } from "@/lib/images/remoteImage";
+import { getPublicUnitHref } from "@/lib/properties/publicListingPaths";
+import { formatUnitPosition } from "@/lib/properties/unitPosition";
 
 const PLACEHOLDER = "/images/listings/list-1.jpg";
 
@@ -73,6 +75,7 @@ const PropertyDataTable = ({
   onShowActiveListings,
 }) => {
   const queryClient = useQueryClient();
+  const { getLabel: getPropertyTypeLabel } = usePropertyTypeOptions();
   const {
     requestConfirm,
     run,
@@ -219,6 +222,7 @@ const PropertyDataTable = ({
                 parentProjectRef,
               );
               const parentProject = getParentProjectCell(property, card);
+              const position = formatUnitPosition(property);
 
               return (
                 <tr key={propertyId} {...getRowProps(propertyId)}>
@@ -239,7 +243,7 @@ const PropertyDataTable = ({
                           {isTrash || !publicOnMarket ? (
                             property.title
                           ) : (
-                            <Link href={`/single-v1/${propertyId}`}>
+                            <Link href={getPublicUnitHref(propertyId)}>
                               {property.title}
                             </Link>
                           )}
@@ -262,6 +266,18 @@ const PropertyDataTable = ({
                     ) : (
                       parentProject.title
                     )}
+                    {/* Block · floor inside the project (a separate column overflowed the table). */}
+                    {position ? (
+                      <span
+                        className="d-block fz13 text-muted text-nowrap"
+                        title="Block · floor"
+                      >
+                        <span className="visually-hidden">
+                          Block and floor:{" "}
+                        </span>
+                        {position}
+                      </span>
+                    ) : null}
                     {parentProject.projectInTrash ? (
                       <span className="d-block fz13 text-muted">
                         Project in trash

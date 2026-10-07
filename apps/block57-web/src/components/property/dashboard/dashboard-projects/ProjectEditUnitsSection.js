@@ -12,6 +12,8 @@ import DashboardBtnIcon, {
   dashboardIcons,
 } from "@/components/property/dashboard/DashboardBtnIcon";
 import { DEFAULT_UNIT_SORT_ORDER } from "@/lib/properties/unitSortOrder";
+import { getPublicUnitHref } from "@/lib/properties/publicListingPaths";
+import { formatUnitPosition } from "@/lib/properties/unitPosition";
 
 const PLACEHOLDER_IMAGE = "/images/listings/list-1.jpg";
 
@@ -174,6 +176,7 @@ export default function ProjectEditUnitsSection({
             const publicOnMarket = isUnitPublicOnMarket(unit, project);
             const ownerPreview = canOwnerPreviewUnitListing(unit);
             const specs = formatUnitSpecs(unit);
+            const position = formatUnitPosition(unit);
             const views = publicOnMarket ? (unit.viewCount ?? 0) : null;
 
             return (
@@ -206,6 +209,14 @@ export default function ProjectEditUnitsSection({
                     <span className="project-edit-unit-card__price">
                       {formatPrice(unit.price, unit.currency || "USD")}
                     </span>
+                    {position ? (
+                      <span
+                        className="project-edit-unit-card__specs"
+                        title="Block · floor"
+                      >
+                        {position}
+                      </span>
+                    ) : null}
                     {specs ? (
                       <span className="project-edit-unit-card__specs">
                         {specs}
@@ -231,7 +242,7 @@ export default function ProjectEditUnitsSection({
                     </Link>
                     {ownerPreview ? (
                       <Link
-                        href={`/single-v1/${id}`}
+                        href={getPublicUnitHref(id)}
                         className="ud-btn btn-white2 btn-sm project-edit-unit-card__btn"
                         target="_blank"
                         rel="noopener noreferrer"

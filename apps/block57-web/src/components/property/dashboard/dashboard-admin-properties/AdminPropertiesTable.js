@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { getPublicUnitHref } from "@/lib/properties/publicListingPaths";
 import React, { useCallback, useMemo, useState } from "react";
 import { buytlyApi } from "@/api/generated";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
@@ -12,6 +13,7 @@ import {
   FilterSortSelect,
 } from "@/components/property/dashboard/DashboardFilterBar";
 import { useAdminProperties } from "@/hooks/useAdminProperties";
+import { usePropertyTypeOptions } from "@/hooks/useCatalog";
 import { useDebouncedSearch } from "@/hooks/useDebouncedSearch";
 import { useConfirmAction } from "@/hooks/useConfirmAction";
 import StatusBadge from "@/components/common/StatusBadge";
@@ -39,7 +41,6 @@ import {
 import {
   ADMIN_PROPERTY_STATUS_FILTERS,
   PROPERTY_SORT_OPTIONS,
-  PROPERTY_TYPE_FILTERS,
   parseSortValue,
 } from "@/lib/dashboard/filterOptions";
 import { DashboardTableSkeleton } from "@/components/property/dashboard/skeletons/DashboardSkeletons";
@@ -86,6 +87,7 @@ const getModerateConfirmConfig = (title, status) => {
 
 export default function AdminPropertiesTable() {
   const queryClient = useQueryClient();
+  const { options: propertyTypeOptions } = usePropertyTypeOptions();
   const { user } = useAuth();
   const canPickSite = isBuytlyPlatformAdmin(user);
   const canFeatureOnMarketplace = canPickSite;
@@ -299,7 +301,7 @@ export default function AdminPropertiesTable() {
             setPage(1);
             setPropertyType(value);
           }}
-          options={PROPERTY_TYPE_FILTERS}
+          options={propertyTypeOptions}
         />
         <FilterSortSelect
           value={sort}
@@ -357,7 +359,7 @@ export default function AdminPropertiesTable() {
                 <tr key={propertyId} {...getRowProps(propertyId)}>
                   <th scope="row">
                     {publicOnMarket ? (
-                      <Link href={`/single-v1/${propertyId}`}>
+                      <Link href={getPublicUnitHref(propertyId)}>
                         {property.title}
                       </Link>
                     ) : (

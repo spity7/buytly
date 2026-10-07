@@ -1,3 +1,5 @@
+import { getPublicUnitHref } from "@/lib/properties/publicListingPaths";
+
 export function resolveNotificationHref(notification, { role } = {}) {
   const data = notification?.data || {};
   if (typeof data.href === "string" && data.href.length > 0) {
@@ -27,7 +29,7 @@ export function resolveNotificationHref(notification, { role } = {}) {
     case "property":
       if (event === "review.received") {
         return propertyId
-          ? `/single-v1/${propertyId}#property-reviews`
+          ? getPublicUnitHref(propertyId)
           : "/dashboard-my-properties";
       }
       return propertyId

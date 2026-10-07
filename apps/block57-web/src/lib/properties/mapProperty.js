@@ -1,5 +1,9 @@
 import { formatPrice } from "./formatPrice";
 import { getListingStatusBadgeClassName } from "@/lib/statusBadges";
+import {
+  PUBLIC_PROJECT_HREF,
+  getPublicUnitHref,
+} from "@/lib/properties/publicListingPaths";
 
 const PLACEHOLDER_IMAGE = "/images/listings/list-1.jpg";
 
@@ -107,7 +111,7 @@ export function mapPlatformProjectToCard(project) {
   const externalHref = project.sourceSite?.listingUrl;
   return {
     ...card,
-    href: externalHref || (card.slug ? `/project/${card.slug}` : "/"),
+    href: externalHref || PUBLIC_PROJECT_HREF,
     externalHref,
     partnerSiteName: project.sourceSite?.name,
     openInNewTab: Boolean(externalHref),
@@ -177,10 +181,8 @@ export function getPublicListingCardHref(listing) {
   if (listing.href) return listing.href;
   if (listing.externalHref) return listing.externalHref;
   const id = listing.id || listing._id;
-  if (listing.itemType === "project" && listing.slug) {
-    return `/project/${listing.slug}`;
-  }
-  return id ? `/single-v1/${id}` : "/";
+  if (listing.itemType === "project") return PUBLIC_PROJECT_HREF;
+  return id ? getPublicUnitHref(id) : "/";
 }
 
 export function getStatusLabel(status) {

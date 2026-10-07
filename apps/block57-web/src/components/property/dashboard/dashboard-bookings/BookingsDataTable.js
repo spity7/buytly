@@ -5,6 +5,7 @@ import DashboardBtnIcon, {
 } from "@/components/property/dashboard/DashboardBtnIcon";
 
 import Link from "next/link";
+import { getPublicUnitHref } from "@/lib/properties/publicListingPaths";
 import React, { useCallback, useEffect, useState } from "react";
 import { buytlyApi } from "@/api/generated";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
@@ -89,7 +90,7 @@ function BookingRows({
       <tr key={booking._id} {...getRowProps(booking._id)}>
         <th scope="row">
           <Link
-            href={`/single-v1/${property?._id}`}
+            href={getPublicUnitHref(property?._id)}
             className={tableBusy ? "pe-none opacity-50" : undefined}
             aria-disabled={tableBusy}
             tabIndex={tableBusy ? -1 : undefined}

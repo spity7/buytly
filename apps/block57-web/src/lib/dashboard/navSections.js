@@ -59,6 +59,11 @@ export function getDashboardNavSections(role) {
                 text: "Analytics",
               },
               {
+                href: "/dashboard-admin-inquiries",
+                icon: "flaticon-email",
+                text: "Inquiries",
+              },
+              {
                 href: "/dashboard-admin-users",
                 icon: "flaticon-user",
                 text: "Users",

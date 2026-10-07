@@ -195,6 +195,31 @@ export function getAdminPropertiesEmptyState({
   };
 }
 
+export function getAdminInquiriesEmptyState({
+  hasActiveFilters,
+  onClearFilters,
+}) {
+  if (hasActiveFilters) {
+    return {
+      icon: "flaticon-search",
+      title: "No inquiries match",
+      description:
+        "Try another status or search term, or reset filters to see every inquiry.",
+      actions: onClearFilters
+        ? [{ label: "Reset filters", variant: "thm", onClick: onClearFilters }]
+        : [],
+    };
+  }
+
+  return {
+    icon: "flaticon-email",
+    title: "No inquiries yet",
+    description:
+      "Messages sent from the Inquire form on the public site appear here.",
+    actions: [],
+  };
+}
+
 export function getBookingsEmptyState({
   mode,
   hasActiveFilters,

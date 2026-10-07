@@ -1,5 +1,5 @@
 import DefaultHeader from "@/components/common/DefaultHeader";
-import Footer from "@/components/common/default-footer";
+import AccountFooter from "@/components/common/AccountFooter";
 import MobileMenu from "@/components/common/mobile-menu";
 import AuthEntryPanel, {
   AuthEntryPanelFallback,
@@ -30,7 +30,7 @@ export default function Login() {
         </div>
       </section>
 
-      <Footer />
+      <AccountFooter />
     </>
   );
 }

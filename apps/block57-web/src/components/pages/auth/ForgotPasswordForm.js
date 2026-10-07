@@ -1,7 +1,7 @@
 "use client";
 
 import DefaultHeader from "@/components/common/DefaultHeader";
-import Footer from "@/components/common/default-footer";
+import AccountFooter from "@/components/common/AccountFooter";
 import MobileMenu from "@/components/common/mobile-menu";
 import RedirectIfAuthenticated from "@/components/auth/RedirectIfAuthenticated";
 import { buytlyApi } from "@/api/generated";
@@ -99,7 +99,7 @@ const ForgotPasswordForm = () => {
           </div>
         </section>
 
-        <Footer />
+        <AccountFooter />
       </>
     </RedirectIfAuthenticated>
   );

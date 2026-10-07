@@ -17,13 +17,13 @@ const ContactInfo = () => {
   const contactInfo = [
     {
       id: 1,
-      title: "Total Free Customer Care",
+      title: "WhatsApp",
       phone: getPlatformSupportPhoneDisplay(),
       phoneHref: supportWhatsAppUrl,
     },
     {
       id: 2,
-      title: "Need Live Support?",
+      title: "Email",
       email: supportEmail,
       emailHref: supportMailto,
     },

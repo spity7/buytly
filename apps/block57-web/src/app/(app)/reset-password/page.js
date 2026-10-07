@@ -1,7 +1,7 @@
 "use client";
 
 import DefaultHeader from "@/components/common/DefaultHeader";
-import Footer from "@/components/common/default-footer";
+import AccountFooter from "@/components/common/AccountFooter";
 import MobileMenu from "@/components/common/mobile-menu";
 import PasswordInput from "@/components/common/PasswordInput";
 import { buytlyApi } from "@/api/generated";
@@ -137,7 +137,7 @@ const ResetPasswordContent = () => {
         </div>
       </section>
 
-      <Footer />
+      <AccountFooter />
     </>
   );
 };

@@ -2,6 +2,10 @@ import { BRAND_NAME } from "@/data/brandAssets";
 import { isExternalImageSrc } from "@/lib/images/isExternalImageSrc";
 import { buildWhatsAppUrl, getPublicSiteOrigin } from "@/lib/phone/whatsapp";
 import {
+  PUBLIC_PROJECT_HREF,
+  getPublicUnitHref,
+} from "@/lib/properties/publicListingPaths";
+import {
   formatUserDisplayName,
   formatUserRole,
 } from "@/lib/user/formatUserMeta";
@@ -167,11 +171,11 @@ export function getListingContactWhatsAppContext(listing) {
   let listingPath = null;
 
   if (slug) {
-    listingPath = `/project/${slug}`;
+    listingPath = PUBLIC_PROJECT_HREF;
   } else {
     const id = getPropertyId(listing);
     if (id) {
-      listingPath = `/single-v1/${id}`;
+      listingPath = getPublicUnitHref(id);
     }
   }
 

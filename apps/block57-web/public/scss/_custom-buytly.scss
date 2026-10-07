@@ -959,6 +959,96 @@ section.footer-style1 {
     }
 }
 
+// Auth pages footer (AccountFooter): logo, public page links, contact.
+// Short pages keep it at the bottom of the viewport.
+.wrapper:has(> .account-footer) {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+
+    > .account-footer {
+        margin-top: auto;
+    }
+}
+
+.account-footer {
+    padding: 48px 0 28px;
+    font-family: var(--title-font-family);
+    font-size: 14px;
+    color: #bebdbd;
+
+    a {
+        color: #ffffff;
+        transition: color 0.2s ease;
+
+        &:hover,
+        &:focus-visible {
+            color: var(--primary-color);
+        }
+    }
+
+    &__top {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 24px 40px;
+        padding-bottom: 32px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    &__logo img {
+        display: block;
+        width: auto;
+        height: 44px;
+    }
+
+    &__links,
+    &__contact {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px 28px;
+        margin: 0;
+        padding: 0;
+        list-style: none;
+    }
+
+    &__links a {
+        font-weight: 600;
+    }
+
+    &__contact a {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+
+        [class^="flaticon-"] {
+            font-size: 16px;
+            line-height: 1;
+            color: var(--primary-color);
+        }
+    }
+
+    &__copyright {
+        margin: 24px 0 0;
+        font-size: 13px;
+        color: #bebdbd;
+    }
+
+    @media (max-width: 767.98px) {
+        padding-top: 40px;
+
+        &__top {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+
+        &__contact {
+            flex-direction: column;
+        }
+    }
+}
+
 // Sonner renders an empty <section> after the page when no toasts are visible.
 // It inherits the theme's global section padding and creates whitespace below the footer.
 section[aria-label^="Notifications"] {
@@ -3924,6 +4014,85 @@ header.nav-homepage-style.sticky {
     &__actions {
         min-width: 200px;
     }
+}
+
+// Admin inquiries: six columns, so the theme's 30px cell padding is tightened.
+.admin-inquiries-table {
+    .t-head th,
+    .t-body th,
+    .t-body td {
+        padding: 16px 12px;
+        font-size: 14px;
+    }
+
+    .t-head th {
+        white-space: nowrap;
+    }
+
+    .status-badge {
+        padding: 4px 10px;
+        font-size: 12px;
+        gap: 6px;
+    }
+
+    &__contact {
+        min-width: 170px;
+        max-width: 240px;
+
+        a {
+            display: block;
+            font-family: var(--body-font-family);
+            font-size: 13px;
+            font-weight: 400;
+        }
+    }
+
+    &__email {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    &__message {
+        min-width: 175px;
+        max-width: 300px;
+    }
+
+    &__message-text {
+        display: block;
+        word-break: break-word;
+    }
+
+    &__more {
+        padding: 0;
+        margin-top: 4px;
+        border: 0;
+        background: none;
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--primary-color);
+        text-decoration: underline;
+        text-underline-offset: 2px;
+
+        &:hover,
+        &:focus-visible {
+            color: var(--headings-color);
+        }
+    }
+
+    &__status.form-select {
+        min-width: 122px;
+        padding-left: 10px;
+        padding-right: 28px;
+        background-position: right 8px center;
+    }
+}
+
+.inquiry-message-dialog__message {
+    white-space: pre-line;
+    word-break: break-word;
+    color: var(--headings-color);
+    line-height: 1.7;
 }
 
 tr.dashboard-row-highlight,

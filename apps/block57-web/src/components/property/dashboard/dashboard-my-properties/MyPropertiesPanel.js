@@ -24,15 +24,14 @@ import {
 import PropertyDataTable from "@/components/property/dashboard/dashboard-my-properties/PropertyDataTable";
 import { useDebouncedSearch } from "@/hooks/useDebouncedSearch";
 import { useMyProjects } from "@/hooks/useProjects";
-import {
-  MY_PROPERTY_STATUS_FILTERS,
-  PROPERTY_TYPE_FILTERS,
-} from "@/lib/dashboard/filterOptions";
+import { usePropertyTypeOptions } from "@/hooks/useCatalog";
+import { MY_PROPERTY_STATUS_FILTERS } from "@/lib/dashboard/filterOptions";
 
 const PAGE_SIZE = 10;
 
 export default function MyPropertiesPanel() {
   const searchParams = useSearchParams();
+  const { options: propertyTypeOptions } = usePropertyTypeOptions();
   const highlightId = useHighlightQueryParam();
   const [highlightResolving, setHighlightResolving] = useState(false);
   const resolvedHighlightRef = useRef(null);
@@ -292,7 +291,7 @@ export default function MyPropertiesPanel() {
                     resetPage();
                     setPropertyType(value);
                   }}
-                  options={PROPERTY_TYPE_FILTERS}
+                  options={propertyTypeOptions}
                 />
                 <FilterClearButton
                   visible={hasActiveFilters}

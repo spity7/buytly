@@ -1,6 +1,7 @@
 "use client";
 
 import { useAdminAnalytics } from "@/hooks/useAdminAnalytics";
+import { useAdminInquiries } from "@/hooks/useAdminInquiries";
 import { useAgentBookings, useMyBookings } from "@/hooks/useBookings";
 import { useUnreadNotificationCount } from "@/hooks/useNotifications";
 import { useFavorites } from "@/hooks/useFavorites";
@@ -53,6 +54,10 @@ export default function DashboardTopStats({ role }) {
   const { data: analytics, isLoading: analyticsLoading } = useAdminAnalytics({
     enabled: isAdmin,
   });
+  const { data: newInquiries, isLoading: inquiriesLoading } = useAdminInquiries(
+    { page: 1, limit: 1, status: "new" },
+    { enabled: isAdmin },
+  );
   const { data: myProperties, isLoading: propertiesLoading } = useMyProperties(
     { page: 1, limit: 1 },
     { enabled: canManage },
@@ -78,7 +83,7 @@ export default function DashboardTopStats({ role }) {
     role === "buyer" ? myBookingsLoading : agentBookingsLoading;
 
   const isLoading =
-    (isAdmin && analyticsLoading) ||
+    (isAdmin && (analyticsLoading || inquiriesLoading)) ||
     (canManage && propertiesLoading) ||
     favoritesLoading ||
     bookingsLoading ||
@@ -120,11 +125,12 @@ export default function DashboardTopStats({ role }) {
           icon="flaticon-search-chart"
           href="/dashboard-admin-properties"
         />
+        {/* Block 57 has no bookings; new inquiries are the admin's queue. */}
         <StatCard
-          text="Bookings This Month"
-          title={String(analytics.bookingsThisMonth || 0)}
-          icon="flaticon-calendar"
-          href="/dashboard-bookings"
+          text="New Inquiries"
+          title={String(newInquiries?.pagination?.total || 0)}
+          icon="flaticon-email"
+          href="/dashboard-admin-inquiries"
         />
       </>
     );

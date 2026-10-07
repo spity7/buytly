@@ -10,6 +10,7 @@ import { DashboardGridSkeleton } from "@/components/property/dashboard/skeletons
 import { useFavorites } from "@/hooks/useFavorites";
 import { useConfirmAction } from "@/hooks/useConfirmAction";
 import { favoriteRemoveConfirmation } from "@/lib/confirmations";
+import { getPublicUnitHref } from "@/lib/properties/publicListingPaths";
 import { useQueryClient } from "@tanstack/react-query";
 
 const PLACEHOLDER = "/images/listings/list-1.jpg";
@@ -92,7 +93,7 @@ const ListingsFavourites = () => {
                 </div>
                 <div className="list-content">
                   <h6 className="list-title">
-                    <Link href={`/single-v1/${id}`}>{listing.title}</Link>
+                    <Link href={getPublicUnitHref(id)}>{listing.title}</Link>
                   </h6>
                   <p className="list-text">{listing.location}</p>
                   <div className="list-meta d-flex align-items-center">

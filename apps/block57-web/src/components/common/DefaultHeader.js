@@ -2,7 +2,6 @@
 
 import MainMenu from "@/components/common/MainMenu";
 import HeaderAuthLink from "@/components/auth/HeaderAuthLink";
-import AddPropertyLink from "@/components/auth/AddPropertyLink";
 import {
   BRAND_LOGO_DARK,
   BRAND_LOGO_HEIGHT,
@@ -71,9 +70,9 @@ const DefaultHeader = () => {
               {/* End .col-auto */}
 
               <div className="col-auto">
+                {/* Sellers and admins add listings from the dashboard sidebar. */}
                 <div className="d-flex align-items-center">
-                  <HeaderAuthLink className="login-info d-flex align-items-cente" />
-                  <AddPropertyLink className="ud-btn btn-white add-property bdrs60 mx-2 mx-xl-4" />
+                  <HeaderAuthLink className="login-info d-flex align-items-center" />
                 </div>
               </div>
               {/* End .col-auto */}

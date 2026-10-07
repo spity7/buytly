@@ -6,6 +6,7 @@ import DashboardBtnIcon, {
 
 import Image from "next/image";
 import Link from "next/link";
+import { PUBLIC_PROJECT_HREF } from "@/lib/properties/publicListingPaths";
 import React from "react";
 import { Tooltip as ReactTooltip } from "react-tooltip";
 import { buytlyApi } from "@/api/generated";
@@ -319,7 +320,7 @@ const ProjectsDataTable = ({
                           ) : null}
                           {isPublished ? (
                             <Link
-                              href={`/project/${project.slug}`}
+                              href={PUBLIC_PROJECT_HREF}
                               className={`icon${tableBusy ? " pe-none opacity-50" : ""}`}
                               data-tooltip-id={`view-${projectId}`}
                               target="_blank"

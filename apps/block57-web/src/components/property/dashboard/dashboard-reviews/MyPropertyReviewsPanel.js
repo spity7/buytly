@@ -4,6 +4,7 @@ import ApiPagination from "@/components/property/ApiPagination";
 import SingleReview from "@/components/property/property-single-style/common/reviews/SingleReview";
 import { DashboardTableSkeleton } from "@/components/property/dashboard/skeletons/DashboardSkeletons";
 import { useMyPropertyReviews } from "@/hooks/useMyPropertyReviews";
+import { getPublicUnitHref } from "@/lib/properties/publicListingPaths";
 import Link from "next/link";
 import { useState } from "react";
 
@@ -16,7 +17,7 @@ function getPropertyLabel(review) {
 function getPropertyHref(review) {
   const property = review.propertyId;
   const id = typeof property === "string" ? property : property?._id;
-  return id ? `/single-v1/${id}#property-reviews` : "/dashboard-my-properties";
+  return id ? getPublicUnitHref(id) : "/dashboard-my-properties";
 }
 
 const MyPropertyReviewsPanel = () => {

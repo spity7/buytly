@@ -34,6 +34,12 @@ import {
 } from "@/lib/properties/unitSortOrder";
 import { coordinatesToLatLngStrings } from "@/lib/geo/propertyCoordinates";
 import {
+  UNIT_BUILDING_MAX_LENGTH,
+  UNIT_FLOOR_MAX,
+  UNIT_FLOOR_MIN,
+  parseOptionalUnitFloor,
+} from "@/lib/properties/unitPosition";
+import {
   useCatalogAmenities,
   useCatalogPropertyTypes,
 } from "@/hooks/useCatalog";
@@ -113,6 +119,8 @@ const TOP_LEVEL_FIELD_ERROR_KEYS = [
   "bedrooms",
   "bathrooms",
   "area",
+  "building",
+  "floor",
   "virtualTourUrl",
 ];
 
@@ -124,6 +132,8 @@ const emptyFieldErrors = () => ({
   bedrooms: "",
   bathrooms: "",
   area: "",
+  building: "",
+  floor: "",
   virtualTourUrl: "",
   floorPlans: {},
 });
@@ -194,6 +204,20 @@ function getAreaFieldError(value) {
   return "";
 }
 
+function getBuildingFieldError(value) {
+  if ((value ?? "").trim().length > UNIT_BUILDING_MAX_LENGTH) {
+    return `Block / building must be ${UNIT_BUILDING_MAX_LENGTH} characters or less.`;
+  }
+  return "";
+}
+
+function getFloorFieldError(value) {
+  if (parseOptionalUnitFloor(value) === null) {
+    return `Use a whole number from ${UNIT_FLOOR_MIN} to ${UNIT_FLOOR_MAX} (0 = ground floor), or clear the field.`;
+  }
+  return "";
+}
+
 function getFloorPlanImageFieldError(plan) {
   if (!plan.title?.trim()) return "";
   if (floorPlanHasImage(plan)) return "";
@@ -229,6 +253,8 @@ function validatePropertyFormFields(form) {
     bedrooms: getOptionalWholeNumberFieldError(form.bedrooms, "bedrooms"),
     bathrooms: getOptionalWholeNumberFieldError(form.bathrooms, "bathrooms"),
     area: getAreaFieldError(form.area),
+    building: getBuildingFieldError(form.building),
+    floor: getFloorFieldError(form.floor),
     virtualTourUrl: getVirtualTourUrlFieldError(form.virtualTourUrl),
     floorPlans,
   };
@@ -322,6 +348,8 @@ const emptyForm = {
   bedrooms: "",
   bathrooms: "",
   area: "",
+  building: "",
+  floor: "",
   status: "draft",
   amenities: [],
   virtualTourUrl: "",
@@ -341,6 +369,8 @@ function buildFormFromProperty(property) {
     bedrooms: formatWholeNumberField(property.bedrooms),
     bathrooms: formatWholeNumberField(property.bathrooms),
     area: property.area?.toString() || "",
+    building: property.building || "",
+    floor: property.floor == null ? "" : String(property.floor),
     status: property.status || "draft",
     amenities: property.amenities || [],
     virtualTourUrl: property.virtualTourUrl || "",
@@ -498,6 +528,8 @@ export default function PropertyForm({
   const bedroomsInputRef = useRef(null);
   const bathroomsInputRef = useRef(null);
   const areaInputRef = useRef(null);
+  const buildingInputRef = useRef(null);
+  const floorInputRef = useRef(null);
   const virtualTourInputRef = useRef(null);
   const [propertyStatus, setPropertyStatus] = useState(null);
   const [propertyMeta, setPropertyMeta] = useState(null);
@@ -620,6 +652,12 @@ export default function PropertyForm({
       case "area":
         message = getAreaFieldError(value);
         break;
+      case "building":
+        message = getBuildingFieldError(value);
+        break;
+      case "floor":
+        message = getFloorFieldError(value);
+        break;
       case "virtualTourUrl":
         message = getVirtualTourUrlFieldError(value);
         break;
@@ -638,6 +676,8 @@ export default function PropertyForm({
       bedrooms: bedroomsInputRef,
       bathrooms: bathroomsInputRef,
       area: areaInputRef,
+      building: buildingInputRef,
+      floor: floorInputRef,
       virtualTourUrl: virtualTourInputRef,
     };
 
@@ -981,6 +1021,15 @@ export default function PropertyForm({
     if (unitUnderProject) {
       payload.sortOrder = resolveUnitSortOrderForPayload(form.sortOrder);
     }
+
+    // Optional unit position: left out on create when empty; null clears it on edit.
+    const building = form.building.trim();
+    if (building) payload.building = building;
+    else if (isEdit) payload.building = null;
+
+    const floor = parseOptionalUnitFloor(form.floor);
+    if (floor != null) payload.floor = floor;
+    else if (isEdit) payload.floor = null;
 
     return payload;
   };
@@ -1374,6 +1423,82 @@ export default function PropertyForm({
                 id="property-area-error"
                 message={fieldErrors.area}
               />
+            </div>
+          </div>
+
+          <div className="col-sm-6 col-xl-4">
+            <div className="mb20">
+              <label
+                className="heading-color ff-heading fw600 mb10"
+                htmlFor="property-building"
+              >
+                Block / building
+              </label>
+              <input
+                ref={buildingInputRef}
+                id="property-building"
+                type="text"
+                className={`form-control${invalidClass(fieldErrors.building)}`}
+                placeholder="e.g. A"
+                value={form.building}
+                maxLength={UNIT_BUILDING_MAX_LENGTH}
+                autoComplete="off"
+                onChange={(e) => {
+                  const value = e.target.value;
+                  updateField("building", value);
+                  syncTopLevelFieldError("building", value);
+                }}
+                onBlur={() => syncTopLevelFieldError("building", form.building)}
+                aria-invalid={Boolean(fieldErrors.building)}
+                aria-describedby={
+                  fieldErrors.building ? "property-building-error" : undefined
+                }
+              />
+              <FormFieldError
+                id="property-building-error"
+                message={fieldErrors.building}
+              />
+            </div>
+          </div>
+
+          <div className="col-sm-6 col-xl-4">
+            <div className="mb20">
+              <label
+                className="heading-color ff-heading fw600 mb10"
+                htmlFor="property-floor"
+              >
+                Floor
+              </label>
+              <input
+                ref={floorInputRef}
+                id="property-floor"
+                type="number"
+                className={`form-control${invalidClass(fieldErrors.floor)}`}
+                placeholder="e.g. 3"
+                value={form.floor}
+                min={UNIT_FLOOR_MIN}
+                max={UNIT_FLOOR_MAX}
+                step="1"
+                onChange={(e) => {
+                  const value = e.target.value;
+                  updateField("floor", value);
+                  syncTopLevelFieldError("floor", value);
+                }}
+                onBlur={() => syncTopLevelFieldError("floor", form.floor)}
+                aria-invalid={Boolean(fieldErrors.floor)}
+                aria-describedby={
+                  fieldErrors.floor
+                    ? "property-floor-error property-floor-help"
+                    : "property-floor-help"
+                }
+              />
+              <FormFieldError
+                id="property-floor-error"
+                message={fieldErrors.floor}
+              />
+              <p id="property-floor-help" className="text fz13 mt10 mb0">
+                0 = ground floor
+              </p>
             </div>
           </div>
 

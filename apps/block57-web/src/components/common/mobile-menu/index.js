@@ -9,7 +9,6 @@ import Link from "next/link";
 import Image from "next/image";
 import MobileAuthIcon from "@/components/auth/MobileAuthIcon";
 import ContactInfo from "./ContactInfo";
-import Social from "./Social";
 import ProSidebarContent from "./ProSidebarContent";
 
 const MobileMenu = () => {
@@ -76,16 +75,6 @@ const MobileMenu = () => {
               <div className="hiddenbar_footer position-relative bdrt1">
                 <div className="row pt45 pb30 pl30">
                   <ContactInfo />
-                </div>
-                {/* End .row */}
-
-                <div className="row pt30 pb30 bdrt1">
-                  <div className="col-auto">
-                    <div className="social-style-sidebar d-flex align-items-center pl30">
-                      <h6 className="me-4 mb-0">Follow us</h6>
-                      <Social />
-                    </div>
-                  </div>
                 </div>
               </div>
               {/* hiddenbar_footer */}
