@@ -1,0 +1,119 @@
+.button {
+  --_pad-y: 0.95rem;
+  --_pad-x: 1.85rem;
+  --_min-h: 3.125rem;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--b57-space-3);
+  min-height: var(--_min-h);
+  padding: var(--_pad-y) var(--_pad-x);
+  border: 1px solid transparent;
+  border-radius: var(--b57-radius);
+  background: transparent;
+  font-family: var(--b57-font-sans);
+  font-size: var(--b57-text-xs);
+  font-weight: var(--b57-weight-medium);
+  line-height: 1.2;
+  letter-spacing: var(--b57-tracking-button);
+  text-transform: uppercase;
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    background-color var(--b57-transition),
+    border-color var(--b57-transition),
+    color var(--b57-transition);
+
+  &:disabled,
+  &[aria-disabled="true"] {
+    cursor: not-allowed;
+    opacity: 0.5;
+  }
+}
+
+.size-sm {
+  --_pad-y: 0.65rem;
+  --_pad-x: 1.25rem;
+  --_min-h: 2.5rem;
+}
+
+.block {
+  display: flex;
+  width: 100%;
+}
+
+.primary {
+  border-color: var(--b57-button-bg);
+  background: var(--b57-button-bg);
+  color: var(--b57-button-fg);
+
+  @media (hover: hover) {
+    &:hover:not(:disabled) {
+      border-color: var(--b57-button-bg-hover);
+      background: var(--b57-button-bg-hover);
+      color: var(--b57-button-fg);
+    }
+  }
+}
+
+.secondary {
+  border-color: var(--b57-rule-strong);
+  color: var(--b57-fg);
+
+  @media (hover: hover) {
+    &:hover:not(:disabled) {
+      border-color: var(--b57-fg);
+      background: var(--b57-fg);
+      color: var(--b57-bg);
+    }
+  }
+}
+
+.text {
+  --_pad-y: 0.35rem;
+  --_pad-x: 0;
+  --_min-h: 2.75rem; // touch target
+
+  gap: var(--b57-space-3);
+  color: var(--b57-fg);
+
+  .label {
+    padding-bottom: 0.3em;
+    background: linear-gradient(currentColor, currentColor) 0 100% / 100% 1px
+      no-repeat;
+    transition: background-size var(--b57-transition);
+  }
+
+  @media (hover: hover) {
+    &:hover {
+      color: var(--b57-fg-eyebrow);
+
+      .arrow {
+        transform: translateX(0.3rem);
+      }
+    }
+  }
+}
+
+.label {
+  display: inline-block;
+}
+
+.icon,
+.arrow {
+  display: inline-flex;
+  flex: none;
+}
+
+.arrow {
+  transition: transform var(--b57-transition);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .button,
+  .arrow {
+    transition: none;
+  }
+}

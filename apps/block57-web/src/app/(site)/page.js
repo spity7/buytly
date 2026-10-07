@@ -1,35 +1,49 @@
-import Link from "next/link";
-import { AUTH_ENTRY_PATH } from "@/lib/auth/constants";
-import { homePageMetadata } from "@/lib/siteMetadata";
+import JsonLd from "@/components/block57/ui/JsonLd";
+import {
+  HomeAmenities,
+  HomeHero,
+  HomeInquire,
+  HomeIntro,
+  HomeLifestyle,
+  HomeMasterplan,
+  HomePrivacy,
+  HomeResidences,
+} from "@/components/block57/home";
+import { HOME_META } from "@/content/block57/home";
+import {
+  buildApartmentComplexJsonLd,
+  buildPageMetadata,
+} from "@/lib/block57/seo";
 
-export const metadata = homePageMetadata();
+const baseMetadata = buildPageMetadata({
+  path: "/",
+  description: HOME_META.description,
+});
 
-// Placeholder until the public site pages are built (plan Phase 3).
-const PLACEHOLDER_LINKS = [
-  { href: "/apartments/", label: "Apartments" },
-  { href: "/life-style/", label: "Lifestyle" },
-  { href: "/amenities/", label: "Amenities" },
-  { href: "/inquire/", label: "Inquire" },
-  { href: AUTH_ENTRY_PATH, label: "Sign in" },
-];
+export const metadata = {
+  ...baseMetadata,
+  title: { absolute: HOME_META.title },
+  openGraph: { ...baseMetadata.openGraph, title: HOME_META.title },
+  twitter: { ...baseMetadata.twitter, title: HOME_META.title },
+};
 
+/**
+ * Home ("/"). Statically generated: all copy is static; the only live data is
+ * unit availability in the residences teaser, fetched on the client.
+ * The hero renders <HeaderOverlay /> (transparent header over the hero).
+ */
 export default function HomePage() {
   return (
-    <main className="b57-container b57-placeholder">
-      <span className="b57-eyebrow">Residences</span>
-      <h1>Block 57 — Cantonments, Accra</h1>
-      <p className="b57-placeholder__lead">
-        Refined residences in the heart of Cantonments.
-      </p>
-      <nav aria-label="Site">
-        <ul className="b57-placeholder__links">
-          {PLACEHOLDER_LINKS.map((item) => (
-            <li key={item.href}>
-              <Link href={item.href}>{item.label}</Link>
-            </li>
-          ))}
-        </ul>
-      </nav>
-    </main>
+    <>
+      <HomeHero />
+      <HomeIntro />
+      <HomeMasterplan />
+      <HomeResidences />
+      <HomePrivacy />
+      <HomeAmenities />
+      <HomeLifestyle />
+      <HomeInquire />
+      <JsonLd data={buildApartmentComplexJsonLd({ path: "/" })} />
+    </>
   );
 }

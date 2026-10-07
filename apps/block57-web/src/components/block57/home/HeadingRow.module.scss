@@ -1,0 +1,29 @@
+@use "../../../styles/block57/breakpoints" as bp;
+
+.row {
+  display: flex;
+  flex-direction: column;
+  gap: var(--b57-space-4);
+  margin-bottom: var(--b57-stack);
+
+  @include bp.up(lg) {
+    flex-direction: row;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: var(--b57-space-8);
+    margin-bottom: var(--b57-space-8);
+  }
+}
+
+.heading {
+  margin-bottom: 0;
+}
+
+.link {
+  flex: none;
+  align-self: flex-start;
+
+  @include bp.up(lg) {
+    align-self: flex-end;
+  }
+}

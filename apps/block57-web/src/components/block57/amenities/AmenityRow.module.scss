@@ -1,0 +1,107 @@
+@use "../../../styles/block57/breakpoints" as bp;
+
+.row {
+  display: grid;
+  gap: var(--b57-space-6);
+
+  @include bp.up(md) {
+    gap: var(--b57-space-7);
+  }
+
+  @include bp.up(lg) {
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    column-gap: var(--b57-grid-gap);
+    align-items: center;
+  }
+}
+
+.media {
+  @include bp.up(lg) {
+    grid-row: 1;
+    grid-column: 1 / span 7;
+  }
+}
+
+// lg: the text takes 5 columns (narrow viewports); xl: 4 columns with a
+// spacer column between text and image.
+.body {
+  max-width: 34rem;
+
+  @include bp.up(lg) {
+    grid-row: 1;
+    grid-column: 8 / span 5;
+    padding-left: var(--b57-space-5);
+  }
+
+  @include bp.up(xl) {
+    grid-column: 9 / span 4;
+    padding-left: 0;
+  }
+}
+
+// Alternate side on desktop.
+.reverse {
+  @include bp.up(lg) {
+    .media {
+      grid-column: 6 / span 7;
+    }
+
+    .body {
+      grid-column: 1 / span 5;
+      padding-left: 0;
+      padding-right: var(--b57-space-5);
+    }
+  }
+
+  @include bp.up(xl) {
+    .body {
+      grid-column: 1 / span 4;
+      padding-right: 0;
+    }
+  }
+}
+
+.frame {
+  position: relative;
+  aspect-ratio: 3 / 2;
+
+  @include bp.up(lg) {
+    aspect-ratio: 4 / 3;
+  }
+}
+
+.index {
+  display: flex;
+  align-items: baseline;
+  gap: var(--b57-space-2);
+  margin: 0 0 var(--b57-space-5);
+  font-variant-numeric: tabular-nums;
+}
+
+.number {
+  font-family: var(--b57-font-serif);
+  font-size: var(--b57-text-lg);
+  line-height: 1;
+  color: var(--b57-fg-eyebrow);
+}
+
+.total {
+  font-size: var(--b57-text-2xs);
+  font-weight: var(--b57-weight-medium);
+  letter-spacing: 0.18em;
+  color: var(--b57-fg-muted);
+}
+
+.title {
+  margin: 0 0 var(--b57-space-5);
+  padding-bottom: var(--b57-space-5);
+  border-bottom: var(--b57-hairline);
+  font-size: var(--b57-text-2xl);
+}
+
+.copy {
+  margin: 0;
+  font-size: var(--b57-text-base);
+  line-height: var(--b57-leading-body);
+  color: var(--b57-fg-muted);
+}

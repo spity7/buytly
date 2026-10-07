@@ -1,22 +1,81 @@
 // Block 57 public site — global stylesheet for the `(site)` root layout.
 //
-// PROVISIONAL: the palette and type stacks below are placeholders until the
-// block-57.com design inventory (plan Phase 0) is captured. Change tokens here;
-// components should only consume the custom properties.
+// PROVISIONAL: palette, type and spacing are placeholders until the
+// block-57.com design inventory (plan Phase 0) is captured. Restyle by changing
+// the tokens below; components consume only these custom properties (their
+// own styles live in CSS Modules next to each component).
 // No Bootstrap/Homez imports: the dashboard theme stays in `(app)`.
 
 :root {
-  // Palette
-  --b57-color-text: #111111;
-  --b57-color-text-muted: #5f5a52;
-  --b57-color-bg: #f6f3ee;
+  // ---- Palette ---------------------------------------------------------------
+  // Contrast (AA) checked against --b57-color-bg / --b57-color-dark.
+  --b57-color-ink: #14130f;
+  --b57-color-text: #1d1b17;
+  --b57-color-text-muted: #5c574f; // 6.5:1 on bg
+  --b57-color-bg: #f6f3ee; // warm ivory
+  --b57-color-bg-alt: #ece7de; // sand
   --b57-color-surface: #ffffff;
-  --b57-color-accent: #9a7b4f;
-  --b57-color-accent-strong: #7d6340;
-  --b57-color-border: rgba(17, 17, 17, 0.12);
+  --b57-color-stone: #d8d1c4;
+  --b57-color-stone-deep: #b9b0a0;
+  --b57-color-dark: #1a1916; // charcoal
+  --b57-color-dark-soft: #26241f;
+  --b57-color-on-dark: #f3efe8;
+  --b57-color-on-dark-muted: rgba(243, 239, 232, 0.74);
+  --b57-color-accent: #7a5f3a; // bronze, 5.4:1 on bg
+  --b57-color-accent-strong: #5f4a2c;
+  --b57-color-accent-light: #c8ab7e; // bronze on dark, 8:1
+  --b57-color-border: rgba(20, 19, 15, 0.14);
+  --b57-color-border-strong: rgba(20, 19, 15, 0.36);
+  --b57-color-border-on-dark: rgba(243, 239, 232, 0.2);
+  --b57-color-available: #3d6a4c;
+  --b57-color-available-on-dark: #9ccaa9; // status dot on dark bands
+  --b57-color-sold: #8b3a2f;
+  --b57-color-sold-on-dark: #e4a89d;
+  --b57-color-highlight: #f3e9da; // deep-linked table row flash
+  --b57-color-error: #8b3a2f; // form errors (≈ 7:1 on ivory and white)
+  --b57-color-overlay: rgba(20, 19, 15, 0.45);
+  --b57-color-focus: #7a5f3a;
 
-  // Typography. No serif webfont is bundled yet, so headings use a system
-  // serif stack; body text uses the local DM Sans (next/font/local).
+  // Placeholder media tones (MediaFrame) — replaced by real images later.
+  --b57-media-stone: #cfc7b8;
+  --b57-media-stone-2: #bdb3a2;
+  --b57-media-sand: #e3dccf;
+  --b57-media-sand-2: #d4cbbb;
+  --b57-media-dark: #2b2924;
+  --b57-media-dark-2: #3a372f;
+  --b57-media-line: rgba(255, 255, 255, 0.22);
+  --b57-media-paper: #ffffff; // floor-plan sheets (MediaFrame tone="paper")
+
+  // Hero legibility scrim over the (future) photograph or film.
+  --b57-hero-scrim:
+    linear-gradient(
+      180deg,
+      rgba(20, 19, 15, 0.12) 0%,
+      rgba(20, 19, 15, 0) 32%,
+      rgba(20, 19, 15, 0.64) 100%
+    ),
+    linear-gradient(90deg, rgba(20, 19, 15, 0.32) 0%, rgba(20, 19, 15, 0) 62%);
+
+  // Embedded maps are muted to sit with the palette (full colour on hover/focus).
+  --b57-map-filter: grayscale(0.85) contrast(0.95) brightness(1.02);
+
+  // ---- Contextual tokens (redefined by [data-b57-tone]) ----------------------
+  --b57-fg: var(--b57-color-text);
+  --b57-fg-muted: var(--b57-color-text-muted);
+  --b57-fg-eyebrow: var(--b57-color-accent);
+  --b57-bg: var(--b57-color-bg);
+  --b57-rule: var(--b57-color-border);
+  --b57-rule-strong: var(--b57-color-border-strong);
+  --b57-button-bg: var(--b57-color-ink);
+  --b57-button-fg: var(--b57-color-on-dark);
+  --b57-button-bg-hover: var(--b57-color-accent-strong);
+  // Form controls: underline ≥ 3:1 against the band (WCAG 1.4.11).
+  --b57-field-line: var(--b57-color-text-muted);
+  --b57-field-line-active: var(--b57-color-ink);
+
+  // ---- Typography -------------------------------------------------------------
+  // No serif webfont is bundled yet: headings use a system serif stack; body
+  // text uses the local DM Sans (next/font/local in the (site) layout).
   --b57-font-serif:
     "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia,
     "Times New Roman", serif;
@@ -24,15 +83,121 @@
     var(--b57-font-sans-local, system-ui), -apple-system, "Segoe UI", Roboto,
     "Helvetica Neue", Arial, sans-serif;
 
-  // Layout
-  --b57-container-width: 1200px;
-  --b57-gutter: clamp(1rem, 4vw, 2.5rem);
-  --b57-hairline: 1px solid var(--b57-color-border);
-  --b57-radius: 2px;
-  --b57-transition: 0.2s ease;
+  // Fluid type scale (360px → 1600px).
+  --b57-text-2xs: 0.6875rem; // 11px
+  --b57-text-xs: 0.75rem; // 12px — eyebrows, captions
+  --b57-text-sm: 0.875rem; // 14px
+  --b57-text-base: clamp(1rem, 0.97rem + 0.13vw, 1.0625rem);
+  --b57-text-lg: clamp(1.0625rem, 1rem + 0.35vw, 1.3125rem); // lead
+  --b57-text-xl: clamp(1.25rem, 1.12rem + 0.6vw, 1.625rem); // h3
+  --b57-text-statement: clamp(
+    1.5rem,
+    1.28rem + 1.1vw,
+    2.25rem
+  ); // large serif statements
+  --b57-text-2xl: clamp(1.75rem, 1.45rem + 1.4vw, 2.75rem); // h2
+  --b57-text-3xl: clamp(2.25rem, 1.7rem + 2.6vw, 4rem); // h1
+  --b57-text-display: clamp(2.75rem, 1.85rem + 4.4vw, 6rem); // hero
+
+  --b57-leading-tight: 1.08;
+  --b57-leading-heading: 1.15;
+  --b57-leading-body: 1.7;
+  --b57-tracking-eyebrow: 0.24em;
+  --b57-tracking-button: 0.16em;
+  --b57-tracking-heading: 0.005em;
+  --b57-weight-regular: 400;
+  --b57-weight-medium: 500;
+  --b57-measure: 38rem; // comfortable line length for body copy
+
+  // ---- Spacing ------------------------------------------------------------------
+  --b57-space-1: 0.25rem;
+  --b57-space-2: 0.5rem;
+  --b57-space-3: 0.75rem;
+  --b57-space-4: 1rem;
+  --b57-space-5: 1.5rem;
+  --b57-space-6: 2rem;
+  --b57-space-7: 3rem;
+  --b57-space-8: 4rem;
+  --b57-space-9: 6rem;
+  --b57-space-10: 8rem;
+  --b57-section-y: clamp(4.5rem, 3rem + 6vw, 9rem);
+  --b57-section-y-sm: clamp(3rem, 2.25rem + 3vw, 5.5rem);
+  --b57-section-y-lg: clamp(6rem, 4rem + 8vw, 12rem);
+  --b57-stack: clamp(1.5rem, 1.2rem + 1.2vw, 2.5rem); // gap between blocks
+
+  // ---- Layout ---------------------------------------------------------------------
+  --b57-container: 78rem; // 1248px
+  --b57-container-narrow: 46rem; // 736px
+  --b57-container-wide: 96rem; // 1536px (break-out media, e.g. the masterplan)
+  // Header, heroes, sections and footer share one column so every left edge
+  // lines up. Point this at --b57-container-wide for a wider header/footer.
+  --b57-chrome-width: var(--b57-container);
+  --b57-gutter: clamp(1.25rem, 0.75rem + 2.5vw, 3rem);
+  --b57-header-h: 4.5rem; // 72px (desktop value set below)
+  --b57-grid-gap: clamp(1.25rem, 0.8rem + 2vw, 2.5rem);
+
+  // ---- Shape ------------------------------------------------------------------------
+  --b57-radius: 0;
+  --b57-radius-pill: 999px;
+  --b57-hairline: 1px solid var(--b57-rule);
+  --b57-shadow-soft: 0 1px 0 var(--b57-color-border);
+  --b57-shadow-float: 0 10px 30px rgba(20, 19, 15, 0.18);
+
+  // ---- Motion --------------------------------------------------------------------------
+  --b57-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --b57-ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --b57-duration-fast: 160ms;
+  --b57-duration: 280ms;
+  --b57-duration-slow: 900ms;
+  --b57-transition: var(--b57-duration) var(--b57-ease);
+  --b57-reveal-distance: 1.5rem;
+
+  // ---- Layers ----------------------------------------------------------------------------
+  --b57-z-base: 1;
+  --b57-z-float: 80;
+  --b57-z-header: 100;
+  --b57-z-drawer: 200;
+  --b57-z-skip: 300;
+  --b57-z-toast: 400;
+
+  @media (min-width: 64rem) {
+    --b57-header-h: 5.5rem; // 88px
+  }
 }
 
-// Reset
+// MediaFrame's per-breakpoint ratio override applies to the frame it is set
+// on only (never inherited by nested frames).
+@property --b57-media-ratio {
+  syntax: "*";
+  inherits: false;
+}
+
+// Tones: any element can switch the contextual tokens for its subtree.
+[data-b57-tone="dark"] {
+  --b57-fg: var(--b57-color-on-dark);
+  --b57-fg-muted: var(--b57-color-on-dark-muted);
+  --b57-fg-eyebrow: var(--b57-color-accent-light);
+  --b57-bg: var(--b57-color-dark);
+  --b57-rule: var(--b57-color-border-on-dark);
+  --b57-rule-strong: rgba(243, 239, 232, 0.45);
+  --b57-button-bg: var(--b57-color-on-dark);
+  --b57-button-fg: var(--b57-color-ink);
+  --b57-button-bg-hover: var(--b57-color-accent-light);
+  --b57-color-focus: var(--b57-color-accent-light);
+  --b57-field-line: var(--b57-color-on-dark-muted);
+  --b57-field-line-active: var(--b57-color-on-dark);
+  color: var(--b57-fg);
+}
+
+[data-b57-tone="alt"] {
+  --b57-bg: var(--b57-color-bg-alt);
+}
+
+[data-b57-tone="surface"] {
+  --b57-bg: var(--b57-color-surface);
+}
+
+// ---- Reset ------------------------------------------------------------------------------
 *,
 *::before,
 *::after {
@@ -42,24 +207,36 @@
 html {
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
+  scroll-padding-top: calc(var(--b57-header-h) + 1rem);
+
+  @media (prefers-reduced-motion: no-preference) {
+    scroll-behavior: smooth;
+  }
 }
 
 body {
   margin: 0;
   min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
   background-color: var(--b57-color-bg);
   color: var(--b57-color-text);
   font-family: var(--b57-font-sans);
-  font-size: 1rem;
-  line-height: 1.65;
+  font-size: var(--b57-text-base);
+  line-height: var(--b57-leading-body);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  overflow-x: clip;
 }
 
 img,
 picture,
 video,
-svg {
+svg,
+canvas,
+iframe {
   display: block;
   max-width: 100%;
 }
@@ -70,13 +247,18 @@ textarea,
 select {
   font: inherit;
   color: inherit;
+  letter-spacing: inherit;
 }
 
 button {
   cursor: pointer;
 }
 
-// Typography
+[hidden] {
+  display: none !important;
+}
+
+// ---- Typography ---------------------------------------------------------------------------
 h1,
 h2,
 h3,
@@ -85,132 +267,115 @@ h5,
 h6 {
   margin: 0 0 0.5em;
   font-family: var(--b57-font-serif);
-  font-weight: 400;
-  line-height: 1.15;
-  letter-spacing: 0.01em;
-  color: var(--b57-color-text);
+  font-weight: var(--b57-weight-regular);
+  line-height: var(--b57-leading-heading);
+  letter-spacing: var(--b57-tracking-heading);
+  color: var(--b57-fg);
+  text-wrap: balance;
 }
 
 h1 {
-  font-size: clamp(2.25rem, 5vw, 4rem);
+  font-size: var(--b57-text-3xl);
+  line-height: var(--b57-leading-tight);
 }
 
 h2 {
-  font-size: clamp(1.75rem, 3.5vw, 2.75rem);
+  font-size: var(--b57-text-2xl);
 }
 
 h3 {
-  font-size: clamp(1.375rem, 2.5vw, 1.875rem);
+  font-size: var(--b57-text-xl);
+}
+
+h4 {
+  font-size: var(--b57-text-lg);
 }
 
 p {
   margin: 0 0 1em;
+  text-wrap: pretty;
+}
+
+ul,
+ol {
+  margin: 0;
+  padding: 0;
 }
 
 a {
   color: inherit;
-  text-decoration-color: var(--b57-color-accent);
-  text-underline-offset: 0.2em;
+  text-decoration-color: var(--b57-fg-eyebrow);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.25em;
   transition: color var(--b57-transition);
 
-  &:hover {
-    color: var(--b57-color-accent);
+  @media (hover: hover) {
+    &:hover {
+      color: var(--b57-fg-eyebrow);
+    }
   }
 }
 
+strong,
+b {
+  font-weight: var(--b57-weight-medium);
+}
+
+address {
+  font-style: normal;
+}
+
 :focus-visible {
-  outline: 2px solid var(--b57-color-accent);
-  outline-offset: 2px;
+  outline: 2px solid var(--b57-color-focus);
+  outline-offset: 3px;
 }
 
 ::selection {
   background: var(--b57-color-accent);
-  color: var(--b57-color-surface);
+  color: var(--b57-color-on-dark);
 }
 
 hr {
   border: 0;
   border-top: var(--b57-hairline);
-  margin: 2rem 0;
+  margin: var(--b57-space-7) 0;
 }
 
-// Layout helpers shared by the placeholder pages.
-.b57-container {
+table {
+  border-collapse: collapse;
   width: 100%;
-  max-width: calc(var(--b57-container-width) + 2 * var(--b57-gutter));
-  margin-inline: auto;
-  padding-inline: var(--b57-gutter);
 }
 
-.b57-eyebrow {
-  display: inline-block;
-  margin-bottom: 1rem;
-  font-size: 0.75rem;
-  font-weight: 500;
-  letter-spacing: 0.24em;
-  text-transform: uppercase;
-  color: var(--b57-color-accent);
-}
+// Layout main region (rendered by the (site) layout). Pages must not render
+// their own <main>.
+#main-content {
+  flex: 1 0 auto;
+  display: block;
 
-.b57-placeholder {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  min-height: 100vh;
-  padding-block: 4rem;
-}
-
-.b57-placeholder__lead {
-  max-width: 36rem;
-  color: var(--b57-color-text-muted);
-}
-
-.b57-placeholder__links {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.75rem 2rem;
-  margin: 2rem 0 0;
-  padding: 1.5rem 0 0;
-  list-style: none;
-  border-top: var(--b57-hairline);
-
-  a {
-    font-size: 0.8125rem;
-    letter-spacing: 0.18em;
-    text-transform: uppercase;
-    text-decoration: none;
+  &:focus {
+    outline: none;
   }
 }
 
-.b57-button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  padding: 0.875rem 1.75rem;
-  border: 1px solid var(--b57-color-text);
-  border-radius: var(--b57-radius);
-  background: transparent;
-  font-size: 0.8125rem;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-  text-decoration: none;
-  transition:
-    background-color var(--b57-transition),
-    color var(--b57-transition),
-    border-color var(--b57-transition);
+// ---- Toasts (sonner, Block 57 styling) -------------------------------------------------------
+.b57-toast {
+  border-radius: var(--b57-radius) !important;
+  border: 1px solid var(--b57-color-border) !important;
+  background: var(--b57-color-surface) !important;
+  color: var(--b57-color-text) !important;
+  font-family: var(--b57-font-sans) !important;
+  font-size: var(--b57-text-sm) !important;
+  box-shadow: var(--b57-shadow-float) !important;
 
-  &:hover {
-    border-color: var(--b57-color-accent);
-    background: var(--b57-color-accent);
-    color: var(--b57-color-surface);
+  [data-icon] {
+    color: var(--b57-color-accent);
   }
-}
 
-.b57-not-found__code {
-  margin-bottom: 0.25rem;
-  font-family: var(--b57-font-serif);
-  font-size: clamp(4rem, 12vw, 8rem);
-  line-height: 1;
-  color: var(--b57-color-accent);
+  &[data-type="error"] [data-icon] {
+    color: var(--b57-color-sold);
+  }
+
+  &[data-type="success"] [data-icon] {
+    color: var(--b57-color-available);
+  }
 }

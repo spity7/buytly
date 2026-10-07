@@ -1,23 +1,27 @@
-import Link from "next/link";
+import Container from "@/components/block57/ui/Container";
+import { ButtonLink } from "@/components/block57/ui/Button";
 import { pageMetadata } from "@/lib/siteMetadata";
+import styles from "./not-found.module.scss";
 
 export const metadata = pageMetadata("Page Not Found");
 
+// Rendered inside the (site) layout's <main>, so the wrapper is a <div>.
 export default function SiteNotFound() {
   return (
-    <main className="b57-container b57-placeholder">
-      <p className="b57-not-found__code" aria-hidden="true">
+    <Container className={styles.page}>
+      <p className={styles.code} aria-hidden="true">
         404
       </p>
-      <h1>Page not found</h1>
-      <p className="b57-placeholder__lead">
+      <h1 className={styles.title}>Page not found</h1>
+      <p className={styles.lead}>
         The page you&apos;re looking for doesn&apos;t exist or has moved.
       </p>
-      <p>
-        <Link href="/" className="b57-button">
-          Back to home
-        </Link>
-      </p>
-    </main>
+      <div className={styles.actions}>
+        <ButtonLink href="/">Back to home</ButtonLink>
+        <ButtonLink href="/apartments/" variant="text">
+          View the residences
+        </ButtonLink>
+      </div>
+    </Container>
   );
 }

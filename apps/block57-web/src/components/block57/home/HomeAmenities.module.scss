@@ -1,0 +1,44 @@
+@use "../../../styles/block57/breakpoints" as bp;
+
+.grid {
+  display: grid;
+  gap: var(--b57-space-7) var(--b57-grid-gap);
+  list-style: none;
+
+  @include bp.up(sm) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  @include bp.up(lg) {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+.item {
+  display: flex;
+  flex-direction: column;
+}
+
+.media {
+  position: relative;
+  aspect-ratio: 3 / 2;
+  margin-bottom: var(--b57-space-5);
+
+  @include bp.up(sm) {
+    aspect-ratio: 4 / 5;
+  }
+}
+
+.title {
+  margin: 0 0 var(--b57-space-3);
+  padding-top: var(--b57-space-4);
+  border-top: var(--b57-hairline);
+  font-size: var(--b57-text-xl);
+}
+
+.copy {
+  margin: 0;
+  font-size: var(--b57-text-sm);
+  line-height: 1.7;
+  color: var(--b57-fg-muted);
+}

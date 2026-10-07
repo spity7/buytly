@@ -1,0 +1,42 @@
+// Root and modifier rules sit in :where() (zero specificity), so a consumer's
+// `className` (e.g. custom padding) always wins, whatever the CSS chunk order.
+:where(.section) {
+  position: relative;
+  color: var(--b57-fg);
+}
+
+:where(.tone-default) {
+  background: var(--b57-color-bg);
+}
+
+:where(.tone-alt) {
+  background: var(--b57-color-bg-alt);
+}
+
+:where(.tone-surface) {
+  background: var(--b57-color-surface);
+}
+
+:where(.tone-dark) {
+  background: var(--b57-color-dark);
+}
+
+:where(.spacing-default) {
+  padding-block: var(--b57-section-y);
+}
+
+:where(.spacing-sm) {
+  padding-block: var(--b57-section-y-sm);
+}
+
+:where(.spacing-lg) {
+  padding-block: var(--b57-section-y-lg);
+}
+
+:where(.spacing-none) {
+  padding-block: 0;
+}
+
+:where(.divider) {
+  border-top: var(--b57-hairline);
+}

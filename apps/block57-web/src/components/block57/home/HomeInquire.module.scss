@@ -1,0 +1,79 @@
+@use "../../../styles/block57/breakpoints" as bp;
+
+.grid {
+  display: grid;
+  gap: var(--b57-space-8);
+
+  @include bp.up(lg) {
+    grid-template-columns: 7fr 5fr;
+    align-items: end;
+    gap: var(--b57-space-9);
+  }
+}
+
+.heading {
+  margin-bottom: var(--b57-space-6);
+}
+
+.list {
+  list-style: none;
+  border-top: 1px solid var(--b57-rule-strong);
+}
+
+.row {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  column-gap: var(--b57-space-4);
+  row-gap: var(--b57-space-1);
+  align-items: center;
+  padding-block: var(--b57-space-5);
+  border-bottom: var(--b57-hairline);
+}
+
+.icon {
+  display: inline-flex;
+  grid-row: span 2;
+  align-self: start;
+  padding-top: 0.15rem;
+  color: var(--b57-fg-eyebrow);
+}
+
+.label {
+  font-size: var(--b57-text-2xs);
+  font-weight: var(--b57-weight-medium);
+  line-height: 1.4;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--b57-fg-muted);
+}
+
+.value {
+  font-family: var(--b57-font-serif);
+  font-size: var(--b57-text-xl);
+  line-height: 1.3;
+  color: var(--b57-fg);
+  text-decoration: none;
+  overflow-wrap: anywhere;
+}
+
+a.value {
+  justify-self: start;
+  background: linear-gradient(currentColor, currentColor) 0 100% / 0 1px
+    no-repeat;
+  transition:
+    background-size var(--b57-transition),
+    color var(--b57-transition);
+
+  @include bp.hover {
+    &:hover {
+      color: var(--b57-fg-eyebrow);
+      background-size: 100% 1px;
+    }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  a.value {
+    transition: none;
+  }
+}

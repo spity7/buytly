@@ -1,0 +1,23 @@
+.divider {
+  width: 100%;
+  height: 0;
+  margin: 0;
+  border: 0;
+  border-top: 1px solid var(--b57-rule);
+}
+
+.spacing-none {
+  margin-block: 0;
+}
+
+.spacing-sm {
+  margin-block: var(--b57-space-5);
+}
+
+.spacing-md {
+  margin-block: var(--b57-space-7);
+}
+
+.spacing-lg {
+  margin-block: var(--b57-section-y-sm);
+}

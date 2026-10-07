@@ -1,0 +1,367 @@
+@use "../../../styles/block57/breakpoints" as bp;
+
+// ---- Heading row ----------------------------------------------------------------
+.head {
+  display: grid;
+  gap: var(--b57-space-2);
+  margin-bottom: var(--b57-space-6);
+
+  @include bp.up(lg) {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: end;
+    gap: var(--b57-space-7);
+    margin-bottom: var(--b57-space-7);
+  }
+}
+
+.heading {
+  margin-bottom: 0;
+}
+
+.summary {
+  min-height: 1.6em; // reserved while loading (no layout shift)
+  margin: 0;
+  font-size: var(--b57-text-base);
+  color: var(--b57-fg-muted);
+
+  @include bp.up(lg) {
+    text-align: right;
+  }
+}
+
+.summaryBar {
+  display: inline-block;
+  width: 15rem;
+  max-width: 100%;
+  height: 0.9em;
+  vertical-align: middle;
+  background: currentColor;
+  opacity: 0.12;
+}
+
+.notice {
+  margin: 0 0 var(--b57-space-5);
+  padding: var(--b57-space-3) var(--b57-space-4);
+  border-left: 2px solid var(--b57-color-accent);
+  background: var(--b57-color-surface);
+  font-size: var(--b57-text-sm);
+}
+
+// ---- Error / empty states ---------------------------------------------------------
+.state {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--b57-space-4) var(--b57-space-6);
+  padding: var(--b57-space-6);
+  border: 1px solid var(--b57-rule);
+  background: var(--b57-color-surface);
+
+  p {
+    max-width: 40rem;
+    margin: 0;
+  }
+}
+
+.stateActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--b57-space-3);
+}
+
+// ---- Table (desktop) ------------------------------------------------------------------
+.wrap {
+  position: relative;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--b57-text-sm);
+  font-variant-numeric: tabular-nums;
+}
+
+.caption {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+}
+
+.th {
+  padding: 0 var(--b57-space-4) var(--b57-space-4);
+  border-bottom: 1px solid var(--b57-rule-strong);
+  font-size: var(--b57-text-2xs);
+  font-weight: var(--b57-weight-medium);
+  letter-spacing: 0.2em;
+  text-align: left;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: var(--b57-fg-muted);
+
+  &:first-child {
+    padding-left: var(--b57-space-2);
+  }
+}
+
+.row {
+  border-bottom: 1px solid var(--b57-rule);
+  transition: background-color var(--b57-duration) var(--b57-ease);
+
+  &:focus {
+    outline: none; // focused only programmatically (deep link); highlight shows it
+  }
+
+  @include bp.hover {
+    &:not(.skeletonRow):hover {
+      background: rgba(255, 255, 255, 0.55);
+    }
+  }
+
+  &[data-status="sold"] .cell:not(.statusCell):not(.actionsCell) {
+    color: var(--b57-fg-muted);
+  }
+}
+
+.cell {
+  padding: var(--b57-space-4);
+  vertical-align: middle;
+  text-align: left;
+  font-weight: var(--b57-weight-regular);
+  white-space: nowrap;
+}
+
+.titleCell {
+  padding-left: var(--b57-space-2);
+  font-family: var(--b57-font-serif);
+  font-size: var(--b57-text-lg);
+  color: var(--b57-fg);
+}
+
+.row[data-status="sold"] .titleCell {
+  color: var(--b57-fg-muted);
+}
+
+.actionsCell {
+  padding-right: var(--b57-space-2);
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--b57-space-3);
+}
+
+.cellLabel {
+  display: none;
+}
+
+// Deep-link highlight (#unit-<id>).
+.row[data-highlighted="true"] {
+  animation: b57-row-highlight 2.6s var(--b57-ease) both;
+}
+
+@keyframes b57-row-highlight {
+  0%,
+  35% {
+    background-color: rgba(200, 171, 126, 0.32);
+    box-shadow: inset 2px 0 0 var(--b57-color-accent);
+  }
+
+  100% {
+    background-color: transparent;
+    box-shadow: inset 2px 0 0 transparent;
+  }
+}
+
+// ---- Skeleton ---------------------------------------------------------------------------
+.bar {
+  display: inline-block;
+  height: 0.8rem;
+  vertical-align: middle;
+  background: currentColor;
+  opacity: 0.1;
+  animation: b57-table-pulse 1.4s ease-in-out infinite;
+}
+
+.barRound {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 50%;
+}
+
+.barButton {
+  width: 6.5rem;
+  height: 2.5rem;
+}
+
+@keyframes b57-table-pulse {
+  50% {
+    opacity: 0.2;
+  }
+}
+
+// ---- Cards (below lg) ------------------------------------------------------------------
+@include bp.down(lg) {
+  .table,
+  .tbody,
+  .cell {
+    display: block;
+  }
+
+  // Header row stays in the accessibility tree (roles keep the table semantics).
+  .thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+  }
+
+  .tbody {
+    display: grid;
+    gap: var(--b57-space-3);
+
+    @include bp.up(md) {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: var(--b57-space-4);
+    }
+  }
+
+  .row {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-areas:
+      "title title status"
+      "block level area"
+      "beds baths price"
+      "actions actions actions";
+    gap: var(--b57-space-4) var(--b57-space-3);
+    padding: var(--b57-space-5);
+    border: 1px solid var(--b57-rule);
+    background: var(--b57-color-surface);
+  }
+
+  .cell {
+    padding: 0;
+    white-space: normal;
+    min-width: 0;
+  }
+
+  .row > [data-col="title"] {
+    grid-area: title;
+    align-self: center;
+  }
+
+  .row > [data-col="status"] {
+    grid-area: status;
+    align-self: center;
+    justify-self: end;
+  }
+
+  .row > [data-col="block"] {
+    grid-area: block;
+  }
+
+  .row > [data-col="level"] {
+    grid-area: level;
+  }
+
+  .row > [data-col="area"] {
+    grid-area: area;
+  }
+
+  .row > [data-col="beds"] {
+    grid-area: beds;
+  }
+
+  .row > [data-col="baths"] {
+    grid-area: baths;
+  }
+
+  .row > [data-col="price"] {
+    grid-area: price;
+  }
+
+  .row > [data-col="actions"] {
+    grid-area: actions;
+    padding-top: var(--b57-space-4);
+    border-top: 1px solid var(--b57-rule);
+  }
+
+  .titleCell {
+    font-size: var(--b57-text-xl);
+    line-height: 1.2;
+  }
+
+  .actions {
+    justify-content: space-between;
+  }
+
+  .inquire {
+    flex: 1;
+    max-width: 14rem;
+    margin-left: auto;
+  }
+
+  .cellLabel {
+    display: block;
+    margin-bottom: 0.2rem;
+    font-size: var(--b57-text-2xs);
+    font-weight: var(--b57-weight-medium);
+    line-height: 1.4;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--b57-fg-muted);
+  }
+
+  .cellValue {
+    display: block;
+    color: var(--b57-fg);
+  }
+
+  .row[data-status="sold"] .cellValue {
+    color: var(--b57-fg-muted);
+  }
+
+  .row[data-highlighted="true"] {
+    animation-name: b57-card-highlight;
+  }
+
+  @keyframes b57-card-highlight {
+    0%,
+    35% {
+      background-color: var(--b57-color-highlight);
+      border-color: var(--b57-color-accent);
+    }
+
+    100% {
+      background-color: var(--b57-color-surface);
+      border-color: var(--b57-rule);
+    }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .row {
+    transition: none;
+  }
+
+  .bar {
+    animation: none;
+  }
+
+  // No fade: a steady accent marker for the highlight duration instead.
+  .row[data-highlighted="true"] {
+    animation: none;
+    background-color: rgba(200, 171, 126, 0.24);
+    box-shadow: inset 2px 0 0 var(--b57-color-accent);
+  }
+}

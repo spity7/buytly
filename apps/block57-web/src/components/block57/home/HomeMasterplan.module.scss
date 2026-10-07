@@ -1,0 +1,165 @@
+@use "../../../styles/block57/breakpoints" as bp;
+
+.top {
+  display: grid;
+  gap: var(--b57-space-5);
+
+  @include bp.up(lg) {
+    grid-template-columns: 5fr 7fr;
+    gap: var(--b57-space-9);
+  }
+}
+
+.heading {
+  margin-bottom: 0;
+}
+
+.copy {
+  max-width: var(--b57-measure);
+  color: var(--b57-fg-muted);
+
+  @include bp.up(lg) {
+    padding-top: var(--b57-space-6);
+  }
+
+  p:last-child {
+    margin-bottom: 0;
+  }
+}
+
+.statement {
+  font-size: var(--b57-text-lg);
+  line-height: 1.6;
+  color: var(--b57-fg);
+}
+
+.plan {
+  position: relative;
+  aspect-ratio: 4 / 3;
+  margin-top: var(--b57-space-8);
+
+  @include bp.up(md) {
+    aspect-ratio: 21 / 9;
+  }
+}
+
+// ---- Block cards ---------------------------------------------------------------------
+.blocks {
+  display: grid;
+  gap: 0;
+  margin-top: var(--b57-space-7);
+  list-style: none;
+
+  @include bp.up(lg) {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: var(--b57-grid-gap);
+    margin-top: var(--b57-space-8);
+  }
+}
+
+.block {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  padding: var(--b57-space-6) 0;
+  border-top: 1px solid var(--b57-rule-strong);
+
+  @include bp.up(lg) {
+    padding-bottom: 0;
+  }
+}
+
+.letter {
+  display: block;
+  margin-bottom: var(--b57-space-4);
+  font-family: var(--b57-font-serif);
+  font-size: var(--b57-text-3xl);
+  line-height: 1;
+  color: var(--b57-color-stone-deep);
+  transition: color var(--b57-transition);
+}
+
+.blockTitle {
+  margin: 0 0 var(--b57-space-3);
+  font-size: var(--b57-text-xl);
+}
+
+.blockLink {
+  text-decoration: none;
+
+  // Whole card is the link target.
+  &::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+  }
+
+  &:focus-visible {
+    outline: none;
+  }
+
+  &:focus-visible::after {
+    outline: 2px solid var(--b57-color-focus);
+    outline-offset: 4px;
+  }
+}
+
+.excerpt {
+  margin-bottom: var(--b57-space-4);
+  font-size: var(--b57-text-sm);
+  line-height: 1.7;
+  color: var(--b57-fg-muted);
+}
+
+.types {
+  margin: 0 0 var(--b57-space-5);
+  font-size: var(--b57-text-2xs);
+  font-weight: var(--b57-weight-medium);
+  line-height: 1.6;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--b57-fg-eyebrow);
+}
+
+.more {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--b57-space-3);
+  margin-top: auto;
+  font-size: var(--b57-text-xs);
+  font-weight: var(--b57-weight-medium);
+  letter-spacing: var(--b57-tracking-button);
+  text-transform: uppercase;
+  color: var(--b57-fg);
+
+  svg {
+    transition: transform var(--b57-transition);
+  }
+}
+
+@include bp.hover {
+  .block:hover {
+    .letter {
+      color: var(--b57-color-accent);
+    }
+
+    .blockLink {
+      color: inherit;
+    }
+
+    .more {
+      color: var(--b57-fg-eyebrow);
+    }
+
+    .more svg {
+      transform: translateX(0.3rem);
+    }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .letter,
+  .more svg {
+    transition: none;
+  }
+}

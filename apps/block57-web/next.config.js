@@ -64,6 +64,19 @@ const nextConfig = {
       permanent: false,
     }));
   },
+  // Block 57 media in public/: cached for a year (immutable), so give a
+  // replaced file a new name.
+  async headers() {
+    return ["/images/block57/:path*", "/videos/:path*"].map((source) => ({
+      source,
+      headers: [
+        {
+          key: "Cache-Control",
+          value: "public, max-age=31536000, immutable",
+        },
+      ],
+    }));
+  },
   ...(nextRoot !== appDir ? { outputFileTracingRoot: nextRoot } : {}),
   images: {
     remotePatterns: [

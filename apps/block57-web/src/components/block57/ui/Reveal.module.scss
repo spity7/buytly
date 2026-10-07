@@ -1,0 +1,23 @@
+.reveal {
+  &[data-phase="hidden"] {
+    opacity: 0;
+    transform: translate3d(0, var(--b57-reveal-distance), 0);
+  }
+
+  &[data-phase="shown"] {
+    opacity: 1;
+    transform: none;
+    transition:
+      opacity var(--b57-duration-slow) var(--b57-ease),
+      transform var(--b57-duration-slow) var(--b57-ease);
+    transition-delay: var(--b57-reveal-delay, 0ms);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal[data-phase] {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+}

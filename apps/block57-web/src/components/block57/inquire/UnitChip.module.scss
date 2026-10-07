@@ -1,0 +1,99 @@
+// "Regarding residence B-204 (Block B)" chip. PROVISIONAL look (Phase 0).
+
+.slot {
+  margin-bottom: var(--b57-space-6);
+}
+
+.chip,
+.loading {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--b57-space-2);
+  max-width: 100%;
+  min-height: 2.5rem;
+  margin: 0;
+  padding: 0.25rem 0.25rem 0.25rem var(--b57-space-4);
+  border: 1px solid var(--b57-rule-strong);
+  border-radius: var(--b57-radius-pill);
+  background: var(--b57-color-bg);
+  font-size: var(--b57-text-sm);
+  line-height: 1.35;
+  color: var(--b57-fg);
+}
+
+.loading {
+  padding-right: var(--b57-space-4);
+  color: var(--b57-fg-muted);
+}
+
+.text {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.title {
+  font-weight: var(--b57-weight-medium);
+}
+
+.remove {
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  border: 0;
+  border-radius: var(--b57-radius-pill);
+  background: transparent;
+  color: var(--b57-fg);
+  transition:
+    background-color var(--b57-transition),
+    color var(--b57-transition);
+
+  @media (hover: hover) {
+    &:hover {
+      background: var(--b57-color-ink);
+      color: var(--b57-color-on-dark);
+    }
+  }
+
+  &:focus-visible {
+    outline-offset: 1px;
+  }
+}
+
+.notice {
+  margin: 0;
+  padding: var(--b57-space-3) var(--b57-space-4);
+  border-left: 2px solid var(--b57-color-stone-deep);
+  background: var(--b57-color-bg);
+  font-size: var(--b57-text-sm);
+  line-height: 1.5;
+  color: var(--b57-fg-muted);
+}
+
+.spinner {
+  flex: none;
+  width: 0.875rem;
+  height: 0.875rem;
+  border: 1.5px solid currentColor;
+  border-right-color: transparent;
+  border-radius: var(--b57-radius-pill);
+  animation: b57-inquire-chip-spin 0.9s linear infinite;
+}
+
+@keyframes b57-inquire-chip-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spinner {
+    animation-duration: 2.4s;
+  }
+
+  .remove {
+    transition: none;
+  }
+}

@@ -1,0 +1,141 @@
+@use "../../../styles/block57/breakpoints" as bp;
+
+.hero {
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  min-height: clamp(34rem, 100svh, 64rem);
+  // The overlay header is fixed above the hero: keep its height clear.
+  padding-top: var(--b57-header-h);
+  overflow: hidden;
+  background: var(--b57-color-dark);
+  color: var(--b57-fg);
+  isolation: isolate;
+}
+
+.media {
+  position: absolute;
+  inset: 0;
+  z-index: -2;
+
+  // Legibility scrim over the (future) photograph or film.
+  &::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background:
+      linear-gradient(
+        180deg,
+        rgba(20, 19, 15, 0) 40%,
+        rgba(20, 19, 15, 0.6) 100%
+      ),
+      linear-gradient(90deg, rgba(20, 19, 15, 0.35) 0%, rgba(20, 19, 15, 0) 60%);
+    pointer-events: none;
+  }
+}
+
+.inner {
+  position: relative;
+  // Bottom space also keeps the CTAs clear of the floating WhatsApp button on phones.
+  padding-block: var(--b57-space-9) clamp(6rem, 3rem + 6vw, 8.5rem);
+}
+
+.title {
+  margin: 0 0 var(--b57-space-4);
+  font-size: var(--b57-text-display);
+  line-height: 0.95;
+  letter-spacing: -0.01em;
+}
+
+.lead {
+  max-width: 30rem;
+  margin: 0 0 var(--b57-space-7);
+  font-size: var(--b57-text-lg);
+  line-height: 1.5;
+  color: var(--b57-fg-muted);
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--b57-space-3);
+
+  // Phones: each button fills its row (no ragged pair).
+  @include bp.down(sm) {
+    > * {
+      flex: 1 1 100%;
+    }
+  }
+}
+
+// ---- Scroll cue (md+) -----------------------------------------------------------
+.scrollCue {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  z-index: 1;
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--b57-space-3);
+  padding: var(--b57-space-3) var(--b57-space-4) 0;
+  font-size: var(--b57-text-2xs);
+  font-weight: var(--b57-weight-medium);
+  letter-spacing: var(--b57-tracking-eyebrow);
+  text-transform: uppercase;
+  text-decoration: none;
+  color: var(--b57-fg-muted);
+  transform: translateX(-50%);
+
+  @include bp.up(md) {
+    display: flex;
+  }
+
+  @include bp.hover {
+    &:hover {
+      color: var(--b57-fg);
+    }
+  }
+}
+
+.scrollLabel {
+  // Letter-spacing adds trailing space: re-centre the word over the line.
+  margin-right: calc(-1 * var(--b57-tracking-eyebrow));
+}
+
+.scrollLine {
+  position: relative;
+  width: 1px;
+  height: clamp(3rem, 2rem + 3vw, 4.5rem);
+  overflow: hidden;
+  background: var(--b57-rule);
+
+  &::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 1px;
+    height: 40%;
+    background: var(--b57-fg);
+    animation: b57-home-scroll-cue 2.4s var(--b57-ease-in-out) infinite;
+  }
+}
+
+@keyframes b57-home-scroll-cue {
+  0% {
+    transform: translateY(-100%);
+  }
+
+  70%,
+  100% {
+    transform: translateY(260%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scrollLine::after {
+    animation: none;
+    transform: none;
+  }
+}

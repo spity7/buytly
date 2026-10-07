@@ -1,0 +1,163 @@
+@use "../../../styles/block57/breakpoints" as bp;
+
+.section {
+  overflow: hidden; // the oversized letter never causes horizontal scroll
+}
+
+.grid {
+  display: grid;
+  gap: var(--b57-space-7);
+  align-items: center;
+
+  @include bp.up(lg) {
+    grid-template-columns: minmax(0, 5fr) minmax(0, 6fr);
+    gap: clamp(3rem, 1rem + 5vw, 8rem);
+  }
+}
+
+@include bp.up(lg) {
+  .reversed {
+    grid-template-columns: minmax(0, 6fr) minmax(0, 5fr);
+
+    .media {
+      order: 2;
+    }
+  }
+}
+
+.media {
+  max-width: 34rem;
+  width: 100%;
+
+  @include bp.down(lg) {
+    max-width: none;
+  }
+}
+
+// Portrait frames are very tall on tablets/phones: crop to landscape.
+.frame {
+  @include bp.down(lg) {
+    --b57-media-ratio: 4 / 3;
+  }
+}
+
+.reversed .media {
+  justify-self: end;
+}
+
+.body {
+  position: relative;
+  max-width: 36rem;
+}
+
+// Oversized outline letter behind the heading (decorative).
+.letter {
+  position: absolute;
+  top: -0.28em;
+  right: 0;
+  z-index: 0;
+  font-family: var(--b57-font-serif);
+  font-size: clamp(6.5rem, 3.5rem + 7vw, 10.5rem);
+  line-height: 1;
+  color: transparent;
+  -webkit-text-stroke: 1px var(--b57-rule-strong);
+  opacity: 0.55;
+  pointer-events: none;
+  user-select: none;
+
+  @include bp.down(md) {
+    top: -0.2em;
+    font-size: 6.5rem;
+  }
+}
+
+.body > :not(.letter) {
+  position: relative;
+  z-index: 1;
+}
+
+.title {
+  margin: 0 0 var(--b57-space-5);
+  font-size: var(--b57-text-3xl);
+  line-height: var(--b57-leading-tight);
+}
+
+.description {
+  margin: 0 0 var(--b57-space-7);
+  color: var(--b57-fg-muted);
+}
+
+.listTitle {
+  margin: 0 0 var(--b57-space-3);
+  font-family: var(--b57-font-sans);
+  font-size: var(--b57-text-xs);
+  font-weight: var(--b57-weight-medium);
+  letter-spacing: var(--b57-tracking-eyebrow);
+  text-transform: uppercase;
+  color: var(--b57-fg-eyebrow);
+}
+
+.types {
+  list-style: none;
+  border-top: 1px solid var(--b57-rule);
+
+  li {
+    border-bottom: 1px solid var(--b57-rule);
+  }
+}
+
+.typeLink {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: var(--b57-space-4);
+  min-height: 3.75rem;
+  padding-block: var(--b57-space-3);
+  text-decoration: none;
+  color: var(--b57-fg);
+
+  @include bp.hover {
+    &:hover {
+      color: var(--b57-fg);
+
+      .typeLabel {
+        color: var(--b57-fg-eyebrow);
+      }
+
+      .typeArrow {
+        transform: translateX(0.3rem);
+        color: var(--b57-fg-eyebrow);
+      }
+    }
+  }
+}
+
+.typeLabel {
+  font-family: var(--b57-font-serif);
+  font-size: var(--b57-text-lg);
+  line-height: 1.3;
+  transition: color var(--b57-transition);
+}
+
+.typeCount {
+  justify-self: end;
+
+  @include bp.down(sm) {
+    font-size: var(--b57-text-xs);
+  }
+}
+
+.typeArrow {
+  display: inline-flex;
+  color: var(--b57-fg-muted);
+  transition:
+    transform var(--b57-transition),
+    color var(--b57-transition);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .typeArrow,
+  .typeLabel {
+    transition: none;
+  }
+}

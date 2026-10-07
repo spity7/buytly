@@ -1,0 +1,42 @@
+// Block 57 breakpoints (mobile-first). Custom properties cannot be used inside
+// media queries, so breakpoints live here as Sass values. From a CSS Module:
+//   @use "../../../styles/block57/breakpoints" as bp;   // adjust the relative depth
+//   @include bp.up(lg) { ... }
+// PROVISIONAL until the Phase 0 design inventory.
+
+// sm 576px · md 768px · lg 1024px (desktop navigation) · xl 1280px · xxl 1600px
+$breakpoints: (
+  sm: 36rem,
+  md: 48rem,
+  lg: 64rem,
+  xl: 80rem,
+  xxl: 100rem,
+);
+
+@function bp($name) {
+  @return map-get($breakpoints, $name);
+}
+
+@mixin up($name) {
+  @media (min-width: map-get($breakpoints, $name)) {
+    @content;
+  }
+}
+
+@mixin down($name) {
+  @media (max-width: calc(#{map-get($breakpoints, $name)} - 0.02px)) {
+    @content;
+  }
+}
+
+@mixin reduced-motion {
+  @media (prefers-reduced-motion: reduce) {
+    @content;
+  }
+}
+
+@mixin hover {
+  @media (hover: hover) and (pointer: fine) {
+    @content;
+  }
+}

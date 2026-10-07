@@ -1,0 +1,16 @@
+// The placeholder wordmark PNG has generous transparent padding above and
+// below the letters (876×318); the width below sets the visual size.
+.logo {
+  display: inline-flex;
+  align-items: center;
+  flex: none;
+  // Trim the PNG's vertical padding so the hit area hugs the wordmark.
+  margin-block: -0.75rem;
+  line-height: 0;
+  text-decoration: none;
+}
+
+.image {
+  width: var(--b57-logo-width, clamp(7.5rem, 6.5rem + 3vw, 9.5rem));
+  height: auto;
+}

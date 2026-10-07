@@ -1,0 +1,245 @@
+@use "../../../styles/block57/breakpoints" as bp;
+
+// Overlay mode is switched on by <HeaderOverlay /> anywhere in the page.
+$overlay: ":global(html:has([data-b57-header-overlay]))";
+
+.skipLink {
+  position: fixed;
+  top: var(--b57-space-3);
+  left: var(--b57-space-3);
+  z-index: var(--b57-z-skip);
+  padding: var(--b57-space-3) var(--b57-space-5);
+  background: var(--b57-color-ink);
+  color: var(--b57-color-on-dark);
+  font-size: var(--b57-text-sm);
+  text-decoration: none;
+  transform: translateY(-200%);
+  transition: transform var(--b57-duration-fast) var(--b57-ease);
+
+  &:focus,
+  &:focus-visible {
+    transform: none;
+    color: var(--b57-color-on-dark);
+  }
+}
+
+.header {
+  --b57-header-fg: var(--b57-color-text);
+  --b57-header-hover: var(--b57-color-accent);
+
+  position: sticky;
+  top: 0;
+  z-index: var(--b57-z-header);
+  flex: none;
+  width: 100%;
+  height: var(--b57-header-h);
+  border-bottom: 1px solid var(--b57-color-border);
+  background: var(--b57-color-bg);
+  color: var(--b57-header-fg);
+  transition:
+    background-color var(--b57-duration) var(--b57-ease),
+    border-color var(--b57-duration) var(--b57-ease),
+    color var(--b57-duration) var(--b57-ease),
+    box-shadow var(--b57-duration) var(--b57-ease);
+
+  &[data-scrolled="true"] {
+    box-shadow: 0 6px 24px rgba(20, 19, 15, 0.06);
+  }
+
+  // Top scrim, only visible in overlay mode, keeps white links legible.
+  &::before {
+    content: "";
+    position: absolute;
+    inset: 0 0 -2.5rem;
+    z-index: -1;
+    background: linear-gradient(
+      180deg,
+      rgba(20, 19, 15, 0.42) 0%,
+      rgba(20, 19, 15, 0) 100%
+    );
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity var(--b57-duration) var(--b57-ease);
+  }
+}
+
+#{$overlay} .header {
+  position: fixed;
+  inset-inline: 0;
+  top: 0;
+}
+
+#{$overlay} .header:not([data-scrolled="true"]) {
+  --b57-header-fg: var(--b57-color-on-dark);
+  --b57-header-hover: var(--b57-color-accent-light);
+  --b57-button-bg: var(--b57-color-on-dark);
+  --b57-button-fg: var(--b57-color-ink);
+  --b57-button-bg-hover: var(--b57-color-accent-light);
+  --b57-color-focus: var(--b57-color-on-dark);
+
+  border-color: transparent;
+  background: transparent;
+
+  &::before {
+    opacity: 1;
+  }
+
+  .logoDark {
+    display: none;
+  }
+
+  .logoLight {
+    display: block;
+  }
+
+  .navLink::after {
+    background: var(--b57-color-on-dark);
+  }
+}
+
+.inner {
+  display: flex;
+  align-items: center;
+  gap: var(--b57-space-5);
+  width: 100%;
+  max-width: calc(var(--b57-chrome-width) + 2 * var(--b57-gutter));
+  height: 100%;
+  margin-inline: auto;
+  padding-inline: var(--b57-gutter);
+}
+
+.logo {
+  margin-right: auto;
+}
+
+.logoLight {
+  display: none;
+}
+
+// ---- Desktop navigation ------------------------------------------------------
+.nav {
+  display: none;
+
+  @include bp.up(lg) {
+    display: block;
+  }
+}
+
+.navList {
+  display: flex;
+  align-items: center;
+  gap: clamp(1.25rem, 0.2rem + 1.8vw, 2.75rem);
+  list-style: none;
+}
+
+.navLink {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  min-height: 2.75rem;
+  font-size: var(--b57-text-xs);
+  font-weight: var(--b57-weight-medium);
+  letter-spacing: var(--b57-tracking-button);
+  text-transform: uppercase;
+  text-decoration: none;
+  color: inherit;
+  transition: color var(--b57-transition);
+
+  // Hairline underline: grows on hover, stays for the current page.
+  &::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0.55rem;
+    height: 1px;
+    background: currentColor;
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform var(--b57-duration) var(--b57-ease);
+  }
+
+  @media (hover: hover) {
+    &:hover {
+      color: var(--b57-header-hover);
+    }
+
+    &:hover::after {
+      transform: scaleX(1);
+    }
+  }
+
+  &[aria-current="page"]::after {
+    transform: scaleX(1);
+  }
+}
+
+// ---- Actions ---------------------------------------------------------------------
+.actions {
+  display: flex;
+  align-items: center;
+  gap: var(--b57-space-3);
+
+  @include bp.up(lg) {
+    gap: var(--b57-space-5);
+    margin-left: clamp(0.5rem, -1rem + 2vw, 2rem);
+  }
+}
+
+.account {
+  display: none;
+
+  @include bp.up(lg) {
+    display: block;
+  }
+}
+
+// Compact on phones; full size from md.
+.actions .cta {
+  @include bp.down(md) {
+    --_pad-x: 0.95rem;
+    --_min-h: 2.5rem;
+  }
+}
+
+.menuButton {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--b57-space-2);
+  min-width: 2.75rem;
+  min-height: 2.75rem;
+  margin-right: -0.5rem;
+  padding: 0 0.5rem;
+  border: 0;
+  background: none;
+  color: inherit;
+  font-size: var(--b57-text-xs);
+  font-weight: var(--b57-weight-medium);
+  letter-spacing: var(--b57-tracking-button);
+  text-transform: uppercase;
+
+  @include bp.up(lg) {
+    display: none;
+  }
+}
+
+.menuLabel {
+  @include bp.down(sm) {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .header,
+  .header::before,
+  .navLink,
+  .navLink::after,
+  .skipLink {
+    transition: none;
+  }
+}

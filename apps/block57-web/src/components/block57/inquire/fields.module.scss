@@ -1,0 +1,243 @@
+// Inquire form controls. PROVISIONAL look until the Phase 0 design inventory;
+// every colour, size and space comes from the global --b57 tokens.
+//
+// Contrast: the underline uses --b57-field-line (text-muted, ≥ 6.5:1 on ivory
+// and white, above the 3:1 needed for form-control boundaries); errors use
+// --b57-color-error (≈ 7:1). All three are global tokens in global.scss.
+
+.field {
+  --_line: var(--b57-field-line);
+  --_line-active: var(--b57-field-line-active);
+  --_error: var(--b57-color-error);
+
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.label {
+  display: block;
+  margin-bottom: var(--b57-space-1);
+  font-size: var(--b57-text-xs);
+  font-weight: var(--b57-weight-medium);
+  line-height: 1.4;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--b57-fg-muted);
+}
+
+.required {
+  margin-left: 0.3em;
+  color: var(--b57-color-accent);
+}
+
+.control {
+  display: block;
+  width: 100%;
+  min-height: 3rem;
+  margin: 0;
+  padding: 0.7rem 0 0.6rem;
+  border: 0;
+  border-bottom: 1px solid var(--_line);
+  border-radius: var(--b57-radius);
+  background: transparent;
+  color: var(--b57-fg);
+  // ≥ 16px so iOS Safari does not zoom into the field.
+  font-size: max(1rem, var(--b57-text-base));
+  line-height: 1.5;
+  box-shadow: 0 0 0 transparent;
+  transition:
+    border-color var(--b57-transition),
+    box-shadow var(--b57-transition);
+  appearance: none;
+
+  &::placeholder {
+    color: var(--b57-fg-muted);
+    opacity: 1;
+  }
+
+  @media (hover: hover) {
+    &:hover {
+      border-bottom-color: var(--_line-active);
+    }
+  }
+
+  // The global outline (2px, focus colour) stays; the underline also darkens
+  // and thickens without moving the layout.
+  &:focus-visible {
+    outline-offset: 4px;
+    border-bottom-color: var(--_line-active);
+    box-shadow: 0 1px 0 0 var(--_line-active);
+  }
+
+  &[aria-invalid="true"] {
+    border-bottom-color: var(--_error);
+    box-shadow: 0 1px 0 0 var(--_error);
+  }
+}
+
+.textarea {
+  min-height: 9rem;
+  resize: vertical;
+  line-height: 1.6;
+}
+
+// ---- Select ---------------------------------------------------------------
+.selectWrap {
+  position: relative;
+}
+
+.select {
+  padding-right: 2rem;
+  cursor: pointer;
+  text-overflow: ellipsis;
+
+  &[data-empty="true"] {
+    color: var(--b57-fg-muted);
+  }
+
+  option {
+    color: var(--b57-color-text);
+  }
+}
+
+.chevron {
+  position: absolute;
+  top: 50%;
+  right: 0.25rem;
+  color: var(--b57-fg);
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+
+// ---- Phone ----------------------------------------------------------------
+.phone {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: var(--b57-space-4);
+}
+
+.code {
+  position: relative;
+  display: flex;
+  align-items: center;
+  min-width: 5.25rem;
+  min-height: 3rem;
+  border-bottom: 1px solid var(--_line);
+  transition:
+    border-color var(--b57-transition),
+    box-shadow var(--b57-transition);
+
+  @media (hover: hover) {
+    &:hover {
+      border-bottom-color: var(--_line-active);
+    }
+  }
+
+  &:focus-within {
+    outline: 2px solid var(--b57-color-focus);
+    outline-offset: 4px;
+    border-bottom-color: var(--_line-active);
+    box-shadow: 0 1px 0 0 var(--_line-active);
+  }
+}
+
+// The real (accessible) select covers the box but is transparent; the visible
+// "+233 ▾" is a decorative mirror of its value.
+.codeSelect {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  opacity: 0;
+  font-size: 1rem;
+  cursor: pointer;
+  appearance: none;
+
+  &:focus-visible {
+    outline: none;
+  }
+}
+
+.codeValue {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--b57-space-2);
+  padding-right: var(--b57-space-1);
+  font-size: max(1rem, var(--b57-text-base));
+  font-variant-numeric: tabular-nums;
+  color: var(--b57-fg);
+  pointer-events: none;
+}
+
+.phoneNumber {
+  font-variant-numeric: tabular-nums;
+}
+
+// ---- Hint / error -----------------------------------------------------------
+.meta {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--b57-space-4);
+  margin-top: var(--b57-space-2);
+}
+
+.hint,
+.hintAside {
+  margin: 0;
+  font-size: var(--b57-text-sm);
+  line-height: 1.45;
+  color: var(--b57-fg-muted);
+}
+
+.hintAside {
+  flex: none;
+  font-variant-numeric: tabular-nums;
+}
+
+.error {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--b57-space-2);
+  margin: var(--b57-space-2) 0 0;
+  font-size: var(--b57-text-sm);
+  line-height: 1.45;
+  color: var(--_error);
+}
+
+.errorMark {
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  width: 1.05rem;
+  height: 1.05rem;
+  margin-top: 0.1rem;
+  border-radius: var(--b57-radius-pill);
+  background: var(--_error);
+  color: var(--b57-color-surface);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .control,
+  .code {
+    transition: none;
+  }
+}

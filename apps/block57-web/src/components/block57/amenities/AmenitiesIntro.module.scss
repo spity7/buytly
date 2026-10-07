@@ -1,0 +1,116 @@
+@use "../../../styles/block57/breakpoints" as bp;
+
+.intro {
+  padding-block: var(--b57-section-y-sm);
+
+  @include bp.up(lg) {
+    padding-top: var(--b57-section-y);
+  }
+}
+
+// ---- Title + lead ----------------------------------------------------------------
+.top {
+  display: grid;
+  gap: var(--b57-space-6);
+
+  @include bp.up(lg) {
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    column-gap: var(--b57-grid-gap);
+    align-items: end;
+  }
+}
+
+.heading {
+  @include bp.up(lg) {
+    grid-column: 1 / span 6;
+  }
+}
+
+.title {
+  margin: 0;
+  font-size: var(--b57-text-display);
+  line-height: 1;
+  letter-spacing: -0.01em;
+}
+
+.leadCol {
+  @include bp.up(lg) {
+    grid-column: 8 / span 5;
+    padding-bottom: var(--b57-space-3);
+  }
+}
+
+// The verified "balance" line, set as a quiet serif statement.
+.lead {
+  max-width: 34rem;
+  margin: 0;
+  font-family: var(--b57-font-serif);
+  font-size: var(--b57-text-xl);
+  font-style: italic;
+  line-height: 1.45;
+  color: var(--b57-fg-muted);
+}
+
+// ---- Group index (anchor links) -------------------------------------------------------
+.index {
+  margin-top: var(--b57-section-y-sm);
+}
+
+.groups {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--b57-space-6) var(--b57-grid-gap);
+  list-style: none;
+
+  @include bp.up(lg) {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+.group {
+  padding-top: var(--b57-space-4);
+  border-top: 1px solid var(--b57-rule-strong);
+}
+
+.groupLink {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--b57-space-3);
+  min-height: 2.75rem;
+  margin-bottom: var(--b57-space-2);
+  font-size: var(--b57-text-xs);
+  font-weight: var(--b57-weight-medium);
+  line-height: 1.3;
+  letter-spacing: var(--b57-tracking-button);
+  text-transform: uppercase;
+  text-decoration: none;
+  color: var(--b57-fg);
+}
+
+.groupIndex {
+  font-variant-numeric: tabular-nums;
+  color: var(--b57-fg-eyebrow);
+}
+
+.items {
+  list-style: none;
+}
+
+.itemLink {
+  display: inline-flex;
+  align-items: center;
+  min-height: 2.75rem; // touch target
+  padding-block: var(--b57-space-1);
+  font-family: var(--b57-font-serif);
+  font-size: var(--b57-text-lg);
+  line-height: 1.3;
+  text-decoration: none;
+  color: var(--b57-fg-muted);
+
+  @include bp.hover {
+    &:hover {
+      color: var(--b57-fg);
+      text-decoration: underline;
+    }
+  }
+}

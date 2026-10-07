@@ -1,0 +1,104 @@
+.wrapper {
+  position: relative;
+
+  &[data-loading="true"] {
+    visibility: hidden;
+  }
+}
+
+.link {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--b57-space-2);
+  min-height: 2.75rem;
+  padding: 0 var(--b57-space-2);
+  border: 0;
+  background: none;
+  color: inherit;
+  font-size: var(--b57-text-xs);
+  font-weight: var(--b57-weight-medium);
+  letter-spacing: var(--b57-tracking-button);
+  text-transform: uppercase;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: color var(--b57-transition);
+
+  @media (hover: hover) {
+    &:hover {
+      color: var(--b57-header-hover, var(--b57-color-accent));
+    }
+  }
+}
+
+.name {
+  max-width: 9rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.chevron {
+  transition: transform var(--b57-transition);
+
+  [aria-expanded="true"] > & {
+    transform: rotate(180deg);
+  }
+}
+
+.panel {
+  position: absolute;
+  top: calc(100% + 0.75rem);
+  right: 0;
+  z-index: 1;
+  min-width: 15rem;
+  padding: var(--b57-space-4) 0 var(--b57-space-2);
+  border: 1px solid var(--b57-color-border);
+  background: var(--b57-color-surface);
+  color: var(--b57-color-text);
+  box-shadow: var(--b57-shadow-float);
+}
+
+.signedInAs {
+  margin: 0 0 var(--b57-space-2);
+  padding: 0 var(--b57-space-5);
+  overflow: hidden;
+  font-size: var(--b57-text-xs);
+  color: var(--b57-color-text-muted);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.list {
+  list-style: none;
+}
+
+.separator {
+  margin-top: var(--b57-space-2);
+  padding-top: var(--b57-space-2);
+  border-top: 1px solid var(--b57-color-border);
+}
+
+.item {
+  display: flex;
+  align-items: center;
+  gap: var(--b57-space-3);
+  width: 100%;
+  min-height: 2.75rem;
+  padding: 0 var(--b57-space-5);
+  border: 0;
+  background: none;
+  color: var(--b57-color-text);
+  font-size: var(--b57-text-sm);
+  text-align: left;
+  text-decoration: none;
+
+  @media (hover: hover) {
+    &:hover {
+      background: var(--b57-color-bg);
+      color: var(--b57-color-accent);
+    }
+  }
+
+  &:focus-visible {
+    outline-offset: -2px;
+  }
+}

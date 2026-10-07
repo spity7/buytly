@@ -1,0 +1,26 @@
+.eyebrow {
+  display: block;
+  margin: 0 0 var(--b57-space-4);
+  font-family: var(--b57-font-sans);
+  font-size: var(--b57-text-xs);
+  font-weight: var(--b57-weight-medium);
+  line-height: 1.4;
+  letter-spacing: var(--b57-tracking-eyebrow);
+  text-transform: uppercase;
+  color: var(--b57-fg-eyebrow);
+}
+
+// Optional short hairline before the label.
+.rule {
+  display: flex;
+  align-items: center;
+  gap: var(--b57-space-3);
+
+  &::before {
+    content: "";
+    flex: 0 0 2rem;
+    height: 1px;
+    background: currentColor;
+    opacity: 0.6;
+  }
+}

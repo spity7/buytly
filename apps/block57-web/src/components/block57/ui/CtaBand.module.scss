@@ -1,0 +1,72 @@
+@use "../../../styles/block57/breakpoints" as bp;
+
+.grid {
+  display: grid;
+  gap: var(--b57-space-7);
+
+  @include bp.up(lg) {
+    grid-template-columns: minmax(0, 7fr) minmax(0, 4fr);
+    gap: var(--b57-space-9);
+    align-items: end;
+  }
+}
+
+.title {
+  max-width: 18ch;
+  margin: 0 0 var(--b57-space-5);
+  font-size: var(--b57-text-3xl);
+  line-height: var(--b57-leading-tight);
+}
+
+.text {
+  max-width: var(--b57-measure);
+  margin: 0;
+  font-size: var(--b57-text-lg);
+  line-height: 1.6;
+  color: var(--b57-fg-muted);
+}
+
+.side {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--b57-space-6);
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--b57-space-3) var(--b57-space-6);
+
+  // Phones: the solid button fills its row.
+  @include bp.down(sm) {
+    > :first-child {
+      flex: 1 1 100%;
+    }
+  }
+}
+
+.contact {
+  display: grid;
+  gap: var(--b57-space-1);
+  list-style: none;
+  padding-top: var(--b57-space-5);
+  border-top: 1px solid var(--b57-rule);
+
+  a {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--b57-space-3);
+    min-height: 2.75rem; // touch target
+    font-size: var(--b57-text-sm);
+    text-decoration: none;
+    color: var(--b57-fg);
+    overflow-wrap: anywhere;
+
+    svg {
+      flex: none;
+      color: var(--b57-fg-eyebrow);
+    }
+  }
+}

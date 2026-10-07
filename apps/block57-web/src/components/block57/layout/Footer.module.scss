@@ -1,0 +1,150 @@
+@use "../../../styles/block57/breakpoints" as bp;
+
+.footer {
+  flex: none;
+  padding-top: clamp(4rem, 3rem + 4vw, 7rem);
+  background: var(--b57-color-dark);
+  color: var(--b57-fg-muted);
+  font-size: var(--b57-text-sm);
+}
+
+// Same column as the header (see --b57-chrome-width in global.scss).
+.container {
+  width: 100%;
+  max-width: calc(var(--b57-chrome-width) + 2 * var(--b57-gutter));
+  margin-inline: auto;
+  padding-inline: var(--b57-gutter);
+}
+
+.top {
+  display: grid;
+  gap: var(--b57-space-8);
+  padding-bottom: clamp(3rem, 2.5rem + 3vw, 5.5rem);
+
+  // Brand beside the columns only when the three columns keep a comfortable
+  // width (below xl the address and email would wrap); stacked before that.
+  @include bp.up(xl) {
+    grid-template-columns: minmax(16rem, 5fr) 7fr;
+    gap: var(--b57-space-9);
+  }
+}
+
+.brand {
+  max-width: 24rem;
+}
+
+.logo {
+  --b57-logo-width: clamp(8.5rem, 7.5rem + 3vw, 10.5rem);
+
+  margin-bottom: var(--b57-space-5);
+}
+
+.tagline {
+  margin: 0;
+  font-family: var(--b57-font-serif);
+  font-size: var(--b57-text-xl);
+  line-height: 1.35;
+  color: var(--b57-fg);
+}
+
+.columns {
+  display: grid;
+  gap: var(--b57-space-7) var(--b57-space-6);
+
+  @include bp.up(sm) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  @include bp.up(md) {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.column {
+  min-width: 0;
+}
+
+.columnTitle {
+  margin: 0 0 var(--b57-space-5);
+  padding-bottom: var(--b57-space-3);
+  border-bottom: 1px solid var(--b57-rule);
+  font-family: var(--b57-font-sans);
+  font-size: var(--b57-text-2xs);
+  font-weight: var(--b57-weight-medium);
+  letter-spacing: var(--b57-tracking-eyebrow);
+  text-transform: uppercase;
+  color: var(--b57-fg-eyebrow);
+}
+
+.list {
+  display: grid;
+  gap: var(--b57-space-1);
+  list-style: none;
+}
+
+.address {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--b57-space-3);
+  line-height: 1.7;
+
+  .icon {
+    margin-top: 0.3rem;
+  }
+}
+
+.icon {
+  flex: none;
+  color: var(--b57-fg-eyebrow);
+}
+
+.link,
+.iconLink {
+  display: inline-flex;
+  align-items: center;
+  min-height: 2.25rem;
+  color: var(--b57-fg-muted);
+  text-decoration: none;
+  overflow-wrap: anywhere;
+  transition: color var(--b57-transition);
+
+  @media (hover: hover) {
+    &:hover {
+      color: var(--b57-fg);
+    }
+  }
+}
+
+.iconLink {
+  gap: var(--b57-space-3);
+}
+
+.bottom {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--b57-space-3) var(--b57-space-6);
+  padding-block: var(--b57-space-5)
+    calc(var(--b57-space-5) + env(safe-area-inset-bottom));
+  border-top: 1px solid var(--b57-rule);
+  font-size: var(--b57-text-xs);
+  letter-spacing: 0.04em;
+}
+
+.copyright {
+  margin: 0;
+}
+
+.legal {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 var(--b57-space-5);
+  list-style: none;
+  // Leave room for the floating WhatsApp button on small screens.
+  padding-right: 4.5rem;
+
+  @include bp.up(md) {
+    padding-right: 5rem;
+  }
+}

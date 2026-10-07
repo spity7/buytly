@@ -1,0 +1,91 @@
+@use "../../../styles/block57/breakpoints" as bp;
+
+.grid {
+  display: grid;
+  gap: var(--b57-space-6);
+
+  @include bp.up(lg) {
+    grid-template-columns: 5fr 7fr;
+    gap: var(--b57-space-9);
+  }
+}
+
+.title {
+  max-width: 26rem;
+  margin: 0;
+  font-size: var(--b57-text-2xl);
+}
+
+.copy {
+  max-width: var(--b57-measure);
+  color: var(--b57-fg-muted);
+
+  @include bp.up(lg) {
+    padding-top: var(--b57-space-6);
+  }
+}
+
+.lead {
+  margin-bottom: var(--b57-space-5);
+  font-size: var(--b57-text-lg);
+  line-height: 1.6;
+  color: var(--b57-fg);
+}
+
+.cta {
+  margin-top: var(--b57-space-3);
+}
+
+// ---- Key figures ------------------------------------------------------------------
+.facts {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin: var(--b57-space-8) 0 0;
+  border-top: var(--b57-hairline);
+
+  @include bp.up(lg) {
+    margin-top: var(--b57-space-9);
+  }
+}
+
+.fact {
+  display: flex;
+  flex-direction: column-reverse; // value above label, label first in the DOM (dt → dd)
+  justify-content: flex-end;
+  gap: var(--b57-space-2);
+  padding: var(--b57-space-5) var(--b57-space-3) 0 0;
+
+  & + & {
+    padding-left: var(--b57-space-4);
+    border-left: var(--b57-hairline);
+  }
+
+  @include bp.up(md) {
+    padding-top: var(--b57-space-6);
+
+    & + & {
+      padding-left: var(--b57-space-6);
+    }
+  }
+}
+
+.factValue {
+  margin: 0;
+  font-family: var(--b57-font-serif);
+  font-size: var(--b57-text-3xl);
+  line-height: 1;
+  color: var(--b57-fg);
+}
+
+.factLabel {
+  font-size: var(--b57-text-2xs);
+  font-weight: var(--b57-weight-medium);
+  line-height: 1.4;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--b57-fg-muted);
+
+  @include bp.up(md) {
+    font-size: var(--b57-text-xs);
+  }
+}

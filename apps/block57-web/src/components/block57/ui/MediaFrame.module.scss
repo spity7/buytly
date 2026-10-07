@@ -1,0 +1,152 @@
+.frame {
+  --_tone-1: var(--b57-media-stone);
+  --_tone-2: var(--b57-media-stone-2);
+  --_line: rgba(255, 255, 255, 0.34);
+  --_grid: rgba(255, 255, 255, 0.16);
+  --_caption: rgba(20, 19, 15, 0.72);
+
+  position: relative;
+  width: 100%;
+  // `ratio` prop (inline --_ratio), overridable per breakpoint with
+  // --b57-media-ratio on the frame.
+  aspect-ratio: var(--b57-media-ratio, var(--_ratio, 16 / 9));
+  margin: 0;
+  overflow: hidden;
+  border-radius: var(--b57-radius);
+  background: var(--_tone-1);
+  isolation: isolate;
+}
+
+.fill {
+  position: absolute;
+  inset: 0;
+  height: 100%;
+  aspect-ratio: auto;
+}
+
+.tone-sand {
+  --_tone-1: var(--b57-media-sand);
+  --_tone-2: var(--b57-media-sand-2);
+  --_line: rgba(255, 255, 255, 0.55);
+  --_grid: rgba(255, 255, 255, 0.28);
+}
+
+.tone-dark {
+  --_tone-1: var(--b57-media-dark);
+  --_tone-2: var(--b57-media-dark-2);
+  --_line: rgba(243, 239, 232, 0.1);
+  --_grid: rgba(243, 239, 232, 0.045);
+  --_caption: rgba(243, 239, 232, 0.72);
+}
+
+.tone-paper {
+  --_tone-1: var(--b57-media-paper);
+  --_tone-2: var(--b57-media-paper);
+  --_line: var(--b57-color-border);
+  --_grid: transparent;
+}
+
+.image {
+  z-index: 0;
+}
+
+// ---- Provisional placeholder -------------------------------------------------
+.placeholder {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background:
+    // faint column grid
+
+    repeating-linear-gradient(
+      90deg,
+      transparent 0 calc(100% / 8 - 1px),
+      var(--_grid) calc(100% / 8 - 1px) calc(100% / 8)
+    ),
+    linear-gradient(165deg, var(--_tone-1) 0%, var(--_tone-2) 100%);
+
+  // fade the grid towards the top
+  &::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, var(--_tone-1) 0%, transparent 70%);
+    opacity: 0.85;
+  }
+}
+
+// A quiet building elevation: outline, floor lines and mullions.
+.elevation {
+  position: absolute;
+  left: 22%;
+  right: 22%;
+  bottom: 0;
+  height: 62%;
+  border: 1px solid var(--_line);
+  border-bottom: 0;
+  background:
+    repeating-linear-gradient(
+      180deg,
+      transparent 0 calc(100% / 7 - 1px),
+      var(--_line) calc(100% / 7 - 1px) calc(100% / 7)
+    ),
+    repeating-linear-gradient(
+      90deg,
+      transparent 0 calc(100% / 5 - 1px),
+      var(--_line) calc(100% / 5 - 1px) calc(100% / 5)
+    );
+
+  // roof plane
+  &::before {
+    content: "";
+    position: absolute;
+    left: -8%;
+    right: -8%;
+    top: -1px;
+    height: 1px;
+    background: var(--_line);
+  }
+
+  // ground line
+  &::after {
+    content: "";
+    position: absolute;
+    left: -60%;
+    right: -60%;
+    bottom: 0;
+    height: 1px;
+    background: var(--_line);
+  }
+}
+
+// ---- Caption + overlay content -----------------------------------------------------
+.caption {
+  position: absolute;
+  left: var(--b57-space-4);
+  bottom: var(--b57-space-3);
+  z-index: 2;
+  max-width: calc(100% - 2 * var(--b57-space-4));
+  font-size: var(--b57-text-2xs);
+  font-weight: var(--b57-weight-medium);
+  line-height: 1.4;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--_caption);
+}
+
+// Real images: soft scrim under the caption for legibility.
+.frame:not([data-placeholder]) .caption {
+  color: var(--b57-color-on-dark);
+  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.35);
+}
+
+.content {
+  position: relative;
+  z-index: 1;
+  height: 100%;
+}
+
+.fill .content {
+  position: absolute;
+  inset: 0;
+}

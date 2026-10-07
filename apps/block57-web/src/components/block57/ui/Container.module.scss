@@ -1,0 +1,22 @@
+// Zero-specificity rules (:where) so a consumer's `className` always wins.
+:where(.container) {
+  width: 100%;
+  margin-inline: auto;
+  padding-inline: var(--b57-gutter);
+}
+
+:where(.default) {
+  max-width: calc(var(--b57-container) + 2 * var(--b57-gutter));
+}
+
+:where(.narrow) {
+  max-width: calc(var(--b57-container-narrow) + 2 * var(--b57-gutter));
+}
+
+:where(.wide) {
+  max-width: calc(var(--b57-container-wide) + 2 * var(--b57-gutter));
+}
+
+:where(.full) {
+  max-width: none;
+}

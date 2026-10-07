@@ -1,0 +1,41 @@
+// Root/modifiers at zero specificity (:where) so a consumer's `className`
+// (e.g. `margin-bottom: 0`) always wins.
+:where(.heading) {
+  display: flex;
+  flex-direction: column;
+  max-width: 48rem;
+  margin-bottom: var(--b57-stack);
+}
+
+:where(.align-start) {
+  align-items: flex-start;
+  text-align: start;
+}
+
+:where(.align-center) {
+  align-items: center;
+  margin-inline: auto;
+  text-align: center;
+}
+
+.eyebrow {
+  margin-bottom: var(--b57-space-4);
+}
+
+.title {
+  margin: 0;
+  color: var(--b57-fg);
+}
+
+.size-large .title {
+  font-size: var(--b57-text-3xl);
+  line-height: var(--b57-leading-tight);
+}
+
+.lead {
+  max-width: var(--b57-measure);
+  margin: var(--b57-space-5) 0 0;
+  font-size: var(--b57-text-lg);
+  line-height: 1.6;
+  color: var(--b57-fg-muted);
+}

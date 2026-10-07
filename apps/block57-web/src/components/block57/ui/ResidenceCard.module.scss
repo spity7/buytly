@@ -1,0 +1,137 @@
+@use "../../../styles/block57/breakpoints" as bp;
+
+.card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+
+  // Focus ring around the whole card when its (stretched) link has keyboard focus.
+  &:has(.link:focus-visible) {
+    outline: 2px solid var(--b57-color-focus);
+    outline-offset: 6px;
+  }
+}
+
+.media {
+  position: relative;
+  overflow: hidden;
+
+  > figure {
+    transition: transform var(--b57-duration-slow) var(--b57-ease);
+  }
+}
+
+.media-portrait .media {
+  aspect-ratio: 3 / 2;
+
+  @include bp.up(md) {
+    aspect-ratio: 4 / 5;
+  }
+}
+
+.media-landscape .media {
+  aspect-ratio: 4 / 3;
+}
+
+.body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  padding-top: var(--b57-space-5);
+}
+
+.blocks {
+  margin: 0 0 var(--b57-space-2);
+  font-size: var(--b57-text-2xs);
+  font-weight: var(--b57-weight-medium);
+  line-height: 1.5;
+  letter-spacing: var(--b57-tracking-eyebrow);
+  text-transform: uppercase;
+  color: var(--b57-fg-eyebrow);
+}
+
+.title {
+  margin: 0 0 var(--b57-space-3);
+  font-size: var(--b57-text-xl);
+  transition: color var(--b57-transition);
+}
+
+.link {
+  text-decoration: none;
+  color: inherit;
+
+  &:focus-visible {
+    outline: none; // ring drawn on the card
+  }
+
+  // Stretch the link over the whole card.
+  &::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+  }
+
+  @include bp.hover {
+    &:hover {
+      color: inherit;
+    }
+  }
+}
+
+.summary {
+  max-width: 30rem;
+  margin: 0 0 var(--b57-space-5);
+  font-size: var(--b57-text-sm);
+  line-height: 1.7;
+  color: var(--b57-fg-muted);
+}
+
+.footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--b57-space-4);
+  margin-top: auto;
+  padding-top: var(--b57-space-4);
+  border-top: var(--b57-hairline);
+}
+
+.arrow {
+  flex: none;
+  color: var(--b57-fg);
+  transition:
+    transform var(--b57-transition),
+    color var(--b57-transition);
+}
+
+@include bp.hover {
+  .card:hover {
+    .media > figure {
+      transform: scale(1.03);
+    }
+
+    .title {
+      color: var(--b57-fg-eyebrow);
+    }
+
+    .arrow {
+      color: var(--b57-fg-eyebrow);
+      transform: translateX(0.3rem);
+    }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .media > figure,
+  .title,
+  .arrow {
+    transition: none;
+  }
+
+  .card:hover .media > figure {
+    transform: none;
+  }
+}
