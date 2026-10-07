@@ -67,6 +67,7 @@ export const getProjects = () => {
     );
   };
   /**
+   * Same visibility as GET /projects/{id}, but only non-trashed projects match. Units are limited to active and sold for viewers who do not manage the project.
    * @summary Get project by slug with units
    */
   const getProjectBySlug = (
@@ -79,6 +80,7 @@ export const getProjects = () => {
     );
   };
   /**
+   * Active and sold projects are public. Draft, pending, archived and trashed projects are only visible to the owner, assigned agent, or admin; any other logged-in user gets the same result as an anonymous visitor.
    * @summary Get project by ID
    */
   const getProjectById = (
@@ -122,6 +124,7 @@ export const getProjects = () => {
     );
   };
   /**
+   * Same project visibility as GET /projects/{id}. Viewers who do not manage the project only get active and sold units.
    * @summary List units in a project
    */
   const listProjectUnits = (

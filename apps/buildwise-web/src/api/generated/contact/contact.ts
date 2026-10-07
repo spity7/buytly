@@ -14,7 +14,7 @@ type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];
 
 export const getContact = () => {
   /**
-   * Sends the inquiry to the configured support inbox and an auto-reply to the submitter.
+   * Stores the inquiry for the current site (listed via `GET /admin/inquiries`), then emails the site's contact inbox (`branding.contactInboxEmail`, falling back to `CONTACT_INBOX_EMAIL`) and sends an auto-reply to the submitter. Email failures are logged and still return 201. A filled `website` honeypot returns the same 201 without storing or emailing.
    * @summary Submit a public contact form message
    */
   const submitContactInquiry = (

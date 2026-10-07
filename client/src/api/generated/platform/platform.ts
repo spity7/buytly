@@ -16,6 +16,7 @@ type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];
 
 export const getPlatform = () => {
   /**
+   * Units from sites that hide prices (features.hidePublicPrices) have price null plus priceLabel, never match minPrice/maxPrice, and come after priced units when sortBy=price.
    * @summary Partner listings visible on the platform site (Buytly)
    */
   const listPlatformFeaturedListings = (
@@ -28,6 +29,7 @@ export const getPlatform = () => {
     );
   };
   /**
+   * Projects from sites that hide prices have priceMin/priceMax null plus priceLabel.
    * @summary Partner projects visible on the platform site (Buytly)
    */
   const listPlatformFeaturedProjects = (

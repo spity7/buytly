@@ -136,7 +136,7 @@ export const getAuth = () => {
     );
   };
   /**
-   * Sets a new password using the token from the reset email. Revokes all existing refresh tokens.
+   * Sets a new password using the token from the reset email. The token only works on the site that issued it (X-Site-Slug). Revokes all existing refresh tokens.
    * @summary Reset password with token
    */
   const resetPassword = (
@@ -154,7 +154,7 @@ export const getAuth = () => {
     );
   };
   /**
-   * Marks the user's email as verified using the token from the verification email.
+   * Marks the user's email as verified using the token from the verification email. The token only works on the site that issued it (X-Site-Slug).
    * @summary Verify email address with token
    */
   const verifyEmail = (

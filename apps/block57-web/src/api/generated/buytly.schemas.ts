@@ -334,7 +334,13 @@ export interface Property {
   type?: PropertyType;
   projectId?: PropertyProjectId;
   sortOrder?: number;
-  price?: number;
+  /**
+   * Null when the listing's site hides prices (features.hidePublicPrices; see api-rules.md "Hidden prices"). Public lists (GET /properties, GET /projects, GET /agents/{id}/properties) and the /platform/* feeds always hide them, even for the owner or an admin. Detail reads (GET /properties/{id}, GET /projects/{id}, GET /projects/slug/{slug}, GET /projects/{id}/properties) and personal records (favorites, bookings, transactions) hide them unless the caller is the owner, assigned agent or a site admin. Dashboard reads (/properties/mine, /projects/mine, /admin/*) keep real prices. See priceLabel.
+   * @nullable
+   */
+  price?: number | null;
+  /** Present only when the price is hidden. */
+  priceLabel?: string;
   currency?: string;
   /** Denormalized copy of the parent project location (not accepted on create/update). */
   readonly location?: PropertyLocation;
@@ -342,6 +348,13 @@ export interface Property {
   bathrooms?: number;
   area?: number;
   areaUnit?: string;
+  /**
+   * Optional building/block label (omitted when not set).
+   * @maxLength 50
+   */
+  building?: string;
+  /** Optional floor number (omitted when not set). */
+  floor?: number;
   amenities?: string[];
   status?: PropertyStatus;
   media?: PropertyMedia[];
@@ -389,7 +402,73 @@ export interface CreatePropertyRequest {
   bathrooms?: number;
   area?: number;
   areaUnit?: string;
+  /**
+   * Optional building/block label (trimmed). Null or blank clears it.
+   * @maxLength 50
+   * @nullable
+   */
+  building?: string | null;
+  /**
+   * Optional floor number. Null clears it.
+   * @minimum -5
+   * @maximum 300
+   * @nullable
+   */
+  floor?: number | null;
   /** Values must match active catalog amenities (GET /catalog/amenities) */
+  amenities?: string[];
+  status?: PropertyStatus;
+  agentId?: ObjectId;
+  floorPlans?: FloorPlanInput[];
+  virtualTourUrl?: string;
+}
+
+export type UpdatePropertyRequestCurrency =
+  (typeof UpdatePropertyRequestCurrency)[keyof typeof UpdatePropertyRequestCurrency];
+
+// eslint-disable-next-line @typescript-eslint/no-redeclare
+export const UpdatePropertyRequestCurrency = {
+  USD: "USD",
+} as const;
+
+/**
+ * Partial update; every field is optional and projectId cannot be changed. Editing building/floor does not send an active listing back to review.
+ */
+export interface UpdatePropertyRequest {
+  /**
+   * @minLength 3
+   * @maxLength 200
+   */
+  title?: string;
+  /** @minLength 10 */
+  description?: string;
+  type?: PropertyType;
+  sortOrder?: number;
+  /**
+   * @minimum 0
+   * @exclusiveMinimum
+   */
+  price?: number;
+  currency?: UpdatePropertyRequestCurrency;
+  /** @minimum 0 */
+  bedrooms?: number;
+  /** @minimum 0 */
+  bathrooms?: number;
+  area?: number;
+  areaUnit?: string;
+  /**
+   * Null or blank clears it.
+   * @maxLength 50
+   * @nullable
+   */
+  building?: string | null;
+  /**
+   * Null clears it.
+   * @minimum -5
+   * @maximum 300
+   * @nullable
+   */
+  floor?: number | null;
   amenities?: string[];
   status?: PropertyStatus;
   agentId?: ObjectId;
@@ -964,10 +1043,15 @@ export interface Project {
   unitCount?: number;
   /** Trashed units on this project (owner dashboard only, when project is not in trash). */
   trashedUnitCount?: number;
-  /** @nullable */
+  /**
+   * Lowest public unit price; null when there are no public units or the site hides prices from this viewer (same rules as Property.price; see priceLabel).
+   * @nullable
+   */
   priceMin?: number | null;
   /** @nullable */
   priceMax?: number | null;
+  /** Present only when prices are hidden (site features.hidePublicPrices). GET /projects and GET /platform/featured-projects always hide them, even for the owner or an admin; GET /projects/{id} and GET /projects/slug/{slug} hide them unless the caller is the owner, assigned agent or a site admin; /projects/mine keeps them. See api-rules.md "Hidden prices". */
+  priceLabel?: string;
   ownerId?: ProjectOwnerId;
   agentId?: ProjectAgentId;
   viewCount?: number;
@@ -1002,6 +1086,75 @@ export interface SubmitContactRequest {
    * @maxLength 5000
    */
   message: string;
+  /** @maxLength 40 */
+  phone?: string;
+  /** @maxLength 80 */
+  residenceType?: string;
+  /** Stored only when the unit belongs to the current site */
+  unitId?: ObjectId;
+  /** @maxLength 80 */
+  unitLabel?: string;
+  /**
+   * Site-relative path of the page the form was submitted from
+   * @maxLength 300
+   * @pattern ^/(?!/)\S*$
+   */
+  pagePath?: string;
+  /** Honeypot — leave empty or omit. Any other value (including whitespace or a value of any length) returns the normal 201 response without storing or emailing; it never causes a validation error. */
+  website?: string;
+}
+
+export type InquiryStatus = (typeof InquiryStatus)[keyof typeof InquiryStatus];
+
+// eslint-disable-next-line @typescript-eslint/no-redeclare
+export const InquiryStatus = {
+  new: "new",
+  contacted: "contacted",
+  closed: "closed",
+} as const;
+
+/**
+ * @nullable
+ */
+export type InquiryUnitId = ObjectId | null;
+
+export interface Inquiry {
+  _id?: ObjectId;
+  siteId?: ObjectId;
+  firstName?: string;
+  lastName?: string;
+  email?: string;
+  phone?: string;
+  residenceType?: string;
+  /** @nullable */
+  unitId?: InquiryUnitId;
+  unitLabel?: string;
+  message?: string;
+  pagePath?: string;
+  sourceUrl?: string;
+  status?: InquiryStatus;
+  /** True once the site inbox notification was sent */
+  emailDelivered?: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface UpdateInquiryStatusRequest {
+  status: InquiryStatus;
+}
+
+export type InquirySuccessResponseAllOf = {
+  data?: Inquiry;
+};
+
+export type InquirySuccessResponse = SuccessResponse &
+  InquirySuccessResponseAllOf;
+
+export interface PaginatedInquiriesResponse {
+  success: boolean;
+  message: string;
+  data: Inquiry[];
+  pagination: PaginationMeta;
 }
 
 /**
@@ -1893,6 +2046,26 @@ export type AdminModerateProjectBody = {
 
 export type AdminSetProjectPlatformFeaturedBody = {
   visibleOnPlatform: boolean;
+};
+
+export type AdminListInquiriesParams = {
+  /**
+   * Page number (1-based)
+   * @minimum 1
+   */
+  page?: PageParamParameter;
+  /**
+   * Items per page (max 100)
+   * @minimum 1
+   * @maximum 100
+   */
+  limit?: LimitParamParameter;
+  status?: InquiryStatus;
+  /**
+   * Case-insensitive partial match on first name, last name, email, phone and message
+   * @maxLength 200
+   */
+  search?: string;
 };
 
 export type GetAnalytics200AllOf = {

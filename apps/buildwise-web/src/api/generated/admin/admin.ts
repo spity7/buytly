@@ -8,6 +8,7 @@
 import type {
   AdminListCatalogAmenities200,
   AdminListCatalogPropertyTypes200,
+  AdminListInquiriesParams,
   AdminListProjectsParams,
   AdminListPropertiesParams,
   AdminListUsersParams,
@@ -21,12 +22,15 @@ import type {
   CreateCatalogAmenityRequest,
   CreateCatalogPropertyTypeRequest,
   GetAnalytics200,
+  InquirySuccessResponse,
   PaginatedAdminUsersResponse,
+  PaginatedInquiriesResponse,
   PaginatedProjectsResponse,
   PaginatedPropertiesResponse,
   PropertySuccessResponse,
   UpdateCatalogAmenityRequest,
   UpdateCatalogPropertyTypeRequest,
+  UpdateInquiryStatusRequest,
   UserSuccessResponse,
 } from "../buytly.schemas";
 
@@ -217,6 +221,40 @@ export const getAdmin = () => {
     );
   };
   /**
+   * Returns inquiries submitted through the public contact form on the current site only. Inquiries are private to each site — there is no cross-site `siteId` override, including for Buytly platform admins.
+   * @summary List contact form inquiries (admin)
+   */
+  const adminListInquiries = (
+    params?: AdminListInquiriesParams,
+    options?: SecondParameter<
+      typeof customInstance<PaginatedInquiriesResponse>
+    >,
+  ) => {
+    return customInstance<PaginatedInquiriesResponse>(
+      { url: `/admin/inquiries`, method: "GET", params },
+      options,
+    );
+  };
+  /**
+   * Sets the follow-up status of an inquiry on the current site. Inquiries from other sites return 404.
+   * @summary Update an inquiry's status
+   */
+  const adminUpdateInquiryStatus = (
+    id: string,
+    updateInquiryStatusRequest: BodyType<UpdateInquiryStatusRequest>,
+    options?: SecondParameter<typeof customInstance<InquirySuccessResponse>>,
+  ) => {
+    return customInstance<InquirySuccessResponse>(
+      {
+        url: `/admin/inquiries/${id}`,
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        data: updateInquiryStatusRequest,
+      },
+      options,
+    );
+  };
+  /**
    * Returns platform analytics including users by role, listings, bookings, transactions, and top cities. Cached for 10 minutes.
    * @summary Get platform analytics KPIs
    */
@@ -360,6 +398,8 @@ export const getAdmin = () => {
     adminListProjects,
     adminModerateProject,
     adminSetProjectPlatformFeatured,
+    adminListInquiries,
+    adminUpdateInquiryStatus,
     getAnalytics,
     adminListCatalogPropertyTypes,
     adminCreateCatalogPropertyType,
@@ -412,6 +452,12 @@ export type AdminSetProjectPlatformFeaturedResult = NonNullable<
   Awaited<
     ReturnType<ReturnType<typeof getAdmin>["adminSetProjectPlatformFeatured"]>
   >
+>;
+export type AdminListInquiriesResult = NonNullable<
+  Awaited<ReturnType<ReturnType<typeof getAdmin>["adminListInquiries"]>>
+>;
+export type AdminUpdateInquiryStatusResult = NonNullable<
+  Awaited<ReturnType<ReturnType<typeof getAdmin>["adminUpdateInquiryStatus"]>>
 >;
 export type GetAnalyticsResult = NonNullable<
   Awaited<ReturnType<ReturnType<typeof getAdmin>["getAnalytics"]>>

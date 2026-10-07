@@ -14,6 +14,7 @@ import type {
   PropertySuccessResponse,
   ReorderPropertyMediaBody,
   SuccessResponse,
+  UpdatePropertyRequest,
   UploadFloorPlanImage201,
   UploadFloorPlanImageBody,
   UploadPropertyMedia201,
@@ -27,7 +28,7 @@ type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];
 
 export const getProperties = () => {
   /**
-   * Returns a paginated list of active properties. Supports price, type, geo-radius, full-text search, and sorting.
+   * Returns a paginated list of active properties. Supports price, type, geo-radius, full-text search, and sorting. On sites that hide prices (features.hidePublicPrices) every unit has price null plus priceLabel, and minPrice/maxPrice and sortBy=price are ignored.
    * @summary List properties with filters
    */
   const listProperties = (
@@ -90,7 +91,7 @@ export const getProperties = () => {
     );
   };
   /**
-   * Returns full property details with media signed URLs. Increments view count for active listings. Non-active listings are only visible to the owner, assigned agent, or admin.
+   * Returns full property details with media signed URLs. Increments view count for active listings (not for managers). Non-active and trashed listings are only visible to the owner, assigned agent, or admin; any other logged-in user gets the same result as an anonymous visitor.
    * @summary Get property by ID
    */
   const getPropertyById = (
@@ -108,7 +109,7 @@ export const getProperties = () => {
    */
   const updateProperty = (
     id: string,
-    createPropertyRequest: BodyType<CreatePropertyRequest>,
+    updatePropertyRequest: BodyType<UpdatePropertyRequest>,
     options?: SecondParameter<typeof customInstance<PropertySuccessResponse>>,
   ) => {
     return customInstance<PropertySuccessResponse>(
@@ -116,7 +117,7 @@ export const getProperties = () => {
         url: `/properties/${id}`,
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        data: createPropertyRequest,
+        data: updatePropertyRequest,
       },
       options,
     );
