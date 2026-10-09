@@ -1,0 +1,197 @@
+@use "../../../styles/block57/breakpoints" as bp;
+@use "../../../styles/block57/type";
+
+.hero {
+  --_overlay: var(--b57-overlay-hero);
+
+  position: relative;
+  overflow: hidden;
+  background: #000;
+  color: var(--b57-color-on-dark);
+  isolation: isolate;
+}
+
+.archive {
+  --_overlay: var(--b57-overlay-archive);
+}
+
+.type {
+  --_overlay: var(--b57-overlay-type);
+}
+
+// ---- Photo + overlay ------------------------------------------------------------
+.media {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+
+  &::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: var(--_overlay);
+  }
+}
+
+.image {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: 50% 50%;
+}
+
+// "global" / "archive": the photo at its natural size (live
+// background-size: auto) from 768px; cover on phones (OQ-18).
+@include bp.up(mobile) {
+  .global .image,
+  .archive .image {
+    inset: auto;
+    width: var(--_w);
+    max-width: none;
+    height: var(--_h);
+    object-fit: fill;
+  }
+
+  .global .image {
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+  }
+
+  .archive .image {
+    top: 0;
+    left: 0;
+  }
+}
+
+// ---- Title area -------------------------------------------------------------------
+.titleArea {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 180px 30px 160px;
+  text-align: center;
+
+  @include bp.down(tablet-extra) {
+    padding-block: 100px;
+  }
+
+  @include bp.down(tablet) {
+    padding-block: 80px;
+  }
+
+  @include bp.down(mobile) {
+    // Live: the title area starts under the 78px header (70px offset).
+    padding: 130px 15px 60px;
+  }
+}
+
+.archive .titleArea {
+  padding-block: 181px 161px;
+
+  @include bp.down(tablet) {
+    padding-block: 100px 80px;
+  }
+}
+
+// Phones, archive + type: live centres the H1 60px from the top, under the
+// 78px header (they collide); keep the live 226px band and centre the H1 in
+// the 80px below the header instead.
+@include bp.down(mobile) {
+  .archive .titleArea,
+  .type .titleArea {
+    min-height: 158px;
+    padding: 78px 15px 0;
+  }
+}
+
+.title {
+  @include type.page-hero-title;
+
+  margin: 0;
+  color: var(--b57-color-on-dark);
+}
+
+// ---- Breadcrumb strip ----------------------------------------------------------------
+.breadcrumb {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 68px;
+  padding: 0 15px;
+
+  // Full-width 1px rule at 20% white.
+  &::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 1px;
+    background: var(--b57-color-on-dark);
+    opacity: 0.2;
+  }
+
+  ol {
+    @include type.body-font;
+
+    margin: 0;
+    font-size: 18px;
+    line-height: 28px;
+    text-align: center;
+    list-style: none;
+  }
+
+  li {
+    @include type.breadcrumb;
+
+    display: inline;
+    font-weight: 300;
+
+    // The live separator is a plain ">" in the strip's body font (Sentient 18px).
+    & + li::before {
+      @include type.body-font;
+
+      content: ">";
+      margin: 0 14px;
+      font-size: 18px;
+      line-height: 28px;
+    }
+  }
+}
+
+// "Home": a 1px underline grows on hover.
+.crumbLink {
+  position: relative;
+  color: var(--b57-color-on-dark);
+
+  &::before {
+    content: "";
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    width: 0;
+    height: 1px;
+    background: var(--b57-color-on-dark);
+    transition: width var(--b57-transition);
+  }
+
+  &:hover {
+    color: var(--b57-color-on-dark);
+
+    &::before {
+      right: auto;
+      left: 0;
+      width: 100%;
+    }
+  }
+}
+
+@include bp.reduced-motion {
+  .crumbLink::before {
+    transition: none;
+  }
+}

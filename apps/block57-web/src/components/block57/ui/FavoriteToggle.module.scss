@@ -1,0 +1,49 @@
+@use "../../../styles/block57/breakpoints" as bp;
+
+// Live palette: 40px hairline circle, green outline heart, filled when saved.
+.toggle {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: 1px solid var(--b57-color-border);
+  border-radius: 50%;
+  background: transparent;
+  color: var(--b57-color-primary);
+  transition:
+    border-color var(--b57-transition),
+    transform 0.15s var(--b57-ease);
+
+  &[data-active="true"] {
+    border-color: var(--b57-color-primary);
+  }
+
+  &:active:not([aria-disabled="true"]) {
+    transform: scale(0.94);
+  }
+
+  &[aria-busy="true"] {
+    opacity: 0.6;
+    cursor: progress;
+  }
+
+  &[aria-disabled="true"] {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+
+  @include bp.hover {
+    &:hover:not([aria-disabled="true"]) {
+      border-color: var(--b57-color-primary);
+    }
+  }
+}
+
+@include bp.reduced-motion {
+  .toggle {
+    transition: none;
+  }
+}

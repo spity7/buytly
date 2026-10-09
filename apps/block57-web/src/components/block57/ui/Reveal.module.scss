@@ -1,0 +1,83 @@
+// Theme "opal" keyframes (live Elementor entrance animations).
+@keyframes opal-move-up {
+  from {
+    opacity: 0;
+    transform: translateY(var(--b57-entrance-distance));
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes opal-move-left {
+  from {
+    opacity: 0;
+    transform: translateX(var(--b57-entrance-distance));
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes opal-move-right {
+  from {
+    opacity: 0;
+    transform: translateX(calc(-1 * var(--b57-entrance-distance)));
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes opal-helix {
+  from {
+    opacity: 0;
+    transform: perspective(1300px) rotateY(-180deg);
+  }
+
+  to {
+    opacity: 1;
+    transform: perspective(1300px) rotateY(0);
+  }
+}
+
+// Hidden by opacity only, so the observer sees the element where it will land.
+.reveal[data-phase="hidden"] {
+  opacity: 0;
+}
+
+.reveal[data-phase="shown"] {
+  animation-duration: var(--_duration, var(--b57-duration-entrance-fast));
+  animation-timing-function: ease;
+  animation-delay: var(--_delay, 0ms);
+  animation-fill-mode: both;
+}
+
+.up[data-phase="shown"] {
+  animation-name: opal-move-up;
+}
+
+.left[data-phase="shown"] {
+  animation-name: opal-move-left;
+}
+
+.right[data-phase="shown"] {
+  animation-name: opal-move-right;
+}
+
+.helix[data-phase="shown"] {
+  animation-name: opal-helix;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal[data-phase] {
+    opacity: 1;
+    animation: none;
+  }
+}

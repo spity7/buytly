@@ -1,0 +1,134 @@
+@use "../../../styles/block57/breakpoints" as bp;
+@use "../../../styles/block57/type";
+
+// Margins (not padding) as on live, so they collapse with the next block's.
+.overview {
+  margin-block: var(--b57-section-y);
+}
+
+// Penthouse: 30px down to the INQUIRE row (live keeps the regular margin
+// ≤1200).
+.withInquireRow {
+  margin-bottom: 30px;
+
+  @include bp.down(tablet-extra) {
+    margin-bottom: var(--b57-section-y);
+  }
+}
+
+.row {
+  display: flex;
+
+  @include bp.down(mobile) {
+    flex-direction: column;
+  }
+}
+
+// ---- Left: copy + spec block ------------------------------------------------------
+.text {
+  flex: 0 0 50%;
+  min-width: 0;
+  padding-right: 110px;
+  border-right: 1px solid var(--b57-color-border);
+
+  @include bp.down(laptop) {
+    padding-right: 80px;
+  }
+
+  @include bp.down(tablet-extra) {
+    padding-right: 60px;
+  }
+
+  @include bp.down(mobile-extra) {
+    padding-right: 30px;
+  }
+
+  @include bp.down(mobile) {
+    padding: 0 0 30px;
+    border-right: 0;
+    border-bottom: 1px solid var(--b57-color-border);
+  }
+}
+
+.title {
+  @include type.subsection-title;
+
+  margin: 0 0 30px;
+  color: var(--b57-color-primary);
+
+  @include bp.down(mobile) {
+    text-align: center;
+  }
+}
+
+.description {
+  @include type.lead;
+
+  // Live: widget gap 20px + the theme paragraph margin (1.41575em = 31.15px).
+  margin: 0 0 calc(20px + 1.41575em);
+  color: var(--b57-color-text);
+  white-space: pre-line; // live hard line breaks
+
+  @include bp.down(mobile) {
+    text-align: center;
+  }
+}
+
+// 96% wide (527px at 1440), label and range on one line, then full-width
+// paragraphs and green dividers.
+.specs {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  width: 96%;
+
+  @include bp.down(mobile) {
+    width: 100%;
+  }
+
+  p {
+    @include type.spec;
+
+    margin: 0 0 22.65px; // 1.41575em at 16px (theme paragraph margin)
+    font-weight: 300;
+    color: var(--b57-color-text-light);
+  }
+
+  hr {
+    flex: 0 0 100%;
+  }
+}
+
+.specs .areaValue {
+  color: var(--b57-color-primary);
+}
+
+.spec {
+  flex: 0 0 100%;
+  white-space: pre-line; // "•" lines are hard line breaks on live
+}
+
+// ---- Right: floor plan ------------------------------------------------------------------
+.plan {
+  flex: 0 0 50%;
+  min-width: 0;
+  padding-left: 30px;
+
+  @include bp.down(mobile) {
+    padding: 30px 0 0;
+  }
+}
+
+.planImage {
+  width: 100%;
+  height: auto;
+}
+
+// ---- Penthouse INQUIRE row (66px: 10px above and below the 46px pill) -------------------
+.inquireRow {
+  padding-block: 10px;
+
+  @include bp.down(mobile) {
+    padding-inline: 10px;
+  }
+}

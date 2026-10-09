@@ -1,0 +1,57 @@
+import { authService } from "./auth.service.js";
+import { ApiResponse } from "../../shared/ApiResponse.js";
+
+export const authController = {
+  register: async (req, res) => {
+    const result = await authService.register(req.body);
+    ApiResponse.created(res, result, "Registration successful");
+  },
+
+  login: async (req, res) => {
+    const result = await authService.login(req.body);
+    ApiResponse.success(res, result, "Login successful");
+  },
+
+  refresh: async (req, res) => {
+    const result = await authService.refresh(req.body.refreshToken);
+    ApiResponse.success(res, result, "Token refreshed");
+  },
+
+  logout: async (req, res) => {
+    await authService.logout(req.body.refreshToken);
+    ApiResponse.success(res, null, "Logged out successfully");
+  },
+
+  forgotPassword: async (req, res) => {
+    const result = await authService.forgotPassword(req.body.email);
+    ApiResponse.success(res, result, result.message);
+  },
+
+  resetPassword: async (req, res) => {
+    const result = await authService.resetPassword(
+      req.body.token,
+      req.body.password,
+    );
+    ApiResponse.success(res, result, result.message);
+  },
+
+  verifyEmail: async (req, res) => {
+    const result = await authService.verifyEmail(req.body.token);
+    ApiResponse.success(res, result, "Email verified successfully");
+  },
+
+  resendVerification: async (req, res) => {
+    const result = await authService.resendVerification(req.body.email);
+    ApiResponse.success(res, result, result.message);
+  },
+
+  changePassword: async (req, res) => {
+    const result = await authService.changePassword(req.user._id, req.body);
+    ApiResponse.success(res, result, "Password changed successfully");
+  },
+
+  googleAuth: async (req, res) => {
+    const result = await authService.googleAuth(req.body);
+    ApiResponse.success(res, result, "Google sign-in successful");
+  },
+};

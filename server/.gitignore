@@ -1,1 +1,17 @@
+/node_modules
+
+# Environment (keep .env.example tracked)
 .env
+.env.*
+!.env.example
+
+gcs-service-account.json
+*.log
+logs/
+*.pem
+.DS_Store
+coverage/
+
+# Block 57 unit inventory (real prices): never commit it; only the example is tracked
+scripts/seed/block57-units*.json
+!scripts/seed/block57-units.example.json

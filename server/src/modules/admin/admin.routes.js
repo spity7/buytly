@@ -1,0 +1,862 @@
+import { Router } from "express";
+import { adminController } from "./admin.controller.js";
+import { asyncHandler } from "../../utils/asyncHandler.js";
+import { authenticate, authorize } from "../../middleware/auth.js";
+import { validate, validateMultiple } from "../../middleware/validate.js";
+import { ROLES } from "../../shared/constants.js";
+import {
+  listUsersSchema,
+  userIdSchema,
+  updateUserStatusSchema,
+  updateUserRoleSchema,
+  listAdminPropertiesSchema,
+  listAdminProjectsSchema,
+  propertyIdSchema,
+  projectIdSchema,
+  moderatePropertySchema,
+  moderateProjectSchema,
+  platformFeaturedSchema,
+  listAdminInquiriesSchema,
+  inquiryIdSchema,
+  updateInquiryStatusSchema,
+} from "./admin.validation.js";
+import { requirePlatformSite } from "../../middleware/resolveSite.js";
+import { catalogController } from "../catalog/catalog.controller.js";
+import {
+  catalogItemIdSchema,
+  createAmenitySchema,
+  createPropertyTypeSchema,
+  updateAmenitySchema,
+  updatePropertyTypeSchema,
+} from "../catalog/catalog.validation.js";
+
+const router = Router();
+
+router.use(authenticate, authorize(ROLES.ADMIN));
+
+/**
+ * @swagger
+ * /admin/sites:
+ *   get:
+ *     operationId: adminListPartnerSites
+ *     summary: List tenant sites for platform admin cross-site moderation
+ *     tags: [Admin]
+ *     security:
+ *       - BearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Partner site list
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ */
+router.get(
+  "/sites",
+  requirePlatformSite,
+  asyncHandler(adminController.listPartnerSites),
+);
+
+/**
+ * @swagger
+ * /admin/users:
+ *   get:
+ *     operationId: adminListUsers
+ *     summary: List all users
+ *     description: Returns a paginated list of all users. Admin only.
+ *     tags: [Admin]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - $ref: '#/components/parameters/PageParam'
+ *       - $ref: '#/components/parameters/LimitParam'
+ *       - in: query
+ *         name: role
+ *         schema:
+ *           $ref: '#/components/schemas/UserRole'
+ *       - in: query
+ *         name: isActive
+ *         schema:
+ *           type: string
+ *           enum: ['true', 'false']
+ *         description: Filter by active status
+ *       - in: query
+ *         name: deleted
+ *         schema:
+ *           type: string
+ *           enum: ['true', 'false', 'all']
+ *           default: 'false'
+ *         description: Filter by deletion status (`false` = active users only, `true` = deleted only, `all` = include both)
+ *     responses:
+ *       200:
+ *         description: User list
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/PaginatedAdminUsersResponse'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ */
+router.get(
+  "/users",
+  validate(listUsersSchema, "query"),
+  asyncHandler(adminController.listUsers),
+);
+
+/**
+ * @swagger
+ * /admin/users/{id}:
+ *   get:
+ *     operationId: adminGetUserById
+ *     summary: Get user details (admin)
+ *     description: Returns a user profile with related record counts. Includes soft-deleted users. Listings remain live after account deletion — activeListings reflects public listings still visible.
+ *     tags: [Admin]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - $ref: '#/components/parameters/ObjectIdParam'
+ *     responses:
+ *       200:
+ *         description: User detail with related counts
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/AdminUserDetailResponse'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ */
+router.get(
+  "/users/:id",
+  validate(userIdSchema, "params"),
+  asyncHandler(adminController.getUserById),
+);
+
+/**
+ * @swagger
+ * /admin/users/{id}/status:
+ *   patch:
+ *     operationId: adminUpdateUserStatus
+ *     summary: Activate or deactivate a user
+ *     description: Sets a user's isActive flag. Admin only.
+ *     tags: [Admin]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - $ref: '#/components/parameters/ObjectIdParam'
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [isActive]
+ *             properties:
+ *               isActive:
+ *                 type: boolean
+ *                 example: false
+ *     responses:
+ *       200:
+ *         description: User status updated
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/UserSuccessResponse'
+ *       400:
+ *         $ref: '#/components/responses/ValidationError'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ */
+router.patch(
+  "/users/:id/status",
+  validateMultiple({ params: userIdSchema, body: updateUserStatusSchema }),
+  asyncHandler(adminController.updateUserStatus),
+);
+
+/**
+ * @swagger
+ * /admin/users/{id}/role:
+ *   patch:
+ *     operationId: adminUpdateUserRole
+ *     summary: Change a user's role
+ *     description: Updates a user's role. Admin only.
+ *     tags: [Admin]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - $ref: '#/components/parameters/ObjectIdParam'
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [role]
+ *             properties:
+ *               role:
+ *                 $ref: '#/components/schemas/UserRole'
+ *     responses:
+ *       200:
+ *         description: User role updated
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/UserSuccessResponse'
+ *       400:
+ *         $ref: '#/components/responses/ValidationError'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ */
+router.patch(
+  "/users/:id/role",
+  validateMultiple({ params: userIdSchema, body: updateUserRoleSchema }),
+  asyncHandler(adminController.updateUserRole),
+);
+
+/**
+ * @swagger
+ * /admin/properties:
+ *   get:
+ *     operationId: adminListProperties
+ *     summary: List all properties (admin)
+ *     description: Returns all listings including drafts and pending. Admin only.
+ *     tags: [Admin]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - $ref: '#/components/parameters/PageParam'
+ *       - $ref: '#/components/parameters/LimitParam'
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           $ref: '#/components/schemas/PropertyStatus'
+ *       - in: query
+ *         name: type
+ *         schema:
+ *           $ref: '#/components/schemas/PropertyType'
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *         description: Case-insensitive partial match on title and description
+ *       - in: query
+ *         name: sortBy
+ *         schema:
+ *           type: string
+ *           enum: [price, createdAt, viewCount]
+ *       - in: query
+ *         name: sortOrder
+ *         schema:
+ *           type: string
+ *           enum: [asc, desc]
+ *     responses:
+ *       200:
+ *         description: Property list
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/PaginatedPropertiesResponse'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ */
+router.get(
+  "/properties",
+  validate(listAdminPropertiesSchema, "query"),
+  asyncHandler(adminController.listProperties),
+);
+
+/**
+ * @swagger
+ * /admin/properties/{id}/moderate:
+ *   patch:
+ *     operationId: adminModerateProperty
+ *     summary: Moderate a property listing
+ *     description: Changes property status (e.g. approve pending listing to active). Admin only.
+ *     tags: [Admin]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - $ref: '#/components/parameters/ObjectIdParam'
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [status]
+ *             properties:
+ *               status:
+ *                 $ref: '#/components/schemas/PropertyStatus'
+ *     responses:
+ *       200:
+ *         description: Property moderated
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/PropertySuccessResponse'
+ *       400:
+ *         $ref: '#/components/responses/ValidationError'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ */
+router.patch(
+  "/properties/:id/moderate",
+  validateMultiple({ params: propertyIdSchema, body: moderatePropertySchema }),
+  asyncHandler(adminController.moderateProperty),
+);
+
+/**
+ * @swagger
+ * /admin/properties/{id}/platform-featured:
+ *   patch:
+ *     operationId: adminSetPropertyPlatformFeatured
+ *     summary: Set partner listing marketplace featuring
+ *     description: Buytly platform admin only. Sets visibleOnPlatform on a tenant-site listing.
+ *     tags: [Admin]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - $ref: '#/components/parameters/ObjectIdParam'
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [visibleOnPlatform]
+ *             properties:
+ *               visibleOnPlatform:
+ *                 type: boolean
+ *     responses:
+ *       200:
+ *         description: Marketplace featuring updated
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/PropertySuccessResponse'
+ *       400:
+ *         $ref: '#/components/responses/ValidationError'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ */
+router.patch(
+  "/properties/:id/platform-featured",
+  requirePlatformSite,
+  validateMultiple({ params: propertyIdSchema, body: platformFeaturedSchema }),
+  asyncHandler(adminController.setPropertyPlatformFeatured),
+);
+
+/**
+ * @swagger
+ * /admin/projects:
+ *   get:
+ *     operationId: adminListProjects
+ *     summary: List all projects (admin)
+ *     tags: [Admin]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - $ref: '#/components/parameters/PageParam'
+ *       - $ref: '#/components/parameters/LimitParam'
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           $ref: '#/components/schemas/PropertyStatus'
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: sortBy
+ *         schema:
+ *           type: string
+ *           enum: [createdAt, viewCount, title]
+ *       - in: query
+ *         name: sortOrder
+ *         schema:
+ *           type: string
+ *           enum: [asc, desc]
+ *     responses:
+ *       200:
+ *         description: Project list
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/PaginatedProjectsResponse'
+ */
+router.get(
+  "/projects",
+  validate(listAdminProjectsSchema, "query"),
+  asyncHandler(adminController.listProjects),
+);
+
+/**
+ * @swagger
+ * /admin/projects/{id}/moderate:
+ *   patch:
+ *     operationId: adminModerateProject
+ *     summary: Moderate a project
+ *     description: Setting status to archived soft-deletes the project and cascades the same trash timestamp to all units. Returning to a non-archived status restores units that were trashed with that project timestamp.
+ *     tags: [Admin]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - $ref: '#/components/parameters/ObjectIdParam'
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [status]
+ *             properties:
+ *               status:
+ *                 $ref: '#/components/schemas/PropertyStatus'
+ *     responses:
+ *       200:
+ *         description: Project moderated
+ */
+router.patch(
+  "/projects/:id/moderate",
+  validateMultiple({ params: projectIdSchema, body: moderateProjectSchema }),
+  asyncHandler(adminController.moderateProject),
+);
+
+/**
+ * @swagger
+ * /admin/projects/{id}/platform-featured:
+ *   patch:
+ *     operationId: adminSetProjectPlatformFeatured
+ *     summary: Set partner project marketplace featuring
+ *     description: Buytly platform admin only. Sets visibleOnPlatform on a tenant-site project.
+ *     tags: [Admin]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - $ref: '#/components/parameters/ObjectIdParam'
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [visibleOnPlatform]
+ *             properties:
+ *               visibleOnPlatform:
+ *                 type: boolean
+ *     responses:
+ *       200:
+ *         description: Marketplace featuring updated
+ *       400:
+ *         $ref: '#/components/responses/ValidationError'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ */
+router.patch(
+  "/projects/:id/platform-featured",
+  requirePlatformSite,
+  validateMultiple({ params: projectIdSchema, body: platformFeaturedSchema }),
+  asyncHandler(adminController.setProjectPlatformFeatured),
+);
+
+/**
+ * @swagger
+ * /admin/inquiries:
+ *   get:
+ *     operationId: adminListInquiries
+ *     summary: List contact form inquiries (admin)
+ *     description: Returns inquiries submitted through the public contact form on the current site only. Inquiries are private to each site — there is no cross-site `siteId` override, including for Buytly platform admins.
+ *     tags: [Admin]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - $ref: '#/components/parameters/PageParam'
+ *       - $ref: '#/components/parameters/LimitParam'
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           $ref: '#/components/schemas/InquiryStatus'
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *           maxLength: 200
+ *         description: Case-insensitive partial match on first name, last name, email, phone and message
+ *     responses:
+ *       200:
+ *         description: Inquiry list (newest first)
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/PaginatedInquiriesResponse'
+ *       400:
+ *         $ref: '#/components/responses/ValidationError'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ */
+router.get(
+  "/inquiries",
+  validate(listAdminInquiriesSchema, "query"),
+  asyncHandler(adminController.listInquiries),
+);
+
+/**
+ * @swagger
+ * /admin/inquiries/{id}:
+ *   patch:
+ *     operationId: adminUpdateInquiryStatus
+ *     summary: Update an inquiry's status
+ *     description: Sets the follow-up status of an inquiry on the current site. Inquiries from other sites return 404.
+ *     tags: [Admin]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - $ref: '#/components/parameters/ObjectIdParam'
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/UpdateInquiryStatusRequest'
+ *     responses:
+ *       200:
+ *         description: Inquiry status updated
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/InquirySuccessResponse'
+ *       400:
+ *         $ref: '#/components/responses/ValidationError'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ */
+router.patch(
+  "/inquiries/:id",
+  validateMultiple({ params: inquiryIdSchema, body: updateInquiryStatusSchema }),
+  asyncHandler(adminController.updateInquiryStatus),
+);
+
+/**
+ * @swagger
+ * /admin/analytics:
+ *   get:
+ *     operationId: getAnalytics
+ *     summary: Get platform analytics KPIs
+ *     description: Returns platform analytics including users by role, listings, bookings, transactions, and top cities. Cached for 10 minutes.
+ *     tags: [Admin]
+ *     security:
+ *       - BearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Analytics data
+ *         content:
+ *           application/json:
+ *             schema:
+ *               allOf:
+ *                 - $ref: '#/components/schemas/SuccessResponse'
+ *                 - type: object
+ *                   properties:
+ *                     data:
+ *                       $ref: '#/components/schemas/AnalyticsData'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ */
+router.get("/analytics", asyncHandler(adminController.getAnalytics));
+
+/**
+ * @swagger
+ * /admin/catalog/property-types:
+ *   get:
+ *     operationId: adminListCatalogPropertyTypes
+ *     summary: List all property types (admin)
+ *     tags: [Admin, Catalog]
+ *     security:
+ *       - BearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Property type list (includes listingCount per item)
+ *         content:
+ *           application/json:
+ *             schema:
+ *               allOf:
+ *                 - $ref: '#/components/schemas/SuccessResponse'
+ *                 - type: object
+ *                   properties:
+ *                     data:
+ *                       type: array
+ *                       items:
+ *                         $ref: '#/components/schemas/AdminCatalogPropertyType'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ */
+router.get(
+  "/catalog/property-types",
+  asyncHandler(catalogController.adminListPropertyTypes),
+);
+
+/**
+ * @swagger
+ * /admin/catalog/property-types:
+ *   post:
+ *     operationId: adminCreateCatalogPropertyType
+ *     summary: Create property type
+ *     tags: [Admin, Catalog]
+ *     security:
+ *       - BearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/CreateCatalogPropertyTypeRequest'
+ *     responses:
+ *       201:
+ *         description: Property type created
+ *       400:
+ *         $ref: '#/components/responses/ValidationError'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ *       409:
+ *         $ref: '#/components/responses/Conflict'
+ */
+router.post(
+  "/catalog/property-types",
+  validate(createPropertyTypeSchema),
+  asyncHandler(catalogController.adminCreatePropertyType),
+);
+
+/**
+ * @swagger
+ * /admin/catalog/property-types/{id}:
+ *   patch:
+ *     operationId: adminUpdateCatalogPropertyType
+ *     summary: Update property type
+ *     tags: [Admin, Catalog]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - $ref: '#/components/parameters/ObjectIdParam'
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/UpdateCatalogPropertyTypeRequest'
+ *     responses:
+ *       200:
+ *         description: Property type updated
+ *       400:
+ *         $ref: '#/components/responses/ValidationError'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ */
+router.patch(
+  "/catalog/property-types/:id",
+  validateMultiple({
+    params: catalogItemIdSchema,
+    body: updatePropertyTypeSchema,
+  }),
+  asyncHandler(catalogController.adminUpdatePropertyType),
+);
+
+/**
+ * @swagger
+ * /admin/catalog/property-types/{id}:
+ *   delete:
+ *     operationId: adminDeleteCatalogPropertyType
+ *     summary: Delete property type
+ *     tags: [Admin, Catalog]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - $ref: '#/components/parameters/ObjectIdParam'
+ *     responses:
+ *       200:
+ *         description: Property type deleted
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ *       409:
+ *         $ref: '#/components/responses/Conflict'
+ */
+router.delete(
+  "/catalog/property-types/:id",
+  validate(catalogItemIdSchema, "params"),
+  asyncHandler(catalogController.adminDeletePropertyType),
+);
+
+/**
+ * @swagger
+ * /admin/catalog/amenities:
+ *   get:
+ *     operationId: adminListCatalogAmenities
+ *     summary: List all amenities (admin)
+ *     tags: [Admin, Catalog]
+ *     security:
+ *       - BearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Amenity list (includes listingCount per item)
+ *         content:
+ *           application/json:
+ *             schema:
+ *               allOf:
+ *                 - $ref: '#/components/schemas/SuccessResponse'
+ *                 - type: object
+ *                   properties:
+ *                     data:
+ *                       type: array
+ *                       items:
+ *                         $ref: '#/components/schemas/AdminCatalogAmenity'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ */
+router.get(
+  "/catalog/amenities",
+  asyncHandler(catalogController.adminListAmenities),
+);
+
+/**
+ * @swagger
+ * /admin/catalog/amenities:
+ *   post:
+ *     operationId: adminCreateCatalogAmenity
+ *     summary: Create amenity
+ *     tags: [Admin, Catalog]
+ *     security:
+ *       - BearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/CreateCatalogAmenityRequest'
+ *     responses:
+ *       201:
+ *         description: Amenity created
+ *       400:
+ *         $ref: '#/components/responses/ValidationError'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ *       409:
+ *         $ref: '#/components/responses/Conflict'
+ */
+router.post(
+  "/catalog/amenities",
+  validate(createAmenitySchema),
+  asyncHandler(catalogController.adminCreateAmenity),
+);
+
+/**
+ * @swagger
+ * /admin/catalog/amenities/{id}:
+ *   patch:
+ *     operationId: adminUpdateCatalogAmenity
+ *     summary: Update amenity
+ *     tags: [Admin, Catalog]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - $ref: '#/components/parameters/ObjectIdParam'
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/UpdateCatalogAmenityRequest'
+ *     responses:
+ *       200:
+ *         description: Amenity updated
+ *       400:
+ *         $ref: '#/components/responses/ValidationError'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ */
+router.patch(
+  "/catalog/amenities/:id",
+  validateMultiple({ params: catalogItemIdSchema, body: updateAmenitySchema }),
+  asyncHandler(catalogController.adminUpdateAmenity),
+);
+
+/**
+ * @swagger
+ * /admin/catalog/amenities/{id}:
+ *   delete:
+ *     operationId: adminDeleteCatalogAmenity
+ *     summary: Delete amenity
+ *     tags: [Admin, Catalog]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - $ref: '#/components/parameters/ObjectIdParam'
+ *     responses:
+ *       200:
+ *         description: Amenity deleted
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ *       409:
+ *         $ref: '#/components/responses/Conflict'
+ */
+router.delete(
+  "/catalog/amenities/:id",
+  validate(catalogItemIdSchema, "params"),
+  asyncHandler(catalogController.adminDeleteAmenity),
+);
+
+export default router;

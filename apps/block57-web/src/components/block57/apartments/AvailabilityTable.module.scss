@@ -1,0 +1,321 @@
+@use "../../../styles/block57/breakpoints" as bp;
+@use "../../../styles/block57/type";
+
+// Product feature with no live reference, built from the live tokens
+// (DESIGN_SPEC §5): placed like "Apartment photos" (boxed, 150px margins that
+// collapse with it), eyebrow + H3-style title, then a borderless table.
+.section {
+  margin-block: var(--b57-section-y);
+}
+
+.heading {
+  margin-bottom: 20px;
+}
+
+// Live count under the title; with it the title → table gap is 60px + 16px.
+.summary {
+  margin: 0 0 40px;
+  line-height: 0;
+  text-align: center;
+
+  @include bp.down(mobile) {
+    margin-bottom: 30px;
+  }
+}
+
+.notice,
+.state {
+  @include type.body;
+
+  margin: 0 0 30px;
+  color: var(--b57-color-text);
+  text-align: center;
+}
+
+.notice {
+  padding: 15px 20px;
+  background: var(--b57-color-bg-light);
+}
+
+.state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  padding: 40px 20px;
+  border-block: 1px solid var(--b57-color-border);
+}
+
+.stateText {
+  max-width: 640px;
+  margin: 0;
+}
+
+.stateActions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 30px;
+}
+
+// ---- Table (≥1201px) ------------------------------------------------------------------
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+
+.caption {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+}
+
+// Header: eyebrow typography (#000, no bar) over a 1px green rule.
+.th {
+  @include type.label(18.67px);
+
+  padding: 0 12px 15px;
+  border-bottom: 1px solid var(--b57-color-primary);
+  font-weight: 300;
+  color: var(--b57-color-accent);
+  text-align: left;
+  white-space: nowrap;
+
+  &:first-child {
+    padding-left: 0;
+  }
+
+  &:last-child {
+    padding-right: 0;
+  }
+}
+
+.row {
+  border-bottom: 1px solid var(--b57-color-border);
+
+  &:focus {
+    outline: none; // focused only programmatically (deep link); the flash shows it
+  }
+}
+
+.cell {
+  @include type.body;
+
+  padding: 20px 12px;
+  color: var(--b57-color-text);
+  text-align: left;
+  vertical-align: middle;
+  white-space: nowrap;
+
+  &:first-child {
+    padding-left: 0;
+  }
+
+  &:last-child {
+    padding-right: 0;
+  }
+}
+
+.unitTitle {
+  @include type.display;
+
+  font-size: 18px;
+  line-height: 28px;
+  color: var(--b57-color-primary);
+}
+
+.row[data-status="sold"] {
+  .cellValue,
+  .unitTitle {
+    color: var(--b57-color-text-light);
+  }
+}
+
+.cellLabel {
+  display: none;
+}
+
+// Status: meta pill, AVAILABLE #346054 / SOLD #ADA4A1.
+.status {
+  color: var(--b57-color-primary);
+
+  &[data-status="sold"] {
+    color: var(--b57-color-text-light);
+  }
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 20px;
+}
+
+.planLink {
+  flex: none;
+}
+
+.inquire {
+  flex: none;
+}
+
+// Deep-link flash (#unit-<id>).
+.row[data-highlighted="true"] {
+  animation: b57-row-highlight 2.6s var(--b57-ease) both;
+}
+
+@keyframes b57-row-highlight {
+  0%,
+  35% {
+    background-color: var(--b57-color-highlight);
+  }
+
+  100% {
+    background-color: transparent;
+  }
+}
+
+// ---- Skeleton ---------------------------------------------------------------------------
+.bar {
+  display: inline-block;
+  height: 10px;
+  vertical-align: middle;
+  background: var(--b57-color-border);
+  animation: b57-table-pulse 1.4s ease-in-out infinite;
+}
+
+.barRound {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+}
+
+.barButton {
+  width: 120px;
+  height: 40px;
+  border-radius: var(--b57-radius-pill);
+}
+
+@keyframes b57-table-pulse {
+  50% {
+    opacity: 0.5;
+  }
+}
+
+// ---- Stacked cards (≤1200px), separated by hairlines -------------------------------------
+@include bp.down(tablet-extra) {
+  .table,
+  .tbody,
+  .cell {
+    display: block;
+  }
+
+  // The header row stays in the accessibility tree (roles keep the table semantics).
+  .thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+  }
+
+  .tbody {
+    border-top: 1px solid var(--b57-color-primary);
+  }
+
+  .row {
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    grid-template-areas:
+      "title title title status status status"
+      "block level beds baths area price"
+      "actions actions actions actions actions actions";
+    gap: 20px 15px;
+    padding: 30px 0;
+  }
+
+  .cell {
+    min-width: 0;
+    padding: 0;
+    white-space: normal;
+  }
+
+  .row > [data-col="title"] {
+    grid-area: title;
+    align-self: center;
+  }
+
+  .row > [data-col="status"] {
+    grid-area: status;
+    align-self: center;
+    justify-self: end;
+  }
+
+  @each $col in block, level, beds, baths, area, price, actions {
+    .row > [data-col="#{$col}"] {
+      grid-area: $col;
+    }
+  }
+
+  .unitTitle {
+    font-size: 28px;
+    line-height: 36px;
+  }
+
+  .cellLabel {
+    @include type.meta;
+
+    display: block;
+    margin-bottom: 4px;
+    color: var(--b57-color-text-light);
+  }
+
+  .cellValue {
+    display: block;
+  }
+
+  .actions {
+    flex-wrap: wrap;
+    justify-content: flex-start;
+  }
+
+  .inquire {
+    margin-left: auto;
+  }
+}
+
+@include bp.down(mobile) {
+  .row {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-areas:
+      "title title status"
+      "block level area"
+      "beds baths price"
+      "actions actions actions";
+  }
+
+  .unitTitle {
+    font-size: 24px;
+    line-height: 30px;
+  }
+}
+
+@include bp.reduced-motion {
+  .bar {
+    animation: none;
+  }
+
+  // No fade: a steady highlight for the flash duration instead.
+  .row[data-highlighted="true"] {
+    animation: none;
+    background-color: var(--b57-color-highlight);
+  }
+}

@@ -1,0 +1,48 @@
+@use "../../../styles/block57/breakpoints" as bp;
+
+.inner {
+  display: flex;
+  flex-wrap: wrap;
+}
+
+.formColumn {
+  flex: 0 0 66.6667%;
+  min-width: 0;
+  padding-right: 140px;
+
+  @include bp.down(tablet-extra) {
+    padding-right: 100px;
+  }
+
+  @include bp.down(tablet) {
+    flex-basis: 55%;
+    padding-right: 60px;
+  }
+
+  @include bp.down(mobile-extra) {
+    flex-basis: 50%;
+    padding-right: 30px;
+  }
+
+  @include bp.down(mobile) {
+    flex-basis: 100%;
+    padding: 0 0 60px;
+  }
+}
+
+.detailsColumn {
+  flex: 0 0 29.504%;
+  min-width: 0;
+
+  @include bp.down(tablet) {
+    flex-basis: 45%;
+  }
+
+  @include bp.down(mobile-extra) {
+    flex-basis: 50%;
+  }
+
+  @include bp.down(mobile) {
+    flex-basis: 100%;
+  }
+}

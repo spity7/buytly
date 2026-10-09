@@ -1,0 +1,108 @@
+@use "../../../styles/block57/breakpoints" as bp;
+@use "../../../styles/block57/type";
+
+.card {
+  text-align: center;
+}
+
+// ---- Photo (74.3% box, cover) + EXPLORE circle ------------------------------------
+.media {
+  position: relative;
+  display: block;
+  padding-top: 74.3%;
+  overflow: hidden;
+}
+
+.image {
+  object-fit: cover;
+}
+
+// Black 119px circle that scales in from the centre (.3s ease-out).
+.explore {
+  @include type.label(20px);
+
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 119px;
+  height: 119px;
+  border-radius: 50%;
+  background: var(--b57-color-accent);
+  color: var(--b57-color-on-dark);
+  transform: translate(-50%, -50%) scale(0);
+  transition: transform var(--b57-duration) ease-out;
+}
+
+.card:hover .explore,
+.card:focus-within .explore {
+  transform: translate(-50%, -50%) scale(1);
+}
+
+// Arrow "conveyor" while the pointer is on the circle: the first copy slides
+// out to the right as the second slides in from the left.
+.arrow {
+  flex: none;
+  overflow: hidden;
+}
+
+.arrowOut,
+.arrowIn {
+  transition: transform var(--b57-duration) var(--b57-ease-conveyor);
+}
+
+.arrowIn {
+  transform: translateX(-100%);
+}
+
+.explore:hover {
+  .arrowOut {
+    transform: translateX(100%);
+  }
+
+  .arrowIn {
+    transform: translateX(0);
+    transition-delay: 0.1s;
+  }
+}
+
+// ---- Title, meta pill, availability --------------------------------------------------
+.content {
+  padding-top: 19px;
+}
+
+.title {
+  @include type.card-title;
+
+  margin: 0 0 12px;
+  color: var(--b57-color-primary);
+}
+
+.titleLink {
+  color: inherit;
+
+  &:hover {
+    color: var(--b57-color-accent);
+  }
+}
+
+.meta {
+  margin: 0;
+  line-height: 0; // the pill sets the 34px height
+}
+
+.availability {
+  margin: 10px 0 0;
+  line-height: 0;
+}
+
+@include bp.reduced-motion {
+  .explore,
+  .arrowOut,
+  .arrowIn {
+    transition: none;
+  }
+}

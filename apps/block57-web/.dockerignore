@@ -1,0 +1,18 @@
+# Used when build context is ./apps/block57-web (not repo root). docker compose uses root .dockerignore.
+node_modules
+.next
+out
+dist
+.env
+.env.*
+!.env.example
+*.local
+logs
+npm-debug.log*
+.git
+.gitignore
+.vscode
+.idea
+.DS_Store
+coverage
+*.md

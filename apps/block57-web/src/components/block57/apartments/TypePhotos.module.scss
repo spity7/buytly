@@ -1,0 +1,21 @@
+@use "../../../styles/block57/breakpoints" as bp;
+
+.photos {
+  margin-block: var(--b57-section-y);
+}
+
+.heading {
+  margin-bottom: 60px;
+
+  @include bp.down(mobile) {
+    margin-bottom: 30px;
+  }
+}
+
+// Same column count on phones (live has no responsive override).
+.grid {
+  display: grid;
+  grid-template-columns: repeat(var(--_columns), minmax(0, 1fr));
+  gap: 8px;
+  list-style: none;
+}

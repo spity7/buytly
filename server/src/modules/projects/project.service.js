@@ -1,0 +1,823 @@
+import { Project } from "./project.model.js";
+import { Property } from "../properties/property.model.js";
+import {
+  attachPropertyMediaUrls,
+  canManageProperty,
+} from "../properties/property.service.js";
+import { buildSiteFolder, gcsService } from "../../services/gcs.service.js";
+import { getRequestSiteId } from "../../shared/requestContext.js";
+import { AppError } from "../../shared/AppError.js";
+import {
+  parsePagination,
+  buildPaginationMeta,
+} from "../../shared/pagination.js";
+import { buildPropertyTextFilter } from "../../shared/search.js";
+import { slugify } from "../../utils/slugify.js";
+import { ROLES } from "../../shared/constants.js";
+import { catalogService } from "../catalog/catalog.service.js";
+import { User } from "../users/user.model.js";
+import { notificationService } from "../notifications/notification.service.js";
+import { stripTenantPlatformVisibility } from "../platform/platform-visibility.js";
+import {
+  applyPublicListStatusToFilter,
+  normalizeSellerStatus,
+  hasMaterialChanges,
+  buildArchiveUpdate,
+  buildRestoreUpdate,
+  shouldIncrementListingView,
+} from "../properties/property-status.js";
+import { assertPublishUnitCardinality } from "./project-cardinality.js";
+import { cascadeMarkProjectAndUnitsSold } from "./project-sold-sync.js";
+import {
+  cascadeRestoreProjectUnits,
+  cascadeTrashProjectUnits,
+} from "./project-trash-cascade.js";
+import {
+  assertProjectPermanentlyDeletable,
+  collectProjectGcsKeys,
+  deleteGcsKeys,
+  purgePropertyRecord,
+} from "../../services/listing-purge.service.js";
+import {
+  hideProjectPriceRange,
+  hideUnitPrice,
+  requestSiteHidesPublicPrices,
+} from "../../shared/priceVisibility.js";
+
+const EARTH_RADIUS_KM = 6378.1;
+
+export const canManageProject = (project, user) =>
+  Boolean(
+    user &&
+    (user.role === ROLES.ADMIN ||
+      project.ownerId.equals(user._id) ||
+      (project.agentId && project.agentId.equals(user._id))),
+  );
+
+const canViewNonActiveProject = (project, user) =>
+  canManageProject(project, user);
+
+const PUBLIC_UNIT_STATUSES = ["active", "sold"];
+const PUBLIC_PROJECT_VIEW_STATUSES = ["active", "sold"];
+
+const assertProjectContentMutationAllowed = (project, user) => {
+  const isAdmin = user.role === ROLES.ADMIN;
+  if (isAdmin) {
+    return;
+  }
+  if (project.deletedAt) {
+    throw new AppError("Project not found", 404);
+  }
+  if (project.status === "sold") {
+    throw new AppError("Sold projects cannot be edited", 400);
+  }
+};
+
+const buildUnitsQuery = (project, user) => {
+  const filter = { projectId: project._id, deletedAt: null };
+  if (!canManageProject(project, user)) {
+    filter.status = { $in: PUBLIC_UNIT_STATUSES };
+  }
+  return filter;
+};
+
+const notifyAdminsOfPendingUnit = async (property, project) => {
+  const siteId = project.siteId ?? getRequestSiteId();
+  const admins = await User.find({
+    siteId,
+    role: ROLES.ADMIN,
+    deletedAt: null,
+    isActive: true,
+  }).select("_id");
+
+  await notificationService.notifyMany(
+    "property.pending_review",
+    admins.map((admin) => admin._id),
+    {
+      propertyId: property._id,
+      propertyTitle: property.title,
+      projectId: project._id,
+      projectTitle: project.title,
+    },
+  );
+};
+
+const submitDraftUnitsForReview = async (project) => {
+  const draftUnits = await Property.find({
+    projectId: project._id,
+    deletedAt: null,
+    status: "draft",
+  });
+
+  for (const unit of draftUnits) {
+    unit.status = "pending";
+    await unit.save();
+    await notifyAdminsOfPendingUnit(unit, project);
+  }
+};
+
+const notifyAdminsOfPendingProject = async (project) => {
+  const siteId = project.siteId ?? getRequestSiteId();
+  const admins = await User.find({
+    siteId,
+    role: ROLES.ADMIN,
+    deletedAt: null,
+    isActive: true,
+  }).select("_id");
+
+  await notificationService.notifyMany(
+    "project.pending_review",
+    admins.map((admin) => admin._id),
+    {
+      projectId: project._id,
+      projectTitle: project.title,
+    },
+  );
+};
+
+const attachMediaUrls = async (project) => {
+  if (!project) return project;
+  const doc = project.toObject ? project.toObject() : { ...project };
+
+  if (doc.media?.length) {
+    doc.media.sort((a, b) => {
+      const orderDiff = (a.order ?? 0) - (b.order ?? 0);
+      if (orderDiff !== 0) return orderDiff;
+      if (a.type === "video" && b.type !== "video") return 1;
+      if (b.type === "video" && a.type !== "video") return -1;
+      return 0;
+    });
+
+    doc.media = await Promise.all(
+      doc.media.map(async (m) => ({
+        ...m,
+        url: await gcsService.getSignedUrl(m.gcsKey),
+      })),
+    );
+  }
+
+  return stripTenantPlatformVisibility(doc);
+};
+
+const buildUniqueSlug = async ({ siteId, title }) => {
+  let slug = slugify(title);
+  let counter = 0;
+  let exists = await Project.findOne({ siteId, slug });
+
+  while (exists) {
+    counter += 1;
+    slug = `${slugify(title)}-${counter}`;
+    exists = await Project.findOne({ siteId, slug });
+  }
+
+  return slug;
+};
+
+const countProjectUnits = async (projectId) =>
+  Property.countDocuments({ projectId, deletedAt: null });
+
+const aggregateUnitStats = async (projectIds) => {
+  if (!projectIds.length) return new Map();
+
+  const rows = await Property.aggregate([
+    {
+      $match: {
+        projectId: { $in: projectIds },
+        deletedAt: null,
+        status: { $in: ["active", "sold"] },
+      },
+    },
+    {
+      $group: {
+        _id: "$projectId",
+        unitCount: { $sum: 1 },
+        priceMin: { $min: "$price" },
+        priceMax: { $max: "$price" },
+      },
+    },
+  ]);
+
+  return new Map(rows.map((row) => [String(row._id), row]));
+};
+
+const maybeRependActiveProject = async (
+  project,
+  { isAdmin, previousStatus, notify = true },
+) => {
+  if (isAdmin || previousStatus !== "active") return false;
+  if (project.status !== "active") return false;
+
+  project.status = "pending";
+  await project.save();
+  if (notify) await notifyAdminsOfPendingProject(project);
+  return true;
+};
+
+/**
+ * Write filter (update, permanent delete, media): non-admins only match
+ * projects they own or are the agent on, trashed or not.
+ */
+const buildProjectIdFilter = (id, user) => {
+  const filter = { _id: id, siteId: getRequestSiteId() };
+  if (!user) {
+    filter.deletedAt = null;
+    return filter;
+  }
+  if (user.role === ROLES.ADMIN) {
+    return filter;
+  }
+
+  filter.$or = [{ ownerId: user._id }, { agentId: user._id }];
+  return filter;
+};
+
+/**
+ * Detail-read filter (public detail, slug, units list): owners/agents also
+ * match their own trashed projects; every other user matches non-deleted
+ * projects like an anonymous visitor. Callers still apply the status check
+ * (PUBLIC_PROJECT_VIEW_STATUSES / canViewNonActiveProject).
+ */
+const buildProjectReadFilter = (id, user) => {
+  const filter = { _id: id, siteId: getRequestSiteId() };
+  if (!user) {
+    filter.deletedAt = null;
+    return filter;
+  }
+  if (user.role === ROLES.ADMIN) {
+    return filter;
+  }
+
+  filter.$or = [
+    { ownerId: user._id },
+    { agentId: user._id },
+    { deletedAt: null },
+  ];
+  return filter;
+};
+
+const populateProjectContacts = (query) =>
+  query
+    .populate("agentId", "firstName lastName email phone avatar")
+    .populate("ownerId", "firstName lastName email phone");
+
+const findProjectById = (id, user) =>
+  populateProjectContacts(Project.findOne(buildProjectIdFilter(id, user)));
+
+const findProjectForRead = (id, user) =>
+  populateProjectContacts(Project.findOne(buildProjectReadFilter(id, user)));
+
+const applyAdminStatusTransition = (project, normalizedStatus) => {
+  if (normalizedStatus === "archived") {
+    Object.assign(project, buildArchiveUpdate());
+    return;
+  }
+
+  project.deletedAt = null;
+  project.status = normalizedStatus;
+};
+
+const applyProjectCatalogRules = async (payload) => {
+  if (payload.amenities?.length) {
+    await catalogService.assertValidAmenities(payload.amenities);
+  }
+};
+
+const enrichProjectDoc = async (project, statsMap, options = {}) => {
+  const doc = await attachMediaUrls(project);
+  const stats = statsMap?.get(String(project._id));
+  const { forOwnerDashboard = false } = options;
+
+  if (forOwnerDashboard) {
+    if (project.deletedAt) {
+      doc.unitCount = await Property.countDocuments({
+        projectId: project._id,
+        deletedAt: project.deletedAt,
+      });
+      doc.trashedUnitCount = 0;
+    } else {
+      doc.unitCount = await countProjectUnits(project._id);
+      doc.trashedUnitCount = await Property.countDocuments({
+        projectId: project._id,
+        deletedAt: { $ne: null },
+      });
+    }
+  } else {
+    doc.unitCount = stats?.unitCount ?? 0;
+  }
+
+  doc.priceMin = stats?.priceMin ?? null;
+  doc.priceMax = stats?.priceMax ?? null;
+  return doc;
+};
+
+const validatePublishIfNeeded = async (project, nextStatus) => {
+  if (nextStatus !== "pending" && nextStatus !== "active") return;
+
+  const unitCount = project._id ? await countProjectUnits(project._id) : 0;
+  assertPublishUnitCardinality(unitCount);
+};
+
+export const projectService = {
+  canManageProject,
+
+  async create(data, user) {
+    const siteId = getRequestSiteId();
+    const slug = await buildUniqueSlug({ siteId, title: data.title });
+    const payload = { ...data };
+    const isAdmin = user.role === ROLES.ADMIN;
+
+    await applyProjectCatalogRules(payload);
+
+    payload.status = normalizeSellerStatus(payload.status, {
+      isAdmin,
+      isCreate: true,
+    });
+
+    await validatePublishIfNeeded({ _id: null }, payload.status);
+
+    const project = await Project.create({
+      ...payload,
+      siteId,
+      slug,
+      ownerId: user._id,
+      agentId:
+        payload.agentId || (user.role === ROLES.AGENT ? user._id : undefined),
+      location: { type: "Point", ...payload.location },
+    });
+
+    if (project.status === "pending" && !isAdmin) {
+      await notifyAdminsOfPendingProject(project);
+    }
+
+    return attachMediaUrls(project);
+  },
+
+  async list(query) {
+    const siteId = getRequestSiteId();
+    const { page, limit, skip } = parsePagination(query);
+    const filter = { siteId, deletedAt: null };
+
+    applyPublicListStatusToFilter(filter, query.status);
+    if (query.city) filter["location.city"] = new RegExp(query.city, "i");
+
+    const hasTextSearch = Boolean(query.search);
+    const hasGeoSearch =
+      query.lat != null && query.lng != null && query.radiusKm != null;
+
+    if (hasTextSearch) {
+      filter.$text = { $search: query.search };
+    }
+
+    if (hasGeoSearch) {
+      if (hasTextSearch) {
+        filter.location = {
+          $geoWithin: {
+            $centerSphere: [
+              [query.lng, query.lat],
+              query.radiusKm / EARTH_RADIUS_KM,
+            ],
+          },
+        };
+      } else {
+        filter.location = {
+          $nearSphere: {
+            $geometry: { type: "Point", coordinates: [query.lng, query.lat] },
+            $maxDistance: query.radiusKm * 1000,
+          },
+        };
+      }
+    }
+
+    const sortField = query.sortBy || "createdAt";
+    const sortOrder = query.sortOrder === "asc" ? 1 : -1;
+    const sort = { [sortField]: sortOrder };
+
+    const [projects, total] = await Promise.all([
+      Project.find(filter)
+        .populate("agentId", "firstName lastName email phone avatar")
+        .populate("ownerId", "firstName lastName email")
+        .sort(sort)
+        .skip(skip)
+        .limit(limit),
+      Project.countDocuments(filter),
+    ]);
+
+    const statsMap = await aggregateUnitStats(projects.map((p) => p._id));
+    const data = await Promise.all(
+      projects.map((p) => enrichProjectDoc(p, statsMap)),
+    );
+
+    return {
+      projects: requestSiteHidesPublicPrices()
+        ? data.map(hideProjectPriceRange)
+        : data,
+      pagination: buildPaginationMeta(total, page, limit),
+    };
+  },
+
+  async getById(id, { incrementView = true, user, includeUnits = false } = {}) {
+    const project = await findProjectForRead(id, user);
+
+    if (!project) throw new AppError("Project not found", 404);
+
+    if (
+      !PUBLIC_PROJECT_VIEW_STATUSES.includes(project.status) &&
+      !canViewNonActiveProject(project, user)
+    ) {
+      throw new AppError("Project not found", 404);
+    }
+
+    if (
+      shouldIncrementListingView({
+        incrementView,
+        status: project.status,
+        canManage: canManageProject(project, user),
+      }) &&
+      !project.deletedAt
+    ) {
+      project.viewCount += 1;
+      await project.save({ validateBeforeSave: false });
+    }
+
+    const statsMap = await aggregateUnitStats([project._id]);
+    const forOwnerDashboard = Boolean(user && canManageProject(project, user));
+    const hidePrices = requestSiteHidesPublicPrices() && !forOwnerDashboard;
+    const enriched = await enrichProjectDoc(project, statsMap, {
+      forOwnerDashboard,
+    });
+    const doc = hidePrices ? hideProjectPriceRange(enriched) : enriched;
+
+    if (includeUnits) {
+      const units = await Property.find(buildUnitsQuery(project, user)).sort({
+        sortOrder: 1,
+        createdAt: 1,
+      });
+      doc.units = await Promise.all(
+        units.map(async (unit) => {
+          const unitDoc = await attachPropertyMediaUrls(unit);
+          return hidePrices && !canManageProperty(unit, user)
+            ? hideUnitPrice(unitDoc)
+            : unitDoc;
+        }),
+      );
+    }
+
+    return doc;
+  },
+
+  async getBySlug(slug, options = {}) {
+    const project = await Project.findOne({
+      siteId: getRequestSiteId(),
+      slug: slug.toLowerCase(),
+      deletedAt: null,
+    })
+      .populate("agentId", "firstName lastName email phone avatar")
+      .populate("ownerId", "firstName lastName email phone");
+
+    if (!project) throw new AppError("Project not found", 404);
+
+    return this.getById(project._id, {
+      ...options,
+      incrementView: options.incrementView ?? true,
+    });
+  },
+
+  async update(id, data, user) {
+    const project = await findProjectById(id, user);
+    if (!project) throw new AppError("Project not found", 404);
+
+    if (!canManageProject(project, user)) {
+      throw new AppError("Not authorized to update this project", 403);
+    }
+
+    const isAdmin = user.role === ROLES.ADMIN;
+
+    const previousStatus = project.status;
+    const patch = { ...data };
+
+    if (!isAdmin && project.status === "sold") {
+      throw new AppError("Sold projects cannot be edited", 400);
+    }
+
+    if (patch.visibleOnPlatform !== undefined) {
+      throw new AppError("You cannot change marketplace featuring", 403);
+    }
+
+    if (patch.amenities !== undefined) {
+      await catalogService.assertValidAmenities(patch.amenities);
+    }
+
+    const normalizedStatus = normalizeSellerStatus(patch.status, {
+      isAdmin,
+      isCreate: false,
+      currentStatus: previousStatus,
+    });
+
+    if (normalizedStatus !== undefined) {
+      patch.status = normalizedStatus;
+      await validatePublishIfNeeded(project, normalizedStatus);
+    } else {
+      delete patch.status;
+    }
+
+    if (patch.title && patch.title !== project.title) {
+      patch.slug = await buildUniqueSlug({
+        siteId: project.siteId,
+        title: patch.title,
+      });
+    }
+
+    if (patch.location) {
+      patch.location = { type: "Point", ...patch.location };
+    }
+
+    const materialChanges =
+      !isAdmin &&
+      previousStatus === "active" &&
+      normalizedStatus === undefined &&
+      hasMaterialChanges(project, patch);
+
+    Object.assign(project, patch);
+
+    if (materialChanges) {
+      project.status = "pending";
+    }
+
+    if (isAdmin && normalizedStatus !== undefined) {
+      applyAdminStatusTransition(project, normalizedStatus);
+    }
+
+    await project.save();
+
+    if (normalizedStatus === "sold") {
+      await cascadeMarkProjectAndUnitsSold(project._id, { notify: false });
+    }
+
+    if (patch.location) {
+      await Property.updateMany(
+        { projectId: project._id, deletedAt: null },
+        {
+          $set: {
+            location: project.location,
+          },
+        },
+      );
+    }
+
+    if (
+      !isAdmin &&
+      project.status === "pending" &&
+      previousStatus !== "pending"
+    ) {
+      await submitDraftUnitsForReview(project);
+      await notifyAdminsOfPendingProject(project);
+    }
+
+    const statsMap = await aggregateUnitStats([project._id]);
+    return enrichProjectDoc(project, statsMap);
+  },
+
+  async softDelete(id, user) {
+    const project = await Project.findOne({
+      _id: id,
+      siteId: getRequestSiteId(),
+      deletedAt: null,
+    });
+    if (!project) throw new AppError("Project not found", 404);
+
+    if (!canManageProject(project, user)) {
+      throw new AppError("Not authorized to delete this project", 403);
+    }
+
+    const deletedAt = new Date();
+    Object.assign(project, { status: "archived", deletedAt });
+    await project.save();
+
+    await cascadeTrashProjectUnits(project._id, deletedAt);
+  },
+
+  async restore(id, user) {
+    const project = await Project.findOne({
+      _id: id,
+      siteId: getRequestSiteId(),
+      deletedAt: { $ne: null },
+    });
+
+    if (!project) throw new AppError("Project not found in trash", 404);
+
+    if (!canManageProject(project, user)) {
+      throw new AppError("Not authorized to restore this project", 403);
+    }
+
+    const cascadeDeletedAt = project.deletedAt;
+    Object.assign(project, buildRestoreUpdate());
+    await project.save();
+
+    await cascadeRestoreProjectUnits(project._id, cascadeDeletedAt);
+
+    return attachMediaUrls(project);
+  },
+
+  async permanentDelete(id, user) {
+    const project = await findProjectById(id, user);
+    if (!project) throw new AppError("Project not found", 404);
+
+    if (!canManageProject(project, user)) {
+      throw new AppError("Not authorized to delete this project", 403);
+    }
+
+    assertProjectPermanentlyDeletable(project);
+
+    const units = await Property.find({ projectId: project._id });
+    for (const unit of units) {
+      await purgePropertyRecord(unit, { requireTrash: false });
+    }
+
+    await deleteGcsKeys(collectProjectGcsKeys(project));
+    await project.deleteOne();
+  },
+
+  async listMine(user, query) {
+    const { page, limit, skip } = parsePagination(query);
+    const siteId = getRequestSiteId();
+    const conditions = [
+      { siteId },
+      { $or: [{ ownerId: user._id }, { agentId: user._id }] },
+      query.trashed === "true"
+        ? { deletedAt: { $ne: null } }
+        : { deletedAt: null },
+    ];
+
+    if (query.status) conditions.push({ status: query.status });
+    const textFilter = buildPropertyTextFilter(query.search);
+    if (textFilter) conditions.push(textFilter);
+
+    const filter =
+      conditions.length === 1 ? conditions[0] : { $and: conditions };
+
+    const sortField = query.sortBy || "createdAt";
+    const sortOrder = query.sortOrder === "asc" ? 1 : -1;
+    const sort = { [sortField]: sortOrder };
+
+    const [projects, total] = await Promise.all([
+      Project.find(filter)
+        .populate("agentId", "firstName lastName email phone avatar")
+        .populate("ownerId", "firstName lastName email")
+        .sort(sort)
+        .skip(skip)
+        .limit(limit),
+      Project.countDocuments(filter),
+    ]);
+
+    const statsMap = await aggregateUnitStats(projects.map((p) => p._id));
+    const data = await Promise.all(
+      projects.map((p) =>
+        enrichProjectDoc(p, statsMap, { forOwnerDashboard: true }),
+      ),
+    );
+
+    return {
+      projects: data,
+      pagination: buildPaginationMeta(total, page, limit),
+    };
+  },
+
+  async listUnits(projectId, user) {
+    const project = await findProjectForRead(projectId, user);
+    if (!project) throw new AppError("Project not found", 404);
+
+    if (
+      !PUBLIC_PROJECT_VIEW_STATUSES.includes(project.status) &&
+      !canViewNonActiveProject(project, user)
+    ) {
+      throw new AppError("Project not found", 404);
+    }
+
+    const units = await Property.find(buildUnitsQuery(project, user)).sort({
+      sortOrder: 1,
+      createdAt: 1,
+    });
+
+    if (!requestSiteHidesPublicPrices() || canManageProject(project, user)) {
+      return units;
+    }
+    return units.map((unit) =>
+      canManageProperty(unit, user) ? unit : hideUnitPrice(unit),
+    );
+  },
+
+  async uploadMedia(id, file, user) {
+    const project = await findProjectById(id, user);
+    if (!project) throw new AppError("Project not found", 404);
+
+    if (!canManageProject(project, user)) {
+      throw new AppError("Not authorized", 403);
+    }
+    assertProjectContentMutationAllowed(project, user);
+
+    const isVideo = file.mimetype.startsWith("video/");
+
+    if (isVideo && project.media.some((item) => item.type === "video")) {
+      throw new AppError(
+        "Project already has a video. Remove the existing video before uploading a new one.",
+        400,
+      );
+    }
+
+    const uploaded = await gcsService.uploadFile(file.buffer, {
+      folder: buildSiteFolder("projects"),
+      mimeType: file.mimetype,
+      originalName: file.originalname,
+    });
+
+    const nextImageOrder = project.media
+      .filter((item) => item.type !== "video")
+      .reduce((max, item) => Math.max(max, item.order ?? 0), -1);
+
+    project.media.push({
+      ...uploaded,
+      type: isVideo ? "video" : "image",
+      order: isVideo ? project.media.length : nextImageOrder + 1,
+    });
+
+    const previousStatus = project.status;
+    const isAdmin = user.role === ROLES.ADMIN;
+    await project.save();
+
+    await maybeRependActiveProject(project, { isAdmin, previousStatus });
+    const media = project.media[project.media.length - 1];
+    return {
+      ...media.toObject(),
+      url: await gcsService.getSignedUrl(media.gcsKey),
+    };
+  },
+
+  async removeMedia(id, mediaId, user) {
+    const project = await findProjectById(id, user);
+    if (!project) throw new AppError("Project not found", 404);
+
+    if (!canManageProject(project, user)) {
+      throw new AppError("Not authorized", 403);
+    }
+    assertProjectContentMutationAllowed(project, user);
+
+    const media = project.media.id(mediaId);
+    if (!media) throw new AppError("Media not found", 404);
+
+    await gcsService.deleteFile(media.gcsKey);
+    media.deleteOne();
+
+    const previousStatus = project.status;
+    const isAdmin = user.role === ROLES.ADMIN;
+    await project.save();
+
+    await maybeRependActiveProject(project, { isAdmin, previousStatus });
+  },
+
+  async reorderMedia(id, { imageIds }, user) {
+    const project = await findProjectById(id, user);
+    if (!project) throw new AppError("Project not found", 404);
+
+    if (!canManageProject(project, user)) {
+      throw new AppError("Not authorized", 403);
+    }
+    assertProjectContentMutationAllowed(project, user);
+
+    const imageMedia = project.media.filter((item) => item.type !== "video");
+    if (imageIds.length !== imageMedia.length) {
+      throw new AppError(
+        "imageIds must include every listing photo exactly once",
+        400,
+      );
+    }
+
+    const uniqueIds = new Set(imageIds.map(String));
+    if (uniqueIds.size !== imageIds.length) {
+      throw new AppError("imageIds must not contain duplicates", 400);
+    }
+
+    for (const item of imageMedia) {
+      if (!uniqueIds.has(String(item._id))) {
+        throw new AppError(
+          "imageIds must include every listing photo exactly once",
+          400,
+        );
+      }
+    }
+
+    for (let index = 0; index < imageIds.length; index += 1) {
+      const media = project.media.id(imageIds[index]);
+      if (!media || media.type === "video") {
+        throw new AppError("Invalid image id in imageIds", 400);
+      }
+      media.order = index;
+    }
+
+    const previousStatus = project.status;
+    const isAdmin = user.role === ROLES.ADMIN;
+    await project.save();
+
+    await maybeRependActiveProject(project, { isAdmin, previousStatus });
+    return attachMediaUrls(project);
+  },
+};

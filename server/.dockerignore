@@ -1,0 +1,17 @@
+node_modules
+.env
+.env.*
+!.env.example
+logs
+gcs-service-account.json
+npm-debug.log*
+.git
+.gitignore
+.vscode
+.idea
+.DS_Store
+coverage
+*.md
+# Block 57 unit inventory (real prices) must not be baked into the image
+scripts/seed/block57-units*.json
+!scripts/seed/block57-units.example.json

@@ -1,0 +1,553 @@
+import { describe, it, expect } from "vitest";
+import { mongoAvailable } from "./setup.js";
+import { api } from "./helpers/http.js";
+import { Property } from "../src/modules/properties/property.model.js";
+import { Project } from "../src/modules/projects/project.model.js";
+import { User } from "../src/modules/users/user.model.js";
+import {
+  buildPropertyBody,
+  createActiveProperty,
+  createProject,
+  createPropertyForProject,
+} from "./helpers/listingFixtures.js";
+
+const getApp = async () => {
+  const { default: app } = await import("../src/app.js");
+  return app;
+};
+
+const registerPayload = (overrides = {}) => ({
+  email: "seller@example.com",
+  password: "password123",
+  confirmPassword: "password123",
+  firstName: "Test",
+  role: "seller",
+  ...overrides,
+});
+
+const registerAndGetToken = async (app, overrides = {}) => {
+  const res = await api(app)
+    .post("/api/v1/auth/register")
+    .send(registerPayload(overrides));
+  return res.body.data.accessToken;
+};
+
+describe.skipIf(!mongoAvailable)("property status rules", () => {
+  it("rejects public list with draft status filter", async () => {
+    const app = await getApp();
+    const res = await api(app).get("/api/v1/properties?status=draft");
+    expect(res.status).toBe(400);
+  });
+
+  it("rejects public list with pending status filter", async () => {
+    const app = await getApp();
+    const res = await api(app).get("/api/v1/properties?status=pending");
+    expect(res.status).toBe(400);
+  });
+
+  it("allows public list with sold status filter", async () => {
+    const app = await getApp();
+    const token = await registerAndGetToken(app, {
+      email: "sold-list-seller@example.com",
+    });
+    const id = await createActiveProperty(app, token, {
+      title: "Sold List Property",
+    });
+    await Property.findByIdAndUpdate(id, { status: "sold" });
+
+    const res = await api(app).get("/api/v1/properties?status=sold");
+    expect(res.status).toBe(200);
+    expect(res.body.data.some((p) => p._id === id)).toBe(true);
+  });
+
+  it("allows public get by id for sold listing on a public project", async () => {
+    const app = await getApp();
+    const token = await registerAndGetToken(app, {
+      email: "sold-detail-seller@example.com",
+    });
+    const id = await createActiveProperty(app, token, {
+      title: "Sold Detail Property",
+    });
+    await Property.findByIdAndUpdate(id, { status: "sold" });
+
+    const res = await api(app).get(`/api/v1/properties/${id}`);
+    expect(res.status).toBe(200);
+    expect(res.body.data.status).toBe("sold");
+  });
+
+  it("allows seller to mark an active listing sold", async () => {
+    const app = await getApp();
+    const token = await registerAndGetToken(app, {
+      email: "sold-mark-seller@example.com",
+    });
+    const id = await createActiveProperty(app, token, {
+      title: "Mark Sold Property",
+    });
+
+    const res = await api(app)
+      .patch(`/api/v1/properties/${id}`)
+      .set("Authorization", `Bearer ${token}`)
+      .send({ status: "sold" });
+
+    expect(res.status).toBe(200);
+    expect(res.body.data.status).toBe("sold");
+  });
+
+  it("rejects seller marking a draft listing sold", async () => {
+    const app = await getApp();
+    const token = await registerAndGetToken(app, {
+      email: "sold-draft-seller@example.com",
+    });
+    const projectRes = await createProject(app, token);
+    const created = await createPropertyForProject(
+      app,
+      token,
+      projectRes.body.data._id,
+      { title: "Draft Not Sold", status: "draft" },
+    );
+    const id = created.body.data._id;
+
+    const res = await api(app)
+      .patch(`/api/v1/properties/${id}`)
+      .set("Authorization", `Bearer ${token}`)
+      .send({ status: "sold" });
+
+    expect(res.status).toBe(400);
+  });
+
+  it("keeps status unchanged when seller updates without status field", async () => {
+    const app = await getApp();
+    const token = await registerAndGetToken(app, {
+      email: "no-status-update@example.com",
+    });
+    const id = await createActiveProperty(app, token, {
+      title: "Active No Status Change",
+    });
+
+    const res = await api(app)
+      .patch(`/api/v1/properties/${id}`)
+      .set("Authorization", `Bearer ${token}`)
+      .send({ currency: "USD" });
+
+    expect(res.status).toBe(200);
+    expect(res.body.data.status).toBe("active");
+    expect(res.body.data.currency).toBe("USD");
+  });
+
+  it("re-submits for review when seller sends active on update", async () => {
+    const app = await getApp();
+    const token = await registerAndGetToken(app, {
+      email: "resubmit-review@example.com",
+    });
+    const id = await createActiveProperty(app, token, {
+      title: "Resubmit Review Property",
+    });
+
+    const res = await api(app)
+      .patch(`/api/v1/properties/${id}`)
+      .set("Authorization", `Bearer ${token}`)
+      .send({ status: "active" });
+
+    expect(res.status).toBe(200);
+    expect(res.body.data.status).toBe("pending");
+  });
+
+  it("rejects favorites for non-active properties", async () => {
+    const app = await getApp();
+    const sellerToken = await registerAndGetToken(app, {
+      email: "fav-seller@example.com",
+    });
+    const buyerToken = await registerAndGetToken(app, {
+      email: "fav-buyer@example.com",
+      role: "buyer",
+    });
+
+    const created = await api(app)
+      .post("/api/v1/properties")
+      .set("Authorization", `Bearer ${sellerToken}`)
+      .send(
+        await buildPropertyBody(app, sellerToken, {
+          title: "Draft Favorite Property",
+          status: "draft",
+        }),
+      );
+
+    const res = await api(app)
+      .post("/api/v1/favorites")
+      .set("Authorization", `Bearer ${buyerToken}`)
+      .send({ propertyId: created.body.data._id });
+
+    expect(res.status).toBe(404);
+  });
+
+  it("admin can moderate pending listing to active", async () => {
+    const app = await getApp();
+    const sellerToken = await registerAndGetToken(app, {
+      email: "mod-seller@example.com",
+    });
+
+    const created = await api(app)
+      .post("/api/v1/properties")
+      .set("Authorization", `Bearer ${sellerToken}`)
+      .send(
+        await buildPropertyBody(app, sellerToken, {
+          title: "Moderate Me",
+          status: "active",
+        }),
+      );
+
+    expect(created.body.data.status).toBe("pending");
+
+    await Project.findByIdAndUpdate(created.body.data.projectId, {
+      status: "active",
+    });
+
+    const adminRegister = await api(app)
+      .post("/api/v1/auth/register")
+      .send(
+        registerPayload({
+          email: "mod-admin@example.com",
+          role: "seller",
+        }),
+      );
+
+    await User.findByIdAndUpdate(adminRegister.body.data.user.id, {
+      role: "admin",
+    });
+
+    const adminLogin = await api(app)
+      .post("/api/v1/auth/login")
+      .send({ email: "mod-admin@example.com", password: "password123" });
+
+    const res = await api(app)
+      .patch(`/api/v1/admin/properties/${created.body.data._id}/moderate`)
+      .set("Authorization", `Bearer ${adminLogin.body.data.accessToken}`)
+      .send({ status: "active" });
+
+    expect(res.status).toBe(200);
+    expect(res.body.data.status).toBe("active");
+  });
+
+  it("marks property sold when transaction completes", async () => {
+    const app = await getApp();
+    const sellerToken = await registerAndGetToken(app, {
+      email: "txn-seller@example.com",
+    });
+    const buyerToken = await registerAndGetToken(app, {
+      email: "txn-buyer@example.com",
+      role: "buyer",
+    });
+
+    const propertyId = await createActiveProperty(app, sellerToken, {
+      title: "Transaction Sold Property",
+    });
+
+    const txn = await api(app)
+      .post("/api/v1/transactions")
+      .set("Authorization", `Bearer ${buyerToken}`)
+      .send({
+        propertyId,
+        type: "buy",
+        amount: 350000,
+      });
+
+    expect(txn.status).toBe(201);
+
+    const complete = await api(app)
+      .patch(`/api/v1/transactions/${txn.body.data._id}/status`)
+      .set("Authorization", `Bearer ${sellerToken}`)
+      .send({ status: "completed" });
+
+    expect(complete.status).toBe(200);
+
+    const property = await Property.findById(propertyId);
+    expect(property.status).toBe("sold");
+
+    const project = await Project.findById(property.projectId);
+    expect(project.status).toBe("sold");
+  });
+
+  it("keeps compound project active until every unit is sold", async () => {
+    const app = await getApp();
+    const sellerToken = await registerAndGetToken(app, {
+      email: "compound-txn-seller@example.com",
+    });
+    const buyerToken = await registerAndGetToken(app, {
+      email: "compound-txn-buyer@example.com",
+      role: "buyer",
+    });
+
+    const projectRes = await createProject(app, sellerToken, {
+      title: "Compound Txn Project",
+    });
+    const projectId = projectRes.body.data._id;
+
+    const unitA = await createPropertyForProject(app, sellerToken, projectId, {
+      title: "Compound Unit A",
+    });
+    const unitB = await createPropertyForProject(app, sellerToken, projectId, {
+      title: "Compound Unit B",
+    });
+
+    await Property.findByIdAndUpdate(unitA.body.data._id, { status: "active" });
+    await Property.findByIdAndUpdate(unitB.body.data._id, { status: "active" });
+    await Project.findByIdAndUpdate(projectId, { status: "active" });
+
+    const completeSale = async (propertyId) => {
+      const txn = await api(app)
+        .post("/api/v1/transactions")
+        .set("Authorization", `Bearer ${buyerToken}`)
+        .send({ propertyId, type: "buy", amount: 350000 });
+      expect(txn.status).toBe(201);
+
+      const complete = await api(app)
+        .patch(`/api/v1/transactions/${txn.body.data._id}/status`)
+        .set("Authorization", `Bearer ${sellerToken}`)
+        .send({ status: "completed" });
+      expect(complete.status).toBe(200);
+    };
+
+    await completeSale(unitA.body.data._id);
+
+    let project = await Project.findById(projectId);
+    expect(project.status).toBe("active");
+
+    await completeSale(unitB.body.data._id);
+
+    project = await Project.findById(projectId);
+    expect(project.status).toBe("sold");
+  });
+
+  it("cascades sold to all units when project is marked sold", async () => {
+    const app = await getApp();
+    const sellerToken = await registerAndGetToken(app, {
+      email: "cascade-sold-seller@example.com",
+    });
+
+    const projectRes = await createProject(app, sellerToken, {
+      title: "Cascade Sold Project",
+    });
+    const projectId = projectRes.body.data._id;
+
+    const unitA = await createPropertyForProject(app, sellerToken, projectId, {
+      title: "Cascade Unit A",
+    });
+    const unitB = await createPropertyForProject(app, sellerToken, projectId, {
+      title: "Cascade Unit B",
+    });
+
+    await Property.findByIdAndUpdate(unitA.body.data._id, { status: "active" });
+    await Property.findByIdAndUpdate(unitB.body.data._id, { status: "active" });
+    await Project.findByIdAndUpdate(projectId, { status: "active" });
+
+    const markSold = await api(app)
+      .patch(`/api/v1/projects/${projectId}`)
+      .set("Authorization", `Bearer ${sellerToken}`)
+      .send({ status: "sold" });
+
+    expect(markSold.status).toBe(200);
+    expect(markSold.body.data.status).toBe("sold");
+
+    const units = await Property.find({
+      projectId,
+      deletedAt: null,
+    }).select("status");
+    expect(units.every((u) => u.status === "sold")).toBe(true);
+  });
+
+  it("soft-deletes property and hides from mine list", async () => {
+    const app = await getApp();
+    const token = await registerAndGetToken(app, {
+      email: "soft-delete@example.com",
+    });
+    const id = await createActiveProperty(app, token, {
+      title: "Soft Delete Property",
+    });
+
+    const deleteRes = await api(app)
+      .delete(`/api/v1/properties/${id}`)
+      .set("Authorization", `Bearer ${token}`);
+
+    expect(deleteRes.status).toBe(200);
+
+    const property = await Property.findById(id);
+    expect(property.status).toBe("archived");
+    expect(property.deletedAt).toBeTruthy();
+
+    const mineRes = await api(app)
+      .get("/api/v1/properties/mine")
+      .set("Authorization", `Bearer ${token}`);
+
+    expect(mineRes.body.data.some((p) => p._id === id)).toBe(false);
+
+    const trashRes = await api(app)
+      .get("/api/v1/properties/mine?trashed=true")
+      .set("Authorization", `Bearer ${token}`);
+
+    expect(trashRes.body.data.some((p) => p._id === id)).toBe(true);
+  });
+
+  it("includes archived listings in admin list (all statuses and archived filter)", async () => {
+    const app = await getApp();
+    const sellerToken = await registerAndGetToken(app, {
+      email: "admin-list-seller@example.com",
+    });
+    const id = await createActiveProperty(app, sellerToken, {
+      title: "Admin Archived Listing",
+    });
+
+    const adminRegister = await api(app)
+      .post("/api/v1/auth/register")
+      .send(
+        registerPayload({
+          email: "admin-list-admin@example.com",
+          role: "seller",
+        }),
+      );
+
+    await User.findByIdAndUpdate(adminRegister.body.data.user.id, {
+      role: "admin",
+    });
+
+    const adminLogin = await api(app)
+      .post("/api/v1/auth/login")
+      .send({ email: "admin-list-admin@example.com", password: "password123" });
+
+    const adminToken = adminLogin.body.data.accessToken;
+
+    const archiveRes = await api(app)
+      .patch(`/api/v1/admin/properties/${id}/moderate`)
+      .set("Authorization", `Bearer ${adminToken}`)
+      .send({ status: "archived" });
+
+    expect(archiveRes.status).toBe(200);
+    expect(archiveRes.body.data.status).toBe("archived");
+
+    const allRes = await api(app)
+      .get("/api/v1/admin/properties")
+      .set("Authorization", `Bearer ${adminToken}`);
+
+    expect(allRes.status).toBe(200);
+    expect(allRes.body.data.some((p) => p._id === id)).toBe(true);
+
+    const archivedRes = await api(app)
+      .get("/api/v1/admin/properties?status=archived")
+      .set("Authorization", `Bearer ${adminToken}`);
+
+    expect(archivedRes.status).toBe(200);
+    expect(archivedRes.body.data.some((p) => p._id === id)).toBe(true);
+
+    const activeRes = await api(app)
+      .get("/api/v1/admin/properties?status=active")
+      .set("Authorization", `Bearer ${adminToken}`);
+
+    expect(activeRes.status).toBe(200);
+    expect(activeRes.body.data.some((p) => p._id === id)).toBe(false);
+  });
+
+  it("lets admin view and restore archived listing via property endpoints", async () => {
+    const app = await getApp();
+    const sellerToken = await registerAndGetToken(app, {
+      email: "admin-archived-edit-seller@example.com",
+    });
+    const id = await createActiveProperty(app, sellerToken, {
+      title: "Admin Archived Edit Listing",
+    });
+
+    const adminRegister = await api(app)
+      .post("/api/v1/auth/register")
+      .send(
+        registerPayload({
+          email: "admin-archived-edit-admin@example.com",
+          role: "seller",
+        }),
+      );
+
+    await User.findByIdAndUpdate(adminRegister.body.data.user.id, {
+      role: "admin",
+    });
+
+    const adminLogin = await api(app).post("/api/v1/auth/login").send({
+      email: "admin-archived-edit-admin@example.com",
+      password: "password123",
+    });
+
+    const adminToken = adminLogin.body.data.accessToken;
+
+    await api(app)
+      .patch(`/api/v1/admin/properties/${id}/moderate`)
+      .set("Authorization", `Bearer ${adminToken}`)
+      .send({ status: "archived" });
+
+    const archivedProperty = await Property.findById(id);
+    expect(archivedProperty.status).toBe("archived");
+    expect(archivedProperty.deletedAt).toBeTruthy();
+
+    const getRes = await api(app)
+      .get(`/api/v1/properties/${id}`)
+      .set("Authorization", `Bearer ${adminToken}`);
+
+    expect(getRes.status).toBe(200);
+    expect(getRes.body.data.status).toBe("archived");
+
+    const sellerGetRes = await api(app)
+      .get(`/api/v1/properties/${id}`)
+      .set("Authorization", `Bearer ${sellerToken}`);
+
+    expect(sellerGetRes.status).toBe(200);
+    expect(sellerGetRes.body.data.status).toBe("archived");
+
+    const restoreRes = await api(app)
+      .patch(`/api/v1/admin/properties/${id}/moderate`)
+      .set("Authorization", `Bearer ${adminToken}`)
+      .send({ status: "active" });
+
+    expect(restoreRes.status).toBe(200);
+    expect(restoreRes.body.data.status).toBe("active");
+    expect(restoreRes.body.data.deletedAt).toBeNull();
+
+    const restored = await Property.findById(id);
+    expect(restored.status).toBe("active");
+    expect(restored.deletedAt).toBeNull();
+  });
+
+  it("restores soft-deleted property to draft", async () => {
+    const app = await getApp();
+    const token = await registerAndGetToken(app, {
+      email: "restore-seller@example.com",
+    });
+    const id = await createActiveProperty(app, token, {
+      title: "Restore Property",
+    });
+
+    await api(app)
+      .delete(`/api/v1/properties/${id}`)
+      .set("Authorization", `Bearer ${token}`);
+
+    const restoreRes = await api(app)
+      .patch(`/api/v1/properties/${id}/restore`)
+      .set("Authorization", `Bearer ${token}`);
+
+    expect(restoreRes.status).toBe(200);
+    expect(restoreRes.body.data.status).toBe("draft");
+    expect(restoreRes.body.data.deletedAt).toBeNull();
+  });
+
+  it("re-pends active listing when material fields change without status", async () => {
+    const app = await getApp();
+    const token = await registerAndGetToken(app, {
+      email: "material-change@example.com",
+    });
+    const id = await createActiveProperty(app, token, {
+      title: "Material Change Property",
+    });
+
+    const res = await api(app)
+      .patch(`/api/v1/properties/${id}`)
+      .set("Authorization", `Bearer ${token}`)
+      .send({ price: 999999 });
+
+    expect(res.status).toBe(200);
+    expect(res.body.data.status).toBe("pending");
+  });
+});

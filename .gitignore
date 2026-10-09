@@ -1,0 +1,29 @@
+# Environment (keep .env.example tracked)
+.env
+.env.*
+!.env.example
+
+# Dependencies & build output (npm workspaces — hoisted root + per-package)
+node_modules/
+**/.next/
+**/out/
+.turbo/
+
+# Test / coverage
+coverage/
+**/coverage/
+
+# GCP key (server uses server/gcs-service-account.json — ignore if copied to repo root)
+gcs-service-account.json
+
+# Block 57 real unit inventory for `npm run seed:block57` (keep only the example tracked)
+block57-units*.json
+!block57-units.example.json
+
+# OS / editor
+.DS_Store
+.vscode/
+.idea/
+
+# Logs
+*.log

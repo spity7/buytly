@@ -1,0 +1,61 @@
+@use "../../../styles/block57/type";
+
+// Meta-style pill (ui/MetaPill: 34px, 1px #E3DCD9, radius 20, URW 10/16 2px
+// uppercase); the × button sits inside the right padding.
+.chip {
+  max-width: 100%;
+  margin: 0 0 30px;
+  padding-right: 6px;
+}
+
+.label {
+  color: var(--b57-color-text-light);
+}
+
+.value {
+  min-width: 0;
+  margin-left: 10px;
+  overflow: hidden;
+  color: var(--b57-color-accent);
+  text-overflow: ellipsis;
+}
+
+.remove {
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  margin-left: 6px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--b57-color-accent);
+  transition:
+    background-color var(--b57-transition),
+    color var(--b57-transition);
+
+  &:hover {
+    background: var(--b57-color-primary);
+    color: var(--b57-color-on-dark);
+  }
+
+  &:focus-visible {
+    outline-offset: 1px;
+  }
+}
+
+// Loading / missing / error: one line of body copy.
+.status {
+  @include type.body;
+
+  margin: 0 0 30px;
+  color: var(--b57-color-text);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .remove {
+    transition: none;
+  }
+}

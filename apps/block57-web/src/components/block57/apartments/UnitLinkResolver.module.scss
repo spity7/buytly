@@ -1,0 +1,68 @@
+@use "../../../styles/block57/breakpoints" as bp;
+@use "../../../styles/block57/type";
+
+// Notice above the apartments grid (only with ?unit=): a #F6F1EA strip in
+// body copy, centred in the archive column.
+.notice {
+  @include type.body;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 15px;
+  min-height: 58px;
+  margin: 0;
+  padding: 15px 20px;
+  background: var(--b57-color-bg-light);
+  color: var(--b57-color-text);
+  text-align: center;
+}
+
+.message {
+  margin: 0;
+}
+
+.dismiss {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 44px;
+  height: 44px;
+  margin: -10px -10px -10px 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--b57-color-accent);
+  transition: color var(--b57-transition);
+
+  &:hover {
+    color: var(--b57-color-primary);
+  }
+}
+
+.spinner {
+  flex: none;
+  width: 14px;
+  height: 14px;
+  border: 1px solid var(--b57-color-primary);
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: b57-resolver-spin 0.9s linear infinite;
+}
+
+@keyframes b57-resolver-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@include bp.reduced-motion {
+  .spinner {
+    animation: none;
+  }
+
+  .dismiss {
+    transition: none;
+  }
+}

@@ -1,15 +1,66 @@
 {
-  "name": "server",
+  "name": "buytly-server",
   "version": "1.0.0",
-  "main": "index.js",
+  "description": "Buytly real estate marketplace backend API",
+  "type": "module",
+  "main": "src/server.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node src/server.js",
+    "generate-secrets": "node scripts/generate-secrets.js",
+    "seed": "node scripts/seed.js",
+    "seed:reset": "node scripts/seed.js --reset",
+    "seed:block57": "node scripts/seed-block57.js",
+    "catalog:prune-legacy-types": "node scripts/prune-legacy-property-types.js",
+    "dev": "nodemon src/server.js",
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "test:watch": "vitest",
+    "cleanup:gcs": "node scripts/gcs-orphan-cleanup.js",
+    "cleanup:gcs:dry-run": "node scripts/gcs-orphan-cleanup.js --dry-run",
+    "migrate:multi-site": "node scripts/migrate-multi-site.js",
+    "migrate:gcs-site-prefix": "node scripts/migrate-gcs-site-prefix.js",
+    "migrate:gcs-site-prefix:dry-run": "node scripts/migrate-gcs-site-prefix.js --dry-run",
+    "lint": "eslint src tests"
   },
-  "keywords": [],
+  "keywords": [
+    "real-estate",
+    "marketplace",
+    "express",
+    "mongodb"
+  ],
   "author": "",
   "license": "ISC",
-  "description": "",
   "dependencies": {
-    "express": "^5.2.1"
+    "@google-cloud/storage": "^7.16.0",
+    "@sendgrid/mail": "^8.1.5",
+    "bcrypt": "^6.0.0",
+    "compression": "^1.8.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.5.0",
+    "express": "^5.2.1",
+    "express-mongo-sanitize": "^2.2.0",
+    "express-rate-limit": "^7.5.0",
+    "google-auth-library": "^11.0.1",
+    "helmet": "^8.1.0",
+    "jsonwebtoken": "^9.0.2",
+    "mongoose": "^8.16.0",
+    "morgan": "^1.10.0",
+    "multer": "^2.0.1",
+    "nodemailer": "^7.0.3",
+    "sharp": "^0.35.3",
+    "swagger-jsdoc": "^6.2.8",
+    "swagger-ui-express": "^5.0.1",
+    "uuid": "^11.1.0",
+    "zod": "^3.25.67"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.28.0",
+    "@vitest/coverage-v8": "^3.2.7",
+    "cross-env": "^7.0.3",
+    "eslint": "^9.28.0",
+    "globals": "^16.2.0",
+    "nodemon": "^3.1.10",
+    "supertest": "^7.1.1",
+    "vitest": "^3.2.3"
   }
 }

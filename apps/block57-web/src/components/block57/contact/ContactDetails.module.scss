@@ -1,0 +1,38 @@
+@use "../../../styles/block57/breakpoints" as bp;
+@use "../../../styles/block57/type";
+
+// URW 12/12, 2px tracking, uppercase, #000; 23px below the label.
+.label {
+  display: block;
+  margin: 0 0 23px;
+  line-height: 12px;
+}
+
+// H5 28/33.6 #346054 ("First Circular Crescent," / "Cantonments - Accra.").
+.value {
+  @include type.h5(33.6px);
+
+  margin: 0;
+  color: var(--b57-color-primary);
+  overflow-wrap: anywhere;
+}
+
+.address {
+  margin-bottom: 40px;
+}
+
+// Theme link hover (#000), as every other link on the site.
+.link {
+  color: inherit;
+
+  @include bp.hover {
+    &:hover {
+      color: var(--b57-link-hover);
+    }
+  }
+}
+
+.email {
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+}

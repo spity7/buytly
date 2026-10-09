@@ -1,0 +1,78 @@
+@use "../../../styles/block57/breakpoints" as bp;
+@use "../../../styles/block57/type";
+
+.row {
+  display: flex;
+  min-height: 700px;
+  overflow-x: clip; // entrance animations slide in from ±100px
+
+  @include bp.down(mobile-extra) {
+    min-height: 600px;
+  }
+
+  @include bp.down(mobile) {
+    flex-direction: column;
+  }
+}
+
+.reverse {
+  flex-direction: row-reverse;
+
+  @include bp.down(mobile) {
+    flex-direction: column;
+  }
+}
+
+.media {
+  position: relative;
+  flex: 0 0 50%;
+  overflow: hidden;
+
+  @include bp.down(mobile) {
+    flex: none;
+    height: 450px;
+  }
+}
+
+.image {
+  object-fit: cover;
+}
+
+.text {
+  display: flex;
+  flex: 0 0 50%;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 30px;
+  background: var(--b57-color-bg);
+
+  @include bp.down(mobile) {
+    flex: none;
+  }
+}
+
+.column {
+  width: var(--b57-container-text);
+  max-width: 100%;
+
+  @include bp.down(tablet-extra) {
+    width: 100%;
+  }
+}
+
+.title {
+  @include type.section-title;
+
+  margin: 0 0 20px;
+  color: var(--b57-fg-heading);
+}
+
+.copy {
+  @include type.lead;
+
+  text-align: justify;
+
+  @include bp.down(mobile) {
+    font-size: 20px;
+  }
+}

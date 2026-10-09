@@ -1,0 +1,78 @@
+@use "../../../styles/block57/breakpoints" as bp;
+
+// Live 05a303a: full width, 520px tall, then 150 → 100 → 80 → 60 of white.
+// Slides start at the 1320 container's left edge and bleed past both
+// viewport edges.
+.marquee {
+  margin-bottom: var(--b57-section-y);
+}
+
+.viewport {
+  --_gap: 30px;
+
+  position: relative;
+  height: 520px;
+  container-type: inline-size;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+
+  @include bp.down(mobile) {
+    --_gap: 15px;
+  }
+
+  // JS ticker running: slides are placed by transform, nothing scrolls (clip:
+  // focusing an off-screen tile must not scroll the strip either).
+  &[data-mode="ticker"] {
+    overflow: hidden;
+    overflow: clip;
+  }
+}
+
+// Static strip (no JS / reduced motion): a scrollable row.
+.track {
+  display: flex;
+  gap: var(--_gap);
+  width: max-content;
+  height: 100%;
+  margin: 0 0 0 max(0px, (100cqw - var(--b57-container)) / 2);
+  padding: 0;
+  list-style: none;
+
+  [data-mode="ticker"] & {
+    position: relative;
+    display: block;
+    width: auto;
+    touch-action: pan-y;
+    user-select: none;
+  }
+}
+
+// 500px tall at the image's own width (750 for 3:2); one full-width slide per
+// view ≤767px. The tile is centred vertically in the 520px slide.
+.slide {
+  display: grid;
+  flex: none;
+  align-content: center;
+  width: calc(500px * var(--_ratio));
+  height: 100%;
+
+  @include bp.down(mobile) {
+    width: 100cqw;
+  }
+
+  [data-mode="ticker"] & {
+    position: absolute;
+    top: 0;
+    left: 0;
+    will-change: transform;
+  }
+
+  img {
+    -webkit-user-drag: none;
+  }
+}

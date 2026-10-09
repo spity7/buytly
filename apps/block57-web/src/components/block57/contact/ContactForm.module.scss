@@ -1,0 +1,36 @@
+@use "../../../styles/block57/breakpoints" as bp;
+@use "../../../styles/block57/type";
+
+// Live /contact/ form (CF7 form 10): typed text and placeholders #346054
+// (this page does not override the theme input colour); field look in
+// forms/fields.module.scss.
+.root {
+  --b57-form-placeholder: var(--b57-color-primary);
+}
+
+// H3 48/48 #346054, also 48px on phones (no subsection step-down here).
+.title {
+  @include type.display;
+
+  margin: 0 0 30px;
+  font-size: 48px;
+  line-height: 48px;
+  color: var(--b57-color-primary);
+}
+
+// Body 18/28 in the primary green (widget colour on live).
+.note {
+  @include type.body;
+
+  margin: 0 0 30px;
+  color: var(--b57-color-primary);
+}
+
+// SUBMIT left-aligned; centred on phones.
+.actions {
+  display: flex;
+
+  @include bp.down(mobile) {
+    justify-content: center;
+  }
+}

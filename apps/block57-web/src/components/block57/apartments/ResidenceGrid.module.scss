@@ -1,0 +1,47 @@
+@use "../../../styles/block57/breakpoints" as bp;
+
+// The lines are drawn by every card (::before above it, ::after right of it)
+// and the grid clips them, so only the lines between cards remain (live
+// theme archive). `--_gutter` comes from the component (30 | 60).
+.grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--_gutter);
+  overflow: hidden;
+  list-style: none;
+
+  @include bp.down(tablet) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  @include bp.down(mobile) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.item {
+  position: relative;
+  margin-bottom: var(--_gutter);
+
+  // Horizontal hairline across the whole grid, one gutter above the row.
+  &::before {
+    content: "";
+    position: absolute;
+    top: calc(-1 * var(--_gutter));
+    left: -100vw;
+    width: 300vw;
+    height: 1px;
+    background: var(--b57-color-border);
+  }
+
+  // Vertical hairline centred in the column gap, as tall as the card.
+  &::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    right: calc(var(--_gutter) / -2);
+    width: 1px;
+    height: 100%;
+    background: var(--b57-color-border);
+  }
+}

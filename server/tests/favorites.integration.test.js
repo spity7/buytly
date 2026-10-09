@@ -1,0 +1,76 @@
+import { describe, it, expect } from "vitest";
+import { api } from "./helpers/http.js";
+import { mongoAvailable } from "./setup.js";
+import { createActiveProperty } from "./helpers/listingFixtures.js";
+
+const getApp = async () => {
+  const { default: app } = await import("../src/app.js");
+  return app;
+};
+
+const register = async (app, overrides = {}) => {
+  const res = await api(app)
+    .post("/api/v1/auth/register")
+    .send({
+      email: "buyer@example.com",
+      password: "password123",
+      confirmPassword: "password123",
+      firstName: "Buyer",
+      role: "buyer",
+      ...overrides,
+    });
+  return res.body.data.accessToken;
+};
+
+describe.skipIf(!mongoAvailable)("favorites API", () => {
+  it("adds, lists, checks, and removes favorites for active listings", async () => {
+    const app = await getApp();
+
+    const sellerToken = await register(app, {
+      email: "seller-fav@example.com",
+      role: "seller",
+    });
+    const buyerToken = await register(app, {
+      email: "buyer-fav@example.com",
+      role: "buyer",
+    });
+
+    const propertyId = await createActiveProperty(app, sellerToken, {
+      title: "Favorite Test Listing",
+      price: 250000,
+    });
+
+    const addRes = await api(app)
+      .post("/api/v1/favorites")
+      .set("Authorization", `Bearer ${buyerToken}`)
+      .send({ propertyId });
+
+    expect(addRes.status).toBe(201);
+
+    const checkRes = await api(app)
+      .get(`/api/v1/favorites/check/${propertyId}`)
+      .set("Authorization", `Bearer ${buyerToken}`);
+
+    expect(checkRes.status).toBe(200);
+    expect(checkRes.body.data.isFavorite).toBe(true);
+
+    const listRes = await api(app)
+      .get("/api/v1/favorites")
+      .set("Authorization", `Bearer ${buyerToken}`);
+
+    expect(listRes.status).toBe(200);
+    expect(listRes.body.data.length).toBe(1);
+
+    const removeRes = await api(app)
+      .delete(`/api/v1/favorites/${propertyId}`)
+      .set("Authorization", `Bearer ${buyerToken}`);
+
+    expect(removeRes.status).toBe(200);
+
+    const checkAfterRemove = await api(app)
+      .get(`/api/v1/favorites/check/${propertyId}`)
+      .set("Authorization", `Bearer ${buyerToken}`);
+
+    expect(checkAfterRemove.body.data.isFavorite).toBe(false);
+  });
+});

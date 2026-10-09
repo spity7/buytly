@@ -1,0 +1,51 @@
+@use "../../../styles/block57/breakpoints" as bp;
+@use "../../../styles/block57/type";
+
+// Live /inquire/ form (CF7 form 2055): typed text green (live #ADA4A1 is
+// 2.2:1 on #F6F1EA), placeholders #ADA4A1 as live; field look in
+// forms/fields.module.scss.
+
+// H5 28/34 #346054, 2 lines at 595px (4 on phones), 50px above the form.
+.intro {
+  @include type.h5(34px);
+
+  margin: 0 0 50px;
+  color: var(--b57-color-primary);
+}
+
+// First / Last Name: two halves with a 30px gutter; stacked on phones (live
+// stacks ≤768px).
+.names {
+  display: flex;
+  gap: 30px;
+
+  > * {
+    flex: 1 1 0;
+  }
+
+  @include bp.down(mobile) {
+    flex-direction: column;
+    gap: 0;
+  }
+}
+
+// "Field with * required" left, SUBMIT right (also on phones).
+.actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.note {
+  @include type.body-small;
+
+  margin: 0;
+  color: var(--b57-color-text);
+}
+
+// Live asks for 500: Sentient Regular is the closest face.
+.noteStrong {
+  font-weight: 400;
+  color: var(--b57-color-primary);
+}

@@ -1,0 +1,62 @@
+// Applied to the PhotoSwipe root through `mainClass`.
+.lightbox {
+  --pswp-bg: #000;
+  --pswp-icon-color: var(--b57-color-lightbox-ui);
+  --pswp-icon-color-secondary: transparent;
+  --pswp-icon-stroke-width: 0;
+  --pswp-placeholder-bg: transparent;
+
+  z-index: var(--b57-z-lightbox);
+  font-family: var(--b57-font-body);
+
+  :global(.pswp__counter) {
+    margin: 15px 0 0 20px;
+    font-size: 15px;
+    font-weight: 300;
+    color: var(--b57-color-lightbox-ui);
+    text-shadow: none;
+    opacity: 1;
+  }
+
+  :global(.pswp__button) {
+    color: var(--b57-color-lightbox-ui);
+    opacity: 1;
+
+    &:hover,
+    &:focus-visible {
+      color: #fff;
+    }
+
+    &:focus-visible {
+      outline: 2px solid #fff;
+      outline-offset: -6px;
+    }
+  }
+
+  :global(.pswp__icn) {
+    top: 20px;
+    left: 15px;
+    width: 20px;
+    height: 20px;
+    fill: none;
+    color: inherit;
+  }
+
+  :global(.pswp__button--arrow) :global(.pswp__icn) {
+    top: 50%;
+    left: 25px;
+    width: 25px;
+    height: 25px;
+    margin-top: -12.5px;
+  }
+
+  :global(.pswp__button--arrow--next) :global(.pswp__icn) {
+    right: 25px;
+    left: auto;
+  }
+
+  :global(.pswp__img) {
+    border-radius: 2px;
+    box-shadow: var(--b57-shadow-lightbox);
+  }
+}

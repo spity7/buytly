@@ -1,0 +1,612 @@
+# Deployment Guide
+
+## Prerequisites
+
+- Node.js 20+ (LTS)
+- MongoDB 6+ (Atlas recommended for production)
+- Google Cloud Platform account (for GCS)
+- SMTP: Gmail with an [App Password](https://myaccount.google.com/apppasswords) (2FA required)
+
+## Domain layout (buytly.com)
+
+| Host                            | Purpose                                 |
+| ------------------------------- | --------------------------------------- |
+| `buytly.com` / `www.buytly.com` | Next.js frontend — Docker port **3025** |
+| `api.buytly.com`                | Express API — Docker port **5025**      |
+
+Both services run on the same Hostinger VPS via Docker Compose (same pattern as handiz-dashboard).
+
+## Local Development Setup
+
+```bash
+cd server
+cp .env.example .env
+# Edit .env with your values
+npm install
+npm run dev
+```
+
+Server starts at `http://localhost:5025`  
+Swagger docs at `http://localhost:5025/api/docs` (enabled automatically in development)
+
+### Demo database seed
+
+Populate MongoDB with realistic UAE listings, users, reviews, bookings, and dashboard data:
+
+```bash
+cd server
+npm run seed          # append (fails on duplicate emails if users already exist)
+npm run seed:reset    # wipe collections first, then seed
+```
+
+| Variable        | Default           | Description                                     |
+| --------------- | ----------------- | ----------------------------------------------- |
+| `SEED_PASSWORD` | `BuytlyDemo2026!` | Shared password for all `@buytly.demo` accounts |
+| `SEED_FORCE`    | —                 | Required to run when `NODE_ENV=production`      |
+
+Demo logins: `admin@buytly.demo`, `seller@buytly.demo`, `agent@buytly.demo`, `buyer@buytly.demo` (see seed output for full list). Includes land and archived listings and seller2 reviews.
+
+**`npm run seed:reset`** (recommended) wipes users, listings, and the **listing catalog** collections, then reloads demo property types (only those used by sample listings), amenities, and demo data. All demo listing prices use **`currency: USD`**, consistent with the API (create/update always store USD). Use **`npm run seed`** without reset only to append users when emails are new; catalog rows are skipped if types already exist (demo amenities are upserted).
+
+**Development only** — never seed production without intent. The Block 57 tenant has its own production-safe bootstrap: see [Block 57 bootstrap](#block-57-bootstrap-seedblock57).
+
+Generate JWT secrets:
+
+```bash
+npm run generate-secrets
+```
+
+The Next.js client fetches the live OpenAPI spec from `/api/docs.json` for Orval — no file export step. Ensure the API is running before `npm run dev` in `client/`.
+
+## Environment Variables
+
+| Variable                  | Required | Description                                                                                                           |
+| ------------------------- | -------- | --------------------------------------------------------------------------------------------------------------------- |
+| NODE_ENV                  | Yes      | development / production / test                                                                                       |
+| PORT                      | Yes      | Server port (default **5025**; must match `docker-compose.yml` publish and healthcheck)                               |
+| TRUST_PROXY               | No       | `true` behind nginx/ALB (default `false`)                                                                             |
+| DEFAULT_SITE_SLUG         | No       | Fallback tenant when `Origin` / `X-Site-Slug` is missing (scripts, server-to-server); usually `buytly`                |
+| MONGODB_URI               | Yes      | MongoDB connection string (local in `.env.example`; production: Atlas `mongodb+srv://...`)                            |
+| JWT_ACCESS_SECRET         | Yes      | Access token secret (min 32 chars)                                                                                    |
+| JWT_REFRESH_SECRET        | Yes      | Reserved for future use; refresh tokens are opaque UUIDs stored hashed in MongoDB                                     |
+| JWT_ACCESS_EXPIRES_IN     | No       | Access token TTL (default 15m)                                                                                        |
+| JWT_REFRESH_EXPIRES_IN    | No       | Refresh token TTL (default 7d)                                                                                        |
+| GCS_PROJECT_ID            | Yes      | GCP project ID                                                                                                        |
+| GCS_BUCKET                | Yes      | GCS bucket name                                                                                                       |
+| GCS_KEY_FILE              | No       | Path to service account JSON                                                                                          |
+| APP_URL                   | Yes      | Fallback frontend URL for email links when no site public URL is known (sites use `SITE_PUBLIC_URL_*` / `publicUrl`)  |
+| API_URL                   | Yes      | Public API base for Swagger and logs (e.g. `https://api.buytly.com/api/v1`)                                           |
+| CORS_ORIGIN               | Yes      | Allowed origins (comma-separated)                                                                                     |
+| SWAGGER_ENABLED           | No       | Expose `/api/docs` (default: on in dev, off in production)                                                            |
+| EMAIL_PROVIDER            | No       | `smtp` (default) or `sendgrid`                                                                                        |
+| SENDGRID_API_KEY          | Cond.    | Required when `EMAIL_PROVIDER=sendgrid`                                                                               |
+| SMTP_HOST                 | Cond.    | Required when `EMAIL_PROVIDER=smtp`                                                                                   |
+| SMTP_PORT                 | No       | SMTP port (587 or 465; default 587)                                                                                   |
+| SMTP_USER                 | Cond.    | Required when `EMAIL_PROVIDER=smtp`                                                                                   |
+| SMTP_PASS                 | Cond.    | Required when `EMAIL_PROVIDER=smtp`                                                                                   |
+| SMTP_FROM                 | Yes      | Sender address (verified sender for SendGrid); the display name is set per site, e.g. `Block 57 <address>`            |
+| CONTACT_INBOX_EMAIL       | No       | Receives `/contact` submissions for sites without `branding.contactInboxEmail` (default `buytlyonline@gmail.com`)     |
+| GCS_ORPHAN_GRACE_HOURS    | No       | Grace period for `npm run cleanup:gcs` (default 48)                                                                   |
+| OVERPASS_URL              | No       | Primary Overpass API URL for What's Nearby (falls back to public mirrors)                                             |
+| OVERPASS_USER_AGENT       | No       | User-Agent sent to Overpass (recommended in production)                                                               |
+| GOOGLE_CLIENT_ID          | Yes      | Google OAuth Web client ID (same as client `NEXT_PUBLIC_GOOGLE_CLIENT_ID`)                                            |
+| SITE_PUBLIC_URL_BUILDWISE | No       | Buildwise base for partner `sourceSite.listingUrl` and email links. Dev default `http://localhost:3001` if unset      |
+| SITE_PUBLIC_URL_BUYTLY    | No       | Buytly base for platform API listing metadata and email links. Dev default `http://localhost:3000` if unset           |
+| SITE_PUBLIC_URL_BLOCK57   | No       | Block 57 base for partner listing links on Buytly and email links. Dev default `http://localhost:3002` if unset       |
+
+**Docker Compose (repo root `.env`):** copy `.env.example` → `.env` at the repo root. Never commit `.env`. Required for client build/runtime:
+
+| Variable                            | Required                 | Description                                                                                                                                                                                                               |
+| ----------------------------------- | ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `NEXT_PUBLIC_API_URL`               | Yes                      | Public API base baked into the Next.js bundle                                                                                                                                                                             |
+| `NEXT_PUBLIC_GOOGLE_CLIENT_ID`      | Yes (for Google sign-in) | Same value as `GOOGLE_CLIENT_ID` in `server/.env`                                                                                                                                                                         |
+| `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`   | No                       | Google Maps JavaScript API key for map demo pages                                                                                                                                                                         |
+| `NEXT_PUBLIC_SUPPORT_PHONE`         | No                       | E.164 support line for footer/mobile menu WhatsApp (default `+96171601751`)                                                                                                                                               |
+| `NEXT_PUBLIC_SUPPORT_PHONE_DISPLAY` | No                       | Human-readable support number shown in UI (default `+961 71 601 751`)                                                                                                                                                     |
+| `NEXT_PUBLIC_SUPPORT_EMAIL`         | No                       | Support email in footer and mailto links (default `buytlyonline@gmail.com`)                                                                                                                                               |
+| `BUILDWISE_SUPPORT_PHONE`           | No                       | Buildwise footer/WhatsApp (default `+96171703703`) — `buildwise-web` build arg                                                                                                                                            |
+| `BUILDWISE_SUPPORT_PHONE_DISPLAY`   | No                       | Buildwise display number (default `+961 71 703 703`)                                                                                                                                                                      |
+| `BUILDWISE_SUPPORT_EMAIL`           | No                       | Buildwise support email (default `info@buildwise-engineering.com`)                                                                                                                                                        |
+| `BUILDWISE_SITE_PUBLIC_URL`         | No                       | Buildwise public site URL for invoice links/metadata (default `https://buildwise-engineering.com`) — `buildwise-web` build arg only; not the API partner-link override (use `SITE_PUBLIC_URL_BUILDWISE` in `server/.env`) |
+| `BLOCK57_SITE_PUBLIC_URL`           | No                       | Block 57 public site URL for canonical links and sitemap (default `https://block-57.com`) — `block57-web` build arg only; not the API partner-link override (use `SITE_PUBLIC_URL_BLOCK57` in `server/.env`)              |
+| `BLOCK57_PROJECT_SLUG`              | No                       | Slug of the project the Block 57 site loads (default `block-57`, created by `seed:block57`). Renaming the project changes its slug, so don't rename it                                                                    |
+| `BLOCK57_SHOW_PRICES`               | No                       | `true` shows unit prices on the Block 57 site (default `false`, "Inquire" instead). The API only returns prices to the public once the site's `features.hidePublicPrices` is off                                          |
+| `BLOCK57_SUPPORT_PHONE`             | No                       | Block 57 footer/WhatsApp (default `+233244777772`) — `block57-web` build arg                                                                                                                                              |
+| `BLOCK57_SUPPORT_PHONE_DISPLAY`     | No                       | Block 57 display number (default `+233 244 777 772`)                                                                                                                                                                      |
+| `BLOCK57_SUPPORT_EMAIL`             | No                       | Block 57 support email (default `info@block-57.com`)                                                                                                                                                                      |
+
+**Per-app Next.js env** (local dev: `client/.env.local`, `apps/buildwise-web/.env.local` or `apps/block57-web/.env.local`; see each app’s `.env.example`):
+
+| Variable                           | Buytly (`client`) | Buildwise (`apps/buildwise-web`)                                                                                              | Block 57 (`apps/block57-web`)                                                                   |
+| ---------------------------------- | ----------------- | ----------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| `NEXT_PUBLIC_SITE_SLUG`            | `buytly`          | `buildwise`                                                                                                                   | `block57`                                                                                       |
+| `NEXT_PUBLIC_SITE_NAME`            | `Buytly`          | `Buildwise Engineering`                                                                                                       | `Block 57`                                                                                      |
+| `NEXT_PUBLIC_SITE_PUBLIC_URL`      | — (optional)      | Buildwise: canonical URL in UI/metadata (local dev: `http://localhost:3001`). Buytly client: optional `http://localhost:3000` | `https://block-57.com`: canonical URLs, sitemap, OpenGraph (local dev: `http://localhost:3002`) |
+| `NEXT_PUBLIC_BLOCK57_PROJECT_SLUG` | —                 | —                                                                                                                             | `block-57` (the project created by `seed:block57`)                                              |
+| `NEXT_PUBLIC_SHOW_PRICES`          | —                 | —                                                                                                                             | `false`; `true` shows prices the API returns (see `BLOCK57_SHOW_PRICES`)                        |
+
+`docker-compose.yml` passes site slug/name, public URL, and support fields as **build args** only (`NEXT_PUBLIC_*` is baked at `docker compose build` time). Changing root `.env` requires `docker compose build client buildwise-web block57-web` (or `--build` on `up`).
+
+Production setup: copy `server/.env.example` → `.env` on the server, then comment local lines and uncomment the prod line below each pair. Default email is **SMTP** (Gmail); switch to **SendGrid** for higher volume.
+
+## Email configuration
+
+`email.service.js` sends branded HTML + plain-text templates (`email.templates.js`). Set `EMAIL_PROVIDER=smtp` (default) or `EMAIL_PROVIDER=sendgrid`.
+
+### SMTP (Gmail)
+
+Use port **587** (STARTTLS). `SMTP_USER` and `SMTP_FROM` must be the same Gmail address.
+
+1. Enable 2FA on your Google account
+2. Create an [App Password](https://myaccount.google.com/apppasswords)
+3. Set in `.env` (local and production):
+
+| Variable  | Value                     |
+| --------- | ------------------------- |
+| SMTP_HOST | `smtp.gmail.com`          |
+| SMTP_PORT | `587`                     |
+| SMTP_USER | your Gmail address        |
+| SMTP_PASS | 16-character app password |
+| SMTP_FROM | same as `SMTP_USER`       |
+
+`SMTP_FROM` must be a plain email address (no display name like `Buytly <...>`). The API adds the display name per site, e.g. `Block 57 <your-address>`.
+
+**Deliverability:** Verification, password-reset and notification links use the request site's public URL (`SITE_PUBLIC_URL_*` when set, otherwise `sites.publicUrl` in production), so each tenant's users land on their own domain. Keep `APP_URL` on your real Buytly domain in production (not `localhost`) — it is the fallback when no site URL is known. Action emails include a plain-text body and a visible URL fallback in addition to the button link.
+
+**Gmail limits:** ~500 emails/day for free accounts. For higher volume, use SendGrid below.
+
+**Optional:** To send from `@buytly.com`, set up Google Workspace or a Hostinger mailbox — not required for the current setup.
+
+### SendGrid (production)
+
+1. Create a SendGrid account and verify your sender domain or single sender.
+2. Create an API key with **Mail Send** permission.
+3. Set in `server/.env`:
+
+| Variable         | Value                                       |
+| ---------------- | ------------------------------------------- |
+| EMAIL_PROVIDER   | `sendgrid`                                  |
+| SENDGRID_API_KEY | your API key                                |
+| SMTP_FROM        | verified sender (e.g. `noreply@buytly.com`) |
+
+Alternatively, SendGrid SMTP relay works with `EMAIL_PROVIDER=smtp`, `SMTP_HOST=smtp.sendgrid.net`, `SMTP_USER=apikey`, `SMTP_PASS=<SENDGRID_API_KEY>`.
+
+## GCS orphan cleanup
+
+Uploaded media keys are stored in MongoDB (`users.avatar`, property/project media and floor plans); orphaned objects can remain when uploads fail or media is replaced. Run periodically on the VPS:
+
+```bash
+cd server
+npm run cleanup:gcs:dry-run   # preview orphans older than grace period
+npm run cleanup:gcs           # delete orphans
+```
+
+Set `GCS_ORPHAN_GRACE_HOURS` (default 48) to avoid deleting in-flight uploads. Schedule via cron, e.g. weekly: `0 3 * * 0 cd /path/to/buytly/server && npm run cleanup:gcs`.
+
+## GCS site-prefix migration (legacy flat keys)
+
+If the bucket still has root-level `avatars/`, `projects/`, or `properties/` alongside `sites/{slug}/...`, run once after `npm run migrate:multi-site` (every document must have `siteId`):
+
+```bash
+cd server
+npm run migrate:gcs-site-prefix:dry-run   # preview oldKey -> newKey mappings
+npm run migrate:gcs-site-prefix         # copy in GCS, update MongoDB, delete old objects
+npm run cleanup:gcs:dry-run             # preview unreferenced legacy stragglers
+npm run cleanup:gcs                       # delete orphans (optional but recommended)
+```
+
+The script is idempotent: keys already under `sites/` are skipped. Take a MongoDB backup and review dry-run output before applying. Google profile avatars and manual uploads both use `sites/{slug}/avatars/...` after the code change bundled with this migration.
+
+## Hostinger (buytly.com) — DNS
+
+In **Hostinger hPanel → Domains → buytly.com → DNS / Nameservers**:
+
+| Type | Name  | Value        | TTL  |
+| ---- | ----- | ------------ | ---- |
+| A    | `@`   | `<VPS IPv4>` | 3600 |
+| A    | `www` | `<VPS IPv4>` | 3600 |
+| A    | `api` | `<VPS IPv4>` | 3600 |
+
+Use the same VPS IP for all three when running frontend + API on one machine.
+
+Propagation can take up to 24–48 hours (often minutes).
+
+## Hostinger VPS — deployment
+
+Same flow as handiz-dashboard: Docker Compose on the VPS, host nginx + certbot for SSL.
+
+| Service       | Host port | Domain                      |
+| ------------- | --------- | --------------------------- |
+| client        | 3025      | buytly.com / www            |
+| buildwise-web | 3026      | buildwise-engineering.com   |
+| block57-web   | 3027      | block-57.com / www          |
+| server        | 5025      | api.buytly.com (shared API) |
+
+(handiz-dashboard uses 3016 / 5016 on the same VPS — no conflict)
+
+```bash
+git clone <your-repo-url> /var/www/buytly
+cd /var/www/buytly
+cp server/.env.example server/.env
+cp .env.example .env
+# Edit server/.env — comment local lines, uncomment prod below each pair (include TRUST_PROXY=true, Atlas MONGODB_URI)
+# Edit .env — uncomment prod NEXT_PUBLIC_API_URL; set NEXT_PUBLIC_GOOGLE_CLIENT_ID (same as GOOGLE_CLIENT_ID);
+#   optional NEXT_PUBLIC_GOOGLE_MAPS_API_KEY; confirm BUILDWISE_SITE_PUBLIC_URL and BUILDWISE_SUPPORT_* for buildwise-web
+#   and the BLOCK57_* values for block57-web
+# Upload gcs-service-account.json to server/
+docker compose up -d --build
+```
+
+Point **host nginx** at loopback (four virtual hosts):
+
+| Public host                         | Upstream         |
+| ----------------------------------- | ---------------- |
+| `buytly.com` / `www.buytly.com`     | `127.0.0.1:3025` |
+| `buildwise-engineering.com` / `www` | `127.0.0.1:3026` |
+| `block-57.com` (`www` → apex, 301)  | `127.0.0.1:3027` |
+| `api.buytly.com`                    | `127.0.0.1:5025` |
+
+Block 57 vhost (`/etc/nginx/sites-available/block-57.com`, linked into `sites-enabled/`). The site's URLs end with `/` like the WordPress ones, and `www` redirects to the apex:
+
+```nginx
+server {
+    listen 80;
+    listen [::]:80;
+    server_name www.block-57.com;
+    return 301 https://block-57.com$request_uri;
+}
+
+server {
+    listen 80;
+    listen [::]:80;
+    server_name block-57.com;
+
+    # Old WordPress URLs the new app does not serve (see the cutover checklist)
+    if ($block57_legacy_redirect) {
+        return 301 $block57_legacy_redirect;
+    }
+
+    location / {
+        proxy_pass http://127.0.0.1:3027;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+```
+
+`$block57_legacy_redirect` comes from a `map` in the `http` context (e.g. `/etc/nginx/conf.d/block57-redirects.conf`); see [Block 57 cutover from WordPress](#block-57-cutover-from-wordpress). certbot adds the `443` listeners and the HTTP → HTTPS redirects to both server blocks.
+
+TLS (certbot; run after nginx proxies are in place):
+
+```bash
+sudo certbot --nginx -d buytly.com -d www.buytly.com
+sudo certbot --nginx -d api.buytly.com
+sudo certbot --nginx -d buildwise-engineering.com -d www.buildwise-engineering.com
+sudo certbot --nginx -d block-57.com -d www.block-57.com
+```
+
+Verify: `curl https://api.buytly.com/api/v1/health`
+
+### Production `.env` checklist
+
+**`server/.env` (API runtime — `env_file` in compose):**
+
+```env
+NODE_ENV=production
+PORT=5025
+TRUST_PROXY=true
+MONGODB_URI=mongodb+srv://<user>:<pass>@<cluster>/<db>?retryWrites=true&w=majority
+APP_URL=https://buytly.com
+API_URL=https://api.buytly.com/api/v1
+CORS_ORIGIN=https://buytly.com,https://www.buytly.com,https://buildwise-engineering.com,https://www.buildwise-engineering.com,https://block-57.com,https://www.block-57.com
+SWAGGER_ENABLED=false
+GCS_KEY_FILE=./gcs-service-account.json
+GOOGLE_CLIENT_ID=<your-google-oauth-client-id>
+```
+
+Optional in `server/.env`: `SITE_PUBLIC_URL_BUILDWISE` / `SITE_PUBLIC_URL_BUYTLY` / `SITE_PUBLIC_URL_BLOCK57` override partner `listingUrl` bases and email link bases (verify/reset/notification buttons); if unset in production, the API uses `sites.publicUrl` / `primaryDomain` from MongoDB (seeded on startup).
+
+**Repo root `.env` (Next.js **build args** — rebake images after changes):**
+
+```env
+NEXT_PUBLIC_API_URL=https://api.buytly.com/api/v1
+NEXT_PUBLIC_GOOGLE_CLIENT_ID=<same-as-GOOGLE_CLIENT_ID>
+BUILDWISE_SITE_PUBLIC_URL=https://buildwise-engineering.com
+BLOCK57_SITE_PUBLIC_URL=https://block-57.com
+```
+
+Add Google OAuth authorized JavaScript origins: `https://buytly.com`, `https://www.buytly.com`, `https://buildwise-engineering.com`, `https://www.buildwise-engineering.com`, `https://block-57.com`, `https://www.block-57.com`.
+
+### Multi-site rollout
+
+1. Deploy API with site middleware (`resolveSite` + seeded `sites` collection).
+2. Run once on production DB (skip on a fresh empty DB if you rely on startup seed only): `npm run migrate:multi-site -w server` (from repo root) or `node scripts/migrate-multi-site.js` in `server/`. This backfills `siteId`, grants platform admin permissions, and drops legacy catalog unique index `value_1` in favor of `{ siteId, value }`. New API processes also run that index sync on startup.
+3. Build and run all services: `docker compose up -d --build` (`client`, `buildwise-web`, `block57-web`, `server`).
+4. Nginx + TLS: same four-host layout and certbot commands as [Hostinger VPS — deployment](#hostinger-vps--deployment) above.
+
+Each frontend sends browser `Origin`; the API resolves tenant from host mapping in `sites`. Dev/tests may send `X-Site-Slug: buytly|buildwise|block57`. Per-site accounts: the same email may exist independently on each site.
+
+### Block 57 bootstrap (`seed:block57`)
+
+`scripts/seed-block57.js` prepares the `block57` tenant on any database, including production, after the API has been deployed. **Run it straight after deploying the API, before the domain is announced:** API boot creates the `block57` site, so from then on anyone can register on it. It is safe to run again: every step is an upsert and nothing is deleted. What a re-run keeps and what it re-applies:
+
+- **Kept as edited in the dashboard** (only written when first created): the project (title, copy, status, location, media), property-type labels/order/active flags, amenity labels and order, and an existing admin's password (unless `--reset-admin-password`).
+- **Re-applied on every run:** the admin's `admin` role and empty platform permissions (step 2), the amenity active flags (step 4), and the unit fields listed in the units file (see below; the file wins and every overwritten field is printed).
+
+Steps:
+
+1. Ensure the default sites exist (`ensureDefaultSites`, as on API boot) and load `block57`.
+2. Create the Block 57 admin (email verified, **no platform permissions**, so it cannot see other sites' data). A new account gets the name "Block 57 Sales" and the site support phone. This account owns the project and its name, email and phone are shown on listings, so use a shared sales mailbox rather than a personal address. If an account with that email already exists on `block57`:
+   - an **admin** is kept (platform permissions are removed; the password only changes with `--reset-admin-password`);
+   - any **other role stops the script**. Registration is open, so someone else may have registered the mailbox and still hold its password and sessions. Use another email, or pass `--promote-existing` if you control the account: it becomes admin, gets the password from `BLOCK57_ADMIN_PASSWORD`, its reset/verification tokens are cleared and its refresh tokens revoked (access tokens already issued stay valid until they expire, `JWT_ACCESS_EXPIRES_IN`). Its email-verified flag is left as it is.
+3. Property types (insert only; later label/order/active edits are kept): `executive-studio` Executive Studio, `one-bedroom` 1 Bedroom, `two-bedroom` 2 Bedroom, `townhouse` Townhouse, `urban-villa` Urban Villa, `penthouse` Penthouse.
+4. Amenities: inserts the catalog defaults (as the first catalog read would), then sets active on every run: Swimming Pool and Security (defaults, reused), Rooftop Lounge, Padel Court, Fitness Centre, Children's Play Area, Business Lounge, Underground Parking; and inactive: Sea View, Mountain View, Generator. Labels and sort order are only set when a row is inserted. Other sites' catalogs are untouched.
+5. Project "Block 57" (slug `block-57`): created once as **draft**, owned by the admin, with placeholder marketing copy, the Block 57 amenities and location "54E First Circular Crescent, Cantonments, Accra, Ghana". The default map pin (lat 5.5786, lng -0.1745) is approximate; confirm it, then pass `BLOCK57_LAT`/`BLOCK57_LNG` on the first run or move the pin in the dashboard. An existing project is never modified (status, copy, location and media belong to the dashboard). The project is found by its slug, and the script stops before writing the project or any unit when:
+   - the `block-57` project is owned by an account that is not a `block57` admin (for example a seller registered it first). Units would be created under that owner and `--activate` would publish it, so rename or delete it from the admin dashboard first. A project owned by another `block57` admin is used, with a warning;
+   - the `block-57` project is in the trash; restore it first;
+   - there is no `block-57` project but a `block57` admin already owns another project. **Do not rename the project:** a new title changes the slug, the website loads the project by `block-57` (`NEXT_PUBLIC_BLOCK57_PROJECT_SLUG`), and a re-run would otherwise create a duplicate. Rename it back to "Block 57" and re-run.
+6. `--units <file>`: upsert units (see below).
+7. `--activate`: approve the project the same way an admin does in the dashboard (`adminService.moderateProject(..., "active")`): the project becomes active and its **pending** units become active; draft units stay draft. It needs at least one pending or active unit and is skipped (with the reason printed) otherwise, or when the project is already active with nothing pending, or sold. The owner gets the usual "project approved" notification and email.
+
+The script prints a summary (created / updated / unchanged counts, warnings) and next steps, exits non-zero on any error, and always disconnects.
+
+| Variable                      | Required | Description                                                                                                                                                                    |
+| ----------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `BLOCK57_ADMIN_EMAIL`         | yes      | Admin account on `block57` (shared sales mailbox)                                                                                                                              |
+| `BLOCK57_ADMIN_PASSWORD`      | yes      | 8–128 characters. Used when the account is created, with `--reset-admin-password` or with `--promote-existing`; otherwise an existing password is left unchanged. Never logged |
+| `BLOCK57_LAT` / `BLOCK57_LNG` | no       | Project coordinates (set both). Only used when the project is first created                                                                                                    |
+
+| Flag                     | Effect                                                                                              |
+| ------------------------ | --------------------------------------------------------------------------------------------------- |
+| `--units <file>`         | Upsert units from a JSON array. Relative paths resolve from the directory the command is run from   |
+| `--activate`             | Approve the project and its pending units (step 7)                                                  |
+| `--reset-admin-password` | Set the admin password from `BLOCK57_ADMIN_PASSWORD` and revoke the account's refresh tokens        |
+| `--promote-existing`     | Make an existing non-admin account with that email the admin, with a forced password reset (step 2) |
+| `--help`                 | Print usage                                                                                         |
+
+Keep the password out of shell history and out of process arguments (`ps` shows every local user the arguments of running commands): read it without echo, `export` it, and let the command inherit it from the environment. Never write `BLOCK57_ADMIN_PASSWORD=<value>` on a command line.
+
+Local (the variables can also live in `server/.env`):
+
+```bash
+cd server
+read -rsp "Block 57 admin password: " BLOCK57_ADMIN_PASSWORD; echo
+export BLOCK57_ADMIN_PASSWORD
+BLOCK57_ADMIN_EMAIL=<sales-mailbox> \
+  npm run seed:block57 -- --units scripts/seed/block57-units.example.json --activate
+unset BLOCK57_ADMIN_PASSWORD
+```
+
+Docker (runs inside the API container, so it uses the container's `MONGODB_URI` and GCS credentials). `-e BLOCK57_ADMIN_PASSWORD` with no `=value` makes `docker compose exec` take the value from your exported shell variable, so it never appears in the process list:
+
+```bash
+read -rsp "Block 57 admin password: " BLOCK57_ADMIN_PASSWORD; echo
+export BLOCK57_ADMIN_PASSWORD
+docker compose exec \
+  -e BLOCK57_ADMIN_EMAIL=<sales-mailbox> \
+  -e BLOCK57_ADMIN_PASSWORD \
+  server npm run seed:block57
+
+# Units: copy the inventory file (kept outside the repository) into the
+# container, import it, activate, then delete the copy
+docker compose cp ~/block57-units.json server:/tmp/block57-units.json
+docker compose exec \
+  -e BLOCK57_ADMIN_EMAIL=<sales-mailbox> \
+  -e BLOCK57_ADMIN_PASSWORD \
+  server npm run seed:block57 -- --units /tmp/block57-units.json --activate
+docker compose exec server rm /tmp/block57-units.json
+unset BLOCK57_ADMIN_PASSWORD
+```
+
+**Units file.** The real inventory holds every unit's price, which `hidePublicPrices` exists to protect. **Keep it outside the repository** (e.g. `~/block57-units.json`); never commit it or leave it in the server folder at build time. As a safety net `server/.gitignore` and `server/.dockerignore` exclude `server/scripts/seed/block57-units*.json` (except the example), but the repo-root `.gitignore` does not cover other paths.
+
+A JSON array; each entry is validated with the same rules as `POST /properties`, and the whole file is checked before any unit is written (unknown keys, duplicate titles and unknown or inactive types are errors):
+
+| Field                           | Rules                                                                                                                                 |
+| ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| `title`                         | Required, 3–200 characters, block-prefixed (e.g. `A-101`). Matched exactly per project on re-runs                                     |
+| `type`                          | Required; an active Block 57 property type (step 3)                                                                                   |
+| `price`                         | Required whole USD amount > 0 (hidden from the public; see api-rules.md)                                                              |
+| `building`, `floor`             | Optional; building up to 50 characters, floor a whole number −5…300. `null` clears on re-run                                          |
+| `bedrooms`, `bathrooms`, `area` | Optional; whole numbers, area in m² with up to 2 decimals                                                                             |
+| `sortOrder`                     | Optional whole number (default 999)                                                                                                   |
+| `status`                        | `pending` (default) or `sold`                                                                                                         |
+| `description`                   | Optional, ≥ 10 characters. New units without one get e.g. "2 Bedroom residence in Block C, floor 7, at Block 57, Cantonments, Accra." |
+
+```json
+[
+  {
+    "title": "A-101",
+    "type": "executive-studio",
+    "building": "A",
+    "floor": 1,
+    "bedrooms": 0,
+    "bathrooms": 1,
+    "area": 45,
+    "price": 150000
+  },
+  {
+    "title": "B-302",
+    "type": "two-bedroom",
+    "building": "B",
+    "floor": 3,
+    "bedrooms": 2,
+    "bathrooms": 2,
+    "area": 120,
+    "price": 350000,
+    "status": "sold"
+  }
+]
+```
+
+New units are created through the property service (location copied from the project, owner = project owner, `USD`). On re-runs, a unit whose title already exists on the project is updated with every field whose file value differs from the database: **the file wins, so a price, type, description or other field edited in the dashboard is overwritten** by the file's value. The summary lists each overwritten field with its previous value ("Unit fields overwritten from the file"). Keep the file in step with dashboard edits, or leave a field out of the file to keep the database value (omitted optional fields are kept; `type` and `price` are required, so they are always applied). Status only moves forward: `pending` never downgrades an active unit, and a unit that is sold in the database stays sold (a warning is printed). Units in the trash are skipped, and units that are not in the file are left alone.
+
+Entries are applied in this order: new units, then field updates, then units that become `sold`. When every live unit is sold the project becomes sold automatically and refuses new units, so one file can sell the last units of a phase and add the next phase's units. If the project is already sold, a file with new units stops the script before anything is written; an admin has to change the project status first.
+
+`scripts/seed/block57-units.example.json` holds six **example** units (one per type across Blocks A/B/C) with placeholder prices and "Example unit" descriptions, for local testing only; the script refuses to import a `*.example.json` file when `NODE_ENV=production`.
+
+### Block 57 cutover from WordPress
+
+block-57.com runs on WordPress until its DNS records are switched (step 8); nothing changes for visitors before then.
+
+**Ahead of the switch**
+
+1. **Lower the DNS TTL.** At block-57.com's DNS provider, set the TTL of the `@` and `www` A/AAAA records to 300 s, at least the current TTL ahead of the switch (24–48 h is safe), so the switch, and a rollback if needed, take effect within minutes.
+2. **Keep the mail records.** Only the web records change. Leave MX, SPF, DKIM and DMARC exactly as they are: info@block-57.com receives the site's inquiries. If the zone moves to another DNS provider, recreate every record there (MX, SPF/DKIM/DMARC, verification TXT) before changing nameservers.
+3. **Back up WordPress**: files (`wp-content/`, including `uploads/`) and a database export, stored off the old host. Keep the backup, and the old hosting, until the new site has run cleanly for a few weeks.
+4. **Build the 301 map** from the WordPress sitemap captured in Phase 0 (`/wp-sitemap.xml` or Yoast's `/sitemap_index.xml`) and any redirect-plugin rules. The app serves `/`, `/life-style/`, `/apartments/`, `/apartments/<type>/`, `/amenities/`, `/inquire/`, `/sitemap.xml` and `/robots.txt`; every other indexed URL needs a target or it returns 404: attachment pages, `/feed/` and `/comments/feed/`, archives, `/wp-content/uploads/…` media and old page slugs. Send media to its new copy under `/images/block57/` where there is one, otherwise to the page that showed it:
+
+   ```nginx
+   # /etc/nginx/conf.d/block57-redirects.conf (http context).
+   # $uri excludes the query string. Exact entries win over regex (~) entries.
+   map $uri $block57_legacy_redirect {
+       default                               "";
+       ~^/feed/?$                            /;
+       ~^/comments/feed/?$                   /;
+       ~^/(wp-sitemap|sitemap_index)\.xml$   /sitemap.xml;
+       # Examples: one line per URL from the sitemap
+       /wp-content/uploads/2024/01/penthouse.jpg  /images/block57/penthouse.jpg;
+       /apartments/penthouse-2/              /apartments/penthouse/;
+   }
+   ```
+
+5. **Carry over tracking tags.** Add the analytics/GTM, pixel and `google-site-verification` IDs recorded in Phase 0 to the new app before the switch, so Search Console ownership and analytics history continue (a DNS TXT verification needs no change as long as the TXT record stays).
+
+**Deploy (DNS still on WordPress)**
+
+6. **API first.** Deploy the server with `https://block-57.com,https://www.block-57.com` in `CORS_ORIGIN`; API boot creates the `block57` site. Straight away run [`seed:block57`](#block-57-bootstrap-seedblock57), enter the full unit inventory (`--units`), check it in the dashboard and activate the project (`--activate`).
+7. **Frontend and nginx.** Set the `BLOCK57_*` values in the repo-root `.env`, run `docker compose up -d --build block57-web`, and check `curl -I http://127.0.0.1:3027/` on the VPS. Add the [vhost](#hostinger-vps--deployment) and the redirect map, run `sudo nginx -t && sudo systemctl reload nginx`, then test through nginx before DNS changes: `curl -I --resolve block-57.com:80:<VPS IPv4> http://block-57.com/apartments/` (and a few map entries). Add `https://block-57.com` and `https://www.block-57.com` to the Google OAuth authorized JavaScript origins.
+
+**Switch**
+
+8. **DNS.** Point the `@` and `www` A records at the VPS IPv4. Point the AAAA records at the VPS IPv6 or delete them: a leftover AAAA record keeps sending IPv6 visitors to WordPress.
+9. **TLS.** certbot's HTTP challenge needs the names to resolve to the VPS, so run `sudo certbot --nginx -d block-57.com -d www.block-57.com` as soon as they do; until then HTTPS visitors get a certificate error. To avoid that window, issue the certificate before the switch with a DNS challenge (`sudo certbot certonly --manual --preferred-challenges dns -d block-57.com -d www.block-57.com`); a manual certificate does not renew by itself, so after the switch re-run the `--nginx` command and choose _Renew & replace_.
+10. **Verify.** `https://www.block-57.com/` and `http://block-57.com/` answer 301 to `https://block-57.com/`; every page answers 200; map entries answer 301; an unknown URL answers 404. Send a test inquiry: it must reach info@block-57.com and appear in the admin inquiries (`GET /admin/inquiries`). Sign in, including with Google.
+
+**After**
+
+11. In Search Console, submit `https://block-57.com/sitemap.xml`, then watch the page-indexing (404) report for a few weeks and add missing URLs to the map.
+12. Watch the API logs for `429` responses: the rate limit is per IP, and mobile networks in Ghana share IPs widely.
+13. Optional: a Buytly platform admin features Block 57 on the marketplace.
+
+## MongoDB Atlas Setup
+
+1. Create a cluster at [cloud.mongodb.com](https://cloud.mongodb.com)
+2. Create a database user with read/write permissions
+3. Whitelist your server IP (or 0.0.0.0/0 for development only)
+4. Copy the connection string to `MONGODB_URI`
+
+**Upgrading:** Older databases may still have **global** unique indexes on `users.email` and/or `users.googleId` from before multi-site (`siteId`) tenancy. Those block the same email or Google account on a second site (e.g. Buytly vs Buildwise). On API startup, `ensureUserIndexes()` drops legacy global `email_1` / `googleId_1` indexes and runs `User.syncIndexes()` so only `{ siteId, email }` and `{ siteId, googleId }` partial uniques remain.
+
+Manual fix (if needed):
+
+```javascript
+// mongosh
+db.users.dropIndex("email_1"); // only if key is { email: 1 } without siteId
+db.users.dropIndex("googleId_1"); // only if key is { googleId: 1 } without siteId
+```
+
+Email is anonymized on `DELETE /users/me`, so re-registration works with the partial per-site unique index.
+
+## Google Cloud Storage Setup
+
+1. Create a GCP project
+2. Enable Cloud Storage API
+3. Create a bucket (regional, uniform access) — e.g. `buytly-media`
+4. Create a service account with `Storage Object Admin` role
+5. Download JSON key file → set `GCS_KEY_FILE` path
+6. On GCP Compute/Cloud Run, use workload identity instead of key files
+
+## Production Checklist
+
+- [ ] Set `NODE_ENV=production`
+- [ ] Set `PORT=5025` in `server/.env` (matches Docker publish and healthcheck)
+- [ ] Set `TRUST_PROXY=true` behind nginx
+- [ ] Use strong, unique JWT secrets (`npm run generate-secrets`)
+- [ ] MongoDB Atlas with IP whitelist and TLS
+- [ ] GCS bucket with uniform access, no public ACLs
+- [ ] `CORS_ORIGIN` includes all frontend origins (Buytly + Buildwise + Block 57 domains for production)
+- [ ] `APP_URL=https://buytly.com` (fallback only; email links use each site's `publicUrl` / `SITE_PUBLIC_URL_*`)
+- [ ] `API_URL=https://api.buytly.com/api/v1`
+- [ ] DNS A records for `@`, `www`, `api` → VPS IP
+- [ ] `docker compose up -d --build` running on VPS
+- [ ] Host nginx + HTTPS via certbot
+- [ ] Health check: `GET https://api.buytly.com/api/v1/health`
+- [ ] `SWAGGER_ENABLED=false` in production (unless you need public docs)
+- [ ] Gmail SMTP configured (`smtp.gmail.com:587`, app password)
+- [ ] `GOOGLE_CLIENT_ID` / `NEXT_PUBLIC_GOOGLE_CLIENT_ID` match; OAuth origins include production domains
+- [ ] Repo root `.env` for Docker Compose — prod `NEXT_PUBLIC_API_URL` and matching `NEXT_PUBLIC_GOOGLE_CLIENT_ID`; rebuild frontends after changes — never committed
+- [ ] `server/.env` never committed — use server-only secrets
+- [ ] GitHub Actions CI passing (`.github/workflows/ci.yml`)
+- [ ] Block 57: [bootstrap](#block-57-bootstrap-seedblock57) run and the [WordPress cutover](#block-57-cutover-from-wordpress) checklist done
+- [ ] MongoDB indexes created (auto-created on first run via Mongoose)
+- [ ] Graceful shutdown tested (SIGTERM handling)
+- [ ] Backup strategy for MongoDB
+- [ ] GCS orphan cleanup scheduled (`npm run cleanup:gcs` — see above)
+
+## Docker
+
+Same layout as handiz-dashboard:
+
+| File                            | Purpose                                                               |
+| ------------------------------- | --------------------------------------------------------------------- |
+| `docker-compose.yml`            | `client`, `buildwise-web`, `block57-web`, `server`; ports, volumes    |
+| `client/Dockerfile`             | Buytly Next.js standalone → `node server.js` :3025                    |
+| `apps/buildwise-web/Dockerfile` | Buildwise Next.js standalone → `node server.js` :3026                 |
+| `apps/block57-web/Dockerfile`   | Block 57 Next.js standalone → `node server.js` :3027                  |
+| `server/Dockerfile`             | `npm ci --omit=dev` → `npm start` :5025                               |
+| Repo root `.dockerignore`       | Build context for frontends; excludes `.env*`, `server/`, `packages/` |
+| Repo root `.gitignore`          | Secrets, `node_modules/`, `**/.next/`, coverage (workspaces)          |
+
+Frontend env for Docker comes from the repo root `.env` (see `.env.example`) via **compose build args** — values are embedded at image build time. Server runtime env comes from `server/.env` (`env_file` in compose). Email/reset links use each site's public URL: in development the API defaults to `http://localhost:3000` (Buytly), `3001` (Buildwise) and `3002` (Block 57); when the Docker frontends run on other ports (e.g. `http://localhost:3025` / `3026` / `3027`), set the matching `SITE_PUBLIC_URL_*` in `server/.env`. `APP_URL` is only the fallback.
+
+**BuildKit / buildx:** Frontend Dockerfiles use a plain `npm ci` layer so **classic** `docker compose build` works on minimal VPS images (no `buildx` required). If you see `Docker Compose requires buildx plugin`, it is usually a warning only. Optional faster rebuilds on a machine with BuildKit: `export DOCKER_BUILDKIT=1` before `docker compose build` (install `docker-buildx-plugin` if your distro documents it).
+
+All four services define **healthchecks** in `docker-compose.yml` and in their Dockerfiles:
+
+| Service       | Check                                     |
+| ------------- | ----------------------------------------- |
+| server        | `GET http://127.0.0.1:5025/api/v1/health` |
+| client        | `GET http://127.0.0.1:3025`               |
+| buildwise-web | `GET http://127.0.0.1:3026`               |
+| block57-web   | `GET http://127.0.0.1:3027`               |
+
+## CI/CD
+
+GitHub Actions workflow [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml) runs on every push and pull request (and can be re-run manually via **workflow_dispatch**):
+
+| Job               | Steps                                                                              |
+| ----------------- | ---------------------------------------------------------------------------------- |
+| **server**        | `npm ci --no-workspaces`, `npm run lint`, `npm test` (MongoDB 7 service container) |
+| **client**        | `npm ci --no-workspaces`, `npm run build` (uses committed `src/api/generated/`)    |
+| **buildwise-web** | `npm ci --no-workspaces`, `npm run build` (Buildwise tenant env)                   |
+| **block57-web**   | `npm ci --no-workspaces`, `npm run build` (Block 57 tenant env)                    |
+
+Regenerate and commit `src/api/generated/` in `client/`, `apps/buildwise-web/` and `apps/block57-web/` after OpenAPI changes (`npm run gen:api` in each app with the API running locally).
+
+## Health Check
+
+```
+GET /api/v1/health
+```
+
+Response (healthy):
+
+```json
+{
+  "success": true,
+  "message": "Service is healthy",
+  "data": {
+    "status": "ok",
+    "timestamp": "2026-01-01T00:00:00.000Z",
+    "services": {
+      "mongodb": "connected"
+    }
+  }
+}
+```
+
+Returns **503** with `"status": "degraded"` if MongoDB is disconnected (body still has `success: true`).

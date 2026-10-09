@@ -1,0 +1,19 @@
+@use "../../styles/block57/type";
+
+// 404 body: a short line and the green button, on the live band rhythm.
+.body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 30px;
+  padding: var(--b57-section-y) var(--b57-gutter);
+  text-align: center;
+}
+
+.text {
+  @include type.lead;
+
+  max-width: var(--b57-container-text);
+  margin: 0;
+  color: var(--b57-color-text);
+}

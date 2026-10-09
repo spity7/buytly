@@ -1,0 +1,70 @@
+---
+description: Buytly client (Next.js) conventions for mutations and loading UX
+globs: client/**/*
+alwaysApply: false
+---
+
+# Buytly Client
+
+## Tenant apps (`apps/`)
+
+- The same API also serves tenant frontends that started as copies of `client/`: `apps/buildwise-web` (slug `buildwise`, dev port 3001) and `apps/block57-web` (slug `block57`, dev port 3002, copied from buildwise-web). Each has its own `package-lock.json`, `src/api/generated/` and copy of the shared code (`src/lib`, hooks, dashboard components), so a fix made here may need applying to each app.
+- `apps/block57-web` differs from `client/`:
+  - **Two root layouts** (route groups; moving between them reloads the page): `src/app/(site)` is the public Block 57 site with its own design system (`src/styles/block57/`, CSS Modules in `src/components/block57/`, no Bootstrap or Homez classes); `src/app/(app)` holds auth and `dashboard-*` pages on the Homez/Bootstrap theme (`--primary-color` `#9a7b4f`).
+  - `trailingSlash: true` (WordPress URLs): `next.config.js` redirect sources end with `/`; compare pathnames with `normalizePath` / `isSamePath` (`src/lib/url/normalizePath.js`).
+  - Sign-in is the `/login/` page (`AUTH_ENTRY_PATH`, `buildAuthEntryUrl()`), not the `?auth=` modal; never use `FavoriteButton` or `openAuthModal` in `(site)`.
+
+## Page titles (browser tabs)
+
+- Root layout (`client/src/app/layout.js`) uses `SITE_NAME` from `client/src/lib/siteMetadata.js` (`NEXT_PUBLIC_SITE_NAME` or `Buytly`) with template `%s | ${SITE_NAME}`.
+- Marketing homepage (`client/src/app/page.js`): `homePageMetadata()` → tab shows site name only.
+- Other routes: `pageMetadata("Segment")` from `@/lib/siteMetadata` (no demo names like `Home v1`; do not embed `| Buytly` in the segment — the layout adds it).
+- Bulk refresh after theme imports: `npm run sync:page-metadata -w client` (`client/scripts/sync-page-metadata.mjs`).
+
+## Async / busy loading
+
+- `AsyncActionOverlayProvider` is mounted in `client/src/app/ClientLayout.js` — **do not** add per-page `<AsyncActionOverlay />` unless the provider is unavailable.
+- Mutations and destructive flows use **`useAsyncAction()`** or **`useConfirmAction()`** (overlay defaults to **on**).
+- Wrap API work in `run({ message, successMessage, task })` (or `requestConfirm` + nested `action.task`).
+- Disable forms, filters, and row actions with `isBusy` / `isLocked` while work is in flight.
+- Pass `{ overlay: false }` only for background refresh where a full-page block would be wrong.
+- Do not call `buytlyApi` / `customInstance` directly for user-triggered mutations (save forms, uploads, resend email, mark-all-read, etc.) — always wrap in `run()`.
+- While the global overlay is active, `AsyncActionOverlayProvider` registers `beforeunload` so tab close/reload shows the browser confirmation dialog.
+- Dashboard `.ud-btn` icons: use `DashboardBtnIcon` + `dashboardIcons` from `client/src/components/property/dashboard/DashboardBtnIcon.js` (theme CSS rotates plain `<i>` inside `.ud-btn`, which breaks plus/check icons).
+- Dashboard helpers in `client/src/lib/properties/mapProperty.js`: `canAdminApproveUnit`, `canAddUnitToProject`, `canMarkPropertySold`, `canMarkProjectSold`, `isListingPubliclyPreviewable`, `isUnitPublicOnMarket`, `canOwnerPreviewUnitListing`, `resolveParentProject`, `isUnitRestoreBlockedByParentProject`, `partitionProjectUnits` — use them to disable actions the API would reject and to render public project unit availability (unit status alone is not enough when the parent project is still draft).
+- **Mark as sold:** active listings/projects only — `PropertyDataTable`, `ProjectsDataTable`, admin moderation tables, and `ProjectEditPanel` use `propertyMarkSoldConfirmation` / `projectMarkSoldConfirmation` with `updateProperty` / `updateProject` (owners) or `adminModerateProperty` / `adminModerateProject` (admins). Project sold marks all units sold on the API. Sold listings stay on the public catalog (API default: active + sold).
+- **Public browse / home widgets:** do not pass `status: "active"` to `listProperties` / `listProjects` unless you intentionally want active-only. Use `publicMarketplaceQuery()` from `client/src/lib/listings/listingFilters.js` (omit `status`; pass `status: "sold"` only for sold-only sections). `/listings` uses `buildListingQueryParams` / `buildProjectQueryParams` (Sold filter sets `status=sold`). Card copy: `getMarketplaceCardLabel()` in `mapProperty.js`.
+- **Buytly vs tenant sites:** `isPlatformMarketplaceSite()` (`client/src/lib/siteContext.js`, `NEXT_PUBLIC_SITE_SLUG=buytly`) — home + `/listings` use `usePlatformFeaturedProperties` / `usePlatformFeaturedProjects` and open partner cards in a new tab (`sourceSite.listingUrl`). Tenant sites (Buildwise) keep site-scoped `useProperties` / `useProjects`.
+- **Marketplace featuring (Buytly only):** tenants have no featuring UI and do not receive `visibleOnPlatform` in owner APIs. On Buytly (`isBuytlyPlatformAdmin`), admin property/project tables use `MarketplaceFeatureToggle` + `adminSetPropertyPlatformFeatured` / `adminSetProjectPlatformFeatured` (`canToggle*PlatformVisibility` in `mapProperty.js` gates enable; feature project before units). Partner site filter: `useAdminPartnerSites(isBuytlyPlatformAdmin(user))`, `?siteId=`.
+- Owner project detail may include `trashedUnitCount` (archived units while the project is live). `ProjectEditUnitsSection` surfaces a link to My properties → Trash when trashed units exist.
+- Floor plans: any property type; each level is **title + image** (`gcsKey` / upload). The floor-plan section in `PropertyForm` is always available when editing a unit.
+- Project edit **Publishing** card (`ProjectEditPublishCard`): gate the CTA with `canShowProjectPublishAction` / `getProjectPublishButtonLabel` (`projectForm.js`); disable while `ProjectDetailsForm` is dirty; sellers submit with `updateProject({ status: "active" })` (API stores `pending`), admins publish with `adminModerateProject({ status: "active" })` (activates pending units). Copy helpers: `projectPublishConfirmation` in `confirmations.js`.
+
+## API client
+
+- `custom-instance.ts` sends `Cache-Control: no-cache` on GET requests so the browser does not serve stale JSON (e.g. project media after upload) from `304` cache.
+- After project/property media mutations, invalidate the relevant React Query keys (`project`, `my-projects`, etc.) and refetch — see `ProjectEditPanel.refreshProject`.
+
+## Property single gallery
+
+- Live listing hero photos use `PropertySingleGalleryGrid` (`property-single-gallery` in `_custom-buytly.scss`): fixed-height 50/50 layout, 2×2 thumb grid with `object-fit: cover`, and `--thumbs-1` … `--thumbs-4` modifiers (three photos span the bottom row full width).
+- Detail widget headings: `PsWidgetTitle` (`ps-widget-title` in `_custom-buytly.scss`) — theme-tinted icon box + title; use on project/property `ps-widget` sections (`size="compact"` for sidebar contact headings).
+
+## Property single — listing contact
+
+- Sidebar card: `ListingContactCard` (shared UI) via `ContactWithAgent` (units) or `ProjectListingContact` (projects) + `getListingContact` / `getListingContactCta` in `client/src/lib/properties/listingContact.js`; styles in `_custom-buytly.scss` (`.listing-contact`). Prefer assigned `agentId`, fall back to `ownerId`; buyer CTAs open **WhatsApp** via `buildWhatsAppUrl` in `client/src/lib/phone/whatsapp.js` with a prefilled listing message (`getListingContactWhatsAppContext` / `buildListingContactWhatsAppMessage`). **Platform** support: `client/src/data/platformContact.js` (`NEXT_PUBLIC_SUPPORT_PHONE*`, `NEXT_PUBLIC_SUPPORT_EMAIL`) — `PlatformSupportWhatsAppButton`, `PlatformSupportContactMeta`, `PlatformSupportContactRow` in footers and CTAs; contact page form POSTs `/contact` via `client/src/lib/contact/submitContactInquiry.js`. Use `getListingContactViewerMode` with `manageEditBase: "/dashboard-edit-project"` for project pages so owners previewing get **Edit project** (units default to `/dashboard-edit-property`).
+
+## Public projects (buyer discovery)
+
+- Browse: `/listings?view=projects` (alias redirect `/projects`). Grid/map cards and map info windows link via `getPublicListingCardHref` → `/project/{slug}`.
+- Home **Explore property types**: `ExplorePropertyTypesSection` + `ExplorePropertyTypesCarousel` — `GET /catalog/property-types` (`listingCount`, icons via `propertyTypePresentation.js`), links to `/listings?type={value}`.
+- Detail: `/project/[slug]` — `ProjectSingleProvider` + `useProjectBySlug`; layout mirrors property single (gallery grid, status banner for non-active, sidebar contact, unit cards → `/single-v1/{id}`). Address and virtual tour use the same **`PropertyLocationMap`** / **`VirtualTour360`** embeds as unit singles (pass `location` + map marker card, or `virtualTourUrl`).
+- Nav: **Listings → Browse Projects** in `client/src/data/navItems.js`. Saved searches store `filters.view = "projects"` when saved from the projects tab (`buildSavedSearchFilters`).
+
+## Live data sync (React Query)
+
+- Global defaults live in `client/src/providers/QueryProvider.js` (`staleTime`, `refetchOnWindowFocus`, `refetchOnReconnect`).
+- `LiveQuerySyncProvider` refetches **active** stale queries every 30s while the tab is visible and when the user returns to the tab (`visibilitychange`). It also dispatches `buytly:live-sync` for loaders that are not on React Query — use `useLiveSyncReload(loadFn)` with a `{ silent: true }` option to avoid skeleton flicker.
+- Tune intervals in `client/src/lib/query/liveSync.js`. Hooks may override `staleTime` / `refetchInterval` (e.g. catalog uses longer cache).
+- On login/register, `AuthProvider` invalidates queries so dashboards load fresh data; logout calls `queryClient.clear()`.
+- Mutations should still invalidate affected keys; background sync does not replace targeted invalidation after writes.

@@ -1,0 +1,221 @@
+# Authentication Flow
+
+## JWT Lifecycle
+
+Buytly uses a dual-token authentication system:
+
+- **Access Token** — Short-lived JWT (default 15m), stateless, sent in `Authorization: Bearer` header
+- **Refresh Token** — Opaque UUID stored hashed in MongoDB (default 7d), used to obtain new token pairs
+
+### Access Token Payload
+
+```json
+{
+  "sub": "userId",
+  "role": "buyer",
+  "siteId": "tenantSiteObjectId",
+  "iat": 1234567890,
+  "exp": 1234568790
+}
+```
+
+Access and refresh flows are scoped to the resolved request site (`resolveSite` middleware). Register/login lookups match `email` + `siteId`; `authenticate` rejects tokens whose `siteId` does not match the current site or user record. Refresh tokens are stored with `siteId` and rotated within the same tenant. Email-verification and password-reset tokens are looked up by hash **and** `siteId`, so they only work on the site that issued them.
+
+## Register Flow
+
+```mermaid
+sequenceDiagram
+  participant Client
+  participant API
+  participant DB
+
+  Client->>API: POST /auth/register { email, password, confirmPassword, role }
+  API->>DB: Check active email (deletedAt: null)
+  API->>DB: Create user + bcrypt hash + verification token
+  API->>DB: Create AgentProfile if role=agent
+  API->>DB: Store refresh token hash
+  API-->>Client: { accessToken, refreshToken, user }
+  API-->>Client: Verification email sent (async)
+```
+
+- `confirmPassword` must match `password` (validated server-side; clients may also validate locally)
+- Role defaults to `buyer`; `admin` cannot be self-assigned
+- Duplicate active emails return `409`
+- Soft-deleted accounts free the email for re-registration (partial unique index on `email` where `deletedAt` is null)
+
+## Email Verification Flow
+
+1. On registration, server stores SHA-256 hash of verification token (24h expiry) and sends link: `{siteBaseUrl}/verify-email?token={token}` (see [Email links](#email-links))
+2. User submits token via `POST /auth/verify-email` (the `/verify-email` page calls this on load). The lookup matches the token hash **and** the request site (`siteId: getRequestSiteId()`), so a token only works on the site that issued it; on another site it returns `400 Invalid or expired verification token`
+3. If the browser already has auth tokens, the client refreshes the current user and notification queries after a successful verify, then `router.refresh()` so headers and dashboard reflect `isEmailVerified` without a manual reload
+4. Unverified users can still log in; `isEmailVerified` is exposed on the user object for client-side prompts
+5. Resend via `POST /auth/resend-verification` (generic response to avoid email enumeration)
+
+## Account Deletion Flow
+
+```mermaid
+sequenceDiagram
+  participant Client
+  participant API
+  participant DB
+
+  Client->>API: DELETE /users/me { password }
+  API->>DB: Verify password, set deletedAt, isActive=false
+  API->>DB: Store deletedEmail, anonymize email, unset avatar
+  API->>DB: Revoke all refresh tokens
+  API-->>Client: { success: true }
+```
+
+- Soft delete only — user record and all related data (properties, bookings, transactions, reviews, favorites) are **retained** for admin audit
+- **Listings stay live** — account deletion does not change property status or archive listings
+- Avatar file removed from GCS and `avatar` field unset on the user document
+- Original email stored in `deletedEmail` for admin lookup; public `email` anonymized to `deleted_<id>@deleted.buytly.internal`
+- Password hash overwritten on deletion; verification/reset tokens cleared
+- Same email can register again after deletion (partial unique index on active users)
+- Admins can list deleted users via `GET /admin/users?deleted=true` and inspect detail via `GET /admin/users/:id`
+
+## Login Flow
+
+```mermaid
+sequenceDiagram
+  participant Client
+  participant API
+  participant DB
+
+  Client->>API: POST /auth/login { email, password }
+  API->>DB: Find user + verify bcrypt hash
+  API->>DB: Store refresh token hash
+  API-->>Client: { accessToken, refreshToken, user }
+```
+
+## Google Sign-In Flow
+
+Uses [Google Identity Services](https://developers.google.com/identity/gsi/web) on the client. The browser obtains a Google **ID token** (JWT); the API verifies it with `google-auth-library` and issues the same Buytly access/refresh token pair as email login.
+
+```mermaid
+sequenceDiagram
+  participant Client
+  participant Google
+  participant API
+  participant DB
+
+  Client->>Google: GIS popup (Continue with Google)
+  Google-->>Client: ID token
+  Client->>API: POST /auth/google { idToken, role? }
+  API->>Google: Verify ID token (audience = GOOGLE_CLIENT_ID)
+  alt Existing googleId
+    API->>DB: Find user by googleId
+  else Existing email (local/both account)
+    API->>DB: Link googleId, set authProvider=both, auto-verify email
+  else New user
+    API->>DB: Create user (authProvider=google, isEmailVerified=true)
+  end
+  API->>DB: Store refresh token hash
+  API-->>Client: { accessToken, refreshToken, user }
+```
+
+- `role` is optional and only applied on **first** Google sign-up (defaults to `buyer`; `agent` creates an `AgentProfile`)
+- Google users have no local password until they set one via password reset; `authProvider` is `google` or `both` when linked
+- Email/password accounts with the same verified Google email are **auto-linked** on Google sign-in — user can then sign in with either method
+- The same person may have **separate accounts per site** (Buytly, Buildwise, Block 57) with the same email or Google ID; uniqueness is `{ siteId, email }` and `{ siteId, googleId }`, not global across the database
+- Google sign-in auto-verifies the account when Google confirms the email (`isEmailVerified=true`, verification tokens cleared)
+- On first Google sign-in, account linking, or later sign-in when the user has no avatar yet, the API downloads the Google profile photo from the ID token `picture` claim, stores it in GCS under `sites/{siteSlug}/avatars/`, and sets `users.avatar` (existing custom avatars are not overwritten)
+- Google-only accounts cannot change password until a password is set via reset; after reset, `authProvider` becomes `both` and password login/change-password are available
+
+**Env:** `GOOGLE_CLIENT_ID` (server) and `NEXT_PUBLIC_GOOGLE_CLIENT_ID` (client) must match the OAuth Web client ID. Add every site origin you serve under **Authorized JavaScript origins** in Google Cloud Console (e.g. `http://localhost:3000`, `https://buytly.com`, `https://www.buytly.com`).
+
+**Client build:** `NEXT_PUBLIC_GOOGLE_CLIENT_ID` is inlined at **Docker/Next build time** (repo root `.env` → `docker compose` build args). Changing it on the server alone without rebuilding the client image leaves an empty or stale client ID in the browser bundle.
+
+**Button UX:** The login modal renders a custom “Continue with Google” control with the GIS iframe sized to the button width (200–400px). If the Google script is blocked, the UI shows a warning instead of a dead button. Until Google returns an ID token, DevTools will not show `POST /auth/google` — only Google (`accounts.google.com`) traffic.
+
+## Refresh Token Rotation
+
+Every refresh request rotates the token — the old token is revoked and a new pair is issued. This prevents replay attacks with stolen refresh tokens.
+
+```mermaid
+sequenceDiagram
+  participant Client
+  participant API
+  participant DB
+
+  Client->>API: POST /auth/refresh { refreshToken }
+  API->>DB: Find token by hash, verify not revoked/expired
+  API->>DB: Revoke old token
+  API->>DB: Create new refresh token
+  API-->>Client: { accessToken, refreshToken }
+```
+
+## Logout Flow
+
+```mermaid
+sequenceDiagram
+  participant Client
+  participant API
+  participant DB
+
+  Client->>API: POST /auth/logout { refreshToken }
+  API->>DB: Set revokedAt on token
+  API-->>Client: { success: true }
+```
+
+## Password Reset Flow
+
+1. User submits email via `POST /auth/forgot-password`
+2. Server generates crypto-random token, stores SHA-256 hash in user document (1h expiry)
+3. Email sent with reset link: `{siteBaseUrl}/reset-password?token={token}` (see [Email links](#email-links))
+4. User submits token + new password via `POST /auth/reset-password`. As with verification, the token is matched together with the request site, so a reset token issued on Block 57 returns `400 Invalid or expired reset token` with `X-Site-Slug: buytly` and never changes another site's account with the same email
+5. Password updated, all refresh tokens revoked
+
+## Email links
+
+Verify and reset emails (and notification email buttons) link to the **request site's** frontend, so a user finishes the flow on the site they registered on (accounts are per site):
+
+- `siteBaseUrl` = `resolveSitePublicBaseUrl(site)`: `SITE_PUBLIC_URL_BUYTLY` / `SITE_PUBLIC_URL_BUILDWISE` / `SITE_PUBLIC_URL_BLOCK57` when set; in development/test the local defaults `http://localhost:3000` / `3001` / `3002`; otherwise the site's `publicUrl` (or `https://{primaryDomain}`) from MongoDB.
+- `APP_URL` is only the fallback when no site URL is known (e.g. no request site).
+- Email subject, body and sender name use the site's display name (e.g. `Confirm your Block 57 account` from `Block 57 <SMTP_FROM>`); see `architecture.md` → Per-site branding.
+
+## Change Password Flow (authenticated)
+
+1. User submits `currentPassword`, `newPassword`, and `confirmNewPassword` via `POST /auth/change-password`
+2. Server verifies current password with bcrypt
+3. Password hash updated; user remains logged in (refresh tokens are not revoked)
+
+## Role Permissions Matrix
+
+For full role definitions, assignment rules, two-layer authorization, and client-side guards, see [roles.md](./roles.md).
+
+| Action                | buyer | seller | agent | admin |
+| --------------------- | ----- | ------ | ----- | ----- |
+| View properties       | Yes   | Yes    | Yes   | Yes   |
+| Create listings       | —     | Yes    | Yes   | Yes   |
+| Manage own listings   | —     | Yes    | Yes   | Yes   |
+| Favorites             | Yes   | Yes    | Yes   | Yes   |
+| Request bookings      | Yes   | —      | —     | —     |
+| Approve bookings      | —     | Yes\*  | Yes   | Yes   |
+| Initiate transactions | Yes   | —      | —     | —     |
+| Approve transactions  | —     | Yes    | Yes   | Yes   |
+| Agent profile         | —     | —      | Yes   | Yes   |
+| Admin panel           | —     | —      | —     | Yes   |
+| User management       | —     | —      | —     | Yes   |
+| Listing moderation    | —     | —      | —     | Yes   |
+| Analytics             | —     | —      | —     | Yes   |
+
+\* Seller can approve bookings when they are the assigned listing contact (`agentId` on the booking, typically the owner when no agent is set on the property).
+
+## Property visibility and moderation
+
+- Public `GET /properties` without `status` returns **active and sold** listings. Public list `status` filter accepts only `active` or `sold` when set.
+- Public `GET /properties/:id` returns **404** for non-active listings unless the requester is the owner, assigned agent, or admin (optional auth).
+- Non-admin create/update: `status: "active"` → **`pending`**. Omitting `status` on PATCH keeps the current status. Non-admins may set `sold` only from **active** (listings and projects); `archived` is not seller-settable. Units require a parent **project** (`projectId`). Project `sold` cascades to all live units.
+- Pending submissions notify admins; admin moderation notifies the owner.
+
+## Security Measures
+
+- Passwords hashed with bcrypt (12 salt rounds)
+- Refresh tokens stored as SHA-256 hashes (never plaintext)
+- Password reset tokens hashed in database
+- Email verification tokens hashed in database
+- Verification and reset tokens only match on the site that issued them (lookup by hash + `siteId`)
+- All refresh tokens revoked on password reset and account deletion
+- Rate limiting on auth endpoints (20 req/15min)
+- JWT secrets validated at startup (min 32 chars)

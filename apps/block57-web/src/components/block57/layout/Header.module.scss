@@ -1,0 +1,220 @@
+@use "../../../styles/block57/breakpoints" as bp;
+@use "../../../styles/block57/type";
+
+// Skip link: a white pill at the top left of the page, only when focused
+// (absolute, not fixed: it is the first tab stop, at the top of the page).
+.skipLink {
+  @include type.button;
+
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  z-index: var(--b57-z-skip);
+  padding: 11px 30px;
+  border-radius: var(--b57-radius-pill);
+  background: var(--b57-color-bg);
+  color: var(--b57-color-accent);
+  box-shadow: var(--b57-shadow-float);
+  transform: translateY(-200%);
+
+  &:focus,
+  &:focus-visible {
+    transform: none;
+    color: var(--b57-color-accent);
+    outline-color: var(--b57-color-primary);
+  }
+}
+
+// Absolute over the hero, transparent, scrolls away (not sticky).
+.header {
+  --b57-color-focus: var(--b57-color-on-dark);
+
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: 0;
+  z-index: var(--b57-z-header);
+  color: var(--b57-color-on-dark);
+}
+
+.inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  max-width: calc(var(--b57-container-chrome) + 60px);
+  height: var(--b57-header-h);
+  margin-inline: auto;
+  padding: 0 30px;
+
+  @include bp.down(tablet) {
+    padding: 15px 30px;
+  }
+
+  @include bp.down(mobile) {
+    justify-content: flex-start;
+    padding: 15px;
+  }
+}
+
+// ---- Logo: 280 → 180 (≤1366) → 155 (≤1024) → 134 (≤767) ------------------
+.logo {
+  --b57-logo-width: 280px;
+
+  @include bp.down(laptop) {
+    --b57-logo-width: 180px;
+  }
+
+  @include bp.down(tablet) {
+    --b57-logo-width: 155px;
+  }
+
+  @include bp.down(mobile) {
+    --b57-logo-width: 134px;
+  }
+}
+
+// ---- Burger (≤1024) ----------------------------------------------------------
+.menuButton {
+  display: none;
+  flex: none;
+  align-items: center;
+  width: 60px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+
+  @include bp.down(tablet) {
+    display: flex;
+  }
+
+  @include bp.down(mobile) {
+    width: 52px; // logo at x67, as on live
+  }
+}
+
+// ---- Desktop navigation (>1024) ---------------------------------------------------
+.nav {
+  @include bp.down(tablet) {
+    display: none;
+  }
+}
+
+// The live items are inline-blocks: the white space between them adds ~5px.
+.navList {
+  display: flex;
+  column-gap: 5px;
+  margin: 0 -19.8px;
+  list-style: none;
+}
+
+.navLink {
+  @include type.label(18px);
+
+  display: flex;
+  align-items: center;
+  padding: 45px 30px;
+  color: inherit;
+
+  &:hover {
+    color: inherit;
+  }
+
+  @include bp.down(laptop) {
+    padding: 35px 18px;
+  }
+}
+
+// Label swap on hover: the label slides up and fades while an identical copy
+// (from data-name) slides into place. No active-page indicator, as on live.
+.navTitle {
+  position: relative;
+  display: inline-flex;
+  overflow: hidden;
+
+  &::before {
+    content: attr(data-name);
+    position: absolute;
+    top: 50%;
+    left: 0;
+    width: 100%;
+    opacity: 0;
+    transform: translateY(4px);
+    transition:
+      transform var(--b57-transition),
+      opacity var(--b57-transition);
+  }
+}
+
+.navText {
+  display: inline-flex;
+  transition:
+    transform var(--b57-transition),
+    opacity var(--b57-transition);
+}
+
+.navLink:hover {
+  .navText {
+    opacity: 0;
+    transform: translateY(-13px);
+  }
+
+  .navTitle::before {
+    opacity: 1;
+    transform: translateY(-50%);
+  }
+}
+
+// ---- BROCHURE + INQUIRE -------------------------------------------------------------
+// Live geometry: a 300px group whose two slots are 52.414% wide each (the
+// buttons sit at the start of their slot), overflowing to the left; the group
+// overhangs the gutter by 30px at ≤1366.
+.actions {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: flex-end;
+  width: 300px;
+
+  @include bp.down(laptop) {
+    margin-right: -30px;
+  }
+
+  @include bp.down(mobile) {
+    width: auto;
+    margin-right: 0;
+    margin-left: auto;
+  }
+}
+
+.slot {
+  display: flex;
+  flex: 0 0 52.414%;
+  align-items: center;
+
+  @include bp.down(mobile) {
+    flex-basis: auto;
+  }
+}
+
+.inquireSlot {
+  @include bp.down(mobile) {
+    display: none;
+  }
+}
+
+.brochure {
+  @include bp.down(mobile) {
+    width: 123px;
+    padding-inline: 0;
+  }
+}
+
+@include bp.reduced-motion {
+  .navTitle::before,
+  .navText {
+    transition: none;
+  }
+}

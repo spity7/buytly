@@ -1,0 +1,58 @@
+// Block 57 breakpoints = the live site's Elementor breakpoints (inclusive max
+// widths, desktop-first). Custom properties cannot be used inside media
+// queries, so they live here as Sass values. From a CSS Module:
+//   @use "../../../styles/block57/breakpoints" as bp;   // adjust the depth
+//   .title { font-size: 60px; @include bp.down(mobile) { font-size: 36px; } }
+//
+//   down(name)          max-width: <name>         (≤ 767 for mobile)
+//   up(name)            min-width: <name> + 1px   (> 767 for mobile)
+//   between(from, to)   > from and ≤ to           (e.g. tablet range: between(mobile, tablet))
+//
+// mobile ≤767 · mobile-extra ≤880 · tablet ≤1024 (burger menu) ·
+// tablet-extra ≤1200 · laptop ≤1366 · desktop ≥1367 (no mixin needed: base styles).
+@use "sass:map";
+
+$breakpoints: (
+  mobile: 767px,
+  mobile-extra: 880px,
+  tablet: 1024px,
+  tablet-extra: 1200px,
+  laptop: 1366px,
+);
+
+@function bp($name) {
+  @if map.has-key($breakpoints, $name) {
+    @return map.get($breakpoints, $name);
+  }
+  @error "Unknown breakpoint `#{$name}`.";
+}
+
+@mixin down($name) {
+  @media (max-width: bp($name)) {
+    @content;
+  }
+}
+
+@mixin up($name) {
+  @media (min-width: bp($name) + 1px) {
+    @content;
+  }
+}
+
+@mixin between($from, $to) {
+  @media (min-width: bp($from) + 1px) and (max-width: bp($to)) {
+    @content;
+  }
+}
+
+@mixin reduced-motion {
+  @media (prefers-reduced-motion: reduce) {
+    @content;
+  }
+}
+
+@mixin hover {
+  @media (hover: hover) and (pointer: fine) {
+    @content;
+  }
+}

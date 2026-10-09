@@ -1,0 +1,26 @@
+"use client";
+
+import { usePropertySingle } from "@/providers/PropertySingleProvider";
+import React from "react";
+
+const VirtualTour360 = ({ virtualTourUrl: virtualTourUrlProp }) => {
+  const single = usePropertySingle();
+  const tourUrl = virtualTourUrlProp ?? single?.property?.virtualTourUrl;
+
+  if (!tourUrl) return null;
+
+  return (
+    <div className="col-md-12">
+      <iframe
+        src={tourUrl}
+        title="360 virtual tour"
+        className="w-100 bdrs12"
+        style={{ minHeight: 420, border: 0 }}
+        loading="lazy"
+        allowFullScreen
+      />
+    </div>
+  );
+};
+
+export default VirtualTour360;

@@ -1,0 +1,72 @@
+@use "../../../styles/block57/breakpoints" as bp;
+@use "../../../styles/block57/type";
+
+// Live b8e527d: flex column, content centred in the area left by the
+// 160 / 80 paddings (110 / 60 on phones).
+.hero {
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 1080px;
+  padding: 160px var(--b57-gutter) 80px;
+  color: var(--b57-color-on-dark);
+
+  @include bp.down(laptop) {
+    min-height: 900px;
+  }
+
+  @include bp.down(tablet-extra) {
+    min-height: 800px;
+  }
+
+  @include bp.down(tablet) {
+    min-height: 700px;
+  }
+
+  @include bp.down(mobile-extra) {
+    min-height: 600px;
+  }
+
+  @include bp.down(mobile) {
+    min-height: 500px;
+    padding-block: 110px 60px;
+  }
+}
+
+.inner {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: var(--b57-container);
+  margin-inline: auto;
+  text-align: center;
+}
+
+// Montserrat 200, 30/46.67 → 20 (≤880) → 18/28 (≤767). Widget margin 20 +
+// paragraph margin 1.41575em before the button.
+.tagline {
+  @include type.tagline;
+
+  margin: 0 0 calc(1.41575em + 20px);
+  color: var(--b57-color-on-dark);
+
+  @include bp.down(mobile-extra) {
+    font-size: 20px;
+  }
+
+  @include bp.down(mobile) {
+    font-size: var(--b57-fs-tagline);
+  }
+}
+
+// 200×76 → 160×60 from 880px down (the shared button switches at 767). Live
+// keeps 10px more on the right (an empty icon slot after the label).
+.hero .cta {
+  padding-right: 55px;
+
+  @include bp.down(mobile-extra) {
+    padding: 15px 35px 15px 25px;
+  }
+}

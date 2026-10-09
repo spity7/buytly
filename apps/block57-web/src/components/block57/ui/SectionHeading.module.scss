@@ -1,0 +1,36 @@
+@use "../../../styles/block57/breakpoints" as bp;
+@use "../../../styles/block57/type";
+
+// Zero specificity (:where) so a consumer's className always wins.
+:where(.heading) {
+  margin: 0;
+}
+
+:where(.align-center) {
+  text-align: center;
+}
+
+:where(.align-start) {
+  text-align: start;
+}
+
+:where(.title) {
+  margin: 0;
+  color: var(--b57-fg-heading);
+}
+
+:where(.section) {
+  @include type.section-title;
+}
+
+:where(.subsection) {
+  @include type.subsection-title;
+}
+
+:where(.afterEyebrow) {
+  margin-top: 30px;
+
+  @include bp.down(mobile) {
+    margin-top: 15px;
+  }
+}

@@ -1,0 +1,25 @@
+@use "../../../styles/block57/type";
+
+// :where() keeps the root at zero specificity so a consumer's className wins.
+:where(.eyebrow) {
+  @include type.label(18.67px);
+
+  display: inline-block;
+  margin: 0;
+  vertical-align: top;
+  font-weight: 300; // live requests 300; URW's single Demi face renders it
+  color: var(--b57-fg-eyebrow);
+}
+
+:where(.text.bar) {
+  padding-bottom: 22px;
+}
+
+:where(.widget) {
+  padding: 8px 0 5px;
+  line-height: 12px;
+}
+
+:where(.bar) {
+  border-bottom: 5px solid var(--b57-eyebrow-bar);
+}

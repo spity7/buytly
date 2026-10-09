@@ -1,0 +1,127 @@
+@use "../../../styles/block57/breakpoints" as bp;
+@use "../../../styles/block57/type";
+
+.tiles {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+
+  @include bp.down(mobile) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.tile {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 300px;
+  overflow: hidden;
+  color: var(--b57-color-on-dark);
+  isolation: isolate;
+
+  &:hover {
+    color: var(--b57-color-on-dark);
+  }
+
+  @include bp.down(mobile) {
+    height: 150px;
+  }
+}
+
+.slate {
+  --_overlay: var(--b57-color-cta-slate);
+}
+
+.sage {
+  --_overlay: var(--b57-color-cta-sage);
+}
+
+.image {
+  z-index: -2;
+  object-fit: cover;
+  transition: transform var(--b57-transition);
+}
+
+.overlay {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: var(--_overlay);
+  transition: background-color var(--b57-transition);
+}
+
+.title {
+  @include type.tile-title;
+}
+
+.tile:hover,
+.tile:focus-visible {
+  .image {
+    transform: scale(1.09);
+  }
+
+  .overlay {
+    background: var(--b57-overlay-cta-hover);
+  }
+}
+
+.tile:focus-visible {
+  outline-offset: -4px;
+}
+
+// White INQUIRE badge centred on the seam: 140px (100px ≤880).
+.badge {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  display: grid;
+  place-items: center;
+  width: 140px;
+  height: 140px;
+  border-radius: 50%;
+  background: var(--b57-color-bg);
+  transform: translate(-50%, -50%);
+
+  > * {
+    grid-area: 1 / 1;
+  }
+
+  @include bp.down(mobile-extra) {
+    width: 100px;
+    height: 100px;
+  }
+}
+
+.badgeIcon {
+  color: var(--b57-color-cta-badge-icon);
+  transition: color var(--b57-transition);
+}
+
+.badgeLabel {
+  @include type.label(18px);
+
+  color: var(--b57-color-primary);
+  transition: opacity var(--b57-transition);
+}
+
+.badge:hover,
+.badge:focus-visible {
+  .badgeIcon {
+    color: var(--b57-color-primary);
+  }
+
+  .badgeLabel {
+    opacity: 0;
+  }
+}
+
+@include bp.reduced-motion {
+  .image,
+  .overlay,
+  .badgeIcon,
+  .badgeLabel {
+    transition: none;
+  }
+}

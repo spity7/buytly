@@ -1,0 +1,74 @@
+[
+  {
+    "title": "A-101",
+    "type": "executive-studio",
+    "building": "A",
+    "floor": 1,
+    "bedrooms": 0,
+    "bathrooms": 1,
+    "area": 45,
+    "price": 150000,
+    "status": "pending",
+    "description": "Example unit (placeholder data, not real inventory): Executive Studio in Block A."
+  },
+  {
+    "title": "A-204",
+    "type": "one-bedroom",
+    "building": "A",
+    "floor": 2,
+    "bedrooms": 1,
+    "bathrooms": 1,
+    "area": 75,
+    "price": 230000,
+    "status": "pending",
+    "description": "Example unit (placeholder data, not real inventory): 1 Bedroom apartment in Block A."
+  },
+  {
+    "title": "B-302",
+    "type": "two-bedroom",
+    "building": "B",
+    "floor": 3,
+    "bedrooms": 2,
+    "bathrooms": 2,
+    "area": 120,
+    "price": 350000,
+    "status": "sold",
+    "description": "Example unit (placeholder data, not real inventory): 2 Bedroom apartment in Block B."
+  },
+  {
+    "title": "B-TH1",
+    "type": "townhouse",
+    "building": "B",
+    "floor": 0,
+    "bedrooms": 3,
+    "bathrooms": 3,
+    "area": 220,
+    "price": 650000,
+    "status": "pending",
+    "description": "Example unit (placeholder data, not real inventory): Townhouse in Block B."
+  },
+  {
+    "title": "C-UV1",
+    "type": "urban-villa",
+    "building": "C",
+    "floor": 0,
+    "bedrooms": 4,
+    "bathrooms": 4,
+    "area": 320,
+    "price": 950000,
+    "status": "pending",
+    "description": "Example unit (placeholder data, not real inventory): Urban Villa in Block C."
+  },
+  {
+    "title": "C-PH1",
+    "type": "penthouse",
+    "building": "C",
+    "floor": 8,
+    "bedrooms": 3,
+    "bathrooms": 3,
+    "area": 280,
+    "price": 1200000,
+    "status": "pending",
+    "description": "Example unit (placeholder data, not real inventory): Penthouse in Block C."
+  }
+]

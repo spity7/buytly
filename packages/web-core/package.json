@@ -1,0 +1,11 @@
+{
+  "name": "@buytly/web-core",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "main": "./src/siteConfig.js",
+  "exports": {
+    ".": "./src/siteConfig.js",
+    "./siteConfig": "./src/siteConfig.js"
+  }
+}

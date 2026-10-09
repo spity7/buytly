@@ -1,0 +1,113 @@
+@use "../../../styles/block57/breakpoints" as bp;
+@use "../../../styles/block57/type";
+
+.root {
+  position: fixed;
+  inset: 0;
+  z-index: var(--b57-z-drawer);
+  visibility: hidden;
+  pointer-events: none;
+  transition: visibility 0s linear var(--b57-duration-drawer);
+
+  &[data-open="true"] {
+    visibility: visible;
+    pointer-events: auto;
+    transition: visibility 0s linear 0s;
+  }
+
+  @include bp.up(tablet) {
+    display: none;
+  }
+}
+
+.backdrop {
+  position: absolute;
+  inset: 0;
+  background: var(--b57-overlay-drawer);
+  opacity: 0;
+  transition: opacity var(--b57-duration-drawer);
+
+  [data-open="true"] > & {
+    opacity: 1;
+  }
+}
+
+.panel {
+  --b57-color-focus: var(--b57-color-primary);
+
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  display: flex;
+  flex-direction: column;
+  width: min(330px, 100%);
+  padding: 40px 0 calc(40px + env(safe-area-inset-bottom));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  background: var(--b57-color-bg);
+  transform: translateX(-100%);
+  transition: transform var(--b57-duration-drawer);
+
+  [data-open="true"] > & {
+    transform: none;
+  }
+
+  @include bp.up(mobile) {
+    width: 410px;
+  }
+}
+
+// × at top 18 / right 20 (44px hit area around the 24px glyph).
+.close {
+  position: absolute;
+  top: 8px;
+  right: 5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--b57-color-accent);
+}
+
+.logo {
+  --b57-logo-width: 270px;
+
+  margin: 0 30px 30px;
+}
+
+.nav ul {
+  list-style: none;
+}
+
+.link {
+  @include type.drawer-link;
+
+  display: block;
+  width: 270px;
+  max-width: calc(100% - 60px);
+  margin-inline: 30px;
+  padding: 12px 0;
+  color: var(--b57-color-accent);
+
+  &:hover,
+  &[aria-current="page"] {
+    color: var(--b57-color-primary);
+  }
+}
+
+.account {
+  color: var(--b57-color-text-light);
+}
+
+@include bp.reduced-motion {
+  .root,
+  .backdrop,
+  .panel {
+    transition: none !important;
+  }
+}

@@ -1,0 +1,128 @@
+# Prerequisites:
+#   1. cp server/.env.example server/.env  (fill secrets, keep active lines uncommented)
+#   2. cp .env.example .env
+#   3. docker compose up --build  (build context is repo root)
+#
+# For production: swap commented/uncommented lines in .env files
+
+services:
+  client:
+    build:
+      context: .
+      dockerfile: client/Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
+        NEXT_PUBLIC_SITE_SLUG: buytly
+        NEXT_PUBLIC_SITE_NAME: Buytly
+        NEXT_PUBLIC_GOOGLE_CLIENT_ID: ${NEXT_PUBLIC_GOOGLE_CLIENT_ID}
+        NEXT_PUBLIC_GOOGLE_MAPS_API_KEY: ${NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}
+        NEXT_PUBLIC_SUPPORT_PHONE: ${NEXT_PUBLIC_SUPPORT_PHONE:-+96171601751}
+        NEXT_PUBLIC_SUPPORT_PHONE_DISPLAY: "${NEXT_PUBLIC_SUPPORT_PHONE_DISPLAY:-+961 71 601 751}"
+        NEXT_PUBLIC_SUPPORT_EMAIL: ${NEXT_PUBLIC_SUPPORT_EMAIL:-buytlyonline@gmail.com}
+    ports:
+      - "127.0.0.1:3025:3025"
+    depends_on:
+      - server
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          'node -e "fetch(''http://127.0.0.1:3025'').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"',
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  buildwise-web:
+    build:
+      context: .
+      dockerfile: apps/buildwise-web/Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
+        NEXT_PUBLIC_SITE_SLUG: buildwise
+        NEXT_PUBLIC_SITE_NAME: Buildwise Engineering
+        NEXT_PUBLIC_SITE_PUBLIC_URL: ${BUILDWISE_SITE_PUBLIC_URL:-https://buildwise-engineering.com}
+        NEXT_PUBLIC_GOOGLE_CLIENT_ID: ${NEXT_PUBLIC_GOOGLE_CLIENT_ID}
+        NEXT_PUBLIC_GOOGLE_MAPS_API_KEY: ${NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}
+        NEXT_PUBLIC_SUPPORT_PHONE: ${BUILDWISE_SUPPORT_PHONE:-+96171703703}
+        NEXT_PUBLIC_SUPPORT_PHONE_DISPLAY: "${BUILDWISE_SUPPORT_PHONE_DISPLAY:-+961 71 703 703}"
+        NEXT_PUBLIC_SUPPORT_EMAIL: ${BUILDWISE_SUPPORT_EMAIL:-info@buildwise-engineering.com}
+    ports:
+      - "127.0.0.1:3026:3026"
+    depends_on:
+      - server
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          'node -e "fetch(''http://127.0.0.1:3026'').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"',
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  block57-web:
+    build:
+      context: .
+      dockerfile: apps/block57-web/Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
+        NEXT_PUBLIC_SITE_SLUG: block57
+        NEXT_PUBLIC_SITE_NAME: Block 57
+        NEXT_PUBLIC_SITE_PUBLIC_URL: ${BLOCK57_SITE_PUBLIC_URL:-https://block-57.com}
+        NEXT_PUBLIC_BLOCK57_PROJECT_SLUG: ${BLOCK57_PROJECT_SLUG:-block-57}
+        NEXT_PUBLIC_SHOW_PRICES: "${BLOCK57_SHOW_PRICES:-false}"
+        NEXT_PUBLIC_GOOGLE_CLIENT_ID: ${NEXT_PUBLIC_GOOGLE_CLIENT_ID}
+        NEXT_PUBLIC_GOOGLE_MAPS_API_KEY: ${NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}
+        NEXT_PUBLIC_SUPPORT_PHONE: ${BLOCK57_SUPPORT_PHONE:-+233244777772}
+        NEXT_PUBLIC_SUPPORT_PHONE_DISPLAY: "${BLOCK57_SUPPORT_PHONE_DISPLAY:-+233 244 777 772}"
+        NEXT_PUBLIC_SUPPORT_EMAIL: ${BLOCK57_SUPPORT_EMAIL:-info@block-57.com}
+        NEXT_PUBLIC_GTM_ID: ${BLOCK57_GTM_ID:-}
+    ports:
+      - "127.0.0.1:3027:3027"
+    depends_on:
+      - server
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          'node -e "fetch(''http://127.0.0.1:3027'').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"',
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  server:
+    build:
+      context: ./server
+    ports:
+      - "127.0.0.1:5025:5025"
+    env_file:
+      - ./server/.env
+    volumes:
+      - ./server/gcs-service-account.json:/app/gcs-service-account.json:ro
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          'node -e "fetch(''http://127.0.0.1:5025/api/v1/health'').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"',
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s

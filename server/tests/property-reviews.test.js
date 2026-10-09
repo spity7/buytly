@@ -1,0 +1,313 @@
+import { describe, it, expect } from "vitest";
+import { api } from "./helpers/http.js";
+import { mongoAvailable } from "./setup.js";
+import { Property } from "../src/modules/properties/property.model.js";
+import { PropertyReview } from "../src/modules/property-reviews/property-review.model.js";
+import {
+  buildPropertyBody,
+  createActiveProperty,
+} from "./helpers/listingFixtures.js";
+
+const getApp = async () => {
+  const { default: app } = await import("../src/app.js");
+  return app;
+};
+
+const registerPayload = (overrides = {}) => ({
+  email: "seller@example.com",
+  password: "password123",
+  confirmPassword: "password123",
+  firstName: "Test",
+  role: "seller",
+  ...overrides,
+});
+
+const reviewPropertyExtras = {
+  virtualTourUrl: "https://my.matterport.com/show/?m=example",
+  floorPlans: [{ title: "First Floor" }],
+};
+
+const registerAndGetToken = async (app, overrides = {}) => {
+  const res = await api(app)
+    .post("/api/v1/auth/register")
+    .send(
+      registerPayload({
+        email: `user-${Date.now()}-${Math.random().toString(36).slice(2)}@example.com`,
+        ...overrides,
+      }),
+    );
+  expect(res.status).toBe(201);
+  return res.body.data.accessToken;
+};
+
+describe.skipIf(!mongoAvailable)("property reviews API", () => {
+  it("lists reviews with stats for an active property", async () => {
+    const app = await getApp();
+    const sellerToken = await registerAndGetToken(app, { role: "seller" });
+    const buyerToken = await registerAndGetToken(app, { role: "buyer" });
+
+    const propertyId = await createActiveProperty(app, sellerToken);
+
+    await api(app)
+      .post(`/api/v1/properties/${propertyId}/reviews`)
+      .set("Authorization", `Bearer ${buyerToken}`)
+      .send({
+        rating: 5,
+        title: "Great place",
+        text: "Loved the layout and location.",
+      })
+      .expect(201);
+
+    const res = await api(app)
+      .get(`/api/v1/properties/${propertyId}/reviews`)
+      .expect(200);
+
+    expect(res.body.success).toBe(true);
+    expect(res.body.data.reviews).toHaveLength(1);
+    expect(res.body.data.stats.reviewCount).toBe(1);
+    expect(res.body.data.stats.averageRating).toBe(5);
+  }, 15000);
+
+  it("prevents duplicate reviews from the same user", async () => {
+    const app = await getApp();
+    const sellerToken = await registerAndGetToken(app, { role: "seller" });
+    const buyerToken = await registerAndGetToken(app, { role: "buyer" });
+
+    const propertyId = await createActiveProperty(app, sellerToken);
+
+    await api(app)
+      .post(`/api/v1/properties/${propertyId}/reviews`)
+      .set("Authorization", `Bearer ${buyerToken}`)
+      .send({
+        rating: 4,
+        title: "Nice",
+        text: "Would visit again.",
+      })
+      .expect(201);
+
+    const duplicate = await api(app)
+      .post(`/api/v1/properties/${propertyId}/reviews`)
+      .set("Authorization", `Bearer ${buyerToken}`)
+      .send({
+        rating: 3,
+        title: "Changed mind",
+        text: "Not as good the second time.",
+      });
+
+    expect(duplicate.status).toBe(409);
+  });
+
+  it("returns hasReviewed for authenticated users", async () => {
+    const app = await getApp();
+    const sellerToken = await registerAndGetToken(app, { role: "seller" });
+    const buyerToken = await registerAndGetToken(app, { role: "buyer" });
+
+    const propertyId = await createActiveProperty(app, sellerToken);
+
+    const before = await api(app)
+      .get(`/api/v1/properties/${propertyId}/reviews/check`)
+      .set("Authorization", `Bearer ${buyerToken}`)
+      .expect(200);
+
+    expect(before.body.data.hasReviewed).toBe(false);
+
+    await api(app)
+      .post(`/api/v1/properties/${propertyId}/reviews`)
+      .set("Authorization", `Bearer ${buyerToken}`)
+      .send({
+        rating: 5,
+        title: "Excellent",
+        text: "Five stars all around.",
+      })
+      .expect(201);
+
+    const after = await api(app)
+      .get(`/api/v1/properties/${propertyId}/reviews/check`)
+      .set("Authorization", `Bearer ${buyerToken}`)
+      .expect(200);
+
+    expect(after.body.data.hasReviewed).toBe(true);
+
+    await PropertyReview.deleteMany({ propertyId });
+  });
+
+  it("rejects mine/reviews for buyers", async () => {
+    const app = await getApp();
+    const buyerToken = await registerAndGetToken(app, { role: "buyer" });
+
+    const res = await api(app)
+      .get("/api/v1/properties/mine/reviews")
+      .set("Authorization", `Bearer ${buyerToken}`);
+
+    expect(res.status).toBe(403);
+  });
+
+  it("returns empty mine/reviews for seller with no reviews yet", async () => {
+    const app = await getApp();
+    const sellerToken = await registerAndGetToken(app, { role: "seller" });
+
+    await createActiveProperty(app, sellerToken, {
+      title: "No Reviews Yet Property",
+    });
+
+    const res = await api(app)
+      .get("/api/v1/properties/mine/reviews")
+      .set("Authorization", `Bearer ${sellerToken}`)
+      .expect(200);
+
+    expect(res.body.data.reviews).toEqual([]);
+    expect(res.body.data.stats.reviewCount).toBe(0);
+  });
+
+  it("lists reviews received on seller managed properties", async () => {
+    const app = await getApp();
+    const sellerToken = await registerAndGetToken(app, { role: "seller" });
+    const buyerToken = await registerAndGetToken(app, { role: "buyer" });
+
+    const propertyId = await createActiveProperty(app, sellerToken, {
+      title: "Review Test Apartment",
+    });
+
+    await api(app)
+      .post(`/api/v1/properties/${propertyId}/reviews`)
+      .set("Authorization", `Bearer ${buyerToken}`)
+      .send({
+        rating: 4,
+        title: "Solid listing",
+        text: "Good value for the area.",
+      })
+      .expect(201);
+
+    const res = await api(app)
+      .get("/api/v1/properties/mine/reviews")
+      .set("Authorization", `Bearer ${sellerToken}`)
+      .expect(200);
+
+    expect(res.body.success).toBe(true);
+    expect(res.body.data.reviews).toHaveLength(1);
+    expect(res.body.data.stats.reviewCount).toBe(1);
+    expect(res.body.data.reviews[0].propertyId.title).toBe(
+      "Review Test Apartment",
+    );
+  });
+
+  it("lets review author delete their review", async () => {
+    const app = await getApp();
+    const sellerToken = await registerAndGetToken(app, { role: "seller" });
+    const buyerToken = await registerAndGetToken(app, { role: "buyer" });
+
+    const propertyId = await createActiveProperty(app, sellerToken);
+
+    const created = await api(app)
+      .post(`/api/v1/properties/${propertyId}/reviews`)
+      .set("Authorization", `Bearer ${buyerToken}`)
+      .send({
+        rating: 3,
+        title: "Average",
+        text: "Decent but noisy street.",
+      })
+      .expect(201);
+
+    const reviewId = created.body.data._id;
+
+    await api(app)
+      .delete(`/api/v1/properties/${propertyId}/reviews/${reviewId}`)
+      .set("Authorization", `Bearer ${buyerToken}`)
+      .expect(200);
+
+    const list = await api(app)
+      .get(`/api/v1/properties/${propertyId}/reviews`)
+      .expect(200);
+
+    expect(list.body.data.reviews).toHaveLength(0);
+    expect(list.body.data.stats.reviewCount).toBe(0);
+  });
+
+  it("includes reviews on agent-assigned listings in mine/reviews", async () => {
+    const app = await getApp();
+    const sellerToken = await registerAndGetToken(app, { role: "seller" });
+    const agentToken = await registerAndGetToken(app, { role: "agent" });
+    const buyerToken = await registerAndGetToken(app, { role: "buyer" });
+
+    const agentProfile = await api(app)
+      .get("/api/v1/users/me")
+      .set("Authorization", `Bearer ${agentToken}`)
+      .expect(200);
+
+    const agentId = agentProfile.body.data.id;
+    const propertyId = await createActiveProperty(app, sellerToken, {
+      title: "Agent Assigned Review Property",
+    });
+
+    await Property.findByIdAndUpdate(propertyId, { agentId });
+
+    await api(app)
+      .post(`/api/v1/properties/${propertyId}/reviews`)
+      .set("Authorization", `Bearer ${buyerToken}`)
+      .send({
+        rating: 5,
+        title: "Great agent support",
+        text: "Smooth viewing and quick responses.",
+      })
+      .expect(201);
+
+    const res = await api(app)
+      .get("/api/v1/properties/mine/reviews")
+      .set("Authorization", `Bearer ${agentToken}`)
+      .expect(200);
+
+    expect(res.body.data.reviews).toHaveLength(1);
+    expect(res.body.data.reviews[0].propertyId.title).toBe(
+      "Agent Assigned Review Property",
+    );
+  });
+
+  it("lists empty reviews for a pending property when requested by owner", async () => {
+    const app = await getApp();
+    const sellerToken = await registerAndGetToken(app, { role: "seller" });
+
+    const created = await api(app)
+      .post("/api/v1/properties")
+      .set("Authorization", `Bearer ${sellerToken}`)
+      .send(
+        await buildPropertyBody(app, sellerToken, {
+          title: "Pending Review Property",
+        }),
+      )
+      .expect(201);
+
+    const propertyId = created.body.data._id;
+
+    const res = await api(app)
+      .get(`/api/v1/properties/${propertyId}/reviews`)
+      .set("Authorization", `Bearer ${sellerToken}`)
+      .expect(200);
+
+    expect(res.body.data.reviews).toEqual([]);
+    expect(res.body.data.stats.reviewCount).toBe(0);
+  });
+});
+
+describe.skipIf(!mongoAvailable)("property extended fields", () => {
+  it("persists virtualTourUrl and floorPlans on create/update", async () => {
+    const app = await getApp();
+    const token = await registerAndGetToken(app, { role: "seller" });
+
+    const created = await api(app)
+      .post("/api/v1/properties")
+      .set("Authorization", `Bearer ${token}`)
+      .send(
+        await buildPropertyBody(app, token, {
+          title: "Extended Fields Property",
+          ...reviewPropertyExtras,
+        }),
+      )
+      .expect(201);
+
+    expect(created.body.data.virtualTourUrl).toBe(
+      "https://my.matterport.com/show/?m=example",
+    );
+    expect(created.body.data.floorPlans).toHaveLength(1);
+    expect(created.body.data.floorPlans[0].title).toBe("First Floor");
+  });
+});

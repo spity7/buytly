@@ -1,0 +1,44 @@
+@use "../../../styles/block57/breakpoints" as bp;
+@use "../../../styles/block57/type";
+
+// Live availability line (apartment cards, availability heading): meta-pill
+// typography, #ADA4A1 words with #346054 counts.
+.line {
+  @include type.meta;
+
+  display: inline-block;
+  min-height: 16px; // same height in every state: no layout shift
+  vertical-align: top;
+  color: var(--b57-color-text-light);
+  white-space: nowrap;
+}
+
+.count {
+  color: var(--b57-color-primary);
+}
+
+.line[data-state="sold-out"] {
+  color: var(--b57-color-accent);
+}
+
+.skeleton {
+  display: inline-block;
+  width: 150px;
+  height: 8px;
+  margin-top: 4px;
+  vertical-align: top;
+  background: var(--b57-color-border);
+  animation: b57-live-pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes b57-live-pulse {
+  50% {
+    opacity: 0.5;
+  }
+}
+
+@include bp.reduced-motion {
+  .skeleton {
+    animation: none;
+  }
+}

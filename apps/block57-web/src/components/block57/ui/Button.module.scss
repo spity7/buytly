@@ -1,0 +1,207 @@
+@use "../../../styles/block57/breakpoints" as bp;
+@use "../../../styles/block57/type";
+
+.button {
+  @include type.button;
+
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 11px 30px;
+  border: 0;
+  border-radius: var(--b57-radius-pill);
+  background: transparent;
+  color: inherit;
+  text-align: center;
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    background-color var(--b57-transition),
+    border-color var(--b57-transition),
+    color var(--b57-transition);
+
+  &:disabled,
+  &[aria-disabled="true"] {
+    cursor: not-allowed;
+    opacity: 0.5;
+  }
+}
+
+.block {
+  display: flex;
+  width: 100%;
+}
+
+// ---- Variants -----------------------------------------------------------------
+.outlineThin {
+  border: 1px solid var(--b57-color-on-dark);
+  box-shadow: var(--b57-shadow-glow-white);
+  color: var(--b57-color-on-dark);
+
+  &:focus-visible {
+    background-color: var(--b57-color-white-fill);
+  }
+
+  @include bp.hover {
+    &:hover {
+      background-color: var(--b57-color-white-fill);
+    }
+  }
+}
+
+.outlineThick {
+  padding: 23px 45px;
+  border: 3px solid var(--b57-color-on-dark);
+  border-radius: var(--b57-radius-pill-lg);
+  color: var(--b57-color-on-dark);
+
+  @include bp.down(mobile) {
+    padding: 15px 25px;
+  }
+}
+
+.white {
+  background: var(--b57-color-bg);
+  color: var(--b57-color-accent);
+}
+
+.whiteBordered {
+  border: 1px solid var(--b57-color-border);
+  background: var(--b57-color-bg);
+  color: var(--b57-color-accent);
+
+  @include bp.down(mobile) {
+    padding: 8px 20px;
+  }
+}
+
+.black {
+  background: var(--b57-color-accent);
+  color: var(--b57-color-on-dark);
+}
+
+.green {
+  padding: 13px 30px;
+  background: var(--b57-color-primary);
+  color: var(--b57-color-on-dark);
+
+  &:focus-visible {
+    background: var(--b57-color-primary-hover);
+  }
+
+  @include bp.hover {
+    &:hover:not(:disabled) {
+      background: var(--b57-color-primary-hover);
+    }
+  }
+}
+
+.small {
+  padding: 8px 20px;
+}
+
+// Text link: 1px bar under the label that wipes out (.4s) while a second bar
+// wipes in (.8s).
+.textLink {
+  padding: 0;
+  border-radius: 0;
+  color: var(--b57-fg-eyebrow);
+
+  .label {
+    position: relative;
+
+    &::before,
+    &::after {
+      content: "";
+      position: absolute;
+      top: 23px;
+      height: 1px;
+      background: currentColor;
+    }
+
+    &::before {
+      right: 0;
+      width: 100%;
+      transition: width 0.4s var(--b57-ease);
+    }
+
+    &::after {
+      left: 0;
+      width: 0;
+      transition: width 0.8s var(--b57-ease);
+    }
+  }
+
+  @include bp.hover {
+    &:hover {
+      .label::before {
+        width: 0;
+      }
+
+      .label::after {
+        width: 100%;
+      }
+    }
+  }
+}
+
+// ---- Parts ----------------------------------------------------------------------
+.label {
+  display: inline-block;
+}
+
+.icon {
+  display: inline-flex;
+  flex: none;
+  margin-right: 8px;
+}
+
+// Double-arrow "conveyor": the first copy slides out to the right while the
+// second slides in from the left.
+.arrow {
+  flex: none;
+  margin-left: 8px;
+  overflow: hidden;
+}
+
+.arrowOut,
+.arrowIn {
+  transition: transform var(--b57-duration) var(--b57-ease-conveyor);
+}
+
+.arrowIn {
+  transform: translateX(-100%);
+  transition-delay: 0.1s;
+}
+
+@mixin arrow-moved {
+  .arrowOut {
+    transform: translateX(100%);
+  }
+
+  .arrowIn {
+    transform: translateX(0);
+  }
+}
+
+.button:focus-visible {
+  @include arrow-moved;
+}
+
+@include bp.hover {
+  .button:hover {
+    @include arrow-moved;
+  }
+}
+
+@include bp.reduced-motion {
+  .button,
+  .arrowOut,
+  .arrowIn,
+  .textLink .label::before,
+  .textLink .label::after {
+    transition: none;
+  }
+}

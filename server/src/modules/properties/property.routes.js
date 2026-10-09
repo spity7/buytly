@@ -1,0 +1,660 @@
+import { Router } from "express";
+import { propertyController } from "./property.controller.js";
+import { asyncHandler } from "../../utils/asyncHandler.js";
+import {
+  authenticate,
+  authorize,
+  optionalAuth,
+} from "../../middleware/auth.js";
+import { validate, validateMultiple } from "../../middleware/validate.js";
+import { ROLES } from "../../shared/constants.js";
+import {
+  createPropertySchema,
+  updatePropertySchema,
+  listPropertiesSchema,
+  listMyPropertiesSchema,
+  propertyIdSchema,
+  mediaIdSchema,
+  reorderPropertyMediaSchema,
+} from "./property.validation.js";
+import propertyReviewRoutes from "../property-reviews/property-review.routes.js";
+import { rejectTenantPlatformFeaturingPatch } from "../platform/platform-visibility.js";
+import { propertyReviewController } from "../property-reviews/property-review.controller.js";
+import { listPropertyReviewsSchema } from "../property-reviews/property-review.validation.js";
+
+const router = Router();
+
+/**
+ * @swagger
+ * /properties:
+ *   get:
+ *     operationId: listProperties
+ *     summary: List properties with filters
+ *     description: Returns a paginated list of active properties. Supports price, type, geo-radius, full-text search, and sorting. On sites that hide prices (features.hidePublicPrices) every unit has price null plus priceLabel, and minPrice/maxPrice and sortBy=price are ignored.
+ *     tags: [Properties]
+ *     parameters:
+ *       - $ref: '#/components/parameters/PageParam'
+ *       - $ref: '#/components/parameters/LimitParam'
+ *       - in: query
+ *         name: minPrice
+ *         schema:
+ *           type: number
+ *         example: 100000
+ *       - in: query
+ *         name: maxPrice
+ *         schema:
+ *           type: number
+ *         example: 500000
+ *       - in: query
+ *         name: type
+ *         schema:
+ *           $ref: '#/components/schemas/PropertyType'
+ *       - in: query
+ *         name: projectId
+ *         schema:
+ *           $ref: '#/components/schemas/ObjectId'
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *           enum: [active, sold]
+ *         description: Defaults to active. Draft, pending, and archived are not exposed on the public list.
+ *       - in: query
+ *         name: city
+ *         schema:
+ *           type: string
+ *         example: Dubai
+ *       - in: query
+ *         name: bedrooms
+ *         schema:
+ *           type: integer
+ *         example: 2
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *         description: Case-insensitive partial match on title and description. Can be combined with geo-radius filters.
+ *         example: downtown apartment
+ *       - in: query
+ *         name: lat
+ *         schema:
+ *           type: number
+ *         description: Latitude for geo-radius search (requires lng and radiusKm). Omit for a text-only search.
+ *       - in: query
+ *         name: lng
+ *         schema:
+ *           type: number
+ *         description: Longitude for geo-radius search (requires lat and radiusKm)
+ *       - in: query
+ *         name: radiusKm
+ *         schema:
+ *           type: number
+ *         description: Search radius in kilometers (requires lat and lng)
+ *       - in: query
+ *         name: sortBy
+ *         schema:
+ *           type: string
+ *           enum: [price, createdAt, viewCount]
+ *         example: price
+ *       - in: query
+ *         name: sortOrder
+ *         schema:
+ *           type: string
+ *           enum: [asc, desc]
+ *         example: asc
+ *     responses:
+ *       200:
+ *         description: Paginated property list
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/PaginatedPropertiesResponse'
+ *       400:
+ *         $ref: '#/components/responses/ValidationError'
+ */
+router.get(
+  "/",
+  validate(listPropertiesSchema, "query"),
+  asyncHandler(propertyController.list),
+);
+
+/**
+ * @swagger
+ * /properties/mine:
+ *   get:
+ *     operationId: listMyProperties
+ *     summary: List current user's properties
+ *     description: Returns paginated properties owned by or assigned to the authenticated user (seller, agent, or admin).
+ *     tags: [Properties]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - $ref: '#/components/parameters/PageParam'
+ *       - $ref: '#/components/parameters/LimitParam'
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           $ref: '#/components/schemas/PropertyStatus'
+ *       - in: query
+ *         name: type
+ *         schema:
+ *           $ref: '#/components/schemas/PropertyType'
+ *       - in: query
+ *         name: projectId
+ *         schema:
+ *           $ref: '#/components/schemas/ObjectId'
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *         description: Case-insensitive partial match on title and description
+ *       - in: query
+ *         name: sortBy
+ *         schema:
+ *           type: string
+ *           enum: [price, createdAt, viewCount]
+ *       - in: query
+ *         name: sortOrder
+ *         schema:
+ *           type: string
+ *           enum: [asc, desc]
+ *       - in: query
+ *         name: trashed
+ *         schema:
+ *           type: string
+ *           enum: [true, false]
+ *         description: When true, returns soft-deleted listings in trash.
+ *     responses:
+ *       200:
+ *         description: Paginated property list
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/PaginatedPropertiesResponse'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ */
+router.get(
+  "/mine",
+  authenticate,
+  authorize(ROLES.SELLER, ROLES.AGENT, ROLES.ADMIN),
+  validate(listMyPropertiesSchema, "query"),
+  asyncHandler(propertyController.listMine),
+);
+
+/**
+ * @swagger
+ * /properties/mine/reviews:
+ *   get:
+ *     operationId: listMyPropertyReviews
+ *     summary: List reviews on current user's properties
+ *     description: Returns paginated reviews left on listings owned by or assigned to the authenticated seller, agent, or admin.
+ *     tags: [Property Reviews]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - $ref: '#/components/parameters/PageParam'
+ *       - $ref: '#/components/parameters/LimitParam'
+ *     responses:
+ *       200:
+ *         description: Reviews received on managed listings
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/PaginatedPropertyReviewsResponse'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ */
+router.get(
+  "/mine/reviews",
+  authenticate,
+  authorize(ROLES.SELLER, ROLES.AGENT, ROLES.ADMIN),
+  validate(listPropertyReviewsSchema, "query"),
+  asyncHandler(propertyReviewController.listMine),
+);
+
+router.use("/:id/reviews", propertyReviewRoutes);
+
+/**
+ * @swagger
+ * /properties/{id}/nearby:
+ *   get:
+ *     operationId: getPropertyNearby
+ *     summary: Get nearby points of interest
+ *     description: Returns schools, medical facilities, and transit stops within 5 km of the property using OpenStreetMap data. Cached for 24 hours per location. Same visibility rules as GET /properties/{id}.
+ *     tags: [Properties]
+ *     parameters:
+ *       - $ref: '#/components/parameters/ObjectIdParam'
+ *     responses:
+ *       200:
+ *         description: Nearby places grouped by category
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/PropertyNearbySuccessResponse'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ */
+router.get(
+  "/:id/nearby",
+  optionalAuth,
+  validateMultiple({ params: propertyIdSchema }),
+  asyncHandler(propertyController.getNearby),
+);
+
+/**
+ * @swagger
+ * /properties/{id}:
+ *   get:
+ *     operationId: getPropertyById
+ *     summary: Get property by ID
+ *     description: Returns full property details with media signed URLs. Increments view count for active listings (not for managers). Non-active and trashed listings are only visible to the owner, assigned agent, or admin; any other logged-in user gets the same result as an anonymous visitor.
+ *     tags: [Properties]
+ *     parameters:
+ *       - $ref: '#/components/parameters/ObjectIdParam'
+ *     responses:
+ *       200:
+ *         description: Property details
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/PropertySuccessResponse'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ */
+router.get(
+  "/:id",
+  optionalAuth,
+  validateMultiple({ params: propertyIdSchema }),
+  asyncHandler(propertyController.getById),
+);
+
+/**
+ * @swagger
+ * /properties:
+ *   post:
+ *     operationId: createProperty
+ *     summary: Create a property listing
+ *     description: Creates a new property listing. Requires seller, agent, or admin role.
+ *     tags: [Properties]
+ *     security:
+ *       - BearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/CreatePropertyRequest'
+ *     responses:
+ *       201:
+ *         description: Property created
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/PropertySuccessResponse'
+ *       400:
+ *         $ref: '#/components/responses/ValidationError'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ */
+router.post(
+  "/",
+  authenticate,
+  authorize(ROLES.SELLER, ROLES.AGENT, ROLES.ADMIN),
+  validate(createPropertySchema),
+  asyncHandler(propertyController.create),
+);
+
+/**
+ * @swagger
+ * /properties/{id}:
+ *   patch:
+ *     operationId: updateProperty
+ *     summary: Update a property listing
+ *     description: Partially updates a property. Only the owner, assigned agent, or admin can update.
+ *     tags: [Properties]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - $ref: '#/components/parameters/ObjectIdParam'
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/UpdatePropertyRequest'
+ *     responses:
+ *       200:
+ *         description: Property updated
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/PropertySuccessResponse'
+ *       400:
+ *         $ref: '#/components/responses/ValidationError'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ */
+router.patch(
+  "/:id",
+  authenticate,
+  authorize(ROLES.SELLER, ROLES.AGENT, ROLES.ADMIN),
+  rejectTenantPlatformFeaturingPatch,
+  validateMultiple({ params: propertyIdSchema, body: updatePropertySchema }),
+  asyncHandler(propertyController.update),
+);
+
+/**
+ * @swagger
+ * /properties/{id}:
+ *   delete:
+ *     operationId: deleteProperty
+ *     summary: Delete a property listing
+ *     description: Soft-deletes a property. Only the owner, assigned agent, or admin can delete.
+ *     tags: [Properties]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - $ref: '#/components/parameters/ObjectIdParam'
+ *     responses:
+ *       200:
+ *         description: Property deleted
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/SuccessResponse'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ */
+router.delete(
+  "/:id",
+  authenticate,
+  authorize(ROLES.SELLER, ROLES.AGENT, ROLES.ADMIN),
+  validateMultiple({ params: propertyIdSchema }),
+  asyncHandler(propertyController.remove),
+);
+
+/**
+ * @swagger
+ * /properties/{id}/restore:
+ *   patch:
+ *     operationId: restoreProperty
+ *     summary: Restore a soft-deleted property
+ *     description: Clears deletedAt and sets status to draft when the parent project is not in trash. Owner, assigned agent, or admin only.
+ *     tags: [Properties]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - $ref: '#/components/parameters/ObjectIdParam'
+ *     responses:
+ *       200:
+ *         description: Property restored
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/PropertySuccessResponse'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ */
+router.patch(
+  "/:id/restore",
+  authenticate,
+  authorize(ROLES.SELLER, ROLES.AGENT, ROLES.ADMIN),
+  validateMultiple({ params: propertyIdSchema }),
+  asyncHandler(propertyController.restore),
+);
+
+/**
+ * @swagger
+ * /properties/{id}/permanent:
+ *   delete:
+ *     operationId: permanentlyDeleteProperty
+ *     summary: Permanently delete a trashed listing
+ *     description: Removes the unit, its media, favorites, reviews, and non-blocking bookings. Requires the listing to be in trash. Blocked when open visit bookings or purchase/transaction records exist.
+ *     tags: [Properties]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - $ref: '#/components/parameters/ObjectIdParam'
+ *     responses:
+ *       200:
+ *         description: Property permanently deleted
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/SuccessResponse'
+ *       400:
+ *         $ref: '#/components/responses/ValidationError'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ *       409:
+ *         $ref: '#/components/responses/Conflict'
+ */
+router.delete(
+  "/:id/permanent",
+  authenticate,
+  authorize(ROLES.SELLER, ROLES.AGENT, ROLES.ADMIN),
+  validateMultiple({ params: propertyIdSchema }),
+  asyncHandler(propertyController.permanentRemove),
+);
+
+/**
+ * @swagger
+ * /properties/{id}/media:
+ *   post:
+ *     operationId: uploadPropertyMedia
+ *     summary: Upload property media
+ *     description: Uploads an image or a single listing video for a property (multipart/form-data field `media`). Each property may have many images but at most one video; uploading a second video returns 400.
+ *     tags: [Properties]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - $ref: '#/components/parameters/ObjectIdParam'
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             required: [media]
+ *             properties:
+ *               media:
+ *                 type: string
+ *                 format: binary
+ *                 description: Image or video file
+ *     responses:
+ *       201:
+ *         description: Media uploaded
+ *         content:
+ *           application/json:
+ *             schema:
+ *               allOf:
+ *                 - $ref: '#/components/schemas/SuccessResponse'
+ *                 - type: object
+ *                   properties:
+ *                     data:
+ *                       $ref: '#/components/schemas/PropertyMedia'
+ *       400:
+ *         description: No file uploaded
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ */
+router.post(
+  "/:id/media",
+  authenticate,
+  authorize(ROLES.SELLER, ROLES.AGENT, ROLES.ADMIN),
+  validateMultiple({ params: propertyIdSchema }),
+  ...propertyController.uploadMedia,
+);
+
+/**
+ * @swagger
+ * /properties/{id}/media/{mediaId}:
+ *   delete:
+ *     operationId: deletePropertyMedia
+ *     summary: Delete property media
+ *     description: Removes a media item from a property and deletes it from storage.
+ *     tags: [Properties]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - $ref: '#/components/parameters/ObjectIdParam'
+ *       - $ref: '#/components/parameters/MediaIdParam'
+ *     responses:
+ *       200:
+ *         description: Media removed
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/SuccessResponse'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ */
+router.delete(
+  "/:id/media/:mediaId",
+  authenticate,
+  authorize(ROLES.SELLER, ROLES.AGENT, ROLES.ADMIN),
+  validateMultiple({ params: mediaIdSchema }),
+  asyncHandler(propertyController.removeMedia),
+);
+
+/**
+ * @swagger
+ * /properties/{id}/media/order:
+ *   put:
+ *     operationId: reorderPropertyMedia
+ *     summary: Reorder listing photos
+ *     description: Sets display order for property images. The first id is the cover photo on cards and the gallery. All image media ids must be included exactly once; video is unchanged.
+ *     tags: [Properties]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - $ref: '#/components/parameters/ObjectIdParam'
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [imageIds]
+ *             properties:
+ *               imageIds:
+ *                 type: array
+ *                 minItems: 1
+ *                 maxItems: 50
+ *                 items:
+ *                   type: string
+ *                   pattern: '^[0-9a-fA-F]{24}$'
+ *     responses:
+ *       200:
+ *         description: Photo order updated
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/PropertySuccessResponse'
+ *       400:
+ *         $ref: '#/components/responses/BadRequest'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ */
+router.put(
+  "/:id/media/order",
+  authenticate,
+  authorize(ROLES.SELLER, ROLES.AGENT, ROLES.ADMIN),
+  validateMultiple({
+    params: propertyIdSchema,
+    body: reorderPropertyMediaSchema,
+  }),
+  asyncHandler(propertyController.reorderMedia),
+);
+
+/**
+ * @swagger
+ * /properties/{id}/floor-plans/image:
+ *   post:
+ *     operationId: uploadFloorPlanImage
+ *     summary: Upload floor plan image
+ *     description: Uploads a floor plan image and returns a gcsKey for use in the floorPlans array. Available for any property type.
+ *     tags: [Properties]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - $ref: '#/components/parameters/ObjectIdParam'
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             required: [image]
+ *             properties:
+ *               image:
+ *                 type: string
+ *                 format: binary
+ *     responses:
+ *       201:
+ *         description: Floor plan image uploaded
+ *         content:
+ *           application/json:
+ *             schema:
+ *               allOf:
+ *                 - $ref: '#/components/schemas/SuccessResponse'
+ *                 - type: object
+ *                   properties:
+ *                     data:
+ *                       $ref: '#/components/schemas/FloorPlanImageUpload'
+ *       400:
+ *         $ref: '#/components/responses/ValidationError'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ */
+router.post(
+  "/:id/floor-plans/image",
+  authenticate,
+  authorize(ROLES.SELLER, ROLES.AGENT, ROLES.ADMIN),
+  validateMultiple({ params: propertyIdSchema }),
+  ...propertyController.uploadFloorPlanImage,
+);
+
+export default router;

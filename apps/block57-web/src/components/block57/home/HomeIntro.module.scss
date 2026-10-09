@@ -1,0 +1,105 @@
+@use "../../../styles/block57/breakpoints" as bp;
+@use "../../../styles/block57/type";
+
+// Live 77e928e: padding 150 → 100 → 80 → 60; white gap below it of
+// 60 → 100 (≤1200) → 80 (≤1024) → 60 (≤767). Clipped so the side entrances
+// never widen the page on phones.
+.intro {
+  padding-block: var(--b57-section-y);
+  margin-bottom: 60px;
+  overflow-x: clip;
+
+  @include bp.down(tablet-extra) {
+    margin-bottom: 100px;
+  }
+
+  @include bp.down(tablet) {
+    margin-bottom: 80px;
+  }
+
+  @include bp.down(mobile) {
+    margin-bottom: 60px;
+  }
+}
+
+.row {
+  display: flex;
+
+  @include bp.down(mobile) {
+    flex-direction: column;
+    text-align: center;
+  }
+}
+
+// 25% / 75% columns (330 / 990 at 1440); the right one keeps 30px free.
+.aside {
+  flex: 0 0 25%;
+
+  @include bp.down(mobile) {
+    margin-bottom: 15px;
+  }
+}
+
+.eyebrowWrap {
+  margin-top: 6px;
+}
+
+.main {
+  flex: 0 0 75%;
+  min-width: 0;
+  padding-right: 30px;
+
+  @include bp.down(mobile) {
+    padding-right: 0;
+  }
+}
+
+// 40/42.68 → 54 (≤1200) → 48 (≤1024) → 33/35.21 (≤767), as on live.
+.title {
+  @include type.intro-statement;
+
+  margin: 0 0 20px;
+  color: var(--b57-fg-heading);
+
+  @include bp.down(tablet-extra) {
+    font-size: 54px;
+  }
+
+  @include bp.down(tablet) {
+    font-size: 48px;
+  }
+
+  @include bp.down(mobile) {
+    font-size: var(--b57-fs-intro-statement);
+  }
+}
+
+// The divider's 40px sit inside its wrapper (live: widget padding), so they
+// add to the heading's 20px margin instead of collapsing with it.
+.dividerWrap {
+  display: flow-root;
+}
+
+.divider {
+  @include bp.down(tablet) {
+    margin-block: 20px;
+  }
+}
+
+// 22/34.22 justified → 20 (≤880) → 18/28 centred (≤767).
+.text {
+  @include type.lead;
+
+  margin: 0 0 1.41575em;
+  color: var(--b57-fg);
+  text-align: justify;
+
+  @include bp.down(mobile-extra) {
+    font-size: 20px;
+  }
+
+  @include bp.down(mobile) {
+    font-size: 18px;
+    text-align: center;
+  }
+}
