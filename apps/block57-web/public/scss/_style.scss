@@ -65,10 +65,10 @@ Description: Block 57 residential development frontend
     --container-width: 1290px;
     --divder-space: 200px;
     --headings-color: #111111;
-    /* Block 57 accent (provisional bronze). Keep --primary-color-rgb in sync:
+    /* Block 57 brand green (live block-57.com primary). Keep --primary-color-rgb in sync:
        it feeds the translucent tints, rgba(var(--primary-color-rgb), a). */
-    --primary-color: #9a7b4f;
-    --primary-color-rgb: 154, 123, 79;
+    --primary-color: #346054;
+    --primary-color-rgb: 52, 96, 84;
 }
 
 /* Mixins */

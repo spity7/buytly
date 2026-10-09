@@ -1,57 +1,43 @@
 import Container from "@/components/block57/ui/Container";
-import Section from "@/components/block57/ui/Section";
+import Divider from "@/components/block57/ui/Divider";
 import Eyebrow from "@/components/block57/ui/Eyebrow";
 import Reveal from "@/components/block57/ui/Reveal";
-import { ButtonLink } from "@/components/block57/ui/Button";
-import { HOME_INTRO, BLOCKS } from "@/content/block57/home";
-import { UNIT_TYPES } from "@/content/block57/unitTypes";
-import { AMENITIES } from "@/content/block57/amenities";
-import { twoDigits } from "@/lib/block57/format";
+import Section from "@/components/block57/ui/Section";
+import { HOME_INTRO } from "@/content/block57/home";
 import styles from "./HomeIntro.module.scss";
 
-/** Verified introduction in an editorial two-column layout, plus key figures. */
+/**
+ * Green "A bold vision" band: eyebrow in a 25% column (enters from the
+ * left), then the statement H2, a white divider (helix) and the justified
+ * lead paragraph (both enter from the right). Stacked and centred on phones.
+ */
 export default function HomeIntro({ content = HOME_INTRO }) {
-  const [lead, ...paragraphs] = content.paragraphs;
-  const facts = [
-    { value: BLOCKS.length, label: content.factLabels.blocks },
-    { value: UNIT_TYPES.length, label: content.factLabels.unitTypes },
-    { value: AMENITIES.length, label: content.factLabels.amenities },
-  ];
-
   return (
-    <Section id={content.id} aria-labelledby="home-intro-title">
-      <Container>
-        <div className={styles.grid}>
-          <Reveal className={styles.heading}>
+    <Section
+      tone="green"
+      spacing="none"
+      className={styles.intro}
+      aria-labelledby="home-intro-title"
+    >
+      <Container className={styles.row}>
+        <div className={styles.aside}>
+          <Reveal effect="right" className={styles.eyebrowWrap}>
             <Eyebrow>{content.eyebrow}</Eyebrow>
+          </Reveal>
+        </div>
+        <div className={styles.main}>
+          <Reveal effect="left">
             <h2 id="home-intro-title" className={styles.title}>
               {content.title}
             </h2>
           </Reveal>
-
-          <Reveal className={styles.copy} delay={120}>
-            <p className={styles.lead}>{lead}</p>
-            {paragraphs.map((paragraph) => (
-              <p key={paragraph.slice(0, 40)}>{paragraph}</p>
-            ))}
-            <ButtonLink
-              href={content.cta.href}
-              variant="text"
-              className={styles.cta}
-            >
-              {content.cta.label}
-            </ButtonLink>
+          <Reveal effect="helix" className={styles.dividerWrap}>
+            <Divider variant="white" className={styles.divider} />
+          </Reveal>
+          <Reveal effect="left" as="p" className={styles.text}>
+            {content.text}
           </Reveal>
         </div>
-
-        <Reveal as="dl" className={styles.facts}>
-          {facts.map((fact) => (
-            <div key={fact.label} className={styles.fact}>
-              <dt className={styles.factLabel}>{fact.label}</dt>
-              <dd className={styles.factValue}>{twoDigits(fact.value)}</dd>
-            </div>
-          ))}
-        </Reveal>
       </Container>
     </Section>
   );

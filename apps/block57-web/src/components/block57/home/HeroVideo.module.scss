@@ -1,50 +1,102 @@
-.video {
+@use "../../../styles/block57/breakpoints" as bp;
+
+// Background layer of the home hero: #5C5C5C (live colour before the film
+// loads) → poster still → YouTube film, all under the 40% black overlay.
+.media {
   position: absolute;
   inset: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  background: var(--b57-media-dark);
+  z-index: 0;
+  overflow: hidden;
+  background: var(--b57-color-hero-fallback);
 }
 
-.toggle {
-  position: absolute;
-  right: var(--b57-gutter);
-  top: calc(var(--b57-header-h) + var(--b57-space-4));
-  z-index: 2;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 2.75rem;
-  height: 2.75rem;
-  border: 1px solid var(--b57-rule-strong);
-  border-radius: 50%;
-  background: rgba(20, 19, 15, 0.35);
-  color: var(--b57-color-on-dark);
-  transition: border-color var(--b57-transition);
+.poster {
+  object-fit: cover;
+}
 
-  &:hover {
-    border-color: var(--b57-color-on-dark);
+// The iframe covers the hero at 16:9 (Elementor sizes it the same way with
+// JS), centred; container units size it against this box.
+.frame {
+  position: absolute;
+  inset: 0;
+  container-type: size;
+  opacity: 0;
+  transition: opacity 0.8s var(--b57-ease);
+  pointer-events: none;
+
+  &[data-visible="true"] {
+    opacity: 1;
   }
 }
 
-.pause,
-.play {
-  display: block;
-  width: 0.75rem;
-  height: 0.75rem;
+.iframe {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: max(100cqw, 177.78cqh);
+  height: max(100cqh, 56.25cqw);
+  border: 0;
+  transform: translate(-50%, -50%);
 }
 
-.pause {
+.overlay {
+  position: absolute;
+  inset: 0;
+  background: var(--b57-overlay-media);
+}
+
+// Pause / play (not on live: required for an autoplaying film). Bottom left,
+// clear of the floating buttons; styled like the outline BROCHURE pill.
+.toggle {
+  position: absolute;
+  left: var(--b57-gutter);
+  bottom: 30px;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: 1px solid var(--b57-color-on-dark);
+  border-radius: 50%;
+  background: transparent;
+  box-shadow: var(--b57-shadow-glow-white);
+  color: var(--b57-color-on-dark);
+  transition: background-color var(--b57-transition);
+
+  @include bp.hover {
+    &:hover {
+      background-color: var(--b57-color-white-fill);
+    }
+  }
+
+  &:focus-visible {
+    outline-color: var(--b57-color-on-dark);
+  }
+
+  @include bp.down(mobile) {
+    bottom: 15px;
+  }
+}
+
+.pauseIcon {
+  width: 10px;
+  height: 12px;
   border-inline: 3px solid currentColor;
-  width: 0.625rem;
 }
 
-.play {
-  margin-left: 0.15rem;
-  border-style: solid;
-  border-width: 0.375rem 0 0.375rem 0.625rem;
-  border-color: transparent transparent transparent currentColor;
+.playIcon {
   width: 0;
   height: 0;
+  margin-left: 3px;
+  border-style: solid;
+  border-width: 6px 0 6px 10px;
+  border-color: transparent transparent transparent currentColor;
+}
+
+@include bp.reduced-motion {
+  .frame {
+    transition: none;
+  }
 }

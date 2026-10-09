@@ -1,0 +1,86 @@
+.tile {
+  position: relative;
+  display: block;
+  overflow: hidden;
+  background: var(--b57-color-bg-light);
+}
+
+// Natural ratio: keeps its own height in a grid row (ragged rows, as on live).
+.natural {
+  align-self: start;
+  width: 100%; // also fills a flex-column parent (align-self would shrink it)
+}
+
+.cover {
+  width: 100%;
+  height: 100%;
+}
+
+.image {
+  display: block;
+  transition: transform var(--b57-tile-zoom-duration, 0.3s) var(--b57-ease);
+}
+
+.natural .image {
+  width: 100%;
+  height: auto;
+}
+
+.cover .image {
+  object-fit: cover;
+}
+
+.overlay {
+  position: absolute;
+  inset: 0;
+  background: var(--b57-overlay-tile-hover);
+  opacity: 0;
+  transition: opacity var(--b57-transition);
+}
+
+.plus {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: var(--b57-color-bg);
+  color: var(--b57-color-primary);
+  opacity: 0;
+  transform: translate(-50%, -50%) scale(0);
+  transition:
+    opacity var(--b57-transition),
+    transform var(--b57-transition);
+}
+
+.tile:hover,
+.tile:focus-visible {
+  .image {
+    transform: scale(1.1);
+  }
+
+  .overlay {
+    opacity: 1;
+  }
+
+  .plus {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
+
+.tile:focus-visible {
+  outline-offset: -2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .image,
+  .overlay,
+  .plus {
+    transition: none;
+  }
+}

@@ -1,57 +1,38 @@
 import Image from "next/image";
 import Link from "next/link";
-import {
-  BRAND_LOGO_DARK,
-  BRAND_LOGO_HEIGHT,
-  BRAND_LOGO_WHITE,
-  BRAND_LOGO_WIDTH,
-} from "@/data/brandAssets";
+import { getAsset } from "@/lib/block57/assets";
 import styles from "./Logo.module.scss";
 
+const LOGOS = { light: getAsset("img-001"), dark: getAsset("img-002") };
+
 /**
- * Block 57 wordmark linking home.
- * `variant`: "dark" (on light), "light" (on dark) or "auto" (renders both;
- * the parent's CSS decides which one shows — used by the overlay header).
+ * Block 57 Cantonment wordmark linking home.
+ * `variant`: "light" (white lettering, for the dark heroes) or "dark" (black
+ * lettering, for light backgrounds such as the mobile drawer). The parent
+ * sets the width (`--b57-logo-width` or a width on `className`).
  */
 export default function Logo({
-  variant = "dark",
+  variant = "light",
   className,
+  priority = false,
   onClick,
-  imageClassNames = {},
 }) {
-  const showDark = variant === "dark" || variant === "auto";
-  const showLight = variant === "light" || variant === "auto";
-
+  const logo = LOGOS[variant] ?? LOGOS.light;
   return (
     <Link
       href="/"
       className={[styles.logo, className].filter(Boolean).join(" ")}
       onClick={onClick}
     >
-      {showDark ? (
-        <Image
-          src={BRAND_LOGO_DARK}
-          alt="Block 57"
-          width={BRAND_LOGO_WIDTH}
-          height={BRAND_LOGO_HEIGHT}
-          loading="eager"
-          className={[styles.image, imageClassNames.dark]
-            .filter(Boolean)
-            .join(" ")}
-        />
-      ) : null}
-      {showLight ? (
-        <Image
-          src={BRAND_LOGO_WHITE}
-          alt="Block 57"
-          width={BRAND_LOGO_WIDTH}
-          height={BRAND_LOGO_HEIGHT}
-          loading="eager"
-          className={[styles.image, imageClassNames.light]
-            .filter(Boolean)
-            .join(" ")}
-        />
-      ) : null}
+      <Image
+        src={logo.src}
+        alt={logo.alt}
+        width={logo.width}
+        height={logo.height}
+        sizes="(max-width: 767px) 134px, 280px"
+        priority={priority}
+        className={styles.image}
+      />
     </Link>
   );
 }

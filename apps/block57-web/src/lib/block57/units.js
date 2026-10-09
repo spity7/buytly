@@ -7,9 +7,7 @@ import { partitionProjectUnits } from "@/lib/properties/mapProperty";
  * {@link getPublicUnits}.
  */
 
-export const PUBLIC_UNIT_STATUSES = ["active", "sold"];
-
-export const UNIT_STATUS_LABELS = {
+const UNIT_STATUS_LABELS = {
   active: "Available",
   sold: "Sold",
 };
@@ -50,7 +48,7 @@ function compareNullableNumbers(a, b) {
 }
 
 /** Building (A→C, missing last), then floor (low→high, missing last), then title (natural). */
-export function compareUnits(a, b) {
+function compareUnits(a, b) {
   const buildingA = String(a?.building ?? "").trim();
   const buildingB = String(b?.building ?? "").trim();
   if (buildingA !== buildingB) {
@@ -68,7 +66,7 @@ export function sortUnits(units = []) {
   return [...(units || [])].sort(compareUnits);
 }
 
-/** `{ [typeSlug]: units[] }`, preserving the input order inside each type. */
+/** `{ [catalogValue]: units[] }` keyed by `unit.type`, input order kept inside each type. */
 export function groupUnitsByType(units = []) {
   const groups = {};
   for (const unit of units || []) {
@@ -107,27 +105,23 @@ export function formatArea(area, areaUnit = "sqm") {
   return `${value} ${areaUnit || "sqm"}`;
 }
 
-/** 0 → "Studio", 1 → "1 bedroom", 3 → "3 bedrooms", missing → "—". */
-export function formatBedrooms(bedrooms) {
-  if (bedrooms == null || bedrooms === "") return "—";
-  const n = Number(bedrooms);
-  if (Number.isNaN(n)) return "—";
-  if (n === 0) return "Studio";
-  return `${n} bedroom${n === 1 ? "" : "s"}`;
+/** Plain count (bathrooms): 2 → "2", missing → "—". */
+export function formatCount(value) {
+  if (value == null || value === "") return "—";
+  const n = Number(value);
+  return Number.isNaN(n) ? "—" : String(n);
 }
 
-/** 2 → "2 bathrooms", missing → "—". */
-export function formatBathrooms(bathrooms) {
-  if (bathrooms == null || bathrooms === "") return "—";
-  const n = Number(bathrooms);
-  if (Number.isNaN(n)) return "—";
-  return `${n} bathroom${n === 1 ? "" : "s"}`;
+/** Bedrooms: 0 → "Studio", 2 → "2", missing → "—". */
+export function formatBedroomCount(bedrooms) {
+  const count = formatCount(bedrooms);
+  return count === "0" ? "Studio" : count;
 }
 
-/** "Block A" from building "A"; missing → "—". */
-export function formatBuilding(building) {
+/** Building letter: "a" → "A", missing → "—". */
+export function formatBuildingLetter(building) {
   const value = String(building ?? "").trim();
-  return value ? `Block ${value}` : "—";
+  return value ? value.toUpperCase() : "—";
 }
 
 export function findUnitById(units = [], id) {
@@ -138,20 +132,13 @@ export function findUnitById(units = [], id) {
   );
 }
 
-/** DOM id used for deep links: /apartments/<type>/#unit-<id>. */
+/** DOM id used for deep links: /apartments/<slug>/#unit-<id>. */
 export function getUnitAnchorId(unitOrId) {
   const id = typeof unitOrId === "object" ? getUnitId(unitOrId) : unitOrId;
   return `unit-${id}`;
 }
 
-/** Image media sorted by `order` (signed URLs — never cache them at build time). */
-export function getUnitImages(unit) {
-  return (unit?.media || [])
-    .filter((item) => item?.type === "image" && item.url)
-    .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
-}
-
-/** Floor plans that have a signed URL. */
+/** Floor plans that have a signed URL (signed for 1 hour: never cache them at build time). */
 export function getUnitFloorPlans(unit) {
   return (unit?.floorPlans || []).filter((plan) => plan?.url);
 }

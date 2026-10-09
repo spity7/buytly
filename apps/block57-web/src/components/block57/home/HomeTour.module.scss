@@ -1,0 +1,46 @@
+@use "../../../styles/block57/breakpoints" as bp;
+
+// Live 108994a: padding 40 / 90 → 100 / 100 (≤1200) → 80 / 80 (≤1024) →
+// 60 / 60 (≤767).
+.tour {
+  padding-block: 40px 90px;
+
+  @include bp.down(tablet-extra) {
+    padding-block: 100px;
+  }
+
+  @include bp.down(tablet) {
+    padding-block: 80px;
+  }
+
+  @include bp.down(mobile) {
+    padding-block: 60px;
+  }
+}
+
+// H2 margins 30 / 30 → 20 / 20 (≤1024) → 15 / 10 (≤767).
+.heading {
+  margin-bottom: 30px;
+
+  @include bp.down(tablet) {
+    margin-bottom: 20px;
+  }
+
+  @include bp.down(mobile) {
+    margin-bottom: 10px;
+  }
+}
+
+.title {
+  @include bp.down(tablet) {
+    margin-top: 20px;
+  }
+
+  @include bp.down(mobile) {
+    margin-top: 15px;
+  }
+}
+
+.reveal {
+  display: block;
+}

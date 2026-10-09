@@ -1,0 +1,14 @@
+@use "../../../styles/block57/type";
+
+// Flex row so the inline-block eyebrow (and its 5px bar) hugs the text.
+.eyebrowRow {
+  display: flex;
+}
+
+.title {
+  @include type.section-title;
+
+  max-width: var(--b57-container-text);
+  margin: 30px 0 25px;
+  color: var(--b57-fg-heading);
+}

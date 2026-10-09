@@ -1,0 +1,41 @@
+// One digit cell = one line of the number (line-height set on the parent).
+$cell: 1.25em;
+
+.odometer {
+  display: block;
+  line-height: $cell;
+}
+
+.digits {
+  display: inline-flex;
+  vertical-align: top;
+}
+
+.column {
+  display: block;
+  height: $cell;
+  overflow: hidden;
+}
+
+.strip {
+  display: flex;
+  flex-direction: column;
+  transform: translateY(calc(var(--_digit) * -#{$cell}));
+}
+
+.cell {
+  display: block;
+  height: $cell;
+}
+
+// With JavaScript the digits wait at 0 until the counter scrolls into view;
+// without it (or with reduced motion) the final value shows at once.
+@media (scripting: enabled) and (prefers-reduced-motion: no-preference) {
+  .odometer:not([data-rolled]) .strip {
+    transform: none;
+  }
+
+  .odometer[data-rolled] .strip {
+    transition: transform 2s cubic-bezier(0.25, 0.1, 0.25, 1);
+  }
+}

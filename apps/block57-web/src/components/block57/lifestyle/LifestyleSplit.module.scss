@@ -1,0 +1,86 @@
+@use "../../../styles/block57/breakpoints" as bp;
+@use "../../../styles/block57/type";
+
+.split {
+  overflow-x: clip; // entrance animations slide in from ±100px
+  padding: 0 var(--b57-gutter) var(--b57-section-y);
+}
+
+.inner {
+  display: flex;
+  max-width: var(--b57-container);
+  margin-inline: auto;
+
+  @include bp.down(mobile) {
+    flex-direction: column;
+  }
+}
+
+// Live column widths: 50% + (54% or 50%) + 30px margin, shrunk to fit the row
+// (619 / 671 on Location, 645 / 645 on Privacy at 1440).
+.media {
+  flex: 0 1 50%;
+  min-width: 0;
+
+  @include bp.down(mobile) {
+    flex: none;
+  }
+}
+
+.image {
+  width: 100%;
+  height: auto;
+}
+
+.location .image {
+  height: 80vh;
+  object-fit: cover;
+}
+
+.text {
+  display: flex;
+  flex: 0 1 50%;
+  flex-direction: column;
+  justify-content: center;
+  min-width: 0;
+  margin-left: 30px;
+  padding-left: 30px;
+  border-left: 1px solid var(--b57-color-border);
+
+  @include bp.down(tablet-extra) {
+    padding-left: 50px;
+  }
+
+  @include bp.down(tablet) {
+    padding-left: 30px;
+  }
+
+  @include bp.down(mobile) {
+    flex: none;
+    margin: 30px 0 0;
+    padding: 0 0 50px;
+    border-left: 0;
+    border-bottom: 1px solid var(--b57-color-border);
+  }
+}
+
+.location .text {
+  flex-basis: 54%;
+
+  @include bp.down(mobile) {
+    flex: none;
+    padding-bottom: 20px;
+  }
+}
+
+.copy {
+  @include type.lead;
+
+  margin: 0 0 calc(1.41575em + 25px);
+}
+
+.location .copy {
+  @include bp.down(mobile) {
+    margin-bottom: 1.41575em;
+  }
+}

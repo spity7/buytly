@@ -1,68 +1,134 @@
 @use "../../../styles/block57/breakpoints" as bp;
+@use "../../../styles/block57/type";
 
-.grid {
-  display: grid;
-  gap: var(--b57-space-2);
+// Margins (not padding) as on live, so they collapse with the next block's.
+.overview {
+  margin-block: var(--b57-section-y);
+}
 
-  @include bp.up(lg) {
-    grid-template-columns: 5fr 7fr;
-    gap: var(--b57-space-9);
-    align-items: start;
+// Penthouse: 30px down to the INQUIRE row (live keeps the regular margin
+// ≤1200).
+.withInquireRow {
+  margin-bottom: 30px;
+
+  @include bp.down(tablet-extra) {
+    margin-bottom: var(--b57-section-y);
   }
 }
 
-.heading {
-  margin-bottom: var(--b57-space-4);
-}
+.row {
+  display: flex;
 
-.copy {
-  max-width: var(--b57-measure);
-  color: var(--b57-color-text-muted);
-
-  @include bp.up(lg) {
-    padding-top: var(--b57-space-7);
+  @include bp.down(mobile) {
+    flex-direction: column;
   }
 }
 
-.lead {
-  font-size: var(--b57-text-lg);
-  line-height: 1.6;
+// ---- Left: copy + spec block ------------------------------------------------------
+.text {
+  flex: 0 0 50%;
+  min-width: 0;
+  padding-right: 110px;
+  border-right: 1px solid var(--b57-color-border);
+
+  @include bp.down(laptop) {
+    padding-right: 80px;
+  }
+
+  @include bp.down(tablet-extra) {
+    padding-right: 60px;
+  }
+
+  @include bp.down(mobile-extra) {
+    padding-right: 30px;
+  }
+
+  @include bp.down(mobile) {
+    padding: 0 0 30px;
+    border-right: 0;
+    border-bottom: 1px solid var(--b57-color-border);
+  }
+}
+
+.title {
+  @include type.subsection-title;
+
+  margin: 0 0 30px;
+  color: var(--b57-color-primary);
+
+  @include bp.down(mobile) {
+    text-align: center;
+  }
+}
+
+.description {
+  @include type.lead;
+
+  // Live: widget gap 20px + the theme paragraph margin (1.41575em = 31.15px).
+  margin: 0 0 calc(20px + 1.41575em);
   color: var(--b57-color-text);
-}
+  white-space: pre-line; // live hard line breaks
 
-.highlights {
-  margin-top: var(--b57-space-7);
-
-  ul {
-    list-style: none;
-    border-top: 1px solid var(--b57-rule);
-  }
-
-  li {
-    display: flex;
-    align-items: baseline;
-    gap: var(--b57-space-5);
-    padding-block: var(--b57-space-4);
-    border-bottom: 1px solid var(--b57-rule);
-    color: var(--b57-color-text);
+  @include bp.down(mobile) {
+    text-align: center;
   }
 }
 
-.highlightsTitle {
-  margin: 0 0 var(--b57-space-3);
-  font-family: var(--b57-font-sans);
-  font-size: var(--b57-text-xs);
-  font-weight: var(--b57-weight-medium);
-  letter-spacing: var(--b57-tracking-eyebrow);
-  text-transform: uppercase;
-  color: var(--b57-fg-eyebrow);
+// 96% wide (527px at 1440), label and range on one line, then full-width
+// paragraphs and green dividers.
+.specs {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  width: 96%;
+
+  @include bp.down(mobile) {
+    width: 100%;
+  }
+
+  p {
+    @include type.spec;
+
+    margin: 0 0 22.65px; // 1.41575em at 16px (theme paragraph margin)
+    font-weight: 300;
+    color: var(--b57-color-text-light);
+  }
+
+  hr {
+    flex: 0 0 100%;
+  }
 }
 
-.index {
-  flex: none;
-  min-width: 1.75rem;
-  font-size: var(--b57-text-2xs);
-  font-weight: var(--b57-weight-medium);
-  letter-spacing: 0.12em;
-  color: var(--b57-color-text-muted);
+.specs .areaValue {
+  color: var(--b57-color-primary);
+}
+
+.spec {
+  flex: 0 0 100%;
+  white-space: pre-line; // "•" lines are hard line breaks on live
+}
+
+// ---- Right: floor plan ------------------------------------------------------------------
+.plan {
+  flex: 0 0 50%;
+  min-width: 0;
+  padding-left: 30px;
+
+  @include bp.down(mobile) {
+    padding: 30px 0 0;
+  }
+}
+
+.planImage {
+  width: 100%;
+  height: auto;
+}
+
+// ---- Penthouse INQUIRE row (66px: 10px above and below the 46px pill) -------------------
+.inquireRow {
+  padding-block: 10px;
+
+  @include bp.down(mobile) {
+    padding-inline: 10px;
+  }
 }

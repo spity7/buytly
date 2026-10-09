@@ -1,91 +1,105 @@
 @use "../../../styles/block57/breakpoints" as bp;
+@use "../../../styles/block57/type";
 
-.grid {
-  display: grid;
-  gap: var(--b57-space-6);
+// Live 77e928e: padding 150 → 100 → 80 → 60; white gap below it of
+// 60 → 100 (≤1200) → 80 (≤1024) → 60 (≤767). Clipped so the side entrances
+// never widen the page on phones.
+.intro {
+  padding-block: var(--b57-section-y);
+  margin-bottom: 60px;
+  overflow-x: clip;
 
-  @include bp.up(lg) {
-    grid-template-columns: 5fr 7fr;
-    gap: var(--b57-space-9);
+  @include bp.down(tablet-extra) {
+    margin-bottom: 100px;
+  }
+
+  @include bp.down(tablet) {
+    margin-bottom: 80px;
+  }
+
+  @include bp.down(mobile) {
+    margin-bottom: 60px;
   }
 }
 
-.title {
-  max-width: 26rem;
-  margin: 0;
-  font-size: var(--b57-text-2xl);
-}
-
-.copy {
-  max-width: var(--b57-measure);
-  color: var(--b57-fg-muted);
-
-  @include bp.up(lg) {
-    padding-top: var(--b57-space-6);
-  }
-}
-
-.lead {
-  margin-bottom: var(--b57-space-5);
-  font-size: var(--b57-text-lg);
-  line-height: 1.6;
-  color: var(--b57-fg);
-}
-
-.cta {
-  margin-top: var(--b57-space-3);
-}
-
-// ---- Key figures ------------------------------------------------------------------
-.facts {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  margin: var(--b57-space-8) 0 0;
-  border-top: var(--b57-hairline);
-
-  @include bp.up(lg) {
-    margin-top: var(--b57-space-9);
-  }
-}
-
-.fact {
+.row {
   display: flex;
-  flex-direction: column-reverse; // value above label, label first in the DOM (dt → dd)
-  justify-content: flex-end;
-  gap: var(--b57-space-2);
-  padding: var(--b57-space-5) var(--b57-space-3) 0 0;
 
-  & + & {
-    padding-left: var(--b57-space-4);
-    border-left: var(--b57-hairline);
-  }
-
-  @include bp.up(md) {
-    padding-top: var(--b57-space-6);
-
-    & + & {
-      padding-left: var(--b57-space-6);
-    }
+  @include bp.down(mobile) {
+    flex-direction: column;
+    text-align: center;
   }
 }
 
-.factValue {
-  margin: 0;
-  font-family: var(--b57-font-serif);
-  font-size: var(--b57-text-3xl);
-  line-height: 1;
+// 25% / 75% columns (330 / 990 at 1440); the right one keeps 30px free.
+.aside {
+  flex: 0 0 25%;
+
+  @include bp.down(mobile) {
+    margin-bottom: 15px;
+  }
+}
+
+.eyebrowWrap {
+  margin-top: 6px;
+}
+
+.main {
+  flex: 0 0 75%;
+  min-width: 0;
+  padding-right: 30px;
+
+  @include bp.down(mobile) {
+    padding-right: 0;
+  }
+}
+
+// 40/42.68 → 54 (≤1200) → 48 (≤1024) → 33/35.21 (≤767), as on live.
+.title {
+  @include type.intro-statement;
+
+  margin: 0 0 20px;
+  color: var(--b57-fg-heading);
+
+  @include bp.down(tablet-extra) {
+    font-size: 54px;
+  }
+
+  @include bp.down(tablet) {
+    font-size: 48px;
+  }
+
+  @include bp.down(mobile) {
+    font-size: var(--b57-fs-intro-statement);
+  }
+}
+
+// The divider's 40px sit inside its wrapper (live: widget padding), so they
+// add to the heading's 20px margin instead of collapsing with it.
+.dividerWrap {
+  display: flow-root;
+}
+
+.divider {
+  @include bp.down(tablet) {
+    margin-block: 20px;
+  }
+}
+
+// 22/34.22 justified → 20 (≤880) → 18/28 centred (≤767).
+.text {
+  @include type.lead;
+
+  margin: 0 0 1.41575em;
   color: var(--b57-fg);
-}
+  text-align: justify;
 
-.factLabel {
-  font-size: var(--b57-text-2xs);
-  font-weight: var(--b57-weight-medium);
-  line-height: 1.4;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-  color: var(--b57-fg-muted);
+  @include bp.down(mobile-extra) {
+    font-size: 20px;
+  }
 
-  @include bp.up(md) {
-    font-size: var(--b57-text-xs);
+  @include bp.down(mobile) {
+    font-size: 18px;
+    text-align: center;
   }
 }

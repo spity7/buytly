@@ -1,23 +1,19 @@
-.button {
-  --_pad-y: 0.95rem;
-  --_pad-x: 1.85rem;
-  --_min-h: 3.125rem;
+@use "../../../styles/block57/breakpoints" as bp;
+@use "../../../styles/block57/type";
 
+.button {
+  @include type.button;
+
+  position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: var(--b57-space-3);
-  min-height: var(--_min-h);
-  padding: var(--_pad-y) var(--_pad-x);
-  border: 1px solid transparent;
-  border-radius: var(--b57-radius);
+  padding: 11px 30px;
+  border: 0;
+  border-radius: var(--b57-radius-pill);
   background: transparent;
-  font-family: var(--b57-font-sans);
-  font-size: var(--b57-text-xs);
-  font-weight: var(--b57-weight-medium);
-  line-height: 1.2;
-  letter-spacing: var(--b57-tracking-button);
-  text-transform: uppercase;
+  color: inherit;
+  text-align: center;
   text-decoration: none;
   white-space: nowrap;
   cursor: pointer;
@@ -33,87 +29,179 @@
   }
 }
 
-.size-sm {
-  --_pad-y: 0.65rem;
-  --_pad-x: 1.25rem;
-  --_min-h: 2.5rem;
-}
-
 .block {
   display: flex;
   width: 100%;
 }
 
-.primary {
-  border-color: var(--b57-button-bg);
-  background: var(--b57-button-bg);
-  color: var(--b57-button-fg);
+// ---- Variants -----------------------------------------------------------------
+.outlineThin {
+  border: 1px solid var(--b57-color-on-dark);
+  box-shadow: var(--b57-shadow-glow-white);
+  color: var(--b57-color-on-dark);
 
-  @media (hover: hover) {
-    &:hover:not(:disabled) {
-      border-color: var(--b57-button-bg-hover);
-      background: var(--b57-button-bg-hover);
-      color: var(--b57-button-fg);
+  &:focus-visible {
+    background-color: var(--b57-color-white-fill);
+  }
+
+  @include bp.hover {
+    &:hover {
+      background-color: var(--b57-color-white-fill);
     }
   }
 }
 
-.secondary {
-  border-color: var(--b57-rule-strong);
-  color: var(--b57-fg);
+.outlineThick {
+  padding: 23px 45px;
+  border: 3px solid var(--b57-color-on-dark);
+  border-radius: var(--b57-radius-pill-lg);
+  color: var(--b57-color-on-dark);
 
-  @media (hover: hover) {
+  @include bp.down(mobile) {
+    padding: 15px 25px;
+  }
+}
+
+.white {
+  background: var(--b57-color-bg);
+  color: var(--b57-color-accent);
+}
+
+.whiteBordered {
+  border: 1px solid var(--b57-color-border);
+  background: var(--b57-color-bg);
+  color: var(--b57-color-accent);
+
+  @include bp.down(mobile) {
+    padding: 8px 20px;
+  }
+}
+
+.black {
+  background: var(--b57-color-accent);
+  color: var(--b57-color-on-dark);
+}
+
+.green {
+  padding: 13px 30px;
+  background: var(--b57-color-primary);
+  color: var(--b57-color-on-dark);
+
+  &:focus-visible {
+    background: var(--b57-color-primary-hover);
+  }
+
+  @include bp.hover {
     &:hover:not(:disabled) {
-      border-color: var(--b57-fg);
-      background: var(--b57-fg);
-      color: var(--b57-bg);
+      background: var(--b57-color-primary-hover);
     }
   }
 }
 
-.text {
-  --_pad-y: 0.35rem;
-  --_pad-x: 0;
-  --_min-h: 2.75rem; // touch target
+.small {
+  padding: 8px 20px;
+}
 
-  gap: var(--b57-space-3);
-  color: var(--b57-fg);
+// Text link: 1px bar under the label that wipes out (.4s) while a second bar
+// wipes in (.8s).
+.textLink {
+  padding: 0;
+  border-radius: 0;
+  color: var(--b57-fg-eyebrow);
 
   .label {
-    padding-bottom: 0.3em;
-    background: linear-gradient(currentColor, currentColor) 0 100% / 100% 1px
-      no-repeat;
-    transition: background-size var(--b57-transition);
+    position: relative;
+
+    &::before,
+    &::after {
+      content: "";
+      position: absolute;
+      top: 23px;
+      height: 1px;
+      background: currentColor;
+    }
+
+    &::before {
+      right: 0;
+      width: 100%;
+      transition: width 0.4s var(--b57-ease);
+    }
+
+    &::after {
+      left: 0;
+      width: 0;
+      transition: width 0.8s var(--b57-ease);
+    }
   }
 
-  @media (hover: hover) {
+  @include bp.hover {
     &:hover {
-      color: var(--b57-fg-eyebrow);
+      .label::before {
+        width: 0;
+      }
 
-      .arrow {
-        transform: translateX(0.3rem);
+      .label::after {
+        width: 100%;
       }
     }
   }
 }
 
+// ---- Parts ----------------------------------------------------------------------
 .label {
   display: inline-block;
 }
 
-.icon,
-.arrow {
+.icon {
   display: inline-flex;
   flex: none;
+  margin-right: 8px;
 }
 
+// Double-arrow "conveyor": the first copy slides out to the right while the
+// second slides in from the left.
 .arrow {
-  transition: transform var(--b57-transition);
+  flex: none;
+  margin-left: 8px;
+  overflow: hidden;
 }
 
-@media (prefers-reduced-motion: reduce) {
+.arrowOut,
+.arrowIn {
+  transition: transform var(--b57-duration) var(--b57-ease-conveyor);
+}
+
+.arrowIn {
+  transform: translateX(-100%);
+  transition-delay: 0.1s;
+}
+
+@mixin arrow-moved {
+  .arrowOut {
+    transform: translateX(100%);
+  }
+
+  .arrowIn {
+    transform: translateX(0);
+  }
+}
+
+.button:focus-visible {
+  @include arrow-moved;
+}
+
+@include bp.hover {
+  .button:hover {
+    @include arrow-moved;
+  }
+}
+
+@include bp.reduced-motion {
   .button,
-  .arrow {
+  .arrowOut,
+  .arrowIn,
+  .textLink .label::before,
+  .textLink .label::after {
     transition: none;
   }
 }

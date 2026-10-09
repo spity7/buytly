@@ -1,36 +1,28 @@
+@use "../../../styles/block57/breakpoints" as bp;
+
+// Live palette: 40px hairline circle, green outline heart, filled when saved.
 .toggle {
   display: inline-flex;
+  flex: none;
   align-items: center;
   justify-content: center;
-  gap: var(--b57-space-2);
-  flex: none;
-  width: 2.75rem;
-  height: 2.75rem; // 44px touch target
+  width: 40px;
+  height: 40px;
   padding: 0;
-  border: 1px solid var(--b57-rule);
+  border: 1px solid var(--b57-color-border);
   border-radius: 50%;
   background: transparent;
-  color: var(--b57-fg);
+  color: var(--b57-color-primary);
   transition:
-    color var(--b57-transition),
     border-color var(--b57-transition),
-    background-color var(--b57-transition),
-    transform var(--b57-duration-fast) var(--b57-ease);
+    transform 0.15s var(--b57-ease);
 
-  @media (hover: hover) {
-    &:hover:not([aria-disabled="true"]) {
-      border-color: var(--b57-fg);
-      color: var(--b57-color-sold);
-    }
+  &[data-active="true"] {
+    border-color: var(--b57-color-primary);
   }
 
   &:active:not([aria-disabled="true"]) {
     transform: scale(0.94);
-  }
-
-  &[data-active="true"] {
-    color: var(--b57-color-sold);
-    border-color: currentColor;
   }
 
   &[aria-busy="true"] {
@@ -42,27 +34,15 @@
     opacity: 0.4;
     cursor: not-allowed;
   }
+
+  @include bp.hover {
+    &:hover:not([aria-disabled="true"]) {
+      border-color: var(--b57-color-primary);
+    }
+  }
 }
 
-.size-sm {
-  width: 2.5rem;
-  height: 2.5rem;
-}
-
-.withLabel {
-  width: auto;
-  padding-inline: 0.9rem 1.1rem;
-  border-radius: var(--b57-radius-pill);
-}
-
-.label {
-  font-size: var(--b57-text-2xs);
-  font-weight: var(--b57-weight-medium);
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-}
-
-@media (prefers-reduced-motion: reduce) {
+@include bp.reduced-motion {
   .toggle {
     transition: none;
   }

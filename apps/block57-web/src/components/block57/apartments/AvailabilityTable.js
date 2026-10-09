@@ -4,18 +4,25 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Container from "@/components/block57/ui/Container";
 import FavoriteToggle from "@/components/block57/ui/FavoriteToggle";
+import LiveAvailability from "@/components/block57/ui/LiveAvailability";
+import MetaPill from "@/components/block57/ui/MetaPill";
 import Section from "@/components/block57/ui/Section";
 import SectionHeading from "@/components/block57/ui/SectionHeading";
-import StatusPill from "@/components/block57/ui/StatusPill";
 import VisuallyHidden from "@/components/block57/ui/VisuallyHidden";
 import { Button, ButtonLink } from "@/components/block57/ui/Button";
 import { useBlock57Project } from "@/lib/block57/useBlock57Project";
+import { useTypeUnits } from "@/lib/block57/useTypeUnits";
 import {
   findUnitById,
   formatArea,
+  formatBedroomCount,
+  formatBuildingLetter,
+  formatCount,
   formatFloor,
   getUnitAnchorId,
+  getUnitFloorPlans,
   getUnitId,
+  getUnitStatusLabel,
 } from "@/lib/block57/units";
 import {
   PRICE_ON_REQUEST_LABEL,
@@ -23,37 +30,30 @@ import {
   formatUnitPrice,
 } from "@/lib/block57/prices";
 import {
-  getUnitType,
+  getUnitTypeByCatalogValue,
   getUnitTypeHref,
   getUnitTypeInquireHref,
 } from "@/content/block57/unitTypes";
 import {
   AVAILABILITY_COPY,
-  TYPE_PAGE_SECTIONS,
+  AVAILABILITY_TABLE_COPY as TABLE,
+  TYPE_PAGE_COPY,
 } from "@/content/block57/apartments";
-import {
-  formatBedroomsShort,
-  formatBuildingShort,
-  formatCountShort,
-} from "./format";
-import { useTypeUnits } from "@/lib/block57/useTypeUnits";
 import styles from "./AvailabilityTable.module.scss";
 
-const COPY = TYPE_PAGE_SECTIONS.availability;
 const HIGHLIGHT_MS = 2600;
 const SKELETON_ROWS = 3;
 const UNIT_HASH = /^#unit-([A-Za-z0-9_-]{1,64})$/;
 
-/** Columns (mobile cards use `col` as the grid area). Price only when allowed. */
+/** Data columns (stacked cards use `col` as the grid area). Price only when allowed. */
 const COLUMNS = [
-  { col: "title", label: "Residence" },
-  { col: "block", label: "Block" },
-  { col: "level", label: "Level" },
-  { col: "beds", label: "Bedrooms" },
-  { col: "baths", label: "Bathrooms" },
-  { col: "area", label: "Area" },
-  { col: "status", label: "Status" },
-  ...(SHOW_PRICES ? [{ col: "price", label: "Price" }] : []),
+  "block",
+  "level",
+  "beds",
+  "baths",
+  "area",
+  "status",
+  ...(SHOW_PRICES ? ["price"] : []),
 ];
 
 function readUnitHash() {
@@ -69,25 +69,38 @@ function prefersReducedMotion() {
   );
 }
 
-function Cell({ col, label, children, className }) {
+function Cell({ col, children }) {
   return (
-    <td
-      role="cell"
-      data-col={col}
-      className={[styles.cell, className].filter(Boolean).join(" ")}
-    >
+    <td role="cell" data-col={col} className={styles.cell}>
       <span className={styles.cellLabel} aria-hidden="true">
-        {label}
+        {TABLE.columns[col]}
       </span>
       <span className={styles.cellValue}>{children}</span>
     </td>
   );
 }
 
+function FloorPlanLinks({ unit, title }) {
+  const plans = getUnitFloorPlans(unit);
+  return plans.map((plan, index) => (
+    <ButtonLink
+      key={plan._id || plan.url}
+      href={plan.url}
+      variant="textLink"
+      external
+      className={styles.planLink}
+    >
+      {plans.length === 1
+        ? TABLE.floorPlan
+        : TABLE.floorPlanNumbered(index + 1)}
+      <VisuallyHidden>{` for residence ${title}`}</VisuallyHidden>
+    </ButtonLink>
+  ));
+}
+
 function UnitRow({ unit, typeSlug, highlighted }) {
   const id = String(getUnitId(unit));
   const title = unit.title || "Residence";
-  const price = formatUnitPrice(unit);
 
   return (
     <tr
@@ -98,60 +111,34 @@ function UnitRow({ unit, typeSlug, highlighted }) {
       data-status={unit.status}
       data-highlighted={highlighted ? "true" : undefined}
     >
-      <th
-        role="rowheader"
-        scope="row"
-        data-col="title"
-        className={[styles.cell, styles.titleCell].join(" ")}
-      >
-        {title}
+      <th role="rowheader" scope="row" data-col="title" className={styles.cell}>
+        <span className={styles.unitTitle}>{title}</span>
       </th>
-      <Cell col="block" label="Block">
-        {formatBuildingShort(unit.building)}
-      </Cell>
-      <Cell col="level" label="Level">
-        {formatFloor(unit.floor)}
-      </Cell>
-      <Cell col="beds" label="Bedrooms">
-        {formatBedroomsShort(unit.bedrooms)}
-      </Cell>
-      <Cell col="baths" label="Bathrooms">
-        {formatCountShort(unit.bathrooms)}
-      </Cell>
-      <Cell col="area" label="Area">
-        {formatArea(unit.area, unit.areaUnit)}
-      </Cell>
-      <td
-        role="cell"
-        data-col="status"
-        className={[styles.cell, styles.statusCell].join(" ")}
-      >
-        <StatusPill status={unit.status} />
+      <Cell col="block">{formatBuildingLetter(unit.building)}</Cell>
+      <Cell col="level">{formatFloor(unit.floor)}</Cell>
+      <Cell col="beds">{formatBedroomCount(unit.bedrooms)}</Cell>
+      <Cell col="baths">{formatCount(unit.bathrooms)}</Cell>
+      <Cell col="area">{formatArea(unit.area, unit.areaUnit)}</Cell>
+      <td role="cell" data-col="status" className={styles.cell}>
+        <MetaPill className={styles.status} data-status={unit.status}>
+          {getUnitStatusLabel(unit.status)}
+        </MetaPill>
       </td>
       {SHOW_PRICES ? (
-        <Cell col="price" label="Price">
-          {price ?? PRICE_ON_REQUEST_LABEL}
+        <Cell col="price">
+          {formatUnitPrice(unit) ?? PRICE_ON_REQUEST_LABEL}
         </Cell>
       ) : null}
-      <td
-        role="cell"
-        data-col="actions"
-        className={[styles.cell, styles.actionsCell].join(" ")}
-      >
+      <td role="cell" data-col="actions" className={styles.cell}>
         <div className={styles.actions}>
-          <FavoriteToggle
-            unitId={id}
-            unitLabel={title}
-            status={unit.status}
-            size="sm"
-          />
+          <FloorPlanLinks unit={unit} title={title} />
+          <FavoriteToggle unitId={id} unitLabel={title} status={unit.status} />
           <ButtonLink
             href={getUnitTypeInquireHref(typeSlug, id)}
-            variant="secondary"
             size="sm"
             className={styles.inquire}
           >
-            Inquire
+            {TABLE.inquire}
             <VisuallyHidden>{` about residence ${title}`}</VisuallyHidden>
           </ButtonLink>
         </div>
@@ -162,36 +149,19 @@ function UnitRow({ unit, typeSlug, highlighted }) {
 
 function SkeletonRow({ index }) {
   return (
-    <tr
-      role="row"
-      className={[styles.row, styles.skeletonRow].join(" ")}
-      aria-hidden="true"
-    >
-      {COLUMNS.map(({ col, label }) =>
-        col === "title" ? (
-          <th
-            key={col}
-            role="rowheader"
-            scope="row"
-            data-col={col}
-            className={[styles.cell, styles.titleCell].join(" ")}
-          >
-            <span className={styles.bar} style={{ width: "4.5rem" }} />
-          </th>
-        ) : (
-          <Cell key={col} col={col} label={label}>
-            <span
-              className={styles.bar}
-              style={{ width: `${3 + ((index + col.length) % 3)}rem` }}
-            />
-          </Cell>
-        ),
-      )}
-      <td
-        role="cell"
-        data-col="actions"
-        className={[styles.cell, styles.actionsCell].join(" ")}
-      >
+    <tr role="row" className={styles.row} aria-hidden="true">
+      <th role="rowheader" scope="row" data-col="title" className={styles.cell}>
+        <span className={styles.bar} style={{ width: 64 }} />
+      </th>
+      {COLUMNS.map((col) => (
+        <Cell key={col} col={col}>
+          <span
+            className={styles.bar}
+            style={{ width: 40 + ((index + col.length) % 3) * 12 }}
+          />
+        </Cell>
+      ))}
+      <td role="cell" data-col="actions" className={styles.cell}>
         <div className={styles.actions}>
           <span className={[styles.bar, styles.barRound].join(" ")} />
           <span className={[styles.bar, styles.barButton].join(" ")} />
@@ -202,20 +172,25 @@ function SkeletonRow({ index }) {
 }
 
 /**
- * LIVE availability for one residence type (client-side: unit media URLs are
- * signed for 1 hour and statuses change). Only active ("Available") and sold
- * units are listed — draft/pending/archived units that managers receive in the
- * embed never reach this table. Prices stay hidden unless
- * NEXT_PUBLIC_SHOW_PRICES=true and the unit has a numeric price.
+ * LIVE availability table of one residence type, after "Apartment photos"
+ * (client-side: statuses change and unit media URLs are signed for 1 hour).
+ * Only active ("Available") and sold units are listed: draft/pending/archived
+ * units that managers receive in the embed never reach it. Prices stay hidden
+ * unless NEXT_PUBLIC_SHOW_PRICES=true and the unit has a numeric price.
+ * Row actions: the unit's API floor plans (new tab), favourite heart and
+ * INQUIRE → /inquire/?type=<slug>&unit=<id>. Stacked cards ≤1200px.
  *
  * Each row has id="unit-<_id>"; a matching URL hash scrolls to the row and
- * briefly highlights it (target of /apartments/?unit=<id> deep links).
+ * flashes it (target of /apartments/?unit=<id> deep links). A unit of another
+ * type sends the visitor to that type's page.
+ *
+ * @param {{ type: object }} props an entry of UNIT_TYPES
  */
-export default function AvailabilityTable({ typeSlug }) {
+export default function AvailabilityTable({ type }) {
   const router = useRouter();
-  const type = getUnitType(typeSlug);
-  const { units, availability, isLoading, isError, refetch } =
-    useTypeUnits(typeSlug);
+  const { units, isLoading, isError, refetch } = useTypeUnits(
+    type.catalogValue,
+  );
   const { units: allUnits } = useBlock57Project();
 
   const [hashId, setHashId] = useState(null);
@@ -241,8 +216,10 @@ export default function AvailabilityTable({ typeSlug }) {
       handledHash.current = hashId;
       // A public unit of another type (e.g. an old link): go to its page.
       const elsewhere = findUnitById(allUnits, hashId);
-      const otherType = elsewhere ? getUnitType(elsewhere.type) : null;
-      if (otherType && otherType.slug !== typeSlug) {
+      const otherType = elsewhere
+        ? getUnitTypeByCatalogValue(elsewhere.type)
+        : null;
+      if (otherType && otherType.slug !== type.slug) {
         router.replace(
           `${getUnitTypeHref(otherType.slug)}#${getUnitAnchorId(hashId)}`,
         );
@@ -262,15 +239,13 @@ export default function AvailabilityTable({ typeSlug }) {
       setHighlightId(hashId);
     });
     return () => window.cancelAnimationFrame(frame);
-  }, [hashId, isLoading, isError, units, allUnits, typeSlug, router]);
+  }, [hashId, isLoading, isError, units, allUnits, type.slug, router]);
 
   useEffect(() => {
     if (!highlightId) return undefined;
     const timer = window.setTimeout(() => setHighlightId(null), HIGHLIGHT_MS);
     return () => window.clearTimeout(timer);
   }, [highlightId]);
-
-  if (!type) return null;
 
   const hashMissing =
     Boolean(hashId) &&
@@ -280,6 +255,7 @@ export default function AvailabilityTable({ typeSlug }) {
     !findUnitById(allUnits, hashId);
   const isEmpty = !isLoading && !isError && units.length === 0;
   const inquireHref = getUnitTypeInquireHref(type.slug);
+  const titleId = "availability-title";
 
   async function handleRetry() {
     setRetrying(true);
@@ -290,29 +266,25 @@ export default function AvailabilityTable({ typeSlug }) {
     }
   }
 
-  let summary = null;
-  if (isLoading) {
-    summary = <span className={styles.summaryBar} aria-hidden="true" />;
-  } else if (!isError && availability.total > 0) {
-    summary = `${availability.available} of ${availability.total} ${
-      availability.total === 1 ? "residence" : "residences"
-    } currently available.`;
-  }
-
   return (
-    <Section id="availability" tone="alt" aria-labelledby="availability-title">
+    <Section
+      id="availability"
+      spacing="none"
+      className={styles.section}
+      aria-labelledby={titleId}
+    >
       <Container>
-        <div className={styles.head}>
-          <SectionHeading
-            eyebrow={COPY.eyebrow}
-            title={COPY.title}
-            id="availability-title"
-            className={styles.heading}
-          />
-          <p className={styles.summary} aria-live="polite">
-            {summary}
-          </p>
-        </div>
+        <SectionHeading
+          eyebrow={TYPE_PAGE_COPY.availability.eyebrow}
+          title={TYPE_PAGE_COPY.availability.title}
+          as="h2"
+          size="subsection"
+          id={titleId}
+          className={styles.heading}
+        />
+        <p className={styles.summary} aria-live="polite">
+          <LiveAvailability type={type.catalogValue} />
+        </p>
 
         {hashMissing ? (
           <p className={styles.notice} role="status">
@@ -322,14 +294,13 @@ export default function AvailabilityTable({ typeSlug }) {
 
         {isError ? (
           <div className={styles.state} role="status">
-            <p>{AVAILABILITY_COPY.error}</p>
+            <p className={styles.stateText}>{AVAILABILITY_COPY.error}</p>
             <div className={styles.stateActions}>
               <ButtonLink href={inquireHref} size="sm">
-                Inquire
+                {TABLE.inquire}
               </ButtonLink>
               <Button
-                variant="secondary"
-                size="sm"
+                variant="textLink"
                 onClick={handleRetry}
                 disabled={retrying}
               >
@@ -341,72 +312,65 @@ export default function AvailabilityTable({ typeSlug }) {
 
         {isEmpty ? (
           <div className={styles.state}>
-            <p>{AVAILABILITY_COPY.empty}</p>
+            <p className={styles.stateText}>{AVAILABILITY_COPY.empty}</p>
             <div className={styles.stateActions}>
               <ButtonLink href={inquireHref} size="sm">
-                Inquire
+                {TABLE.inquire}
               </ButtonLink>
             </div>
           </div>
         ) : null}
 
         {!isError && !isEmpty ? (
-          <div className={styles.wrap}>
-            {isLoading ? (
-              <VisuallyHidden as="p" role="status">
-                Loading live availability
-              </VisuallyHidden>
-            ) : null}
-            <table
-              role="table"
-              className={styles.table}
-              aria-busy={isLoading ? "true" : undefined}
-            >
-              <caption className={styles.caption}>
-                {`${type.pluralLabel} at Block 57 — live availability`}
-              </caption>
-              <thead role="rowgroup" className={styles.thead}>
-                <tr role="row">
-                  {COLUMNS.map(({ col, label }) => (
-                    <th
-                      key={col}
-                      role="columnheader"
-                      scope="col"
-                      data-col={col}
-                      className={styles.th}
-                    >
-                      {label}
-                    </th>
-                  ))}
+          <table
+            role="table"
+            className={styles.table}
+            aria-busy={isLoading ? "true" : undefined}
+          >
+            <caption className={styles.caption}>
+              {TABLE.caption(type.pluralLabel)}
+            </caption>
+            <thead role="rowgroup" className={styles.thead}>
+              <tr role="row">
+                {["title", ...COLUMNS].map((col) => (
                   <th
+                    key={col}
                     role="columnheader"
                     scope="col"
-                    data-col="actions"
-                    className={[styles.th, styles.thActions].join(" ")}
+                    data-col={col}
+                    className={styles.th}
                   >
-                    <VisuallyHidden>Actions</VisuallyHidden>
+                    {TABLE.columns[col]}
                   </th>
-                </tr>
-              </thead>
-              <tbody role="rowgroup" className={styles.tbody}>
-                {isLoading
-                  ? Array.from({ length: SKELETON_ROWS }, (_, index) => (
-                      <SkeletonRow key={index} index={index} />
-                    ))
-                  : units.map((unit) => (
-                      <UnitRow
-                        key={getUnitId(unit)}
-                        unit={unit}
-                        typeSlug={type.slug}
-                        highlighted={
-                          highlightId !== null &&
-                          String(getUnitId(unit)) === highlightId
-                        }
-                      />
-                    ))}
-              </tbody>
-            </table>
-          </div>
+                ))}
+                <th
+                  role="columnheader"
+                  scope="col"
+                  data-col="actions"
+                  className={styles.th}
+                >
+                  <VisuallyHidden>{TABLE.columns.actions}</VisuallyHidden>
+                </th>
+              </tr>
+            </thead>
+            <tbody role="rowgroup" className={styles.tbody}>
+              {isLoading
+                ? Array.from({ length: SKELETON_ROWS }, (_, index) => (
+                    <SkeletonRow key={index} index={index} />
+                  ))
+                : units.map((unit) => (
+                    <UnitRow
+                      key={getUnitId(unit)}
+                      unit={unit}
+                      typeSlug={type.slug}
+                      highlighted={
+                        highlightId !== null &&
+                        String(getUnitId(unit)) === highlightId
+                      }
+                    />
+                  ))}
+            </tbody>
+          </table>
         ) : null}
       </Container>
     </Section>

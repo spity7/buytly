@@ -1,30 +1,26 @@
 import styles from "./Section.module.scss";
 
 /**
- * Page band with vertical rhythm and an optional tone.
- * `tone="dark"` also flips the contextual colour tokens for everything inside
- * (headings, eyebrows, buttons, rules) via `data-b57-tone`.
+ * Page band: background tone + the live vertical rhythm.
+ * tone: "default" (white) · "light" (#F6F1EA) · "green" (#346054, white text,
+ *   headings, eyebrows and bars) · "dark" (#1C322C, white). The tone also
+ *   switches the contextual colour tokens for everything inside
+ *   (`data-b57-tone`).
+ * spacing: "default" = padding-block 150 → 100 (≤1200) → 80 (≤1024) → 60
+ *   (≤767) · "none" (the section sets its own padding/margins).
  *
- * @param {{ as?: string, tone?: "default"|"alt"|"surface"|"dark",
- *   spacing?: "default"|"sm"|"lg"|"none", divider?: boolean,
- *   className?: string, id?: string }} props
+ * @param {{ as?: string, tone?: "default"|"light"|"green"|"dark",
+ *   spacing?: "default"|"none", className?: string, id?: string }} props
  */
 export default function Section({
   as: Tag = "section",
   tone = "default",
   spacing = "default",
-  divider = false,
   className,
   children,
   ...rest
 }) {
-  const classes = [
-    styles.section,
-    styles[`tone-${tone}`],
-    styles[`spacing-${spacing}`],
-    divider ? styles.divider : null,
-    className,
-  ]
+  const classes = [styles.section, styles[`spacing-${spacing}`], className]
     .filter(Boolean)
     .join(" ");
 

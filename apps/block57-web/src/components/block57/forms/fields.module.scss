@@ -1,0 +1,250 @@
+@use "../../../styles/block57/type";
+
+// Block 57 form controls (live Contact Form 7 look, DESIGN_SPEC §2.6).
+//
+// A form can tune them on any ancestor with these custom properties:
+//   --b57-form-text          typed text            (default #346054)
+//   --b57-form-placeholder   placeholder           (default #ADA4A1)
+//   --b57-form-line          1px underline         (default #346054)
+//   --b57-form-line-focus    focused underline     (default #346054)
+//   --b57-form-gap           space below a field   (default 30px)
+//
+// Focus: the underline thickens to 2px (box-shadow, no layout shift). Live
+// turns it #ADA4A1 instead, which is 2.2:1 on #F6F1EA (fails WCAG 1.4.11),
+// so the rebuild keeps the green line and changes its weight.
+
+:where(.field) {
+  --_text: var(--b57-form-text, var(--b57-color-primary));
+  --_placeholder: var(--b57-form-placeholder, var(--b57-color-text-light));
+  --_line: var(--b57-form-line, var(--b57-color-primary));
+  --_line-focus: var(--b57-form-line-focus, var(--b57-color-primary));
+
+  position: relative;
+  min-width: 0;
+  margin: 0 0 var(--b57-form-gap, 30px);
+}
+
+// Text inputs sit 2px lower than other controls (live: the inline-block
+// baseline gap of the CF7 markup), e.g. a 73.14px pitch between two inputs.
+// Padding, not margin: stacked field margins would collapse.
+:where(.input) {
+  padding-top: 2px;
+}
+
+.control {
+  @include type.input;
+
+  display: block;
+  width: 100%;
+  height: 41.14px; // 0 0 15px padding + 25.14 line + 1px underline
+  margin: 0;
+  padding: 0 0 15px;
+  border: 0;
+  border-bottom: 1px solid var(--_line);
+  border-radius: 0;
+  background: transparent;
+  color: var(--_text);
+  box-shadow: none;
+  outline: 0;
+  appearance: none;
+  transition:
+    border-color var(--b57-transition),
+    box-shadow var(--b57-transition);
+
+  &::placeholder {
+    color: var(--_placeholder);
+    opacity: 1;
+  }
+
+  &:focus,
+  &:focus-visible {
+    outline: none;
+    border-bottom-color: var(--_line-focus);
+    box-shadow: 0 1px 0 0 var(--_line-focus);
+  }
+}
+
+// rows × 25.14 + 1px underline (2 rows = 51.28px), user-resizable in height.
+// Grows with its content where supported (a pre-filled message stays fully
+// visible); elsewhere `rows` sets the height.
+.textarea {
+  height: auto;
+  min-height: calc(var(--_rows, 2) * 25.14px + 1px);
+  padding: 0;
+  resize: vertical;
+  field-sizing: content;
+}
+
+// ---- Select (tour popup time slots) ------------------------------------------
+.selectWrap {
+  position: relative;
+}
+
+.select {
+  @include type.body;
+
+  padding-right: 28px;
+  background: var(--b57-color-bg);
+  color: var(--b57-color-text);
+  cursor: pointer;
+  text-overflow: ellipsis;
+}
+
+.chevron {
+  position: absolute;
+  top: 6px;
+  right: 0;
+  color: var(--b57-color-text);
+  pointer-events: none;
+}
+
+// ---- Radio group --------------------------------------------------------------
+.fieldset {
+  padding: 0;
+  border: 0;
+}
+
+// Floated so its margin applies like any block (legends ignore it otherwise).
+.legend {
+  @include type.body;
+
+  float: left;
+  width: 100%;
+  margin: 0 0 10px;
+  padding: 0;
+  color: var(--b57-color-text-light);
+}
+
+// Live: 400px flex row, items flex-basis 50% → two 200px columns, 28px rows.
+// The second column shrinks on narrow phones instead of overflowing.
+.radios {
+  clear: both;
+  display: grid;
+  grid-template-columns: 200px minmax(0, 200px);
+  grid-auto-rows: 28px;
+}
+
+.radio {
+  position: relative;
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  cursor: pointer;
+}
+
+.radioInput {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.radioLabel {
+  @include type.body;
+
+  position: relative;
+  display: inline-block;
+  padding-left: 1.5em;
+  line-height: 1em;
+  color: var(--b57-color-text);
+  white-space: nowrap;
+
+  // 16px disc painted with inset shadows (.2em = 3.6px grey ring at 18px).
+  &::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    box-shadow:
+      inset 0 0 0 0.2em var(--b57-color-radio-track),
+      inset 0 0 0 1em var(--b57-color-radio-track);
+    transition: box-shadow var(--b57-transition);
+  }
+}
+
+.radioInput:checked + .radioLabel::before {
+  box-shadow:
+    inset 0 0 0 0.2em var(--b57-color-radio-track),
+    inset 0 0 0 1em var(--b57-color-primary);
+}
+
+.radioInput:focus-visible + .radioLabel::before {
+  outline: 2px solid var(--b57-color-focus);
+  outline-offset: 2px;
+}
+
+// ---- Messages -------------------------------------------------------------------
+// CF7 tip: directly under the control; the underline stays green.
+.tip {
+  @include type.validation;
+
+  display: block;
+  margin: 0;
+  color: var(--b57-color-error);
+}
+
+.alert:focus {
+  outline: none;
+}
+
+.alertText {
+  @include type.validation;
+
+  margin: 0 0 30px;
+  color: var(--b57-color-error);
+}
+
+.alert:focus-visible .alertText {
+  outline: 2px solid var(--b57-color-focus);
+  outline-offset: 3px;
+}
+
+// Pending: dimmed like CF7's loading state, still focusable.
+.submit[aria-disabled="true"] {
+  cursor: progress;
+}
+
+// ---- Honeypot ---------------------------------------------------------------------
+.honeypot {
+  position: absolute;
+  left: -10000px;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+}
+
+// ---- Thank-you state -----------------------------------------------------------------
+.success {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 30px;
+}
+
+.successTitle {
+  @include type.h5(34px);
+
+  margin: 0;
+  color: var(--b57-color-primary);
+
+  &:focus {
+    outline: none;
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--b57-color-focus);
+    outline-offset: 6px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .control,
+  .radioLabel::before {
+    transition: none;
+  }
+}

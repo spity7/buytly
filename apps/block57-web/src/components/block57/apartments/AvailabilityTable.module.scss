@@ -1,84 +1,68 @@
 @use "../../../styles/block57/breakpoints" as bp;
+@use "../../../styles/block57/type";
 
-// ---- Heading row ----------------------------------------------------------------
-.head {
-  display: grid;
-  gap: var(--b57-space-2);
-  margin-bottom: var(--b57-space-6);
-
-  @include bp.up(lg) {
-    grid-template-columns: minmax(0, 1fr) auto;
-    align-items: end;
-    gap: var(--b57-space-7);
-    margin-bottom: var(--b57-space-7);
-  }
+// Product feature with no live reference, built from the live tokens
+// (DESIGN_SPEC §5): placed like "Apartment photos" (boxed, 150px margins that
+// collapse with it), eyebrow + H3-style title, then a borderless table.
+.section {
+  margin-block: var(--b57-section-y);
 }
 
 .heading {
-  margin-bottom: 0;
+  margin-bottom: 20px;
 }
 
+// Live count under the title; with it the title → table gap is 60px + 16px.
 .summary {
-  min-height: 1.6em; // reserved while loading (no layout shift)
-  margin: 0;
-  font-size: var(--b57-text-base);
-  color: var(--b57-fg-muted);
+  margin: 0 0 40px;
+  line-height: 0;
+  text-align: center;
 
-  @include bp.up(lg) {
-    text-align: right;
+  @include bp.down(mobile) {
+    margin-bottom: 30px;
   }
 }
 
-.summaryBar {
-  display: inline-block;
-  width: 15rem;
-  max-width: 100%;
-  height: 0.9em;
-  vertical-align: middle;
-  background: currentColor;
-  opacity: 0.12;
+.notice,
+.state {
+  @include type.body;
+
+  margin: 0 0 30px;
+  color: var(--b57-color-text);
+  text-align: center;
 }
 
 .notice {
-  margin: 0 0 var(--b57-space-5);
-  padding: var(--b57-space-3) var(--b57-space-4);
-  border-left: 2px solid var(--b57-color-accent);
-  background: var(--b57-color-surface);
-  font-size: var(--b57-text-sm);
+  padding: 15px 20px;
+  background: var(--b57-color-bg-light);
 }
 
-// ---- Error / empty states ---------------------------------------------------------
 .state {
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: column;
   align-items: center;
-  justify-content: space-between;
-  gap: var(--b57-space-4) var(--b57-space-6);
-  padding: var(--b57-space-6);
-  border: 1px solid var(--b57-rule);
-  background: var(--b57-color-surface);
+  gap: 20px;
+  padding: 40px 20px;
+  border-block: 1px solid var(--b57-color-border);
+}
 
-  p {
-    max-width: 40rem;
-    margin: 0;
-  }
+.stateText {
+  max-width: 640px;
+  margin: 0;
 }
 
 .stateActions {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--b57-space-3);
+  align-items: center;
+  justify-content: center;
+  gap: 30px;
 }
 
-// ---- Table (desktop) ------------------------------------------------------------------
-.wrap {
-  position: relative;
-}
-
+// ---- Table (≥1201px) ------------------------------------------------------------------
 .table {
   width: 100%;
   border-collapse: collapse;
-  font-size: var(--b57-text-sm);
   font-variant-numeric: tabular-nums;
 }
 
@@ -92,76 +76,96 @@
   white-space: nowrap;
 }
 
+// Header: eyebrow typography (#000, no bar) over a 1px green rule.
 .th {
-  padding: 0 var(--b57-space-4) var(--b57-space-4);
-  border-bottom: 1px solid var(--b57-rule-strong);
-  font-size: var(--b57-text-2xs);
-  font-weight: var(--b57-weight-medium);
-  letter-spacing: 0.2em;
+  @include type.label(18.67px);
+
+  padding: 0 12px 15px;
+  border-bottom: 1px solid var(--b57-color-primary);
+  font-weight: 300;
+  color: var(--b57-color-accent);
   text-align: left;
-  text-transform: uppercase;
   white-space: nowrap;
-  color: var(--b57-fg-muted);
 
   &:first-child {
-    padding-left: var(--b57-space-2);
+    padding-left: 0;
+  }
+
+  &:last-child {
+    padding-right: 0;
   }
 }
 
 .row {
-  border-bottom: 1px solid var(--b57-rule);
-  transition: background-color var(--b57-duration) var(--b57-ease);
+  border-bottom: 1px solid var(--b57-color-border);
 
   &:focus {
-    outline: none; // focused only programmatically (deep link); highlight shows it
-  }
-
-  @include bp.hover {
-    &:not(.skeletonRow):hover {
-      background: rgba(255, 255, 255, 0.55);
-    }
-  }
-
-  &[data-status="sold"] .cell:not(.statusCell):not(.actionsCell) {
-    color: var(--b57-fg-muted);
+    outline: none; // focused only programmatically (deep link); the flash shows it
   }
 }
 
 .cell {
-  padding: var(--b57-space-4);
-  vertical-align: middle;
+  @include type.body;
+
+  padding: 20px 12px;
+  color: var(--b57-color-text);
   text-align: left;
-  font-weight: var(--b57-weight-regular);
+  vertical-align: middle;
   white-space: nowrap;
+
+  &:first-child {
+    padding-left: 0;
+  }
+
+  &:last-child {
+    padding-right: 0;
+  }
 }
 
-.titleCell {
-  padding-left: var(--b57-space-2);
-  font-family: var(--b57-font-serif);
-  font-size: var(--b57-text-lg);
-  color: var(--b57-fg);
+.unitTitle {
+  @include type.display;
+
+  font-size: 18px;
+  line-height: 28px;
+  color: var(--b57-color-primary);
 }
 
-.row[data-status="sold"] .titleCell {
-  color: var(--b57-fg-muted);
-}
-
-.actionsCell {
-  padding-right: var(--b57-space-2);
-}
-
-.actions {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: var(--b57-space-3);
+.row[data-status="sold"] {
+  .cellValue,
+  .unitTitle {
+    color: var(--b57-color-text-light);
+  }
 }
 
 .cellLabel {
   display: none;
 }
 
-// Deep-link highlight (#unit-<id>).
+// Status: meta pill, AVAILABLE #346054 / SOLD #ADA4A1.
+.status {
+  color: var(--b57-color-primary);
+
+  &[data-status="sold"] {
+    color: var(--b57-color-text-light);
+  }
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 20px;
+}
+
+.planLink {
+  flex: none;
+}
+
+.inquire {
+  flex: none;
+}
+
+// Deep-link flash (#unit-<id>).
 .row[data-highlighted="true"] {
   animation: b57-row-highlight 2.6s var(--b57-ease) both;
 }
@@ -169,52 +173,50 @@
 @keyframes b57-row-highlight {
   0%,
   35% {
-    background-color: rgba(200, 171, 126, 0.32);
-    box-shadow: inset 2px 0 0 var(--b57-color-accent);
+    background-color: var(--b57-color-highlight);
   }
 
   100% {
     background-color: transparent;
-    box-shadow: inset 2px 0 0 transparent;
   }
 }
 
 // ---- Skeleton ---------------------------------------------------------------------------
 .bar {
   display: inline-block;
-  height: 0.8rem;
+  height: 10px;
   vertical-align: middle;
-  background: currentColor;
-  opacity: 0.1;
+  background: var(--b57-color-border);
   animation: b57-table-pulse 1.4s ease-in-out infinite;
 }
 
 .barRound {
-  width: 2.5rem;
-  height: 2.5rem;
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
 }
 
 .barButton {
-  width: 6.5rem;
-  height: 2.5rem;
+  width: 120px;
+  height: 40px;
+  border-radius: var(--b57-radius-pill);
 }
 
 @keyframes b57-table-pulse {
   50% {
-    opacity: 0.2;
+    opacity: 0.5;
   }
 }
 
-// ---- Cards (below lg) ------------------------------------------------------------------
-@include bp.down(lg) {
+// ---- Stacked cards (≤1200px), separated by hairlines -------------------------------------
+@include bp.down(tablet-extra) {
   .table,
   .tbody,
   .cell {
     display: block;
   }
 
-  // Header row stays in the accessibility tree (roles keep the table semantics).
+  // The header row stays in the accessibility tree (roles keep the table semantics).
   .thead {
     position: absolute;
     width: 1px;
@@ -226,33 +228,24 @@
   }
 
   .tbody {
-    display: grid;
-    gap: var(--b57-space-3);
-
-    @include bp.up(md) {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: var(--b57-space-4);
-    }
+    border-top: 1px solid var(--b57-color-primary);
   }
 
   .row {
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(6, minmax(0, 1fr));
     grid-template-areas:
-      "title title status"
-      "block level area"
-      "beds baths price"
-      "actions actions actions";
-    gap: var(--b57-space-4) var(--b57-space-3);
-    padding: var(--b57-space-5);
-    border: 1px solid var(--b57-rule);
-    background: var(--b57-color-surface);
+      "title title title status status status"
+      "block level beds baths area price"
+      "actions actions actions actions actions actions";
+    gap: 20px 15px;
+    padding: 30px 0;
   }
 
   .cell {
+    min-width: 0;
     padding: 0;
     white-space: normal;
-    min-width: 0;
   }
 
   .row > [data-col="title"] {
@@ -266,102 +259,63 @@
     justify-self: end;
   }
 
-  .row > [data-col="block"] {
-    grid-area: block;
+  @each $col in block, level, beds, baths, area, price, actions {
+    .row > [data-col="#{$col}"] {
+      grid-area: $col;
+    }
   }
 
-  .row > [data-col="level"] {
-    grid-area: level;
-  }
-
-  .row > [data-col="area"] {
-    grid-area: area;
-  }
-
-  .row > [data-col="beds"] {
-    grid-area: beds;
-  }
-
-  .row > [data-col="baths"] {
-    grid-area: baths;
-  }
-
-  .row > [data-col="price"] {
-    grid-area: price;
-  }
-
-  .row > [data-col="actions"] {
-    grid-area: actions;
-    padding-top: var(--b57-space-4);
-    border-top: 1px solid var(--b57-rule);
-  }
-
-  .titleCell {
-    font-size: var(--b57-text-xl);
-    line-height: 1.2;
-  }
-
-  .actions {
-    justify-content: space-between;
-  }
-
-  .inquire {
-    flex: 1;
-    max-width: 14rem;
-    margin-left: auto;
+  .unitTitle {
+    font-size: 28px;
+    line-height: 36px;
   }
 
   .cellLabel {
+    @include type.meta;
+
     display: block;
-    margin-bottom: 0.2rem;
-    font-size: var(--b57-text-2xs);
-    font-weight: var(--b57-weight-medium);
-    line-height: 1.4;
-    letter-spacing: 0.18em;
-    text-transform: uppercase;
-    color: var(--b57-fg-muted);
+    margin-bottom: 4px;
+    color: var(--b57-color-text-light);
   }
 
   .cellValue {
     display: block;
-    color: var(--b57-fg);
   }
 
-  .row[data-status="sold"] .cellValue {
-    color: var(--b57-fg-muted);
+  .actions {
+    flex-wrap: wrap;
+    justify-content: flex-start;
   }
 
-  .row[data-highlighted="true"] {
-    animation-name: b57-card-highlight;
-  }
-
-  @keyframes b57-card-highlight {
-    0%,
-    35% {
-      background-color: var(--b57-color-highlight);
-      border-color: var(--b57-color-accent);
-    }
-
-    100% {
-      background-color: var(--b57-color-surface);
-      border-color: var(--b57-rule);
-    }
+  .inquire {
+    margin-left: auto;
   }
 }
 
-@media (prefers-reduced-motion: reduce) {
+@include bp.down(mobile) {
   .row {
-    transition: none;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-areas:
+      "title title status"
+      "block level area"
+      "beds baths price"
+      "actions actions actions";
   }
 
+  .unitTitle {
+    font-size: 24px;
+    line-height: 30px;
+  }
+}
+
+@include bp.reduced-motion {
   .bar {
     animation: none;
   }
 
-  // No fade: a steady accent marker for the highlight duration instead.
+  // No fade: a steady highlight for the flash duration instead.
   .row[data-highlighted="true"] {
     animation: none;
-    background-color: rgba(200, 171, 126, 0.24);
-    box-shadow: inset 2px 0 0 var(--b57-color-accent);
+    background-color: var(--b57-color-highlight);
   }
 }

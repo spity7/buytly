@@ -10,15 +10,6 @@ import { HeartIcon } from "./icons";
 import styles from "./FavoriteToggle.module.scss";
 
 /**
- * Heart button for one unit. Signed in: toggles the favourite (shared list from
- * useFavoriteIds — one request for the whole page). Signed out: goes to
- * /login/?auth=signin&next=<current page>. Sold units can be removed from
- * favourites but not added (the API only accepts available units).
- *
- * @param {{ unitId: string, unitLabel?: string, status?: string,
- *   size?: "sm"|"md", showLabel?: boolean, className?: string }} props
- */
-/**
  * Where sign-in should bring the visitor back: this page, scrolled to the
  * unit's row when the page has one (#unit-<id>), else the current hash.
  */
@@ -31,12 +22,22 @@ function returnPathFor(unitId) {
   return `${pathname}${search}${target || ""}`;
 }
 
+/**
+ * Heart button for one unit. Signed in: toggles the favourite (shared list from
+ * useFavoriteIds — one request for the whole page). Signed out: goes to
+ * /login/?auth=signin&next=<current page>. Sold units can be removed from
+ * favourites but not added (the API only accepts available units).
+ *
+ * Styled to the live palette: a 40px hairline circle with a green outline
+ * heart, filled when saved.
+ *
+ * @param {{ unitId: string, unitLabel?: string, status?: string,
+ *   className?: string }} props
+ */
 export default function FavoriteToggle({
   unitId,
   unitLabel,
   status,
-  size = "md",
-  showLabel = false,
   className,
 }) {
   const router = useRouter();
@@ -50,7 +51,6 @@ export default function FavoriteToggle({
   const name = unitLabel
     ? `Save ${unitLabel} to favourites`
     : "Save to favourites";
-  const visibleLabel = active ? "Saved" : "Save";
 
   async function handleClick() {
     if (!id || pending || isAuthLoading) return;
@@ -76,14 +76,7 @@ export default function FavoriteToggle({
   return (
     <button
       type="button"
-      className={[
-        styles.toggle,
-        styles[`size-${size}`],
-        showLabel ? styles.withLabel : null,
-        className,
-      ]
-        .filter(Boolean)
-        .join(" ")}
+      className={[styles.toggle, className].filter(Boolean).join(" ")}
       aria-label={name}
       aria-pressed={active}
       aria-busy={pending || undefined}
@@ -92,12 +85,7 @@ export default function FavoriteToggle({
       data-active={active ? "true" : undefined}
       onClick={handleClick}
     >
-      <HeartIcon filled={active} size={size === "sm" ? 18 : 20} />
-      {showLabel ? (
-        <span className={styles.label} aria-hidden="true">
-          {visibleLabel}
-        </span>
-      ) : null}
+      <HeartIcon filled={active} size={18} />
     </button>
   );
 }

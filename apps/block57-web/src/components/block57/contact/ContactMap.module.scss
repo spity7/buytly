@@ -1,0 +1,38 @@
+@use "../../../styles/block57/type";
+
+// Full-bleed, 800px at every width (live 1440×800 / 390×800; the live
+// container is 809px because of the inline-iframe baseline gap).
+.map {
+  position: relative;
+  height: 800px;
+  background: var(--b57-color-bg-light);
+}
+
+.placeholder {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+
+.pin {
+  color: var(--b57-color-primary);
+}
+
+.link {
+  @include type.label(18px);
+
+  color: var(--b57-color-primary);
+}
+
+// Covers the placeholder once Google Maps has painted.
+.frame {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}

@@ -1,0 +1,54 @@
+@use "../../../styles/block57/breakpoints" as bp;
+
+// Live: boxed 1320 container (10px side padding) → inner containers → white
+// card (padding 40 15 90; ≤1200 100/100; ≤1024 80/80; ≤767 60/60). The
+// containers add 20px above and below and 25px at the sides (measured on the
+// live captures); folded together here.
+.tour {
+  max-width: calc(var(--b57-container) + 20px);
+  margin-inline: auto;
+  padding-inline: 10px;
+}
+
+.card {
+  padding: 60px 25px 110px;
+
+  @include bp.down(tablet-extra) {
+    padding-block: 120px;
+  }
+
+  @include bp.down(tablet) {
+    padding-block: 100px;
+  }
+
+  @include bp.down(mobile) {
+    padding-block: 80px;
+  }
+}
+
+// H2 margins: 30 / 30 → 20 / 20 (≤1024) → 15 / 10 (≤767).
+.heading {
+  margin-bottom: 30px;
+
+  @include bp.down(tablet) {
+    margin-bottom: 20px;
+  }
+
+  @include bp.down(mobile) {
+    margin-bottom: 10px;
+  }
+}
+
+.title {
+  @include bp.down(tablet) {
+    margin-top: 20px;
+  }
+
+  @include bp.down(mobile) {
+    margin-top: 15px;
+  }
+}
+
+.reveal {
+  display: block;
+}

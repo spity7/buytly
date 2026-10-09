@@ -4,16 +4,24 @@ import { useEffect, useRef, useState } from "react";
 import styles from "./Reveal.module.scss";
 
 /**
- * Restrained fade-up on scroll. Content is visible in the server HTML (no-JS
- * safe); after hydration only elements still below the fold are hidden and then
- * revealed when they enter the viewport. Disabled under prefers-reduced-motion.
+ * Live "opal" entrance animations, played once when the element scrolls into
+ * view: effect "up" (translateY 100px → 0), "left" (enters from the right,
+ * translateX 100px → 0), "right" (enters from the left, −100px → 0) or
+ * "helix" (rotateY −180° → 0), all with a fade, `ease`, 0.75s (`fast`,
+ * default) or 1.25s (`fast={false}`), after `delay` ms.
  *
- * @param {{ as?: string, delay?: number, className?: string }} props
- *   `delay` in ms (stagger siblings with 0, 80, 160 …).
+ * Content is visible in the server HTML (no-JS safe); after hydration only
+ * elements still below the fold are hidden, then animated in. Nothing moves
+ * under prefers-reduced-motion.
+ *
+ * @param {{ as?: string, effect?: "up"|"left"|"right"|"helix",
+ *   delay?: number, fast?: boolean, className?: string }} props
  */
 export default function Reveal({
   as: Tag = "div",
+  effect = "up",
   delay = 0,
+  fast = true,
   className,
   style,
   children,
@@ -33,8 +41,7 @@ export default function Reveal({
       return undefined;
     }
 
-    const rect = node.getBoundingClientRect();
-    if (rect.top < window.innerHeight * 0.92) {
+    if (node.getBoundingClientRect().top < window.innerHeight) {
       return undefined; // already on screen: leave it alone (no flash)
     }
 
@@ -46,7 +53,7 @@ export default function Reveal({
           observer.disconnect();
         }
       },
-      { rootMargin: "0px 0px -8% 0px", threshold: 0.01 },
+      { threshold: 0 },
     );
     observer.observe(node);
     return () => observer.disconnect();
@@ -55,9 +62,15 @@ export default function Reveal({
   return (
     <Tag
       ref={ref}
-      className={[styles.reveal, className].filter(Boolean).join(" ")}
+      className={[styles.reveal, styles[effect], className]
+        .filter(Boolean)
+        .join(" ")}
       data-phase={phase}
-      style={delay ? { ...style, "--b57-reveal-delay": `${delay}ms` } : style}
+      style={{
+        ...style,
+        ...(delay ? { "--_delay": `${delay}ms` } : null),
+        ...(fast ? null : { "--_duration": "var(--b57-duration-entrance)" }),
+      }}
       {...rest}
     >
       {children}

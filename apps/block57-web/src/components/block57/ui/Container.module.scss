@@ -9,12 +9,30 @@
   max-width: calc(var(--b57-container) + 2 * var(--b57-gutter));
 }
 
+:where(.wide) {
+  max-width: calc(var(--b57-container-wide) + 30px);
+  padding-inline: 15px;
+}
+
+:where(.cards) {
+  max-width: calc(var(--b57-container-cards) + 2 * var(--b57-gutter));
+}
+
+:where(.archive) {
+  max-width: calc(var(--b57-container-archive) + 30px);
+  padding-inline: 15px;
+}
+
 :where(.narrow) {
   max-width: calc(var(--b57-container-narrow) + 2 * var(--b57-gutter));
 }
 
-:where(.wide) {
-  max-width: calc(var(--b57-container-wide) + 2 * var(--b57-gutter));
+:where(.text) {
+  max-width: calc(var(--b57-container-text) + 2 * var(--b57-gutter));
+}
+
+:where(.chrome) {
+  max-width: calc(var(--b57-container-chrome) + 2 * var(--b57-gutter));
 }
 
 :where(.full) {

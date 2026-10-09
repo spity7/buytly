@@ -43,11 +43,15 @@ Production Docker/nginx: [server/docs/deployment.md](../../server/docs/deploymen
   - `src/app/(app)`: login, register, password/email pages and `dashboard-*`, on the Homez/Bootstrap theme with `ClientLayout`. Every page is `noindex`.
 - **Auth entry**: `/login/` (`AUTH_ENTRY_PATH`) renders sign-in/sign-up inline. It reads `?auth=signin|signup`, plus `next` (same-origin paths only), `role` and `intent`. `/register/` redirects there with `auth=signup`. Build links with `buildAuthEntryUrl()` (`src/lib/auth/authIntent.js`).
 - **Trailing slashes**: `trailingSlash: true` matches the WordPress URLs. Redirect sources in `next.config.js` must end with `/`. Compare pathnames with `normalizePath` / `isSamePath` (`src/lib/url/normalizePath.js`).
-- **Dashboard accent**: `--primary-color` / `--primary-color-rgb` in `public/scss/_style.scss` `:root` (provisional bronze `#9a7b4f`).
+- **Dashboard accent**: `--primary-color` / `--primary-color-rgb` in `public/scss/_style.scss` `:root` (brand green `#346054`, as on the public site).
 
-## Brand assets (placeholders)
+## Brand assets and imagery
 
-The logos (`public/images/block57-logo-white.png`, `block57-logo-dark.png`) and favicons (`public/images/block57-favicon.png`, `favicon-16x16.png`, `favicon-32x32.png`, `src/app/icon.png`, `src/app/apple-icon.png`) are **placeholders**: a plain "BLOCK 57" wordmark and a "57" tile. Replace them with the real Block 57 assets once they are captured from block-57.com. After replacing `block57-favicon.png`, run `npm run gen:favicons` (Windows/PowerShell) or resize the files by hand.
+The public site replicates the live block-57.com design. All imagery, the logos (`public/images/block57/shared/logo-{white,dark}.png`) and the favicons (`src/app/icon.png`, `src/app/apple-icon.png`, `public/images/favicon-*.png`) were taken from the WordPress site's media library at migration time and optimised. Pages import images by id from `src/lib/block57/assets.js` (`getAsset("img-023")`); to add or replace an image, put the optimised file under `public/images/block57/` and add or update its entry there.
+
+Fonts are self-hosted in `src/fonts/` (URW Gothic L Demi, Sentient Light/Regular, Montserrat ExtraLight — Montserrat is OFL, see `Montserrat-OFL.txt`; confirm the licences of the other two before launch).
+
+Other routing notes: `/contact/` is a real page; `/brochure/` 302-redirects to the brochure file; legacy WordPress demo URLs return 410 from `src/proxy.js`; the redirect map lives in `next.config.js`.
 
 ## Scripts
 

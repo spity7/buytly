@@ -1,0 +1,114 @@
+// Bottom-right stack: 54px circles, 8px apart (62px pitch), 29px from the
+// right edge and 25px from the bottom, as on live.
+.stack {
+  position: fixed;
+  right: calc(29px + env(safe-area-inset-right));
+  bottom: calc(25px + env(safe-area-inset-bottom));
+  z-index: var(--b57-z-float);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  transition:
+    opacity var(--b57-transition),
+    visibility var(--b57-duration);
+
+  // Landscape phones / very short windows: keep the content clear.
+  @media (max-height: 26rem) {
+    display: none;
+  }
+
+  @media print {
+    display: none;
+  }
+}
+
+// Hidden under modals: the drawer / popups (marked data-b57-modal="open") and
+// the lightbox.
+:global(html:has([data-b57-modal="open"], .pswp)) .stack {
+  visibility: hidden;
+  opacity: 0;
+}
+
+// Below the desktop layout the stack would cover the end of a form field
+// while someone types (and the on-screen keyboard is up): step aside while
+// any field has focus.
+@media (max-width: 1024px) {
+  :global(html:has(:is(input, select, textarea):focus)) .stack {
+    visibility: hidden;
+    opacity: 0;
+    pointer-events: none;
+  }
+}
+
+.button {
+  position: relative;
+  display: flex;
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  color: var(--b57-color-on-dark);
+  box-shadow: var(--b57-shadow-float);
+
+  &:hover {
+    color: var(--b57-color-on-dark);
+  }
+
+  &:focus-visible {
+    outline-color: var(--b57-color-primary);
+  }
+}
+
+.whatsapp {
+  background: var(--b57-color-whatsapp);
+}
+
+.inquire {
+  background: var(--b57-color-chaty-link);
+}
+
+// White bubble to the left of the icon with a 5px arrow.
+.tooltip {
+  position: absolute;
+  top: 50%;
+  right: calc(100% + 10px);
+  padding: 5px 15px;
+  border-radius: var(--b57-radius-tooltip);
+  background: var(--b57-color-bg);
+  box-shadow: var(--b57-shadow-tooltip);
+  color: var(--b57-color-tooltip-text);
+  font-family: var(--b57-font-system);
+  font-size: 17px;
+  font-weight: 400;
+  line-height: 21px;
+  white-space: nowrap;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-50%);
+  transition:
+    opacity var(--b57-transition),
+    visibility var(--b57-duration);
+  pointer-events: none;
+
+  &::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 100%;
+    border: 5px solid transparent;
+    border-left-color: var(--b57-color-bg);
+    transform: translateY(-50%);
+  }
+}
+
+.button:hover .tooltip,
+.button:focus-visible .tooltip {
+  opacity: 1;
+  visibility: visible;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stack,
+  .tooltip {
+    transition: none;
+  }
+}

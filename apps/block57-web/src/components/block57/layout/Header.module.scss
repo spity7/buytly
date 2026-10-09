@@ -1,245 +1,220 @@
 @use "../../../styles/block57/breakpoints" as bp;
+@use "../../../styles/block57/type";
 
-// Overlay mode is switched on by <HeaderOverlay /> anywhere in the page.
-$overlay: ":global(html:has([data-b57-header-overlay]))";
-
+// Skip link: a white pill at the top left of the page, only when focused
+// (absolute, not fixed: it is the first tab stop, at the top of the page).
 .skipLink {
-  position: fixed;
-  top: var(--b57-space-3);
-  left: var(--b57-space-3);
+  @include type.button;
+
+  position: absolute;
+  top: 12px;
+  left: 12px;
   z-index: var(--b57-z-skip);
-  padding: var(--b57-space-3) var(--b57-space-5);
-  background: var(--b57-color-ink);
-  color: var(--b57-color-on-dark);
-  font-size: var(--b57-text-sm);
-  text-decoration: none;
+  padding: 11px 30px;
+  border-radius: var(--b57-radius-pill);
+  background: var(--b57-color-bg);
+  color: var(--b57-color-accent);
+  box-shadow: var(--b57-shadow-float);
   transform: translateY(-200%);
-  transition: transform var(--b57-duration-fast) var(--b57-ease);
 
   &:focus,
   &:focus-visible {
     transform: none;
-    color: var(--b57-color-on-dark);
+    color: var(--b57-color-accent);
+    outline-color: var(--b57-color-primary);
   }
 }
 
+// Absolute over the hero, transparent, scrolls away (not sticky).
 .header {
-  --b57-header-fg: var(--b57-color-text);
-  --b57-header-hover: var(--b57-color-accent);
-
-  position: sticky;
-  top: 0;
-  z-index: var(--b57-z-header);
-  flex: none;
-  width: 100%;
-  height: var(--b57-header-h);
-  border-bottom: 1px solid var(--b57-color-border);
-  background: var(--b57-color-bg);
-  color: var(--b57-header-fg);
-  transition:
-    background-color var(--b57-duration) var(--b57-ease),
-    border-color var(--b57-duration) var(--b57-ease),
-    color var(--b57-duration) var(--b57-ease),
-    box-shadow var(--b57-duration) var(--b57-ease);
-
-  &[data-scrolled="true"] {
-    box-shadow: 0 6px 24px rgba(20, 19, 15, 0.06);
-  }
-
-  // Top scrim, only visible in overlay mode, keeps white links legible.
-  &::before {
-    content: "";
-    position: absolute;
-    inset: 0 0 -2.5rem;
-    z-index: -1;
-    background: linear-gradient(
-      180deg,
-      rgba(20, 19, 15, 0.42) 0%,
-      rgba(20, 19, 15, 0) 100%
-    );
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity var(--b57-duration) var(--b57-ease);
-  }
-}
-
-#{$overlay} .header {
-  position: fixed;
-  inset-inline: 0;
-  top: 0;
-}
-
-#{$overlay} .header:not([data-scrolled="true"]) {
-  --b57-header-fg: var(--b57-color-on-dark);
-  --b57-header-hover: var(--b57-color-accent-light);
-  --b57-button-bg: var(--b57-color-on-dark);
-  --b57-button-fg: var(--b57-color-ink);
-  --b57-button-bg-hover: var(--b57-color-accent-light);
   --b57-color-focus: var(--b57-color-on-dark);
 
-  border-color: transparent;
-  background: transparent;
-
-  &::before {
-    opacity: 1;
-  }
-
-  .logoDark {
-    display: none;
-  }
-
-  .logoLight {
-    display: block;
-  }
-
-  .navLink::after {
-    background: var(--b57-color-on-dark);
-  }
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: 0;
+  z-index: var(--b57-z-header);
+  color: var(--b57-color-on-dark);
 }
 
 .inner {
   display: flex;
   align-items: center;
-  gap: var(--b57-space-5);
+  justify-content: space-between;
   width: 100%;
-  max-width: calc(var(--b57-chrome-width) + 2 * var(--b57-gutter));
-  height: 100%;
+  max-width: calc(var(--b57-container-chrome) + 60px);
+  height: var(--b57-header-h);
   margin-inline: auto;
-  padding-inline: var(--b57-gutter);
+  padding: 0 30px;
+
+  @include bp.down(tablet) {
+    padding: 15px 30px;
+  }
+
+  @include bp.down(mobile) {
+    justify-content: flex-start;
+    padding: 15px;
+  }
 }
 
+// ---- Logo: 280 → 180 (≤1366) → 155 (≤1024) → 134 (≤767) ------------------
 .logo {
-  margin-right: auto;
-}
+  --b57-logo-width: 280px;
 
-.logoLight {
-  display: none;
-}
+  @include bp.down(laptop) {
+    --b57-logo-width: 180px;
+  }
 
-// ---- Desktop navigation ------------------------------------------------------
-.nav {
-  display: none;
+  @include bp.down(tablet) {
+    --b57-logo-width: 155px;
+  }
 
-  @include bp.up(lg) {
-    display: block;
+  @include bp.down(mobile) {
+    --b57-logo-width: 134px;
   }
 }
 
-.navList {
-  display: flex;
-  align-items: center;
-  gap: clamp(1.25rem, 0.2rem + 1.8vw, 2.75rem);
-  list-style: none;
-}
-
-.navLink {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  min-height: 2.75rem;
-  font-size: var(--b57-text-xs);
-  font-weight: var(--b57-weight-medium);
-  letter-spacing: var(--b57-tracking-button);
-  text-transform: uppercase;
-  text-decoration: none;
-  color: inherit;
-  transition: color var(--b57-transition);
-
-  // Hairline underline: grows on hover, stays for the current page.
-  &::after {
-    content: "";
-    position: absolute;
-    left: 0;
-    right: 0;
-    bottom: 0.55rem;
-    height: 1px;
-    background: currentColor;
-    transform: scaleX(0);
-    transform-origin: left;
-    transition: transform var(--b57-duration) var(--b57-ease);
-  }
-
-  @media (hover: hover) {
-    &:hover {
-      color: var(--b57-header-hover);
-    }
-
-    &:hover::after {
-      transform: scaleX(1);
-    }
-  }
-
-  &[aria-current="page"]::after {
-    transform: scaleX(1);
-  }
-}
-
-// ---- Actions ---------------------------------------------------------------------
-.actions {
-  display: flex;
-  align-items: center;
-  gap: var(--b57-space-3);
-
-  @include bp.up(lg) {
-    gap: var(--b57-space-5);
-    margin-left: clamp(0.5rem, -1rem + 2vw, 2rem);
-  }
-}
-
-.account {
-  display: none;
-
-  @include bp.up(lg) {
-    display: block;
-  }
-}
-
-// Compact on phones; full size from md.
-.actions .cta {
-  @include bp.down(md) {
-    --_pad-x: 0.95rem;
-    --_min-h: 2.5rem;
-  }
-}
-
+// ---- Burger (≤1024) ----------------------------------------------------------
 .menuButton {
-  display: inline-flex;
+  display: none;
+  flex: none;
   align-items: center;
-  gap: var(--b57-space-2);
-  min-width: 2.75rem;
-  min-height: 2.75rem;
-  margin-right: -0.5rem;
-  padding: 0 0.5rem;
+  width: 60px;
+  height: 44px;
+  padding: 0;
   border: 0;
   background: none;
   color: inherit;
-  font-size: var(--b57-text-xs);
-  font-weight: var(--b57-weight-medium);
-  letter-spacing: var(--b57-tracking-button);
-  text-transform: uppercase;
 
-  @include bp.up(lg) {
+  @include bp.down(tablet) {
+    display: flex;
+  }
+
+  @include bp.down(mobile) {
+    width: 52px; // logo at x67, as on live
+  }
+}
+
+// ---- Desktop navigation (>1024) ---------------------------------------------------
+.nav {
+  @include bp.down(tablet) {
     display: none;
   }
 }
 
-.menuLabel {
-  @include bp.down(sm) {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    overflow: hidden;
-    clip: rect(0, 0, 0, 0);
-    white-space: nowrap;
+// The live items are inline-blocks: the white space between them adds ~5px.
+.navList {
+  display: flex;
+  column-gap: 5px;
+  margin: 0 -19.8px;
+  list-style: none;
+}
+
+.navLink {
+  @include type.label(18px);
+
+  display: flex;
+  align-items: center;
+  padding: 45px 30px;
+  color: inherit;
+
+  &:hover {
+    color: inherit;
+  }
+
+  @include bp.down(laptop) {
+    padding: 35px 18px;
   }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .header,
-  .header::before,
-  .navLink,
-  .navLink::after,
-  .skipLink {
+// Label swap on hover: the label slides up and fades while an identical copy
+// (from data-name) slides into place. No active-page indicator, as on live.
+.navTitle {
+  position: relative;
+  display: inline-flex;
+  overflow: hidden;
+
+  &::before {
+    content: attr(data-name);
+    position: absolute;
+    top: 50%;
+    left: 0;
+    width: 100%;
+    opacity: 0;
+    transform: translateY(4px);
+    transition:
+      transform var(--b57-transition),
+      opacity var(--b57-transition);
+  }
+}
+
+.navText {
+  display: inline-flex;
+  transition:
+    transform var(--b57-transition),
+    opacity var(--b57-transition);
+}
+
+.navLink:hover {
+  .navText {
+    opacity: 0;
+    transform: translateY(-13px);
+  }
+
+  .navTitle::before {
+    opacity: 1;
+    transform: translateY(-50%);
+  }
+}
+
+// ---- BROCHURE + INQUIRE -------------------------------------------------------------
+// Live geometry: a 300px group whose two slots are 52.414% wide each (the
+// buttons sit at the start of their slot), overflowing to the left; the group
+// overhangs the gutter by 30px at ≤1366.
+.actions {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: flex-end;
+  width: 300px;
+
+  @include bp.down(laptop) {
+    margin-right: -30px;
+  }
+
+  @include bp.down(mobile) {
+    width: auto;
+    margin-right: 0;
+    margin-left: auto;
+  }
+}
+
+.slot {
+  display: flex;
+  flex: 0 0 52.414%;
+  align-items: center;
+
+  @include bp.down(mobile) {
+    flex-basis: auto;
+  }
+}
+
+.inquireSlot {
+  @include bp.down(mobile) {
+    display: none;
+  }
+}
+
+.brochure {
+  @include bp.down(mobile) {
+    width: 123px;
+    padding-inline: 0;
+  }
+}
+
+@include bp.reduced-motion {
+  .navTitle::before,
+  .navText {
     transition: none;
   }
 }

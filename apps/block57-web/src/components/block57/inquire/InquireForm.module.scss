@@ -1,151 +1,51 @@
 @use "../../../styles/block57/breakpoints" as bp;
+@use "../../../styles/block57/type";
 
-// Inquire form panel. PROVISIONAL look until Phase 0; tokens only.
+// Live /inquire/ form (CF7 form 2055): typed text green (live #ADA4A1 is
+// 2.2:1 on #F6F1EA), placeholders #ADA4A1 as live; field look in
+// forms/fields.module.scss.
 
-// On phones the white panel runs edge to edge (cancels the container gutter);
-// from md it becomes a framed card.
-.panel {
-  margin-inline: calc(-1 * var(--b57-gutter));
-  padding: var(--b57-space-7) var(--b57-gutter) var(--b57-space-8);
-  border-block: var(--b57-hairline);
-  background: var(--b57-color-surface);
+// H5 28/34 #346054, 2 lines at 595px (4 on phones), 50px above the form.
+.intro {
+  @include type.h5(34px);
 
-  @include bp.up(md) {
-    margin-inline: 0;
-    padding: var(--b57-inquire-panel-pad, clamp(2.5rem, 1.5rem + 2.5vw, 4rem));
-    border: var(--b57-hairline);
+  margin: 0 0 50px;
+  color: var(--b57-color-primary);
+}
+
+// First / Last Name: two halves with a 30px gutter; stacked on phones (live
+// stacks ≤768px).
+.names {
+  display: flex;
+  gap: 30px;
+
+  > * {
+    flex: 1 1 0;
+  }
+
+  @include bp.down(mobile) {
+    flex-direction: column;
+    gap: 0;
   }
 }
 
-.header {
+// "Field with * required" left, SUBMIT right (also on phones).
+.actions {
   display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
+  align-items: center;
   justify-content: space-between;
-  gap: var(--b57-space-2) var(--b57-space-5);
-  margin-bottom: var(--b57-space-7);
-  padding-bottom: var(--b57-space-5);
-  border-bottom: var(--b57-hairline);
-}
-
-.title {
-  margin: 0;
-  font-size: var(--b57-text-xl);
+  gap: 20px;
 }
 
 .note {
+  @include type.body-small;
+
   margin: 0;
-  font-size: var(--b57-text-sm);
-  color: var(--b57-fg-muted);
-}
-
-.form {
-  container: b57-inquire / inline-size;
-}
-
-.grid {
-  display: grid;
-  gap: var(--b57-space-6) var(--b57-space-5);
-}
-
-// Two columns once the form itself is wide enough (not the viewport: the
-// form sits in a 7/12 column on desktop).
-@container b57-inquire (min-width: 32rem) {
-  .grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    column-gap: var(--b57-space-6);
-  }
-
-  .full {
-    grid-column: 1 / -1;
-  }
-}
-
-// Off-screen (not display:none, which some bots skip).
-.honeypot {
-  position: absolute;
-  left: -10000px;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-}
-
-.alert {
-  &:focus {
-    outline: none;
-  }
-}
-
-.alertText {
-  margin: var(--b57-space-6) 0 0;
-  padding: var(--b57-space-4) var(--b57-space-5);
-  border-left: 2px solid var(--b57-color-error);
-  background: var(--b57-color-bg);
-  font-size: var(--b57-text-sm);
-  line-height: 1.55;
   color: var(--b57-color-text);
 }
 
-.alert:focus-visible .alertText {
-  outline: 2px solid var(--b57-color-focus);
-  outline-offset: 3px;
-}
-
-.actions {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--b57-space-4) var(--b57-space-6);
-  margin-top: var(--b57-space-7);
-}
-
-// Full width on phones; a fixed minimum width so "Send inquiry" → "Sending…"
-// does not change the button size.
-.submit {
-  width: 100%;
-
-  @include bp.up(sm) {
-    width: auto;
-    min-width: 14rem;
-  }
-}
-
-// Beats the primitive's generic disabled look (pending, not unavailable).
-.actions .submit[aria-disabled="true"] {
-  cursor: progress;
-  opacity: 0.85;
-}
-
-.spinner {
-  display: block;
-  width: 1rem;
-  height: 1rem;
-  border: 1.5px solid currentColor;
-  border-right-color: transparent;
-  border-radius: var(--b57-radius-pill);
-  animation: b57-inquire-spin 0.9s linear infinite;
-}
-
-@keyframes b57-inquire-spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-.srOnly {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  margin: -1px;
-  padding: 0;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-  white-space: nowrap;
-  border: 0;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .spinner {
-    animation-duration: 2.4s;
-  }
+// Live asks for 500: Sentient Regular is the closest face.
+.noteStrong {
+  font-weight: 400;
+  color: var(--b57-color-primary);
 }

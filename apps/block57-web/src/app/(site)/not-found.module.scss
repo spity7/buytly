@@ -1,35 +1,19 @@
-// 404 inside the (site) layout. PROVISIONAL look until Phase 0.
-.page {
+@use "../../styles/block57/type";
+
+// 404 body: a short line and the green button, on the live band rhythm.
+.body {
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
-  justify-content: center;
-  min-height: min(70vh, 44rem);
-  padding-block: var(--b57-section-y);
-}
-
-.code {
-  margin: 0 0 var(--b57-space-2);
-  font-family: var(--b57-font-serif);
-  font-size: clamp(4.5rem, 3rem + 8vw, 9rem);
-  line-height: 1;
-  color: var(--b57-color-accent); // ≥ 3:1 for large text (decorative numeral)
-}
-
-.title {
-  margin: 0 0 var(--b57-space-5);
-}
-
-.lead {
-  max-width: var(--b57-measure);
-  margin: 0 0 var(--b57-space-7);
-  font-size: var(--b57-text-lg);
-  color: var(--b57-fg-muted);
-}
-
-.actions {
-  display: flex;
-  flex-wrap: wrap;
   align-items: center;
-  gap: var(--b57-space-3) var(--b57-space-6);
+  gap: 30px;
+  padding: var(--b57-section-y) var(--b57-gutter);
+  text-align: center;
+}
+
+.text {
+  @include type.lead;
+
+  max-width: var(--b57-container-text);
+  margin: 0;
+  color: var(--b57-color-text);
 }

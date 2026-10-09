@@ -1,203 +1,201 @@
 // Block 57 public site — global stylesheet for the `(site)` root layout.
 //
-// PROVISIONAL: palette, type and spacing are placeholders until the
-// block-57.com design inventory (plan Phase 0) is captured. Restyle by changing
-// the tokens below; components consume only these custom properties (their
-// own styles live in CSS Modules next to each component).
-// No Bootstrap/Homez imports: the dashboard theme stays in `(app)`.
+// Tokens replicate the live block-57.com design (phase0/spec/tokens.json):
+// colours, fonts, the fixed-px type scale with its 1200 / 1024 / 767 steps,
+// layout widths, section rhythm, radii, shadows, motion and layers.
+// Components consume these custom properties from their CSS Modules, plus the
+// Sass helpers in `_breakpoints.scss` (media queries) and `_type.scss`
+// (typography roles). No Bootstrap/Homez imports: the dashboard theme stays
+// in `(app)`.
+@use "breakpoints" as bp;
 
 :root {
-  // ---- Palette ---------------------------------------------------------------
-  // Contrast (AA) checked against --b57-color-bg / --b57-color-dark.
-  --b57-color-ink: #14130f;
-  --b57-color-text: #1d1b17;
-  --b57-color-text-muted: #5c574f; // 6.5:1 on bg
-  --b57-color-bg: #f6f3ee; // warm ivory
-  --b57-color-bg-alt: #ece7de; // sand
-  --b57-color-surface: #ffffff;
-  --b57-color-stone: #d8d1c4;
-  --b57-color-stone-deep: #b9b0a0;
-  --b57-color-dark: #1a1916; // charcoal
-  --b57-color-dark-soft: #26241f;
-  --b57-color-on-dark: #f3efe8;
-  --b57-color-on-dark-muted: rgba(243, 239, 232, 0.74);
-  --b57-color-accent: #7a5f3a; // bronze, 5.4:1 on bg
-  --b57-color-accent-strong: #5f4a2c;
-  --b57-color-accent-light: #c8ab7e; // bronze on dark, 8:1
-  --b57-color-border: rgba(20, 19, 15, 0.14);
-  --b57-color-border-strong: rgba(20, 19, 15, 0.36);
-  --b57-color-border-on-dark: rgba(243, 239, 232, 0.2);
-  --b57-color-available: #3d6a4c;
-  --b57-color-available-on-dark: #9ccaa9; // status dot on dark bands
-  --b57-color-sold: #8b3a2f;
-  --b57-color-sold-on-dark: #e4a89d;
-  --b57-color-highlight: #f3e9da; // deep-linked table row flash
-  --b57-color-error: #8b3a2f; // form errors (≈ 7:1 on ivory and white)
-  --b57-color-overlay: rgba(20, 19, 15, 0.45);
-  --b57-color-focus: #7a5f3a;
+  // ---- Palette (tokens.json → colors) -------------------------------------
+  --b57-color-primary: #346054; // brand green: headings, links, submit, icons
+  --b57-color-primary-hover: #1e443a;
+  --b57-color-secondary: #bdcacb; // 5px eyebrow bar
+  --b57-color-text: #96796e; // body copy (warm taupe)
+  --b57-color-text-light: #ada4a1; // placeholders, meta labels, spec text
+  --b57-color-accent: #000000; // eyebrows, white-pill text, a:hover
+  --b57-color-border: #e3dcd9; // every hairline on white
+  --b57-color-bg: #ffffff;
+  --b57-color-bg-light: #f6f1ea; // amenities / contact / inquire bands
+  --b57-color-footer: #1c322c;
+  --b57-color-cta-slate: #869ea5; // pre-footer "Amenities" tile
+  --b57-color-cta-sage: #aab8a8; // pre-footer "Apartments" tile
+  --b57-color-cta-badge-icon: #eee8e6;
+  --b57-color-radio-track: #d9d9d9;
+  --b57-color-error: #dc3232;
+  --b57-color-hero-fallback: #5c5c5c; // home hero before the video loads
+  --b57-color-whatsapp: #49e670;
+  --b57-color-chaty-link: #202020;
+  --b57-color-tooltip-text: #333333;
+  --b57-color-lightbox-ui: hsla(0, 0%, 93%, 0.9);
+  --b57-color-on-dark: #ffffff;
+  --b57-color-on-dark-rule: rgba(255, 255, 255, 0.2);
+  --b57-color-on-dark-icon: rgba(255, 255, 255, 0.4);
+  --b57-color-white-fill: rgba(255, 255, 255, 0.21); // BROCHURE hover
+  --b57-color-highlight: #f6f1ea; // deep-linked table row flash
 
-  // Placeholder media tones (MediaFrame) — replaced by real images later.
-  --b57-media-stone: #cfc7b8;
-  --b57-media-stone-2: #bdb3a2;
-  --b57-media-sand: #e3dccf;
-  --b57-media-sand-2: #d4cbbb;
-  --b57-media-dark: #2b2924;
-  --b57-media-dark-2: #3a372f;
-  --b57-media-line: rgba(255, 255, 255, 0.22);
-  --b57-media-paper: #ffffff; // floor-plan sheets (MediaFrame tone="paper")
+  // Overlays (colour over photos)
+  --b57-overlay-hero: rgba(0, 0, 0, 0.7); // inner-page hero (global variant)
+  --b57-overlay-archive: rgba(0, 0, 0, 0.69); // apartments index hero
+  --b57-overlay-type: rgba(0, 0, 0, 0.4); // apartment type hero
+  --b57-overlay-media: rgba(0, 0, 0, 0.4); // home hero video, home CTA
+  --b57-overlay-tile-hover: rgba(0, 0, 0, 0.3); // lightbox image tiles
+  --b57-overlay-cta-hover: rgba(0, 0, 0, 0.4); // pre-footer tiles on hover
+  --b57-overlay-drawer: rgba(0, 0, 0, 0.7);
+  --b57-overlay-popup: rgba(11, 11, 11, 0.8);
 
-  // Hero legibility scrim over the (future) photograph or film.
-  --b57-hero-scrim:
-    linear-gradient(
-      180deg,
-      rgba(20, 19, 15, 0.12) 0%,
-      rgba(20, 19, 15, 0) 32%,
-      rgba(20, 19, 15, 0.64) 100%
-    ),
-    linear-gradient(90deg, rgba(20, 19, 15, 0.32) 0%, rgba(20, 19, 15, 0) 62%);
-
-  // Embedded maps are muted to sit with the palette (full colour on hover/focus).
-  --b57-map-filter: grayscale(0.85) contrast(0.95) brightness(1.02);
-
-  // ---- Contextual tokens (redefined by [data-b57-tone]) ----------------------
-  --b57-fg: var(--b57-color-text);
-  --b57-fg-muted: var(--b57-color-text-muted);
-  --b57-fg-eyebrow: var(--b57-color-accent);
+  // ---- Contextual colours (redefined by [data-b57-tone]) --------------------
   --b57-bg: var(--b57-color-bg);
+  --b57-fg: var(--b57-color-text); // body copy
+  --b57-fg-heading: var(--b57-color-primary);
+  --b57-fg-eyebrow: var(--b57-color-accent);
+  --b57-eyebrow-bar: var(--b57-color-secondary);
   --b57-rule: var(--b57-color-border);
-  --b57-rule-strong: var(--b57-color-border-strong);
-  --b57-button-bg: var(--b57-color-ink);
-  --b57-button-fg: var(--b57-color-on-dark);
-  --b57-button-bg-hover: var(--b57-color-accent-strong);
-  // Form controls: underline ≥ 3:1 against the band (WCAG 1.4.11).
-  --b57-field-line: var(--b57-color-text-muted);
-  --b57-field-line-active: var(--b57-color-ink);
+  --b57-link: var(--b57-color-primary);
+  --b57-link-hover: var(--b57-color-accent);
+  --b57-color-focus: var(--b57-color-primary);
 
-  // ---- Typography -------------------------------------------------------------
-  // No serif webfont is bundled yet: headings use a system serif stack; body
-  // text uses the local DM Sans (next/font/local in the (site) layout).
-  --b57-font-serif:
-    "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia,
-    "Times New Roman", serif;
-  --b57-font-sans:
-    var(--b57-font-sans-local, system-ui), -apple-system, "Segoe UI", Roboto,
-    "Helvetica Neue", Arial, sans-serif;
+  // ---- Fonts ------------------------------------------------------------------
+  // The *-local variables come from next/font/local in the (site) layout.
+  --b57-font-fallback:
+    "HelveticaNeue-Light", "Helvetica Neue Light", "Helvetica Neue", Helvetica,
+    Arial, "Lucida Grande", sans-serif;
+  --b57-font-display:
+    var(--b57-font-display-local, "URW Gothic L"), var(--b57-font-fallback);
+  --b57-font-body:
+    var(--b57-font-body-local, "Sentient"), var(--b57-font-fallback);
+  --b57-font-tagline:
+    var(--b57-font-tagline-local, "Montserrat"), var(--b57-font-fallback);
+  --b57-font-system:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial,
+    sans-serif;
 
-  // Fluid type scale (360px → 1600px).
-  --b57-text-2xs: 0.6875rem; // 11px
-  --b57-text-xs: 0.75rem; // 12px — eyebrows, captions
-  --b57-text-sm: 0.875rem; // 14px
-  --b57-text-base: clamp(1rem, 0.97rem + 0.13vw, 1.0625rem);
-  --b57-text-lg: clamp(1.0625rem, 1rem + 0.35vw, 1.3125rem); // lead
-  --b57-text-xl: clamp(1.25rem, 1.12rem + 0.6vw, 1.625rem); // h3
-  --b57-text-statement: clamp(
-    1.5rem,
-    1.28rem + 1.1vw,
-    2.25rem
-  ); // large serif statements
-  --b57-text-2xl: clamp(1.75rem, 1.45rem + 1.4vw, 2.75rem); // h2
-  --b57-text-3xl: clamp(2.25rem, 1.7rem + 2.6vw, 4rem); // h1
-  --b57-text-display: clamp(2.75rem, 1.85rem + 4.4vw, 6rem); // hero
+  // ---- Type scale (px; desktop values, stepped down below) ------------------
+  --b57-fs-hero-title: 74px;
+  --b57-fs-section-title: 60px;
+  --b57-fs-intro-statement: 40px;
+  --b57-fs-subsection-title: 48px;
+  --b57-fs-contact-item: 38px;
+  --b57-fs-tagline: 30px;
+  --b57-fs-body: 18px;
 
-  --b57-leading-tight: 1.08;
-  --b57-leading-heading: 1.15;
-  --b57-leading-body: 1.7;
-  --b57-tracking-eyebrow: 0.24em;
-  --b57-tracking-button: 0.16em;
-  --b57-tracking-heading: 0.005em;
-  --b57-weight-regular: 400;
-  --b57-weight-medium: 500;
-  --b57-measure: 38rem; // comfortable line length for body copy
+  // ---- Layout -----------------------------------------------------------------
+  --b57-gutter: 30px; // side padding of boxed sections, header, footer
+  --b57-container: 1320px; // boxed content (content starts at x60 on 1440)
+  --b57-container-chrome: 1730px; // header + footer inner width
+  --b57-container-cards: 1380px; // amenities highlight cards row
+  --b57-container-wide: 1350px; // home tour + amenities (15px padding)
+  --b57-container-archive: 1290px; // apartments index grid
+  --b57-container-narrow: 840px; // amenities highlights heading
+  --b57-container-contact-heading: 670px;
+  --b57-container-text: 520px; // CTA block, amenity text column, H2 widths
+  --b57-section-y: 150px; // standard band spacing: 150 → 100 → 80 → 60
+  --b57-header-h: 108px; // 108 → 88 (≤1366) → 85 (≤1024) → 78 (≤767)
 
-  // ---- Spacing ------------------------------------------------------------------
-  --b57-space-1: 0.25rem;
-  --b57-space-2: 0.5rem;
-  --b57-space-3: 0.75rem;
-  --b57-space-4: 1rem;
-  --b57-space-5: 1.5rem;
-  --b57-space-6: 2rem;
-  --b57-space-7: 3rem;
-  --b57-space-8: 4rem;
-  --b57-space-9: 6rem;
-  --b57-space-10: 8rem;
-  --b57-section-y: clamp(4.5rem, 3rem + 6vw, 9rem);
-  --b57-section-y-sm: clamp(3rem, 2.25rem + 3vw, 5.5rem);
-  --b57-section-y-lg: clamp(6rem, 4rem + 8vw, 12rem);
-  --b57-stack: clamp(1.5rem, 1.2rem + 1.2vw, 2.5rem); // gap between blocks
-
-  // ---- Layout ---------------------------------------------------------------------
-  --b57-container: 78rem; // 1248px
-  --b57-container-narrow: 46rem; // 736px
-  --b57-container-wide: 96rem; // 1536px (break-out media, e.g. the masterplan)
-  // Header, heroes, sections and footer share one column so every left edge
-  // lines up. Point this at --b57-container-wide for a wider header/footer.
-  --b57-chrome-width: var(--b57-container);
-  --b57-gutter: clamp(1.25rem, 0.75rem + 2.5vw, 3rem);
-  --b57-header-h: 4.5rem; // 72px (desktop value set below)
-  --b57-grid-gap: clamp(1.25rem, 0.8rem + 2vw, 2.5rem);
-
-  // ---- Shape ------------------------------------------------------------------------
-  --b57-radius: 0;
-  --b57-radius-pill: 999px;
+  // ---- Shape --------------------------------------------------------------------
+  --b57-radius-pill: 30px;
+  --b57-radius-pill-lg: 40px;
+  --b57-radius-meta: 20px;
+  --b57-radius-social: 15px;
+  --b57-radius-tooltip: 10px;
   --b57-hairline: 1px solid var(--b57-rule);
-  --b57-shadow-soft: 0 1px 0 var(--b57-color-border);
-  --b57-shadow-float: 0 10px 30px rgba(20, 19, 15, 0.18);
+  --b57-shadow-float: 0 16px 24px rgba(73, 104, 126, 0.16);
+  --b57-shadow-tooltip: 0 1.93px 7.74px rgba(0, 0, 0, 0.15);
+  --b57-shadow-lightbox:
+    0 0 30px rgba(0, 0, 0, 0.3), 0 0 8px -5px rgba(0, 0, 0, 0.3);
+  --b57-shadow-glow-white: 0 0 1px 0 #ffffff;
 
-  // ---- Motion --------------------------------------------------------------------------
-  --b57-ease: cubic-bezier(0.22, 1, 0.36, 1);
-  --b57-ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
-  --b57-duration-fast: 160ms;
-  --b57-duration: 280ms;
-  --b57-duration-slow: 900ms;
+  // ---- Motion ---------------------------------------------------------------------
+  --b57-duration: 0.3s; // hovers
+  --b57-ease: ease;
   --b57-transition: var(--b57-duration) var(--b57-ease);
-  --b57-reveal-distance: 1.5rem;
+  --b57-duration-drawer: 0.25s;
+  --b57-ease-conveyor: cubic-bezier(0.785, 0.135, 0.15, 0.86); // arrow icons
+  --b57-duration-entrance-fast: 0.75s; // opal entrance (most widgets)
+  --b57-duration-entrance: 1.25s;
+  --b57-entrance-distance: 100px;
 
-  // ---- Layers ----------------------------------------------------------------------------
-  --b57-z-base: 1;
-  --b57-z-float: 80;
-  --b57-z-header: 100;
-  --b57-z-drawer: 200;
-  --b57-z-skip: 300;
-  --b57-z-toast: 400;
+  // ---- Layers ---------------------------------------------------------------------
+  --b57-z-header: 99;
+  --b57-z-drawer: 9999;
+  --b57-z-lightbox: 9999;
+  --b57-z-float: 99999;
+  --b57-z-skip: 100000;
 
-  @media (min-width: 64rem) {
-    --b57-header-h: 5.5rem; // 88px
+  @include bp.down(laptop) {
+    --b57-header-h: 88px;
+  }
+
+  @include bp.down(tablet-extra) {
+    --b57-fs-hero-title: 54px;
+    --b57-fs-section-title: 54px;
+    --b57-section-y: 100px;
+  }
+
+  @include bp.down(tablet) {
+    --b57-fs-hero-title: 48px;
+    --b57-fs-section-title: 48px;
+    --b57-section-y: 80px;
+    --b57-header-h: 85px;
+  }
+
+  @include bp.down(mobile) {
+    --b57-fs-hero-title: 36px;
+    --b57-fs-section-title: 36px;
+    --b57-fs-intro-statement: 33px;
+    --b57-fs-subsection-title: 36px;
+    --b57-fs-contact-item: 24px;
+    --b57-fs-tagline: 18px;
+    --b57-gutter: 15px;
+    --b57-section-y: 60px;
+    --b57-header-h: 78px;
   }
 }
 
-// MediaFrame's per-breakpoint ratio override applies to the frame it is set
-// on only (never inherited by nested frames).
-@property --b57-media-ratio {
-  syntax: "*";
-  inherits: false;
+// ---- Higher contrast on request ------------------------------------------------
+// The live palette's taupe body copy (#96796E, 3.99:1 on white) and light
+// grey secondary text (#ADA4A1, 2.44:1) are below WCAG AA. Visitors who ask
+// for more contrast get the nearest AA shades (≥4.5:1 on white and #F6F1EA);
+// the default look stays the live one (client decision pending).
+@media (prefers-contrast: more) {
+  :root {
+    --b57-color-text: #83695f;
+    --b57-color-text-light: #786c68;
+  }
 }
 
-// Tones: any element can switch the contextual tokens for its subtree.
+// ---- Tones: switch the contextual colours for a subtree ---------------------
+// light: #F6F1EA band · green: home intro band · dark: photo heroes + footer.
+[data-b57-tone="light"] {
+  --b57-bg: var(--b57-color-bg-light);
+}
+
+[data-b57-tone="green"],
 [data-b57-tone="dark"] {
   --b57-fg: var(--b57-color-on-dark);
-  --b57-fg-muted: var(--b57-color-on-dark-muted);
-  --b57-fg-eyebrow: var(--b57-color-accent-light);
-  --b57-bg: var(--b57-color-dark);
-  --b57-rule: var(--b57-color-border-on-dark);
-  --b57-rule-strong: rgba(243, 239, 232, 0.45);
-  --b57-button-bg: var(--b57-color-on-dark);
-  --b57-button-fg: var(--b57-color-ink);
-  --b57-button-bg-hover: var(--b57-color-accent-light);
-  --b57-color-focus: var(--b57-color-accent-light);
-  --b57-field-line: var(--b57-color-on-dark-muted);
-  --b57-field-line-active: var(--b57-color-on-dark);
+  --b57-fg-heading: var(--b57-color-on-dark);
+  --b57-fg-eyebrow: var(--b57-color-on-dark);
+  --b57-eyebrow-bar: var(--b57-color-on-dark);
+  --b57-rule: var(--b57-color-on-dark-rule);
+  --b57-link: var(--b57-color-on-dark);
+  --b57-link-hover: var(--b57-color-on-dark);
+  --b57-color-focus: var(--b57-color-on-dark);
   color: var(--b57-fg);
 }
 
-[data-b57-tone="alt"] {
-  --b57-bg: var(--b57-color-bg-alt);
+[data-b57-tone="green"] {
+  --b57-bg: var(--b57-color-primary);
+  --b57-rule: var(--b57-color-on-dark);
 }
 
-[data-b57-tone="surface"] {
-  --b57-bg: var(--b57-color-surface);
+[data-b57-tone="dark"] {
+  --b57-bg: var(--b57-color-footer);
 }
 
-// ---- Reset ------------------------------------------------------------------------------
+// ---- Reset ------------------------------------------------------------------------
 *,
 *::before,
 *::after {
@@ -207,7 +205,6 @@
 html {
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
-  scroll-padding-top: calc(var(--b57-header-h) + 1rem);
 
   @media (prefers-reduced-motion: no-preference) {
     scroll-behavior: smooth;
@@ -215,6 +212,7 @@ html {
 }
 
 body {
+  position: relative;
   margin: 0;
   min-height: 100vh;
   min-height: 100dvh;
@@ -222,12 +220,12 @@ body {
   flex-direction: column;
   background-color: var(--b57-color-bg);
   color: var(--b57-color-text);
-  font-family: var(--b57-font-sans);
-  font-size: var(--b57-text-base);
-  line-height: var(--b57-leading-body);
+  font-family: var(--b57-font-body);
+  font-size: var(--b57-fs-body);
+  font-weight: 300;
+  line-height: 1.5556;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  text-rendering: optimizeLegibility;
   overflow-x: clip;
 }
 
@@ -258,70 +256,67 @@ button {
   display: none !important;
 }
 
-// ---- Typography ---------------------------------------------------------------------------
-h1,
-h2,
-h3,
-h4,
-h5,
-h6 {
-  margin: 0 0 0.5em;
-  font-family: var(--b57-font-serif);
-  font-weight: var(--b57-weight-regular);
-  line-height: var(--b57-leading-heading);
-  letter-spacing: var(--b57-tracking-heading);
-  color: var(--b57-fg);
-  text-wrap: balance;
+// ---- Typography (live theme defaults) ------------------------------------------------
+// Element defaults sit in :where() (zero specificity) so any component class
+// overrides them, whatever the stylesheet order.
+:where(h1, h2, h3, h4, h5, h6) {
+  margin: 0 0 0.618em;
+  font-family: var(--b57-font-display);
+  font-weight: 600;
+  line-height: 1.067;
+  color: var(--b57-fg-heading);
 }
 
-h1 {
-  font-size: var(--b57-text-3xl);
-  line-height: var(--b57-leading-tight);
+:where(h1) {
+  font-size: var(--b57-fs-hero-title);
 }
 
-h2 {
-  font-size: var(--b57-text-2xl);
+:where(h2) {
+  font-size: var(--b57-fs-section-title);
 }
 
-h3 {
-  font-size: var(--b57-text-xl);
+:where(h3) {
+  font-size: var(--b57-fs-subsection-title);
+  line-height: 1;
 }
 
-h4 {
-  font-size: var(--b57-text-lg);
+:where(h4) {
+  font-size: 38px;
+  line-height: 1.2105;
 }
 
-p {
-  margin: 0 0 1em;
-  text-wrap: pretty;
+:where(h5) {
+  font-size: 28px;
+  line-height: 1;
 }
 
-ul,
-ol {
+:where(h6) {
+  font-size: 20px;
+  line-height: 1.4;
+}
+
+:where(p) {
+  margin: 0 0 1.41575em;
+}
+
+:where(ul, ol) {
   margin: 0;
   padding: 0;
 }
 
-a {
-  color: inherit;
-  text-decoration-color: var(--b57-fg-eyebrow);
-  text-decoration-thickness: 1px;
-  text-underline-offset: 0.25em;
+:where(a) {
+  color: var(--b57-link);
+  text-decoration: none;
   transition: color var(--b57-transition);
+}
 
-  @media (hover: hover) {
-    &:hover {
-      color: var(--b57-fg-eyebrow);
-    }
+@include bp.hover {
+  :where(a:hover) {
+    color: var(--b57-link-hover);
   }
 }
 
-strong,
-b {
-  font-weight: var(--b57-weight-medium);
-}
-
-address {
+:where(address) {
   font-style: normal;
 }
 
@@ -331,17 +326,17 @@ address {
 }
 
 ::selection {
-  background: var(--b57-color-accent);
+  background: var(--b57-color-primary);
   color: var(--b57-color-on-dark);
 }
 
-hr {
+:where(hr) {
+  margin: 0;
   border: 0;
   border-top: var(--b57-hairline);
-  margin: var(--b57-space-7) 0;
 }
 
-table {
+:where(table) {
   border-collapse: collapse;
   width: 100%;
 }
@@ -357,25 +352,26 @@ table {
   }
 }
 
-// ---- Toasts (sonner, Block 57 styling) -------------------------------------------------------
+// ---- Toasts (sonner): white, hairline, Sentient 16px taupe, square ------------------
 .b57-toast {
-  border-radius: var(--b57-radius) !important;
+  border-radius: 0 !important;
   border: 1px solid var(--b57-color-border) !important;
-  background: var(--b57-color-surface) !important;
+  background: var(--b57-color-bg) !important;
   color: var(--b57-color-text) !important;
-  font-family: var(--b57-font-sans) !important;
-  font-size: var(--b57-text-sm) !important;
-  box-shadow: var(--b57-shadow-float) !important;
+  font-family: var(--b57-font-body) !important;
+  font-size: 16px !important;
+  font-weight: 300 !important;
+  box-shadow: none !important;
+
+  [data-title] {
+    font-weight: 400;
+  }
 
   [data-icon] {
-    color: var(--b57-color-accent);
+    color: var(--b57-color-primary);
   }
 
   &[data-type="error"] [data-icon] {
-    color: var(--b57-color-sold);
-  }
-
-  &[data-type="success"] [data-icon] {
-    color: var(--b57-color-available);
+    color: var(--b57-color-error);
   }
 }

@@ -1,57 +1,43 @@
-// Live availability line (residence cards, block lists, hero facts).
+@use "../../../styles/block57/breakpoints" as bp;
+@use "../../../styles/block57/type";
+
+// Live availability line (apartment cards, availability heading): meta-pill
+// typography, #ADA4A1 words with #346054 counts.
 .line {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.6em;
-  min-height: 1.5em; // same height in every state: no layout shift
-  font-size: var(--b57-text-sm);
-  line-height: 1.5;
-  color: var(--b57-fg-muted);
+  @include type.meta;
+
+  display: inline-block;
+  min-height: 16px; // same height in every state: no layout shift
+  vertical-align: top;
+  color: var(--b57-color-text-light);
   white-space: nowrap;
 }
 
-.size-base {
-  font-size: var(--b57-text-base);
+.count {
+  color: var(--b57-color-primary);
 }
 
-.dot {
-  flex: none;
-  width: 0.45rem;
-  height: 0.45rem;
-  border: 1px solid currentColor;
-  border-radius: 50%;
-}
-
-.line[data-state="available"] {
-  color: var(--b57-fg);
-
-  .dot {
-    border-color: var(--b57-color-available);
-    background: var(--b57-color-available);
-  }
-}
-
-:global([data-b57-tone="dark"]) .line[data-state="available"] .dot {
-  border-color: var(--b57-color-available-on-dark);
-  background: var(--b57-color-available-on-dark);
+.line[data-state="sold-out"] {
+  color: var(--b57-color-accent);
 }
 
 .skeleton {
   display: inline-block;
-  width: 8.5em;
-  height: 0.85em;
-  background: currentColor;
-  opacity: 0.14;
-  animation: b57-live-pulse 1.4s var(--b57-ease-in-out) infinite;
+  width: 150px;
+  height: 8px;
+  margin-top: 4px;
+  vertical-align: top;
+  background: var(--b57-color-border);
+  animation: b57-live-pulse 1.4s ease-in-out infinite;
 }
 
 @keyframes b57-live-pulse {
   50% {
-    opacity: 0.26;
+    opacity: 0.5;
   }
 }
 
-@media (prefers-reduced-motion: reduce) {
+@include bp.reduced-motion {
   .skeleton {
     animation: none;
   }

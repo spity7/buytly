@@ -1,0 +1,201 @@
+// Block 57 typography roles (live block-57.com type scale, tokens.json →
+// typeScale). Each mixin sets family, weight, size, line-height, tracking and
+// case; responsive sizes come from the --b57-fs-* custom properties defined in
+// global.scss, so a role steps down at 1200 / 1024 / 767 by itself. Colour is
+// left to the component (most roles have a light and an on-dark use).
+//   @use "../../../styles/block57/type";
+//   .title { @include type.section-title; color: var(--b57-fg-heading); }
+
+@mixin display($weight: 600) {
+  font-family: var(--b57-font-display);
+  font-weight: $weight;
+  font-style: normal;
+  letter-spacing: normal;
+  text-transform: none;
+}
+
+@mixin body-font($weight: 300) {
+  font-family: var(--b57-font-body);
+  font-weight: $weight;
+  font-style: normal;
+  letter-spacing: normal;
+  text-transform: none;
+}
+
+// ---- Headings --------------------------------------------------------------
+// H1 of the inner-page hero bands: 74 → 54 (≤1200) → 48 (≤1024) → 36 (≤767).
+@mixin page-hero-title {
+  @include display;
+  font-size: var(--b57-fs-hero-title);
+  line-height: 1.067;
+}
+
+// Section H2s: 60 → 54 → 48 → 36.
+@mixin section-title {
+  @include display;
+  font-size: var(--b57-fs-section-title);
+  line-height: 1.067;
+}
+
+// Home intro statement: 40 → 33 (≤767).
+@mixin intro-statement {
+  @include display;
+  font-size: var(--b57-fs-intro-statement);
+  line-height: 1.067;
+}
+
+// Type overview / "Apartment photos" H3s: 48/48 → 36/36 (≤767).
+@mixin subsection-title {
+  @include display;
+  font-size: var(--b57-fs-subsection-title);
+  line-height: 1;
+}
+
+// Pre-footer tile titles: 38/46 at every width.
+@mixin tile-title {
+  @include display;
+  font-size: 38px;
+  line-height: 46px;
+}
+
+// Home contact strip email/phone: 38/46 → 24/29.05 (≤767).
+@mixin contact-item {
+  @include display;
+  font-size: var(--b57-fs-contact-item);
+  line-height: 1.2105;
+}
+
+// Schedule-a-tour popup title: 38/38.
+@mixin popup-title {
+  @include display;
+  font-size: 38px;
+  line-height: 38px;
+}
+
+// Apartment card / highlight card titles: 28/36.
+@mixin card-title {
+  @include display;
+  font-size: 28px;
+  line-height: 36px;
+}
+
+// H5 (footer address/phone/email/"Explore", contact-strip intro): 28/28.
+// Pass a line-height for the inquire intro (34px) / contact details (33.6px).
+@mixin h5($line-height: 28px) {
+  @include display;
+  font-size: 28px;
+  line-height: $line-height;
+}
+
+// Home amenity card H6: 20/28.
+@mixin amenity-title {
+  @include display;
+  font-size: 20px;
+  line-height: 28px;
+}
+
+// Gallery tabs: 20/24.
+@mixin tab-title {
+  @include display;
+  font-size: 20px;
+  line-height: 24px;
+}
+
+// ---- Text --------------------------------------------------------------------
+// Home hero tagline: Montserrat 200, 30/46.67 → 18/28 (≤767).
+@mixin tagline {
+  font-family: var(--b57-font-tagline);
+  font-weight: 200;
+  font-style: normal;
+  font-size: var(--b57-fs-tagline);
+  line-height: 1.5556;
+  letter-spacing: normal;
+}
+
+// Lead paragraphs (Lifestyle, type descriptions, amenity rows): 22/34.22.
+@mixin lead {
+  @include body-font;
+  font-size: 22px;
+  line-height: 1.5556;
+}
+
+// Default body copy: 18/28.
+@mixin body {
+  @include body-font;
+  font-size: 18px;
+  line-height: 1.5556;
+}
+
+// "Field with * required": 14/21.78.
+@mixin body-small {
+  @include body-font;
+  font-size: 14px;
+  line-height: 1.5556;
+}
+
+// Type overview spec block (URW, #ADA4A1): 16/24.89.
+@mixin spec {
+  @include display;
+  font-size: 16px;
+  line-height: 1.5556;
+}
+
+// Footer links and copyright: URW 18/28.
+@mixin footer-link {
+  @include display;
+  font-size: 18px;
+  line-height: 28px;
+}
+
+// Mobile drawer links: URW 16/20.57 uppercase.
+@mixin drawer-link {
+  @include display;
+  font-size: 16px;
+  line-height: 20.57px;
+  text-transform: uppercase;
+}
+
+// Small uppercase URW label (2px tracking). Line-height per use:
+// nav 18px · button 24px · eyebrow 18.67px · footer eyebrow 20px · back to top 14px.
+@mixin label($line-height: 18px) {
+  @include display;
+  font-size: 12px;
+  line-height: $line-height;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
+
+// Button text: URW 12/24, 2px, uppercase.
+@mixin button {
+  @include label(24px);
+}
+
+// Hero breadcrumb: URW 12/18.67, no tracking, normal case.
+@mixin breadcrumb {
+  @include display;
+  font-size: 12px;
+  line-height: 18.67px;
+}
+
+// Meta pill (BED n · BATH n, availability, status): URW 10/16, 2px, uppercase.
+@mixin meta {
+  @include display;
+  font-size: 10px;
+  line-height: 16px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
+
+// Form inputs: Sentient (Regular face) 16/25.14.
+@mixin input {
+  @include body-font(400);
+  font-size: 16px;
+  line-height: 25.14px;
+}
+
+// Validation tips: Sentient 400 18/28 (#DC3232).
+@mixin validation {
+  @include body-font(400);
+  font-size: 18px;
+  line-height: 28px;
+}

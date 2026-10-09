@@ -1,41 +1,36 @@
-// Root/modifiers at zero specificity (:where) so a consumer's `className`
-// (e.g. `margin-bottom: 0`) always wins.
-:where(.heading) {
-  display: flex;
-  flex-direction: column;
-  max-width: 48rem;
-  margin-bottom: var(--b57-stack);
-}
+@use "../../../styles/block57/breakpoints" as bp;
+@use "../../../styles/block57/type";
 
-:where(.align-start) {
-  align-items: flex-start;
-  text-align: start;
+// Zero specificity (:where) so a consumer's className always wins.
+:where(.heading) {
+  margin: 0;
 }
 
 :where(.align-center) {
-  align-items: center;
-  margin-inline: auto;
   text-align: center;
 }
 
-.eyebrow {
-  margin-bottom: var(--b57-space-4);
+:where(.align-start) {
+  text-align: start;
 }
 
-.title {
+:where(.title) {
   margin: 0;
-  color: var(--b57-fg);
+  color: var(--b57-fg-heading);
 }
 
-.size-large .title {
-  font-size: var(--b57-text-3xl);
-  line-height: var(--b57-leading-tight);
+:where(.section) {
+  @include type.section-title;
 }
 
-.lead {
-  max-width: var(--b57-measure);
-  margin: var(--b57-space-5) 0 0;
-  font-size: var(--b57-text-lg);
-  line-height: 1.6;
-  color: var(--b57-fg-muted);
+:where(.subsection) {
+  @include type.subsection-title;
+}
+
+:where(.afterEyebrow) {
+  margin-top: 30px;
+
+  @include bp.down(mobile) {
+    margin-top: 15px;
+  }
 }

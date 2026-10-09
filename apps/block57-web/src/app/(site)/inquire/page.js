@@ -1,52 +1,34 @@
-import { Suspense } from "react";
-import Container from "@/components/block57/ui/Container";
+import InquireSection from "@/components/block57/inquire/InquireSection";
 import PageHero from "@/components/block57/ui/PageHero";
-import Section from "@/components/block57/ui/Section";
-import InquireContact from "@/components/block57/inquire/InquireContact";
-import InquireForm from "@/components/block57/inquire/InquireForm";
-import InquireFormFromParams from "@/components/block57/inquire/InquireFormFromParams";
 import { INQUIRE_PAGE } from "@/content/block57/inquire";
+import { getAsset } from "@/lib/block57/assets";
 import { buildPageMetadata } from "@/lib/block57/seo";
-import styles from "./page.module.scss";
+
+const ogImage = getAsset(INQUIRE_PAGE.image);
 
 export const metadata = buildPageMetadata({
-  title: "Inquire",
+  title: INQUIRE_PAGE.title,
   description: INQUIRE_PAGE.metaDescription,
-  path: "/inquire/",
+  path: INQUIRE_PAGE.path,
+  image: {
+    url: ogImage.src,
+    width: ogImage.width,
+    height: ogImage.height,
+    alt: ogImage.alt,
+  },
 });
 
 /**
- * /inquire/ (WordPress URL kept) — statically prerendered. `?type=` and
- * `?unit=` pre-fill the form on the client: <InquireFormFromParams> uses
- * useSearchParams inside <Suspense>, whose fallback is the same form without
- * pre-fill (identical layout, so nothing shifts). The hero renders
- * <HeaderOverlay /> (transparent header over the hero).
+ * /inquire/ (WordPress URL kept), statically prerendered. Live order: global
+ * hero band, the #F6F1EA form band, then the footer (no pre-footer tiles; the
+ * hidden FAQ accordion is not built). `?type=` and `?unit=` pre-fill the form
+ * on the client.
  */
 export default function InquirePage() {
   return (
     <>
-      <PageHero
-        titleId="inquire-title"
-        size="short"
-        eyebrow={INQUIRE_PAGE.eyebrow}
-        title={INQUIRE_PAGE.title}
-        lead={INQUIRE_PAGE.intro}
-        leadStyle="serif"
-        image={INQUIRE_PAGE.heroImage}
-        imageAlt={INQUIRE_PAGE.heroImageAlt}
-      />
-      <Section as="div" spacing="none" className={styles.body}>
-        <Container>
-          <div className={styles.grid}>
-            <div className={styles.main}>
-              <Suspense fallback={<InquireForm />}>
-                <InquireFormFromParams />
-              </Suspense>
-            </div>
-            <InquireContact className={styles.aside} />
-          </div>
-        </Container>
-      </Section>
+      <PageHero title={INQUIRE_PAGE.title} titleId="inquire-title" />
+      <InquireSection />
     </>
   );
 }

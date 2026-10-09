@@ -1,0 +1,119 @@
+@use "../../../styles/block57/breakpoints" as bp;
+@use "../../../styles/block57/type";
+
+.highlights {
+  padding-bottom: var(--b57-section-y);
+}
+
+// 840 column; 150 above / 80 below (100/50 ≤1200, 80/40 ≤1024, 60/30 ≤767).
+.heading {
+  max-width: calc(var(--b57-container-narrow) + 2 * var(--b57-gutter));
+  margin: 150px auto 80px;
+  padding-inline: var(--b57-gutter);
+  text-align: center;
+
+  @include bp.down(tablet-extra) {
+    margin-block: 100px 50px;
+  }
+
+  @include bp.down(tablet) {
+    margin-block: 80px 40px;
+  }
+
+  @include bp.down(mobile) {
+    margin-block: 60px 30px;
+  }
+}
+
+.eyebrowRow {
+  display: flex;
+  justify-content: center;
+}
+
+// Live widget: no top padding, 10px between the word and its bar.
+.eyebrow {
+  padding: 0 0 10px;
+}
+
+.title {
+  @include type.section-title;
+
+  margin: 30px 0 0;
+  color: var(--b57-fg-heading);
+
+  @include bp.down(mobile) {
+    margin-top: 20px;
+  }
+}
+
+.cards {
+  display: flex;
+  max-width: var(--b57-container-cards);
+  margin: 0 auto;
+  padding: 0;
+  list-style: none;
+
+  @include bp.down(mobile) {
+    flex-direction: column;
+  }
+}
+
+// Three 33.333% columns with 30px side padding (400px cards at 1440).
+.card {
+  flex: 0 0 33.3333%;
+  min-width: 0;
+  padding: 0 30px;
+
+  &:nth-child(2) {
+    border-inline: 1px solid var(--b57-color-border);
+  }
+
+  @include bp.down(mobile) {
+    flex: none;
+    padding: 0 15px 30px;
+
+    &:nth-child(2) {
+      padding-block: 30px;
+      border-inline: 0;
+      border-block: 1px solid var(--b57-color-border);
+    }
+
+    &:last-child {
+      padding: 30px 15px 0;
+    }
+  }
+}
+
+.media {
+  position: relative;
+  min-height: 210px;
+  overflow: hidden;
+}
+
+.image {
+  object-fit: cover;
+  transition: transform 0.5s var(--b57-ease);
+
+  @include bp.reduced-motion {
+    transition: none;
+  }
+}
+
+@include bp.hover {
+  .card:hover .image {
+    transform: scale(1.09);
+  }
+}
+
+.cardTitle {
+  @include type.card-title;
+
+  margin: 30px 0 15px;
+  color: var(--b57-color-primary);
+}
+
+.cardCopy {
+  @include type.body;
+
+  margin: 0;
+}

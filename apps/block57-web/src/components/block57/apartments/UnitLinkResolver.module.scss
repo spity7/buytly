@@ -1,25 +1,21 @@
-.status,
+@use "../../../styles/block57/breakpoints" as bp;
+@use "../../../styles/block57/type";
+
+// Notice above the apartments grid (only with ?unit=): a #F6F1EA strip in
+// body copy, centred in the archive column.
 .notice {
-  display: inline-flex;
+  @include type.body;
+
+  display: flex;
   align-items: center;
-  gap: var(--b57-space-3);
-  max-width: 100%;
+  justify-content: center;
+  gap: 15px;
+  min-height: 58px;
   margin: 0;
-  font-size: var(--b57-text-sm);
-  line-height: 1.5;
-}
-
-.status {
-  color: var(--b57-fg-muted);
-}
-
-.notice {
-  padding: var(--b57-space-2) var(--b57-space-2) var(--b57-space-2)
-    var(--b57-space-4);
-  border: 1px solid var(--b57-rule-strong);
-  color: var(--b57-fg);
-  background: rgba(20, 19, 15, 0.35);
-  backdrop-filter: blur(6px);
+  padding: 15px 20px;
+  background: var(--b57-color-bg-light);
+  color: var(--b57-color-text);
+  text-align: center;
 }
 
 .message {
@@ -31,27 +27,25 @@
   align-items: center;
   justify-content: center;
   flex: none;
-  width: 2.75rem;
-  height: 2.75rem;
-  margin: calc(-1 * var(--b57-space-1)) 0;
+  width: 44px;
+  height: 44px;
+  margin: -10px -10px -10px 0;
   padding: 0;
   border: 0;
   background: transparent;
-  color: var(--b57-fg-muted);
+  color: var(--b57-color-accent);
   transition: color var(--b57-transition);
 
-  @media (hover: hover) {
-    &:hover {
-      color: var(--b57-fg);
-    }
+  &:hover {
+    color: var(--b57-color-primary);
   }
 }
 
 .spinner {
   flex: none;
-  width: 0.9rem;
-  height: 0.9rem;
-  border: 1px solid currentColor;
+  width: 14px;
+  height: 14px;
+  border: 1px solid var(--b57-color-primary);
   border-right-color: transparent;
   border-radius: 50%;
   animation: b57-resolver-spin 0.9s linear infinite;
@@ -63,8 +57,12 @@
   }
 }
 
-@media (prefers-reduced-motion: reduce) {
+@include bp.reduced-motion {
   .spinner {
     animation: none;
+  }
+
+  .dismiss {
+    transition: none;
   }
 }

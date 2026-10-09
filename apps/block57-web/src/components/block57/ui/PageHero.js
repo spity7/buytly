@@ -1,117 +1,111 @@
+import Image from "next/image";
 import Link from "next/link";
-import HeaderOverlay from "@/components/block57/layout/HeaderOverlay";
-import Container from "./Container";
-import Eyebrow from "./Eyebrow";
-import MediaFrame from "./MediaFrame";
+import { getAsset } from "@/lib/block57/assets";
 import styles from "./PageHero.module.scss";
 
+/** Live hero photo per variant when the page does not pass one. */
+const DEFAULT_IMAGES = {
+  global: "img-011", // Rooftop Lounge (template 727)
+  archive: "img-004", // kitchen shelves (apartments archive)
+  type: "img-011",
+};
+
 /**
- * Dark full-bleed opening hero for the inner pages (Apartments, residence
- * types, Lifestyle, Inquire). Renders <HeaderOverlay />, so the header sits
- * transparently on top, and reserves the header height. PROVISIONAL look until
- * Phase 0; `image` null renders the tonal MediaFrame placeholder.
+ * `sizes` per variant: "global" and "archive" show the photo at its natural
+ * size from 768px (cover on phones), "type" covers the band at every width.
+ */
+function sizesFor(variant, image) {
+  if (variant === "type") return "100vw";
+  const phone = variant === "archive" ? "145vw" : "115vw";
+  return `(max-width: 767px) ${phone}, ${image.width}px`;
+}
+
+/**
+ * Inner-page hero band (live breadcrumb band): dark photo, centred white H1,
+ * and a 68px strip at the bottom with a 1px rgba(255,255,255,.2) rule and the
+ * `Home > …` breadcrumb. The transparent header overlays its top.
  *
- * @param {{ titleId: string, title: React.ReactNode, eyebrow?: React.ReactNode,
- *   lead?: React.ReactNode, leadStyle?: "sans"|"serif",
- *   image?: string|null, imageAlt?: string,
- *   breadcrumbs?: { href?: string, label: string }[],
- *   facts?: React.ReactNode, actions?: React.ReactNode, notice?: React.ReactNode,
- *   sectionNav?: { href: string, label: string }[],
- *   size?: "default"|"compact"|"short" }} props
- *   size: "default" ≈ 88% of the viewport, "compact" ≈ 74%, "short" (forms) ≈ 52%.
- *   leadStyle "serif" sets the lead as an italic serif statement.
+ * variant (DESIGN_SPEC §3.6):
+ * - "global" (Lifestyle, Amenities, Gallery, Inquire, Contact, 404): Rooftop
+ *   Lounge at natural size, centred, 70% black; 1440×487 / 390×296
+ * - "archive" (Apartments): kitchen photo at natural size from the top-left,
+ *   69% black; 1440×489 / 390×226
+ * - "type" (apartment types): the type's image as cover, 40% black;
+ *   1440×487 / 390×226
+ * `image`: an asset from `getAsset()` (src, width, height); defaults per
+ *   variant. It is a decorative background (empty alt).
+ * `titleId`: id of the H1 (the page's only one).
+ * `breadcrumbs`: the trail after "Home" (added automatically); items with an
+ *   `href` are links, the last item is the current page. Defaults to
+ *   `[{ label: title }]`.
+ *
+ * @param {{ variant?: "global"|"archive"|"type", title: string,
+ *   titleId?: string, image?: import("@/lib/block57/assets").Block57Asset,
+ *   breadcrumbs?: { href?: string, label: string }[] }} props
  */
 export default function PageHero({
-  titleId,
+  variant = "global",
   title,
-  eyebrow,
-  lead,
-  leadStyle = "sans",
-  image = null,
-  imageAlt = "",
+  titleId = "page-title",
+  image,
   breadcrumbs,
-  facts,
-  actions,
-  notice,
-  sectionNav,
-  size = "default",
 }) {
+  const photo = image?.src ? image : getAsset(DEFAULT_IMAGES[variant]);
+  const trail = [
+    { href: "/", label: "Home" },
+    ...(breadcrumbs?.length ? breadcrumbs : [{ label: title }]),
+  ];
+
+  // A <header> inside <main> is the page's own header, not a landmark (a
+  // labelled <section> would duplicate the region named by the page's first
+  // H2 on Lifestyle and Penthouse).
   return (
-    <section
-      className={[styles.hero, styles[`size-${size}`]].join(" ")}
+    <header
+      className={[styles.hero, styles[variant]].filter(Boolean).join(" ")}
       data-b57-tone="dark"
-      aria-labelledby={titleId}
     >
-      <HeaderOverlay />
-      <div className={styles.media}>
-        <MediaFrame
-          ratio="fill"
-          tone="dark"
-          src={image}
-          alt={image ? imageAlt : ""}
+      <div className={styles.media} style={{ backgroundColor: photo.color }}>
+        <Image
+          src={photo.src}
+          alt=""
+          width={photo.width}
+          height={photo.height}
+          sizes={sizesFor(variant, photo)}
           priority
+          className={styles.image}
+          style={{
+            "--_w": `${photo.width}px`,
+            "--_h": `${photo.height}px`,
+          }}
         />
       </div>
 
-      <Container className={styles.inner}>
-        {notice ? <div className={styles.notice}>{notice}</div> : null}
-
-        {breadcrumbs?.length ? (
-          <nav aria-label="Breadcrumb" className={styles.breadcrumbs}>
-            <ol>
-              {breadcrumbs.map((crumb, index) => {
-                const last = index === breadcrumbs.length - 1;
-                return (
-                  <li key={crumb.label}>
-                    {crumb.href && !last ? (
-                      <Link href={crumb.href}>{crumb.label}</Link>
-                    ) : (
-                      <span aria-current={last ? "page" : undefined}>
-                        {crumb.label}
-                      </span>
-                    )}
-                  </li>
-                );
-              })}
-            </ol>
-          </nav>
-        ) : null}
-
-        {eyebrow ? (
-          <Eyebrow rule className={styles.eyebrow}>
-            {eyebrow}
-          </Eyebrow>
-        ) : null}
+      <div className={styles.titleArea}>
         <h1 id={titleId} className={styles.title}>
           {title}
         </h1>
-        {lead ? (
-          <p
-            className={[
-              styles.lead,
-              leadStyle === "serif" ? styles.leadSerif : null,
-            ]
-              .filter(Boolean)
-              .join(" ")}
-          >
-            {lead}
-          </p>
-        ) : null}
-        {facts ? <div className={styles.facts}>{facts}</div> : null}
-        {actions ? <div className={styles.actions}>{actions}</div> : null}
+      </div>
 
-        {sectionNav?.length ? (
-          <nav aria-label="On this page" className={styles.sectionNav}>
-            <ul>
-              {sectionNav.map((item) => (
-                <li key={item.href}>
-                  <a href={item.href}>{item.label}</a>
-                </li>
-              ))}
-            </ul>
-          </nav>
-        ) : null}
-      </Container>
-    </section>
+      <nav aria-label="Breadcrumb" className={styles.breadcrumb}>
+        <ol>
+          {trail.map((crumb, index) => {
+            const last = index === trail.length - 1;
+            return (
+              <li key={`${crumb.label}-${index}`}>
+                {crumb.href && !last ? (
+                  <Link href={crumb.href} className={styles.crumbLink}>
+                    {crumb.label}
+                  </Link>
+                ) : (
+                  <span aria-current={last ? "page" : undefined}>
+                    {crumb.label}
+                  </span>
+                )}
+              </li>
+            );
+          })}
+        </ol>
+      </nav>
+    </header>
   );
 }

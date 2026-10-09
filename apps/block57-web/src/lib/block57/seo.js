@@ -3,12 +3,37 @@ import {
   ADDRESS,
   CONTACT,
   COORDINATES,
+  HOME_TITLE,
   SITE_DESCRIPTION,
   SITE_NAME,
 } from "@/content/block57/site";
-import { AMENITIES } from "@/content/block57/amenities";
+import { getAsset } from "@/lib/block57/assets";
 
 const BASE_URL = SITE_PUBLIC_URL.replace(/\/+$/, "");
+
+/** Separator of the live document titles: "Lifestyle – Block 57" (en dash). */
+export const TITLE_SEPARATOR = " – ";
+
+/** Layout `metadata.title.template` (live format, OQ-28). */
+export const TITLE_TEMPLATE = `%s${TITLE_SEPARATOR}${SITE_NAME}`;
+
+/** Default share image (OQ-29): the VV_7 exterior render. */
+const DEFAULT_OG_IMAGE = (() => {
+  const { src, width, height, alt } = getAsset("img-023");
+  return { url: src, width, height, alt };
+})();
+
+/** Amenities named on the live home page (home.amenities), for JSON-LD. */
+const AMENITY_FEATURES = [
+  "24 hour Concierge",
+  "Swimming Pool",
+  "Rooftop",
+  "Underground Parking",
+  "Gym & Fitness",
+  "Kids Playground",
+  "Convenience Store",
+  "Padel Court",
+];
 
 /** Internal path with the trailing slash the site uses ("/apartments" → "/apartments/"). */
 export function withTrailingSlash(path = "/") {
@@ -31,28 +56,32 @@ export function absoluteUrl(path = "/") {
 }
 
 /**
- * Next.js metadata for a public page: canonical, OpenGraph and Twitter card.
- * Pass no `title` for the home page (tab shows "Block 57" only); inner pages get
- * the layout template "%s | Block 57".
+ * Next.js metadata for a public page: title, canonical, OpenGraph and Twitter
+ * card. With a `title` the tab reads "<title> – Block 57" (layout template);
+ * without one (home page) it reads the live home title
+ * "Block 57 – Real estate Project".
  *
  * @param {{ title?: string, description?: string, path?: string,
  *   image?: { url: string, width?: number, height?: number, alt?: string },
  *   noindex?: boolean }} options
+ *   `image` defaults to the VV_7 exterior render.
  */
 export function buildPageMetadata({
   title,
   description = SITE_DESCRIPTION,
   path = "/",
-  image,
+  image = DEFAULT_OG_IMAGE,
   noindex = false,
 } = {}) {
   const canonical = withTrailingSlash(path);
   const segment = String(title ?? "").trim();
-  const fullTitle = segment ? `${segment} | ${SITE_NAME}` : SITE_NAME;
+  const fullTitle = segment
+    ? `${segment}${TITLE_SEPARATOR}${SITE_NAME}`
+    : HOME_TITLE;
   const images = image?.url ? [image] : undefined;
 
   return {
-    title: segment ? segment : { absolute: SITE_NAME },
+    title: segment ? segment : { absolute: HOME_TITLE },
     description,
     alternates: { canonical },
     openGraph: {
@@ -82,6 +111,7 @@ export function buildApartmentComplexJsonLd({ path = "/" } = {}) {
     name: SITE_NAME,
     description: SITE_DESCRIPTION,
     url: absoluteUrl(path),
+    image: `${BASE_URL}${DEFAULT_OG_IMAGE.url}`,
     telephone: CONTACT.phone,
     email: CONTACT.email,
     address: {
@@ -90,15 +120,15 @@ export function buildApartmentComplexJsonLd({ path = "/" } = {}) {
       addressLocality: `${ADDRESS.neighbourhood}, ${ADDRESS.city}`,
       addressCountry: ADDRESS.countryCode,
     },
-    // Approximate until the exact site pin is confirmed (Phase 0).
+    // Centre of the live contact map; the exact site pin is unconfirmed (OQ-06).
     geo: {
       "@type": "GeoCoordinates",
       latitude: COORDINATES.lat,
       longitude: COORDINATES.lng,
     },
-    amenityFeature: AMENITIES.map((amenity) => ({
+    amenityFeature: AMENITY_FEATURES.map((name) => ({
       "@type": "LocationFeatureSpecification",
-      name: amenity.title,
+      name,
       value: true,
     })),
   };

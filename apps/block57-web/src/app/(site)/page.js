@@ -1,48 +1,38 @@
 import JsonLd from "@/components/block57/ui/JsonLd";
 import {
   HomeAmenities,
+  HomeContactStrip,
+  HomeCta,
   HomeHero,
-  HomeInquire,
   HomeIntro,
-  HomeLifestyle,
-  HomeMasterplan,
-  HomePrivacy,
-  HomeResidences,
+  HomeMarquee,
+  HomeTour,
+  HomeUnits,
 } from "@/components/block57/home";
-import { HOME_META } from "@/content/block57/home";
 import {
   buildApartmentComplexJsonLd,
   buildPageMetadata,
 } from "@/lib/block57/seo";
 
-const baseMetadata = buildPageMetadata({
-  path: "/",
-  description: HOME_META.description,
-});
-
-export const metadata = {
-  ...baseMetadata,
-  title: { absolute: HOME_META.title },
-  openGraph: { ...baseMetadata.openGraph, title: HOME_META.title },
-  twitter: { ...baseMetadata.twitter, title: HOME_META.title },
-};
+// No title: the tab reads the live home title "Block 57 – Real estate Project".
+export const metadata = buildPageMetadata({ path: "/" });
 
 /**
- * Home ("/"). Statically generated: all copy is static; the only live data is
- * unit availability in the residences teaser, fetched on the client.
- * The hero renders <HeaderOverlay /> (transparent header over the hero).
+ * Home ("/"), the live block-57.com home section by section. Statically
+ * generated; the only live data is the availability line of each residence
+ * card, fetched on the client.
  */
 export default function HomePage() {
   return (
     <>
       <HomeHero />
       <HomeIntro />
-      <HomeMasterplan />
-      <HomeResidences />
-      <HomePrivacy />
+      <HomeMarquee />
+      <HomeUnits />
+      <HomeTour />
       <HomeAmenities />
-      <HomeLifestyle />
-      <HomeInquire />
+      <HomeContactStrip />
+      <HomeCta />
       <JsonLd data={buildApartmentComplexJsonLd({ path: "/" })} />
     </>
   );

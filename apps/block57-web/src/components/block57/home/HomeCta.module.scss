@@ -1,0 +1,64 @@
+@use "../../../styles/block57/breakpoints" as bp;
+@use "../../../styles/block57/type";
+
+// Live e5ca44a: cover image + 40% black, min-height 680 → 480 (≤1200) →
+// 360 (≤767); 520px column with 60px vertical padding, content centred.
+.cta {
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 680px;
+  padding: 60px 15px;
+  color: var(--b57-color-on-dark);
+
+  &::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background: var(--b57-overlay-media);
+  }
+
+  @include bp.down(tablet-extra) {
+    min-height: 480px;
+  }
+
+  @include bp.down(mobile) {
+    min-height: 360px;
+  }
+}
+
+.background {
+  z-index: -2;
+  object-fit: cover;
+}
+
+.inner {
+  width: 100%;
+  max-width: var(--b57-container-text);
+  margin-inline: auto;
+  text-align: center;
+}
+
+.title {
+  @include type.section-title;
+
+  margin: 0 0 30px;
+  color: var(--b57-color-on-dark);
+}
+
+.line {
+  display: block;
+}
+
+// 200×48 → 180×42 from 1200px down (the shared pill switches at 767). Live
+// keeps 5px more on the right (an empty icon slot after the label).
+.cta .button {
+  padding-right: 35px;
+
+  @include bp.down(tablet-extra) {
+    padding: 8px 25px 8px 20px;
+  }
+}

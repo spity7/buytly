@@ -1,0 +1,19 @@
+@use "../../../styles/block57/breakpoints" as bp;
+
+// Live archive: 110px between the hero and the grid and after it (the last
+// cards' 60px bottom margin is inside the grid); 60px on phones.
+.archive {
+  padding-block: 110px;
+
+  @include bp.down(mobile) {
+    padding-block: 60px;
+  }
+}
+
+.notice {
+  margin-bottom: 60px;
+
+  @include bp.down(mobile) {
+    margin-bottom: 30px;
+  }
+}

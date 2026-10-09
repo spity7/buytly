@@ -1,26 +1,25 @@
-.eyebrow {
-  display: block;
-  margin: 0 0 var(--b57-space-4);
-  font-family: var(--b57-font-sans);
-  font-size: var(--b57-text-xs);
-  font-weight: var(--b57-weight-medium);
-  line-height: 1.4;
-  letter-spacing: var(--b57-tracking-eyebrow);
-  text-transform: uppercase;
+@use "../../../styles/block57/type";
+
+// :where() keeps the root at zero specificity so a consumer's className wins.
+:where(.eyebrow) {
+  @include type.label(18.67px);
+
+  display: inline-block;
+  margin: 0;
+  vertical-align: top;
+  font-weight: 300; // live requests 300; URW's single Demi face renders it
   color: var(--b57-fg-eyebrow);
 }
 
-// Optional short hairline before the label.
-.rule {
-  display: flex;
-  align-items: center;
-  gap: var(--b57-space-3);
+:where(.text.bar) {
+  padding-bottom: 22px;
+}
 
-  &::before {
-    content: "";
-    flex: 0 0 2rem;
-    height: 1px;
-    background: currentColor;
-    opacity: 0.6;
-  }
+:where(.widget) {
+  padding: 8px 0 5px;
+  line-height: 12px;
+}
+
+:where(.bar) {
+  border-bottom: 5px solid var(--b57-eyebrow-bar);
 }

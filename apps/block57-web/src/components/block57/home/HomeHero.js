@@ -1,69 +1,45 @@
-import HeaderOverlay from "@/components/block57/layout/HeaderOverlay";
-import Container from "@/components/block57/ui/Container";
-import MediaFrame from "@/components/block57/ui/MediaFrame";
+import Reveal from "@/components/block57/ui/Reveal";
 import VisuallyHidden from "@/components/block57/ui/VisuallyHidden";
 import { ButtonLink } from "@/components/block57/ui/Button";
 import { HOME_HERO } from "@/content/block57/home";
+import { getAsset } from "@/lib/block57/assets";
 import HeroVideo from "./HeroVideo";
 import styles from "./HomeHero.module.scss";
 
 /**
- * Full-bleed opening hero under the transparent (overlay) header. Media is
- * video-ready: `HOME_HERO.media.video` (+ `poster`) plays a muted loop with a
- * pause control; a `poster` alone shows the still; neither shows the tonal
- * MediaFrame placeholder.
+ * Live home hero: full-bleed background film under a 40% overlay, the
+ * Montserrat tagline and the thick outline LEARN MORE pill, centred
+ * (1080px tall → 900 / 800 / 700 / 600 / 500 at the live breakpoints). The
+ * header overlays its top. Live has no visible H1, so the page heading is
+ * visually hidden.
  */
 export default function HomeHero({ content = HOME_HERO }) {
-  const { media = {}, scrollCue } = content;
-
+  const { video } = content;
   return (
-    <section
-      className={styles.hero}
-      data-b57-tone="dark"
-      aria-labelledby="home-hero-title"
-    >
-      <HeaderOverlay />
-
-      <div className={styles.media}>
-        {media.video ? (
-          <HeroVideo src={media.video} poster={media.poster} />
-        ) : (
-          <MediaFrame
-            ratio="fill"
-            tone="dark"
-            src={media.poster}
-            alt={media.alt}
-            priority
-          />
-        )}
-      </div>
-
-      <Container className={styles.inner}>
-        <h1 id="home-hero-title" className={styles.title}>
+    <section className={styles.hero} aria-labelledby="home-title">
+      <HeroVideo
+        youtubeId={video.youtubeId}
+        poster={getAsset(video.poster)}
+        pauseLabel={video.pauseLabel}
+        playLabel={video.playLabel}
+      />
+      <div className={styles.inner}>
+        <VisuallyHidden as="h1" id="home-title">
           {content.title}
-        </h1>
-        <p className={styles.lead}>{content.lead}</p>
-        <div className={styles.actions}>
-          <ButtonLink href={content.primaryCta.href}>
-            {content.primaryCta.label}
+        </VisuallyHidden>
+        <Reveal as="p" className={styles.tagline}>
+          {content.tagline}
+        </Reveal>
+        <Reveal>
+          <ButtonLink
+            href={content.cta.href}
+            variant="outlineThick"
+            className={styles.cta}
+          >
+            {content.cta.label}
           </ButtonLink>
-          <ButtonLink href={content.secondaryCta.href} variant="secondary">
-            {content.secondaryCta.label}
-          </ButtonLink>
-        </div>
-      </Container>
-
-      {scrollCue ? (
-        <a href={scrollCue.href} className={styles.scrollCue}>
-          <span className={styles.scrollLabel}>
-            {scrollCue.label}
-            {scrollCue.srLabel ? (
-              <VisuallyHidden> {scrollCue.srLabel}</VisuallyHidden>
-            ) : null}
-          </span>
-          <span className={styles.scrollLine} aria-hidden="true" />
-        </a>
-      ) : null}
+        </Reveal>
+      </div>
     </section>
   );
 }

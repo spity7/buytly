@@ -30,14 +30,18 @@ export const SITE_PUBLIC_WWW_LINK = (() => {
 
 export const SITE_PUBLIC_WWW_LABEL = new URL(SITE_PUBLIC_WWW_LINK).hostname;
 
-/** PLACEHOLDER wordmarks until the real Block 57 logo files are captured. */
-export const BRAND_LOGO_WHITE = "/images/block57-logo-white.png";
-export const BRAND_LOGO_DARK = "/images/block57-logo-dark.png";
+/**
+ * Live Block 57 wordmarks (block-57.com Asset-8B / Asset-9B, 388px PNGs; no
+ * vector exists yet, OQ-08): white "BLOCK / CANTONMENT" with the peach "57"
+ * for dark backgrounds, black lettering for light ones.
+ */
+export const BRAND_LOGO_WHITE = "/images/block57/shared/logo-white.png";
+export const BRAND_LOGO_DARK = "/images/block57/shared/logo-dark.png";
 
-/** Matches `public/images/block57-logo-*.png` (876×318, same 438×159 ratio as before). */
+/** Display size used by the dashboard headers (file ratio 388×137). */
 export const BRAND_LOGO_WIDTH = 175;
-export const BRAND_LOGO_HEIGHT = 63;
+export const BRAND_LOGO_HEIGHT = 62;
 
-/** Favicon assets: source `public/images/block57-favicon.png` (placeholder); run `scripts/generate-favicons.ps1`. Next.js serves `src/app/icon.png` and `src/app/apple-icon.png`. */
+/** Favicon assets: source `public/images/block57-favicon.png` (the live peach "57" mark); run `scripts/generate-favicons.ps1`. Next.js serves `src/app/icon.png` and `src/app/apple-icon.png`. */
 export const BRAND_FAVICON_16 = "/images/favicon-16x16.png";
 export const BRAND_FAVICON_32 = "/images/favicon-32x32.png";

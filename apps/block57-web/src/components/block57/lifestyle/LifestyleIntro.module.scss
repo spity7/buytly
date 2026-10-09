@@ -1,0 +1,129 @@
+@use "../../../styles/block57/breakpoints" as bp;
+@use "../../../styles/block57/type";
+
+// Full-width row; the left padding puts the content on the 1320 grid (x60 at
+// 1440) while the render bleeds to the right edge.
+.intro {
+  display: flex;
+  flex-wrap: wrap;
+  overflow-x: clip; // entrance animations slide in from ±100px
+  padding: var(--b57-section-y) 0 var(--b57-section-y)
+    max(60px, calc((100% - var(--b57-container)) / 2));
+
+  @include bp.down(laptop) {
+    padding-left: 30px;
+  }
+
+  @include bp.down(mobile) {
+    padding-left: 15px;
+  }
+}
+
+.text {
+  display: flex;
+  flex: 0 0 50%;
+  flex-direction: column;
+  padding-right: 70px;
+
+  @include bp.down(laptop) {
+    padding-right: 30px;
+  }
+
+  // Full width from 1024 down. Live has no right gutter there (the justified
+  // text touches the screen edge); keep the site gutter.
+  @include bp.down(tablet) {
+    flex-basis: 100%;
+    padding: 0 30px 30px 0;
+  }
+
+  @include bp.down(mobile) {
+    padding-right: 15px;
+  }
+}
+
+.copy {
+  @include type.lead;
+
+  margin: 0 0 calc(1.41575em + 25px);
+  text-align: justify;
+}
+
+// Live button widget: 28px tall around the 24px link.
+.linkRow {
+  display: flex;
+  padding-block: 2px;
+}
+
+// Three columns of 15% of the row (207px at 1440): number at the top, label
+// at the bottom, hairline on the left.
+.counters {
+  display: flex;
+  flex: 0 0 45%;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+
+  @include bp.down(tablet) {
+    flex-basis: 100%;
+    padding-right: 30px;
+  }
+
+  @include bp.down(mobile) {
+    flex-direction: column;
+    padding-right: 15px;
+  }
+}
+
+.counter {
+  display: flex;
+  flex: 1 1 0;
+  flex-direction: column;
+  justify-content: space-between;
+  min-width: 0;
+  padding: 70px 30px 0;
+  border-left: 1px solid var(--b57-color-border);
+
+  @include bp.down(tablet) {
+    padding: 0 15px;
+  }
+
+  @include bp.down(mobile) {
+    flex: none;
+    padding: 0;
+    border-left: 0;
+    border-bottom: 1px solid var(--b57-color-border);
+
+    & + & {
+      margin-top: 15px;
+    }
+  }
+}
+
+.number {
+  @include type.display;
+
+  font-size: var(--b57-fs-section-title);
+  text-align: center;
+  color: var(--b57-fg-heading);
+}
+
+.label {
+  @include type.body;
+
+  margin: 0 0 80px;
+  text-align: center;
+
+  @include bp.down(tablet) {
+    margin-bottom: 15px;
+  }
+}
+
+.media {
+  flex: 0 0 100%;
+  margin-top: var(--b57-section-y);
+}
+
+.image {
+  width: 100%;
+  height: auto;
+}

@@ -1,0 +1,156 @@
+@use "../../../styles/block57/breakpoints" as bp;
+@use "../../../styles/block57/type";
+
+// Live popup: white 600 × 750 panel centred on an 80% #0B0B0B backdrop
+// (400px wide ≤767, constrained to the screen here), opening with the
+// Magnific "zoom-in" effect. Taller content (error tips) scrolls inside.
+.dialog {
+  display: none;
+  flex-direction: column;
+  width: min(600px, calc(100vw - 30px));
+  max-width: none;
+  min-height: min(750px, calc(100dvh - 30px));
+  max-height: calc(100dvh - 30px);
+  margin: auto;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: var(--b57-color-bg);
+  color: var(--b57-color-text);
+  text-align: left; // not the centred CTA band it is rendered in
+  overflow: hidden;
+
+  &[open] {
+    display: flex;
+    animation: b57-tour-zoom-in 0.3s var(--b57-ease);
+  }
+
+  &::backdrop {
+    background: var(--b57-overlay-popup);
+  }
+
+  &[open]::backdrop {
+    animation: b57-tour-fade-in 0.3s var(--b57-ease);
+  }
+
+  @include bp.down(mobile) {
+    width: min(400px, calc(100vw - 30px));
+    min-height: 0;
+  }
+}
+
+.body {
+  flex: 1;
+  padding: 50px 80px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+
+  @include bp.down(mobile) {
+    padding-inline: 30px;
+  }
+}
+
+// #F6F1EA block with a black 20px × (74 × 74; 54 × 44 ≤767); green on hover.
+.close {
+  position: absolute;
+  top: 0;
+  right: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 74px;
+  height: 74px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: var(--b57-color-bg-light);
+  color: var(--b57-color-accent);
+  transition:
+    background-color var(--b57-transition),
+    color var(--b57-transition);
+
+  &:hover,
+  &:focus-visible {
+    background: var(--b57-color-primary);
+    color: var(--b57-color-on-dark);
+  }
+
+  &:focus-visible {
+    outline-offset: -5px;
+    outline-color: var(--b57-color-on-dark);
+  }
+
+  @include bp.down(mobile) {
+    width: 54px;
+    height: 44px;
+  }
+}
+
+.title {
+  @include type.popup-title;
+
+  margin: 0 0 50px;
+  color: var(--b57-color-primary);
+  text-align: center;
+
+  @include bp.down(mobile) {
+    margin-bottom: 30px;
+  }
+}
+
+.form {
+  margin: 0;
+}
+
+// Live: the native date control is 2px taller and the select is followed
+// by a 60px gap (CF7 markup).
+.date input {
+  height: 43.14px;
+}
+
+.time {
+  margin-bottom: 60px;
+}
+
+.actions {
+  display: flex;
+
+  @include bp.down(mobile) {
+    justify-content: center;
+  }
+}
+
+.success {
+  align-items: center;
+  text-align: center;
+}
+
+@keyframes b57-tour-zoom-in {
+  from {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes b57-tour-fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@include bp.reduced-motion {
+  .dialog[open],
+  .dialog[open]::backdrop {
+    animation: none;
+  }
+
+  .close {
+    transition: none;
+  }
+}

@@ -1,0 +1,32 @@
+@use "../../../styles/block57/type";
+
+:where(.pill) {
+  @include type.meta;
+
+  display: inline-flex;
+  align-items: center;
+  height: 34px;
+  padding: 8px 20px;
+  border: 1px solid var(--b57-color-border);
+  border-radius: var(--b57-radius-meta);
+  color: var(--b57-color-text-light);
+  white-space: nowrap;
+}
+
+.item {
+  display: inline-flex;
+}
+
+.label {
+  color: var(--b57-color-text-light);
+}
+
+.value {
+  margin-left: 5px;
+  color: var(--b57-color-accent);
+}
+
+.separator {
+  margin: 0 9px;
+  color: var(--b57-color-text-light);
+}

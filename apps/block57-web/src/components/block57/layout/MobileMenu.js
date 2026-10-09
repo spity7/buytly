@@ -2,23 +2,10 @@
 
 import Link from "next/link";
 import { useEffect, useRef } from "react";
-import { useAuthSafe } from "@/providers/AuthProvider";
-import { notifySuccess } from "@/lib/toast";
 import { isPathActive } from "@/lib/url/normalizePath";
-import {
-  ACCOUNT_LINKS,
-  ADDRESS,
-  CONTACT,
-  INQUIRE_LINK,
-  SITE_NAV,
-} from "@/content/block57/site";
-import { ButtonLink } from "@/components/block57/ui/Button";
-import {
-  CloseIcon,
-  MailIcon,
-  PhoneIcon,
-  PinIcon,
-} from "@/components/block57/ui/icons";
+import { SITE_NAV } from "@/content/block57/site";
+import { TimesIcon } from "@/components/block57/ui/icons";
+import AccountLink from "./AccountLink";
 import Logo from "./Logo";
 import useScrollLock from "./useScrollLock";
 import styles from "./MobileMenu.module.scss";
@@ -27,9 +14,12 @@ const FOCUSABLE =
   'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
 /**
- * Full-height navigation drawer for < 1024px. Modal dialog semantics: focus
- * moves in on open, Tab is trapped, Escape / backdrop / close button close
- * it, focus returns to the menu button, and page scroll is locked.
+ * Live off-canvas drawer (≤1024px): a 330px white panel (410px at 768–1024)
+ * sliding in from the left over a 70% black backdrop, dark logo, × close and
+ * the five nav links (black, current/hover green), plus the account entry as
+ * the last item. Modal dialog semantics: focus moves in on open, Tab is
+ * trapped, Escape / backdrop / close button close it, focus returns to the
+ * burger, and page scroll is locked.
  */
 export default function MobileMenu({
   id,
@@ -38,7 +28,6 @@ export default function MobileMenu({
   pathname,
   returnFocusRef,
 }) {
-  const auth = useAuthSafe();
   const panelRef = useRef(null);
   const closeRef = useRef(null);
   const wasOpen = useRef(false);
@@ -88,18 +77,11 @@ export default function MobileMenu({
     return () => document.removeEventListener("keydown", onKeyDown);
   }, [open, onClose]);
 
-  const user = auth?.user ?? null;
-
-  async function handleSignOut() {
-    onClose();
-    await auth?.logout();
-    notifySuccess("You have been signed out.");
-  }
-
   return (
     <div
       className={styles.root}
       data-open={open ? "true" : "false"}
+      data-b57-modal={open ? "open" : undefined}
       inert={!open}
     >
       <div className={styles.backdrop} onClick={onClose} aria-hidden="true" />
@@ -111,105 +93,39 @@ export default function MobileMenu({
         aria-modal="true"
         aria-label="Menu"
       >
-        <div className={styles.top}>
-          <Logo variant="dark" onClick={onClose} />
-          <button
-            ref={closeRef}
-            type="button"
-            className={styles.close}
-            onClick={onClose}
-            aria-label="Close menu"
-          >
-            <CloseIcon size={22} />
-          </button>
-        </div>
+        <button
+          ref={closeRef}
+          type="button"
+          className={styles.close}
+          onClick={onClose}
+          aria-label="Close menu"
+        >
+          <TimesIcon size={24} />
+        </button>
+
+        <Logo variant="dark" className={styles.logo} onClick={onClose} />
 
         <nav aria-label="Main" className={styles.nav}>
           <ul>
-            {SITE_NAV.map((item) => {
-              const active = isPathActive(pathname, item.href);
-              return (
-                <li key={item.href}>
-                  <Link
-                    href={item.href}
-                    className={styles.navLink}
-                    aria-current={active ? "page" : undefined}
-                    onClick={onClose}
-                  >
-                    {item.label}
-                  </Link>
-                </li>
-              );
-            })}
+            {SITE_NAV.map((item) => (
+              <li key={item.href}>
+                <Link
+                  href={item.href}
+                  className={styles.link}
+                  aria-current={
+                    isPathActive(pathname, item.href) ? "page" : undefined
+                  }
+                  onClick={onClose}
+                >
+                  {item.label}
+                </Link>
+              </li>
+            ))}
+            <li>
+              <AccountLink className={`${styles.link} ${styles.account}`} />
+            </li>
           </ul>
         </nav>
-
-        <ButtonLink
-          href={INQUIRE_LINK.href}
-          block
-          arrow
-          className={styles.cta}
-          onClick={onClose}
-        >
-          {INQUIRE_LINK.label}
-        </ButtonLink>
-
-        <div className={styles.group}>
-          <p className={styles.groupTitle}>Account</p>
-          {user ? (
-            <ul className={styles.list}>
-              <li>
-                <a href={ACCOUNT_LINKS.account.href}>
-                  {ACCOUNT_LINKS.account.label}
-                </a>
-              </li>
-              <li>
-                <a href={ACCOUNT_LINKS.favourites.href}>
-                  {ACCOUNT_LINKS.favourites.label}
-                </a>
-              </li>
-              <li>
-                <button
-                  type="button"
-                  className={styles.textButton}
-                  onClick={handleSignOut}
-                >
-                  Sign out
-                </button>
-              </li>
-            </ul>
-          ) : (
-            <ul className={styles.list}>
-              <li>
-                <a href={ACCOUNT_LINKS.signIn.href}>
-                  {ACCOUNT_LINKS.signIn.label}
-                </a>
-              </li>
-            </ul>
-          )}
-        </div>
-
-        <div className={styles.group}>
-          <p className={styles.groupTitle}>Contact</p>
-          <ul className={styles.contact}>
-            <li>
-              <a href={CONTACT.phoneHref}>
-                <PhoneIcon size={16} />
-                {CONTACT.phoneDisplay}
-              </a>
-            </li>
-            <li>
-              <a href={CONTACT.emailHref}>
-                <MailIcon size={16} />
-                {CONTACT.email}
-              </a>
-            </li>
-            <li>
-              <PinIcon size={16} />
-              <span>{ADDRESS.full}</span>
-            </li>
-          </ul>
-        </div>
       </div>
     </div>
   );

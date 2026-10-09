@@ -1,124 +1,83 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { customInstance } from "@/lib/api/custom-instance";
-import { getApiError } from "@/lib/auth/getApiError";
 import { useBlock57Project } from "@/lib/block57/useBlock57Project";
 import { findUnitById } from "@/lib/block57/units";
-import { Button } from "@/components/block57/ui/Button";
+import VisuallyHidden from "@/components/block57/ui/VisuallyHidden";
 import {
-  INQUIRE_ERRORS,
-  INQUIRE_FIELD_LIMITS,
+  FormAlert,
+  FormSuccess,
+  Honeypot,
+  RadioGroupField,
+  SubmitButton,
+  TextAreaField,
+  TextField,
+} from "@/components/block57/forms/fields";
+import {
+  CONTACT_TOPICS,
+  buildContactPayload,
+} from "@/components/block57/forms/payload";
+import useContactForm from "@/components/block57/forms/useContactForm";
+import { CONTACT_LIMITS } from "@/components/block57/forms/validation";
+import {
+  DEFAULT_RESIDENCE,
   INQUIRE_FORM,
+  INQUIRE_INTRO,
+  INQUIRE_PAGE_PATH,
   RESIDENCE_OPTIONS,
   getResidenceLabel,
 } from "@/content/block57/inquire";
-import { PhoneField, SelectField, TextField, TextareaField } from "./fields";
-import InquireSuccess from "./InquireSuccess";
 import UnitChip from "./UnitChip";
-import {
-  EMPTY_VALUES,
-  FIELD_ORDER,
-  buildInquiryPayload,
-  buildUnitMessage,
-  firstInvalidField,
-  mapServerErrors,
-  validateField,
-  validateInquiry,
-} from "./validation";
+import { buildUnitMessage, unitPayloadFields } from "./unit";
 import styles from "./InquireForm.module.scss";
 
-const LABELS = INQUIRE_FORM.labels;
+const COPY = INQUIRE_FORM;
 const TITLE_ID = "inquire-form-title";
 
-/** The select submits the option label (e.g. "Urban Villa") as `residenceType`. */
-const RESIDENCE_SELECT_OPTIONS = RESIDENCE_OPTIONS.map((option) => ({
+/** Live CF7 form 2055, in on-screen order (POST /contact limits). */
+const RULES = {
+  firstName: { required: true, max: CONTACT_LIMITS.firstName },
+  lastName: { required: true, max: CONTACT_LIMITS.lastName },
+  phone: { required: true, type: "tel" },
+  email: { required: true, type: "email", max: CONTACT_LIMITS.email },
+  residenceType: {
+    required: true,
+    options: RESIDENCE_OPTIONS.map((option) => option.label),
+  },
+  message: { max: CONTACT_LIMITS.message },
+};
+
+const RADIO_OPTIONS = RESIDENCE_OPTIONS.map((option) => ({
   value: option.label,
   label: option.label,
 }));
 
-const MESSAGE_MAX = INQUIRE_FIELD_LIMITS.message.max;
-const numberFormat = new Intl.NumberFormat("en-GB");
-
-function withStop(text) {
-  const value = String(text ?? "").trim();
-  return !value || /[.!?…]$/.test(value) ? value : `${value}.`;
-}
-
-/** Text for the form-level alert after a failed POST /contact. */
-function describeSubmitError(error, hasFieldErrors, otherMessages) {
-  if (!error?.response) return INQUIRE_ERRORS.network;
-  return [
-    getApiError(error, INQUIRE_ERRORS.fallback),
-    hasFieldErrors ? INQUIRE_ERRORS.checkFields : null,
-    ...otherMessages,
-  ]
-    .filter(Boolean)
-    .map(withStop)
-    .join(" ");
-}
-
 /**
- * Inquire form (POST /contact). Client-side checks mirror the server schema
- * (see ./validation.js); errors are shown inline and the first invalid field
- * gets focus. Server field errors (400 `errors[]`) are mapped back onto the
- * fields. On success the form is reset and replaced by the verified thank-you
- * text. Every rejection is caught: nothing escapes as an unhandled promise.
+ * The live inquiry form (DESIGN_SPEC §4.7.2): intro H5, First/Last Name side
+ * by side, Phone *, Email *, "Type of residence" radios (1 Bedroom checked by
+ * default), optional Message, "Field with * required" + SUBMIT. Posts
+ * `topic: "inquiry"` to POST /contact with `pagePath` and the honeypot; the
+ * CF7 thank-you text replaces the intro and form on success.
  *
  * @param {{ initialType?: string, unitId?: string }} props
- *   `initialType`: `?type=` (unit-type slug, e.g. "urban-villa") → pre-selects
- *   the residence type. `unitId`: `?unit=` → once the project has loaded, shows
- *   a "Regarding residence …" chip, sends `unitId` + `unitLabel` and pre-fills
- *   a polite message (only when the message is still empty).
+ *   `initialType`: `?type=` (page slug "1-bedroom", catalog value
+ *   "one-bedroom", "studio" or a label) → pre-selects the radio.
+ *   `unitId`: `?unit=` → once the project has loaded, shows the "Regarding"
+ *   chip, sends `unitId` + `unitLabel`, selects the unit's type (unless
+ *   `?type=` or the visitor chose one) and pre-fills an empty message.
  */
 export default function InquireForm({ initialType = "", unitId = "" }) {
   const unitParam = String(unitId ?? "").trim();
+  const typeFromLink = getResidenceLabel(initialType);
 
-  const [values, setValues] = useState(() => ({
-    ...EMPTY_VALUES,
-    residenceType: getResidenceLabel(initialType),
-  }));
-  const [errors, setErrors] = useState({});
-  const [status, setStatus] = useState("idle"); // idle | submitting | success
-  const [formError, setFormError] = useState("");
   const [unitDismissed, setUnitDismissed] = useState(false);
   const [autoMessage, setAutoMessage] = useState("");
   const [announcement, setAnnouncement] = useState("");
-  // { target: field name | "alert" | "success" } — focused after the next render.
-  const [focusRequest, setFocusRequest] = useState(null);
-
-  const fieldRefs = useRef({});
-  const alertRef = useRef(null);
-  const successRef = useRef(null);
-  const submittingRef = useRef(false);
-  const mountedRef = useRef(false);
-  const requestRef = useRef(null);
+  const typeChosen = useRef(Boolean(typeFromLink));
   const prefilledFor = useRef(null);
 
-  const refCallbacks = useMemo(
-    () =>
-      Object.fromEntries(
-        FIELD_ORDER.map((name) => [
-          name,
-          (node) => {
-            fieldRefs.current[name] = node;
-          },
-        ]),
-      ),
-    [],
-  );
-
-  useEffect(() => {
-    mountedRef.current = true;
-    return () => {
-      mountedRef.current = false;
-      requestRef.current?.cancel?.();
-    };
-  }, []);
-
-  // ---- ?unit= -------------------------------------------------------------
-  // Only fetched when the link names a unit (React Query shares the request
-  // with the rest of the site). Public units only: draft/pending never match.
+  // ?unit=: only fetched when the link names a unit (React Query shares the
+  // request with the rest of the site). Public units only.
   const { project, units, isError } = useBlock57Project({
     enabled: Boolean(unitParam),
   });
@@ -136,279 +95,163 @@ export default function InquireForm({ initialType = "", unitId = "" }) {
     else unitState = "loading";
   }
 
+  const form = useContactForm({
+    rules: RULES,
+    initialValues: {
+      firstName: "",
+      lastName: "",
+      phone: "",
+      email: "",
+      residenceType: typeFromLink || DEFAULT_RESIDENCE,
+      message: "",
+    },
+    buildPayload: (values) =>
+      buildContactPayload({
+        topic: CONTACT_TOPICS.inquiry,
+        pagePath: INQUIRE_PAGE_PATH,
+        website: values.website,
+        fields: {
+          firstName: values.firstName,
+          lastName: values.lastName,
+          email: values.email,
+          phone: values.phone,
+          residenceType: values.residenceType,
+          message: values.message,
+          ...unitPayloadFields(activeUnit),
+        },
+      }),
+    onSuccess: () => {
+      setUnitDismissed(true);
+      setAutoMessage("");
+    },
+  });
+  const { updateValues } = form;
+
   useEffect(() => {
     if (!unit || prefilledFor.current === unitParam) return;
     prefilledFor.current = unitParam;
     const message = buildUnitMessage(unit);
     const residenceType = getResidenceLabel(unit.type);
-    setValues((prev) => ({
+    updateValues((prev) => ({
       ...prev,
-      residenceType: prev.residenceType || residenceType,
+      residenceType:
+        residenceType && !typeChosen.current
+          ? residenceType
+          : prev.residenceType,
       message: prev.message.trim() ? prev.message : message,
     }));
     setAutoMessage(message);
-  }, [unit, unitParam]);
-
-  // ---- focus management ---------------------------------------------------
-  // The whole field (label, control, error) is scrolled to the middle of the
-  // viewport, so the sticky header never covers it, then focused without a
-  // second scroll. Smooth unless the visitor prefers reduced motion.
-  useEffect(() => {
-    if (!focusRequest) return;
-    const { target } = focusRequest;
-    const node =
-      target === "alert"
-        ? alertRef.current
-        : target === "success"
-          ? successRef.current
-          : fieldRefs.current[target];
-    if (!node) return;
-    const reduceMotion = window.matchMedia?.(
-      "(prefers-reduced-motion: reduce)",
-    )?.matches;
-    const container = node.closest?.("[data-inquire-field]") ?? node;
-    container.scrollIntoView?.({
-      block: "center",
-      behavior: reduceMotion ? "auto" : "smooth",
-    });
-    node.focus?.({ preventScroll: true });
-  }, [focusRequest]);
-
-  // ---- handlers -------------------------------------------------------------
-  const errorKeyFor = (name) =>
-    name === "phoneNumber" || name === "phoneCountryCode" ? "phone" : name;
-
-  const updateError = (key, nextValues) => {
-    const message = validateField(key, nextValues);
-    setErrors((prev) => {
-      if ((prev[key] ?? null) === message) return prev;
-      const next = { ...prev };
-      if (message) next[key] = message;
-      else delete next[key];
-      return next;
-    });
-  };
-
-  const handleChange = (name, value) => {
-    const nextValues = { ...values, [name]: value };
-    setValues(nextValues);
-    const key = errorKeyFor(name);
-    // Live re-check only for a field that already shows an error.
-    if (errors[key]) updateError(key, nextValues);
-  };
-
-  const handleBlur = (key) => {
-    const raw = key === "phone" ? values.phoneNumber : values[key];
-    // Leaving an untouched empty field is not an error yet (no nagging while
-    // tabbing through); the submit check catches it.
-    if (!String(raw ?? "").trim() && !errors[key]) return;
-    updateError(key, values);
-  };
+  }, [unit, unitParam, updateValues]);
 
   const removeUnit = () => {
     setUnitDismissed(true);
-    setValues((prev) =>
+    updateValues((prev) =>
       autoMessage && prev.message === autoMessage
         ? { ...prev, message: "" }
         : prev,
     );
-    setAnnouncement(INQUIRE_FORM.unit.removed);
-    setFocusRequest({ target: "firstName" });
+    setAnnouncement(COPY.unit.removed);
+    form.focusField("firstName");
   };
 
-  const handleSubmit = async (event) => {
-    event.preventDefault();
-    if (submittingRef.current) return;
-
-    const clientErrors = validateInquiry(values);
-    const firstClientError = firstInvalidField(clientErrors);
-    if (firstClientError) {
-      setErrors(clientErrors);
-      setFormError("");
-      setFocusRequest({ target: firstClientError });
-      return;
-    }
-
-    submittingRef.current = true;
-    setErrors({});
-    setFormError("");
-    setAnnouncement("");
-    setStatus("submitting");
-
-    try {
-      const request = customInstance({
-        url: "/contact",
-        method: "POST",
-        data: buildInquiryPayload(values, activeUnit),
-      });
-      requestRef.current = request;
-      await request;
-      if (!mountedRef.current) return;
-      setValues({ ...EMPTY_VALUES });
-      setUnitDismissed(true);
-      setAutoMessage("");
-      setStatus("success");
-      setFocusRequest({ target: "success" });
-    } catch (error) {
-      if (!mountedRef.current) return;
-      const { fieldErrors, otherMessages } = mapServerErrors(
-        error?.response?.data?.errors,
-      );
-      const firstServerError = firstInvalidField(fieldErrors);
-      setErrors(fieldErrors);
-      setFormError(
-        describeSubmitError(error, Boolean(firstServerError), otherMessages),
-      );
-      setStatus("idle");
-      setFocusRequest({ target: firstServerError ?? "alert" });
-    } finally {
-      submittingRef.current = false;
-      requestRef.current = null;
-    }
-  };
-
-  const startOver = () => {
-    setStatus("idle");
-    setErrors({});
-    setFormError("");
-    setAnnouncement("");
-    setFocusRequest({ target: "firstName" });
-  };
-
-  // ---- render -----------------------------------------------------------------
-  if (status === "success") {
-    return <InquireSuccess headingRef={successRef} onReset={startOver} />;
+  if (form.status === "success") {
+    return (
+      <FormSuccess
+        headingRef={form.successRef}
+        actionLabel={COPY.again}
+        onReset={form.reset}
+      />
+    );
   }
 
-  const pending = status === "submitting";
-  const fieldProps = (name) => ({
-    name,
-    value: values[name],
-    onChange: handleChange,
-    onBlur: handleBlur,
-    error: errors[name],
-    inputRef: refCallbacks[name],
-  });
+  const residenceProps = form.fieldProps("residenceType");
 
   return (
-    <div className={styles.panel}>
-      <header className={styles.header}>
-        <h2 id={TITLE_ID} className={styles.title}>
-          {INQUIRE_FORM.title}
-        </h2>
-        <p className={styles.note}>{INQUIRE_FORM.requiredNote}</p>
-      </header>
+    <>
+      <h2 id={TITLE_ID} className={styles.intro}>
+        {INQUIRE_INTRO}
+      </h2>
 
-      <form
-        method="post"
-        noValidate
-        onSubmit={handleSubmit}
-        aria-labelledby={TITLE_ID}
-        aria-busy={pending || undefined}
-        className={styles.form}
-      >
+      <form {...form.formProps} aria-labelledby={TITLE_ID}>
         <UnitChip state={unitState} unit={activeUnit} onRemove={removeUnit} />
 
-        <div className={styles.grid}>
+        <div className={styles.names}>
           <TextField
             id="inquire-first-name"
-            label={LABELS.firstName}
+            label={COPY.labels.firstName}
+            placeholder={COPY.placeholders.firstName}
             required
             autoComplete="given-name"
-            maxLength={INQUIRE_FIELD_LIMITS.firstName.max}
-            {...fieldProps("firstName")}
+            maxLength={CONTACT_LIMITS.firstName}
+            {...form.fieldProps("firstName")}
           />
           <TextField
             id="inquire-last-name"
-            label={LABELS.lastName}
+            label={COPY.labels.lastName}
+            placeholder={COPY.placeholders.lastName}
             required
             autoComplete="family-name"
-            maxLength={INQUIRE_FIELD_LIMITS.lastName.max}
-            {...fieldProps("lastName")}
-          />
-          <TextField
-            id="inquire-email"
-            type="email"
-            label={LABELS.email}
-            required
-            inputMode="email"
-            autoComplete="email"
-            autoCapitalize="none"
-            spellCheck={false}
-            maxLength={INQUIRE_FIELD_LIMITS.email.max}
-            {...fieldProps("email")}
-          />
-          <PhoneField
-            id="inquire-phone"
-            label={LABELS.phone}
-            codeLabel={LABELS.phoneCountryCode}
-            countryCode={values.phoneCountryCode}
-            number={values.phoneNumber}
-            onChange={handleChange}
-            onBlur={handleBlur}
-            error={errors.phone}
-            inputRef={refCallbacks.phone}
-          />
-          <SelectField
-            id="inquire-residence-type"
-            label={LABELS.residenceType}
-            placeholder={INQUIRE_FORM.residencePlaceholder}
-            options={RESIDENCE_SELECT_OPTIONS}
-            className={styles.full}
-            {...fieldProps("residenceType")}
-          />
-          <TextareaField
-            id="inquire-message"
-            label={LABELS.message}
-            required
-            rows={6}
-            maxLength={MESSAGE_MAX}
-            hint={INQUIRE_FORM.hints.message}
-            hintAside={`${numberFormat.format(values.message.length)} / ${numberFormat.format(MESSAGE_MAX)}`}
-            className={styles.full}
-            {...fieldProps("message")}
+            maxLength={CONTACT_LIMITS.lastName}
+            {...form.fieldProps("lastName")}
           />
         </div>
+        <TextField
+          id="inquire-phone"
+          type="tel"
+          label={COPY.labels.phone}
+          placeholder={COPY.placeholders.phone}
+          required
+          inputMode="tel"
+          autoComplete="tel"
+          maxLength={CONTACT_LIMITS.phone}
+          {...form.fieldProps("phone")}
+        />
+        <TextField
+          id="inquire-email"
+          type="email"
+          label={COPY.labels.email}
+          placeholder={COPY.placeholders.email}
+          required
+          inputMode="email"
+          autoComplete="email"
+          autoCapitalize="none"
+          spellCheck={false}
+          maxLength={CONTACT_LIMITS.email}
+          {...form.fieldProps("email")}
+        />
+        <RadioGroupField
+          id="inquire-residence-type"
+          legend={COPY.residenceLegend}
+          options={RADIO_OPTIONS}
+          {...residenceProps}
+          onChange={(event) => {
+            typeChosen.current = true;
+            residenceProps.onChange(event);
+          }}
+        />
+        <TextAreaField
+          id="inquire-message"
+          label={COPY.labels.message}
+          placeholder={COPY.placeholders.message}
+          maxLength={CONTACT_LIMITS.message}
+          {...form.fieldProps("message")}
+        />
 
-        {/* Honeypot: hidden from people and assistive tech; bots fill it in. */}
-        <div className={styles.honeypot} aria-hidden="true">
-          <label htmlFor="inquire-website">{LABELS.website}</label>
-          <input
-            id="inquire-website"
-            name="website"
-            type="text"
-            tabIndex={-1}
-            autoComplete="off"
-            aria-hidden="true"
-            value={values.website}
-            onChange={(event) => handleChange("website", event.target.value)}
-          />
-        </div>
-
-        <div ref={alertRef} role="alert" tabIndex={-1} className={styles.alert}>
-          {formError ? <p className={styles.alertText}>{formError}</p> : null}
-        </div>
+        <Honeypot id="inquire-website" {...form.honeypotProps} />
+        <FormAlert ref={form.alertRef} message={form.formError} />
 
         <div className={styles.actions}>
-          <Button
-            type="submit"
-            aria-disabled={pending || undefined}
-            arrow={!pending}
-            icon={
-              pending ? (
-                <span className={styles.spinner} aria-hidden="true" />
-              ) : undefined
-            }
-            className={styles.submit}
-          >
-            {pending ? INQUIRE_FORM.submitting : INQUIRE_FORM.submit}
-          </Button>
+          <p className={styles.note}>
+            {COPY.requiredNote[0]}
+            <span className={styles.noteStrong}>{COPY.requiredNote[1]}</span>
+          </p>
+          <SubmitButton pending={form.pending}>{COPY.submit}</SubmitButton>
         </div>
       </form>
 
-      <p className={styles.srOnly} aria-live="polite">
+      <VisuallyHidden as="p" aria-live="polite">
         {announcement}
-      </p>
-    </div>
+      </VisuallyHidden>
+    </>
   );
 }

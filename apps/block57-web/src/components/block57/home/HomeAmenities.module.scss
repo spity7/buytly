@@ -1,44 +1,83 @@
 @use "../../../styles/block57/breakpoints" as bp;
+@use "../../../styles/block57/type";
 
+// Live 3991118 (Section default spacing: 150 → 100 → 80 → 60), 1350px column.
+// The eyebrow bar sits 5px under the text here (28.66px box).
+.heading {
+  margin-bottom: 30px;
+
+  p {
+    padding-bottom: 5px;
+  }
+
+  @include bp.down(tablet) {
+    margin-bottom: 20px;
+  }
+
+  @include bp.down(mobile) {
+    margin-bottom: 10px;
+  }
+}
+
+// H2 margins 30 / 30 → 20 / 20 (≤1024) → 15 / 10 (≤767).
+.title {
+  @include bp.down(tablet) {
+    margin-top: 20px;
+  }
+
+  @include bp.down(mobile) {
+    margin-top: 15px;
+  }
+}
+
+.reveal {
+  display: block;
+}
+
+// 4 × 330px columns inside the 1320 box; each card keeps 30px above and
+// 15px at the sides (300px wide at 1440, a 30px visual gutter).
 .grid {
   display: grid;
-  gap: var(--b57-space-7) var(--b57-grid-gap);
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  align-items: start;
+  max-width: var(--b57-container);
+  margin-inline: auto;
   list-style: none;
 
-  @include bp.up(sm) {
+  @include bp.down(tablet) {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  @include bp.down(mobile-extra) {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  @include bp.up(lg) {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+  @include bp.down(mobile) {
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 
-.item {
-  display: flex;
-  flex-direction: column;
-}
+.card {
+  margin: 30px 15px 0;
+  padding: 50px 30px;
+  background: var(--b57-color-bg);
+  text-align: center;
 
-.media {
-  position: relative;
-  aspect-ratio: 3 / 2;
-  margin-bottom: var(--b57-space-5);
-
-  @include bp.up(sm) {
-    aspect-ratio: 4 / 5;
+  @include bp.down(mobile) {
+    margin-inline: 0;
   }
 }
 
-.title {
-  margin: 0 0 var(--b57-space-3);
-  padding-top: var(--b57-space-4);
-  border-top: var(--b57-hairline);
-  font-size: var(--b57-text-xl);
+.cardTitle {
+  @include type.amenity-title;
+
+  margin: 0 0 12.36px;
+  color: var(--b57-color-primary);
 }
 
-.copy {
+.cardText {
+  @include type.body;
+
   margin: 0;
-  font-size: var(--b57-text-sm);
-  line-height: 1.7;
-  color: var(--b57-fg-muted);
+  color: var(--b57-color-text);
 }

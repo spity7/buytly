@@ -1,26 +1,25 @@
 @use "../../../styles/block57/breakpoints" as bp;
+@use "../../../styles/block57/type";
 
 .hero {
+  --_overlay: var(--b57-overlay-hero);
+
   position: relative;
-  display: flex;
-  align-items: flex-end;
-  min-height: clamp(34rem, 88svh, 56rem);
-  padding-top: var(--b57-header-h); // the overlay header sits on top
   overflow: hidden;
-  background: var(--b57-color-dark);
-  color: var(--b57-fg);
+  background: #000;
+  color: var(--b57-color-on-dark);
   isolation: isolate;
 }
 
-.size-compact {
-  min-height: clamp(32rem, 74svh, 46rem);
+.archive {
+  --_overlay: var(--b57-overlay-archive);
 }
 
-// Form pages: short, so the content starts high on the page.
-.size-short {
-  min-height: clamp(22rem, 52svh, 30rem);
+.type {
+  --_overlay: var(--b57-overlay-type);
 }
 
+// ---- Photo + overlay ------------------------------------------------------------
 .media {
   position: absolute;
   inset: 0;
@@ -30,149 +29,169 @@
     content: "";
     position: absolute;
     inset: 0;
-    background: var(--b57-hero-scrim);
-    pointer-events: none;
+    background: var(--_overlay);
   }
 }
 
-.inner {
-  position: relative;
-  padding-block: var(--b57-space-8) clamp(3rem, 2.25rem + 4vw, 6rem);
+.image {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: 50% 50%;
 }
 
-.size-short .inner {
-  padding-block: var(--b57-space-7) clamp(2.5rem, 1.75rem + 3.5vw, 5rem);
-}
-
-.notice {
-  margin-bottom: var(--b57-space-7);
-}
-
-.breadcrumbs {
-  margin-bottom: var(--b57-space-6);
-
-  ol {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: var(--b57-space-2) var(--b57-space-3);
-    list-style: none;
-    font-size: var(--b57-text-xs);
-    font-weight: var(--b57-weight-medium);
-    letter-spacing: 0.18em;
-    text-transform: uppercase;
-    color: var(--b57-fg-muted);
+// "global" / "archive": the photo at its natural size (live
+// background-size: auto) from 768px; cover on phones (OQ-18).
+@include bp.up(mobile) {
+  .global .image,
+  .archive .image {
+    inset: auto;
+    width: var(--_w);
+    max-width: none;
+    height: var(--_h);
+    object-fit: fill;
   }
 
-  li {
-    display: inline-flex;
-    align-items: center;
-    gap: var(--b57-space-3);
-
-    & + li::before {
-      content: "";
-      width: 1.25rem;
-      height: 1px;
-      background: currentColor;
-      opacity: 0.6;
-    }
+  .global .image {
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
   }
 
-  a {
-    display: inline-flex;
-    align-items: center;
-    min-height: 2.75rem; // touch target
-    text-decoration: none;
-  }
-
-  [aria-current="page"] {
-    color: var(--b57-fg);
+  .archive .image {
+    top: 0;
+    left: 0;
   }
 }
 
-.inner .eyebrow {
-  margin-bottom: var(--b57-space-5);
+// ---- Title area -------------------------------------------------------------------
+.titleArea {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 180px 30px 160px;
+  text-align: center;
+
+  @include bp.down(tablet-extra) {
+    padding-block: 100px;
+  }
+
+  @include bp.down(tablet) {
+    padding-block: 80px;
+  }
+
+  @include bp.down(mobile) {
+    // Live: the title area starts under the 78px header (70px offset).
+    padding: 130px 15px 60px;
+  }
+}
+
+.archive .titleArea {
+  padding-block: 181px 161px;
+
+  @include bp.down(tablet) {
+    padding-block: 100px 80px;
+  }
+}
+
+// Phones, archive + type: live centres the H1 60px from the top, under the
+// 78px header (they collide); keep the live 226px band and centre the H1 in
+// the 80px below the header instead.
+@include bp.down(mobile) {
+  .archive .titleArea,
+  .type .titleArea {
+    min-height: 158px;
+    padding: 78px 15px 0;
+  }
 }
 
 .title {
-  margin: 0 0 var(--b57-space-5);
-  font-size: var(--b57-text-display);
-  line-height: 1;
-  letter-spacing: -0.01em;
-}
+  @include type.page-hero-title;
 
-.lead {
-  max-width: 36rem;
   margin: 0;
-  font-size: var(--b57-text-lg);
-  line-height: 1.6;
-  color: var(--b57-fg-muted);
+  color: var(--b57-color-on-dark);
 }
 
-// A quiet serif statement (e.g. the verified "balance" line).
-.leadSerif {
-  max-width: 34rem;
-  font-family: var(--b57-font-serif);
-  font-size: var(--b57-text-xl);
-  font-style: italic;
-  line-height: 1.45;
-}
-
-.size-short .leadSerif {
-  font-size: var(--b57-text-lg);
-}
-
-.facts {
-  margin-top: var(--b57-space-6);
-}
-
-.actions {
+// ---- Breadcrumb strip ----------------------------------------------------------------
+.breadcrumb {
+  position: relative;
   display: flex;
-  flex-wrap: wrap;
-  gap: var(--b57-space-3);
-  margin-top: var(--b57-space-7);
+  align-items: center;
+  justify-content: center;
+  height: 68px;
+  padding: 0 15px;
 
-  // Phones: each button fills its row (no ragged pair), as on the home hero.
-  @include bp.down(sm) {
-    > * {
-      flex: 1 1 100%;
-    }
+  // Full-width 1px rule at 20% white.
+  &::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 1px;
+    background: var(--b57-color-on-dark);
+    opacity: 0.2;
   }
-}
 
-.sectionNav {
-  margin-top: var(--b57-space-8);
-  padding-top: var(--b57-space-5);
-  border-top: 1px solid var(--b57-rule);
+  ol {
+    @include type.body-font;
 
-  ul {
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--b57-space-1) var(--b57-space-6);
+    margin: 0;
+    font-size: 18px;
+    line-height: 28px;
+    text-align: center;
     list-style: none;
   }
 
-  a {
-    display: inline-flex;
-    align-items: center;
-    min-height: 2.75rem; // touch target
-    font-size: var(--b57-text-xs);
-    font-weight: var(--b57-weight-medium);
-    letter-spacing: var(--b57-tracking-button);
-    text-transform: uppercase;
-    text-decoration: none;
-    color: var(--b57-fg-muted);
+  li {
+    @include type.breadcrumb;
 
-    @include bp.hover {
-      &:hover {
-        color: var(--b57-fg);
-      }
+    display: inline;
+    font-weight: 300;
+
+    // The live separator is a plain ">" in the strip's body font (Sentient 18px).
+    & + li::before {
+      @include type.body-font;
+
+      content: ">";
+      margin: 0 14px;
+      font-size: 18px;
+      line-height: 28px;
     }
   }
+}
 
-  @include bp.up(lg) {
-    ul {
-      gap: var(--b57-space-2) var(--b57-space-7);
+// "Home": a 1px underline grows on hover.
+.crumbLink {
+  position: relative;
+  color: var(--b57-color-on-dark);
+
+  &::before {
+    content: "";
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    width: 0;
+    height: 1px;
+    background: var(--b57-color-on-dark);
+    transition: width var(--b57-transition);
+  }
+
+  &:hover {
+    color: var(--b57-color-on-dark);
+
+    &::before {
+      right: auto;
+      left: 0;
+      width: 100%;
     }
+  }
+}
+
+@include bp.reduced-motion {
+  .crumbLink::before {
+    transition: none;
   }
 }

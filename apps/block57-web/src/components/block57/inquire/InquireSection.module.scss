@@ -1,0 +1,59 @@
+@use "../../../styles/block57/breakpoints" as bp;
+
+// The portrait slides in from 100px to the right: clip that overflow at the
+// band (viewport) edge, or phones widen the layout viewport mid-animation and
+// fixed elements (the floating buttons) end up off-screen.
+.band {
+  overflow-x: hidden;
+  overflow-x: clip;
+}
+
+// Two 50% columns, no gap: form column padding-right 65 (content 595 at
+// 1440), image column padding-left 95 (image 565); both 30 at ≤1200.
+.inner {
+  display: flex;
+  align-items: flex-start;
+
+  @include bp.down(mobile) {
+    flex-direction: column;
+  }
+}
+
+.formColumn {
+  flex: 0 0 50%;
+  min-width: 0;
+  padding-right: 65px;
+
+  @include bp.down(tablet-extra) {
+    padding-right: 30px;
+  }
+
+  @include bp.down(mobile) {
+    flex: none;
+    width: 100%;
+    padding: 0 0 60px;
+  }
+}
+
+.imageColumn {
+  flex: 0 0 50%;
+  min-width: 0;
+  padding-left: 95px;
+
+  @include bp.down(tablet-extra) {
+    padding-left: 30px;
+  }
+
+  @include bp.down(mobile) {
+    flex: none;
+    width: 100%;
+    padding: 0;
+  }
+}
+
+// Natural ratio at full column width (live object-fit: fill on a 565×989 box).
+.image {
+  display: block;
+  width: 100%;
+  height: auto;
+}

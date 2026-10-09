@@ -1,44 +1,42 @@
-import CtaBand from "@/components/block57/ui/CtaBand";
 import PageHero from "@/components/block57/ui/PageHero";
-import LifestyleStory from "@/components/block57/lifestyle/LifestyleStory";
-import LocationSection from "@/components/block57/lifestyle/LocationSection";
-import NeighbourhoodList from "@/components/block57/lifestyle/NeighbourhoodList";
+import LifestyleBlocks from "@/components/block57/lifestyle/LifestyleBlocks";
+import LifestyleIntro from "@/components/block57/lifestyle/LifestyleIntro";
+import LifestyleSplit from "@/components/block57/lifestyle/LifestyleSplit";
 import {
-  LIFESTYLE_CTA,
-  LIFESTYLE_HERO,
+  LIFESTYLE_LOCATION,
   LIFESTYLE_PAGE,
+  LIFESTYLE_PRIVACY,
 } from "@/content/block57/lifestyle";
 import { buildPageMetadata } from "@/lib/block57/seo";
 
 export const metadata = buildPageMetadata({
-  title: "Lifestyle",
+  title: LIFESTYLE_PAGE.title,
   description: LIFESTYLE_PAGE.metaDescription,
-  path: "/life-style/",
+  path: LIFESTYLE_PAGE.path,
 });
 
 /**
- * /life-style/ (WordPress URL kept). Statically prerendered: all copy is
- * static; the map pin comes from the project's location, loaded on the client
- * (falls back to the approximate coordinates in content/block57/site.js).
- * The hero renders <HeaderOverlay /> (transparent header over the hero).
+ * /life-style/ (WordPress URL kept), statically prerendered. Live section
+ * order: global hero band, intro + counters + render, Location (static map),
+ * Block Overview, Privacy Through Design, then the footer (no pre-footer
+ * tiles). The hidden "The Views" slider and demo banners are not built.
  */
 export default function LifestylePage() {
   return (
     <>
-      <PageHero
-        titleId="lifestyle-title"
-        eyebrow={LIFESTYLE_HERO.eyebrow}
-        title={LIFESTYLE_HERO.title}
-        lead={LIFESTYLE_HERO.lead}
-        leadStyle="serif"
-        image={LIFESTYLE_HERO.media?.src}
-        imageAlt={LIFESTYLE_HERO.media?.alt}
-        sectionNav={LIFESTYLE_HERO.sectionNav}
+      <PageHero title={LIFESTYLE_PAGE.title} titleId="lifestyle-title" />
+      <LifestyleIntro />
+      <LifestyleSplit
+        variant="location"
+        id="lifestyle-location-title"
+        content={LIFESTYLE_LOCATION}
       />
-      <LifestyleStory />
-      <NeighbourhoodList />
-      <LocationSection />
-      <CtaBand id="lifestyle-cta" {...LIFESTYLE_CTA} />
+      <LifestyleBlocks />
+      <LifestyleSplit
+        variant="privacy"
+        id="lifestyle-privacy-title"
+        content={LIFESTYLE_PRIVACY}
+      />
     </>
   );
 }
