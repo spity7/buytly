@@ -1075,17 +1075,23 @@ export interface PaginatedProjectsResponse {
   pagination?: PaginationMeta;
 }
 
+/**
+ * Only `email` is required. Blank optional strings count as not provided.
+ */
 export interface SubmitContactRequest {
   /** @maxLength 80 */
-  firstName: string;
+  firstName?: string;
   /** @maxLength 80 */
-  lastName: string;
-  email: string;
+  lastName?: string;
   /**
-   * @minLength 10
-   * @maxLength 5000
+   * For forms with a single name field. When neither `firstName` nor `lastName` is sent, it is split on the first space (`Ama Serwaa Mensah` → `Ama` / `Serwaa Mensah`).
+   * @maxLength 160
    */
-  message: string;
+  fullName?: string;
+  /** @maxLength 254 */
+  email: string;
+  /** @maxLength 5000 */
+  message?: string;
   /** @maxLength 40 */
   phone?: string;
   /** @maxLength 80 */
@@ -1094,6 +1100,14 @@ export interface SubmitContactRequest {
   unitId?: ObjectId;
   /** @maxLength 80 */
   unitLabel?: string;
+  topic?: InquiryTopic;
+  /** Schedule-a-tour date (YYYY-MM-DD); must be a real date, today or later on the server's calendar */
+  preferredDate?: string;
+  /**
+   * Schedule-a-tour time slot as shown on the form
+   * @maxLength 40
+   */
+  preferredTime?: string;
   /**
    * Site-relative path of the page the form was submitted from
    * @maxLength 300
@@ -1114,6 +1128,18 @@ export const InquiryStatus = {
 } as const;
 
 /**
+ * Which form the inquiry came from (inquire form, contact form, schedule-a-tour popup)
+ */
+export type InquiryTopic = (typeof InquiryTopic)[keyof typeof InquiryTopic];
+
+// eslint-disable-next-line @typescript-eslint/no-redeclare
+export const InquiryTopic = {
+  inquiry: "inquiry",
+  contact: "contact",
+  tour: "tour",
+} as const;
+
+/**
  * @nullable
  */
 export type InquiryUnitId = ObjectId | null;
@@ -1121,15 +1147,25 @@ export type InquiryUnitId = ObjectId | null;
 export interface Inquiry {
   _id?: ObjectId;
   siteId?: ObjectId;
+  /** Empty when the form had no name fields */
   firstName?: string;
+  /** Empty when the form had no name fields */
   lastName?: string;
+  /** The submitted `fullName`, else first and last name joined; empty when no name was sent */
+  fullName?: string;
   email?: string;
   phone?: string;
   residenceType?: string;
   /** @nullable */
   unitId?: InquiryUnitId;
   unitLabel?: string;
+  /** Empty when no message was sent */
   message?: string;
+  topic?: InquiryTopic;
+  /** Schedule-a-tour date (YYYY-MM-DD) or empty */
+  preferredDate?: string;
+  /** Schedule-a-tour time slot or empty */
+  preferredTime?: string;
   pagePath?: string;
   sourceUrl?: string;
   status?: InquiryStatus;
