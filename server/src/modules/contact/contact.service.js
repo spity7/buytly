@@ -5,6 +5,7 @@ import {
   getRequestSite,
   getRequestSiteId,
 } from "../../shared/requestContext.js";
+import { resolveInquiryName } from "../inquiries/inquiry-fields.js";
 import { Inquiry } from "../inquiries/inquiry.model.js";
 import { Property } from "../properties/property.model.js";
 
@@ -28,25 +29,30 @@ export async function submitContactInquiry(payload) {
   const site = getRequestSite();
   const siteId = getRequestSiteId();
   const sourceUrl = buildSourceUrl(site, payload.pagePath);
+  const { firstName, lastName, fullName } = resolveInquiryName(payload);
+  const { topic, preferredDate, preferredTime } = payload;
 
   // Store first so the inquiry survives any email delivery failure.
   const inquiry = await Inquiry.create({
     siteId,
-    firstName: payload.firstName,
-    lastName: payload.lastName,
+    firstName,
+    lastName,
+    fullName,
     email: payload.email,
     phone: payload.phone,
     residenceType: payload.residenceType,
     unitId: await resolveSiteUnitId(payload.unitId, siteId),
     unitLabel: payload.unitLabel,
     message: payload.message,
+    topic,
+    preferredDate,
+    preferredTime,
     pagePath: payload.pagePath,
     sourceUrl,
   });
 
   const inbox =
     site?.branding?.contactInboxEmail?.trim() || env.CONTACT_INBOX_EMAIL;
-  const fullName = `${payload.firstName} ${payload.lastName}`.trim();
 
   try {
     await emailService.sendContactInquiry(inbox, {
@@ -56,6 +62,9 @@ export async function submitContactInquiry(payload) {
       residenceType: payload.residenceType,
       unitLabel: payload.unitLabel,
       message: payload.message,
+      topic,
+      preferredDate,
+      preferredTime,
       sourceUrl,
     });
   } catch (err) {
@@ -75,7 +84,10 @@ export async function submitContactInquiry(payload) {
 
   try {
     await emailService.sendContactAutoReply(payload.email, {
-      name: payload.firstName,
+      name: firstName,
+      topic,
+      preferredDate,
+      preferredTime,
     });
   } catch (err) {
     console.error("Contact auto-reply email failed:", err.message);

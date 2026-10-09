@@ -27,20 +27,22 @@ Verify and reset emails link to the request site's public URL (`buildSiteLink`, 
 
 **Responsibility:** Public contact / inquire form — stores each submission as an `Inquiry` for the current site, then emails the site inbox.
 
-| Endpoint | Method | Auth   | Input                                                                                                               | Output  |
-| -------- | ------ | ------ | ------------------------------------------------------------------------------------------------------------------- | ------- |
-| /contact | POST   | Public | firstName, lastName, email, message; optional phone, residenceType, unitId, unitLabel, pagePath, website (honeypot) | success |
+| Endpoint | Method | Auth   | Input                                                                                                                                                              | Output  |
+| -------- | ------ | ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------- |
+| /contact | POST   | Public | email; optional firstName, lastName, fullName, message, phone, residenceType, unitId, unitLabel, topic, preferredDate, preferredTime, pagePath, website (honeypot) | success |
 
 Rate limit: 10 requests / hour / IP.
 
-**Payload:** `firstName`, `lastName` (1–80), `email`, `message` (10–5000) are required. Optional: `phone` (≤ 40), `residenceType` (≤ 80), `unitLabel` (≤ 80), `unitId` (24-hex ObjectId), `pagePath` (≤ 300, site path starting with a single `/`, no whitespace) and `website` (honeypot, any value; never fails validation). Strings are trimmed; blank optional fields count as not provided; unknown keys (e.g. `siteId`, `status`) are dropped.
+**Payload:** only `email` (valid address, ≤ 254) is required, so one endpoint serves the Buytly contact form (first + last name + message), the Block 57 inquire form (message optional), the Block 57 contact form (phone, email, message — no name) and the Block 57 schedule-a-tour popup (single name, date, time slot). Optional: `firstName`, `lastName` (≤ 80), `fullName` (≤ 160, for single-name forms), `message` (≤ 5000), `phone` (≤ 40), `residenceType` (≤ 80), `unitLabel` (≤ 80), `unitId` (24-hex ObjectId), `topic` (`inquiry` | `contact` | `tour`, default `inquiry`), `preferredDate` (`YYYY-MM-DD`; must be a real calendar date, today or later on the server's calendar — otherwise `400` with `preferredDate must be a valid date in YYYY-MM-DD format` / `preferredDate cannot be in the past`), `preferredTime` (≤ 40, the time slot as shown on the form, e.g. `9:00 AM`), `pagePath` (≤ 300, site path starting with a single `/`, no whitespace) and `website` (honeypot, any value; never fails validation). Strings are trimmed; blank optional fields (including names and message) count as not provided; unknown keys (e.g. `siteId`, `status`) are dropped.
+
+**Names:** when neither `firstName` nor `lastName` is sent, `fullName` is split on its first whitespace (`Ama Serwaa Mensah` → `Ama` / `Serwaa Mensah`; a single word becomes the first name). Explicit `firstName`/`lastName` always win. The stored `fullName` is the submitted one, else `firstName lastName`; every name field is `""` when no name was sent.
 
 **Behaviour:**
 
 1. **Honeypot** — any `website` value other than `""` or `null` (including whitespace or a very long string) returns the normal `201` ("Your message has been sent.") but nothing is stored or emailed. The field is never rejected by validation, so a bot gets no hint that it gave itself away.
-2. **Store first** — an `inquiries` document is created with the request `siteId`, the submitted fields, `status: new` and `emailDelivered: false`. `unitId` is kept only when that unit belongs to the current site (otherwise stored as `null`; `unitLabel` is kept as sent). `sourceUrl` is the site public base URL (`resolveSitePublicBaseUrl`, falling back to `APP_URL`) plus `pagePath` when sent.
-3. **Inbox email** — sent to the site's `branding.contactInboxEmail`, falling back to `CONTACT_INBOX_EMAIL`, with Reply-To set to the submitter. Subject and body name the site (e.g. `Block 57 contact form — {name}`). Includes phone, residence type, unit label and the source URL when present. On success `emailDelivered` is set to `true`.
-4. **Auto-reply** — sent to the submitter after the inbox email, branded with the site name; Reply-To is the site's `branding.supportEmail` when set.
+2. **Store first** — an `inquiries` document is created with the request `siteId`, the submitted fields (names resolved as above, `topic`, `preferredDate`/`preferredTime` when sent), `status: new` and `emailDelivered: false`. `unitId` is kept only when that unit belongs to the current site (otherwise stored as `null`; `unitLabel` is kept as sent). `sourceUrl` is the site public base URL (`resolveSitePublicBaseUrl`, falling back to `APP_URL`) plus `pagePath` when sent.
+3. **Inbox email** — sent to the site's `branding.contactInboxEmail`, falling back to `CONTACT_INBOX_EMAIL`, with Reply-To set to the submitter. Subject and body name the site (`Block 57 contact form — {name}`, or `Block 57 tour request — {name}` for `topic: tour`; the email address stands in for a missing name and the body shows `From: —`). Always lists the topic; includes phone, residence type, unit label, preferred date (e.g. `Tuesday 20 October 2026`) and time, and the source URL when present. On success `emailDelivered` is set to `true`.
+4. **Auto-reply** — sent to the submitter after the inbox email, branded with the site name; greets `Hi {firstName},` or `Hello,` without a name. Tour requests get `We received your tour request — {site}` and repeat the preferred date/time. Reply-To is the site's `branding.supportEmail` when set.
 5. Email failures are logged (`console.error`) and the request still returns `201`; an inbox failure leaves `emailDelivered: false` and skips the auto-reply.
 
 Admins review inquiries via `GET /admin/inquiries` (see [admin](#admin)).
@@ -258,7 +260,7 @@ Moderation notifies the listing owner (in-app + email).
 
 Platform admins (`platformPermissions` on Buytly `admin` users) may pass `?siteId=` on list/analytics endpoints to moderate partner tenants.
 
-**Inquiries are private to each site:** `/admin/inquiries` always filters by the request site (`getRequestSiteId()`), with no `?siteId=` override — a Buytly platform admin sees only Buytly inquiries, and tenant inquiries are visible only to that tenant's admins. `search` is a case-insensitive literal match (regex-escaped, ≤ 200 chars) on first name, last name, email, phone and message; `limit` ≤ 100.
+**Inquiries are private to each site:** `/admin/inquiries` always filters by the request site (`getRequestSiteId()`), with no `?siteId=` override — a Buytly platform admin sees only Buytly inquiries, and tenant inquiries are visible only to that tenant's admins. `search` is a case-insensitive literal match (regex-escaped, ≤ 200 chars) on first name, last name, full name (so `Ama Serwaa` matches across both names), email, phone and message; `limit` ≤ 100. Responses always carry `fullName`, `topic`, `preferredDate` and `preferredTime`: inquiries stored before those fields existed get `firstName lastName`, `inquiry`, `""` and `""`.
 
 ---
 

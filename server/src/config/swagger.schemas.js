@@ -1745,7 +1745,8 @@
  *
  *     SubmitContactRequest:
  *       type: object
- *       required: [firstName, lastName, email, message]
+ *       required: [email]
+ *       description: Only `email` is required. Blank optional strings count as not provided.
  *       properties:
  *         firstName:
  *           type: string
@@ -1755,13 +1756,18 @@
  *           type: string
  *           maxLength: 80
  *           example: Smith
+ *         fullName:
+ *           type: string
+ *           maxLength: 160
+ *           description: For forms with a single name field. When neither `firstName` nor `lastName` is sent, it is split on the first space (`Ama Serwaa Mensah` → `Ama` / `Serwaa Mensah`).
+ *           example: Jane Smith
  *         email:
  *           type: string
  *           format: email
+ *           maxLength: 254
  *           example: jane@example.com
  *         message:
  *           type: string
- *           minLength: 10
  *           maxLength: 5000
  *           example: I would like help finding a property in Beirut.
  *         phone:
@@ -1780,6 +1786,18 @@
  *           type: string
  *           maxLength: 80
  *           example: A-101
+ *         topic:
+ *           $ref: '#/components/schemas/InquiryTopic'
+ *         preferredDate:
+ *           type: string
+ *           format: date
+ *           description: Schedule-a-tour date (YYYY-MM-DD); must be a real date, today or later on the server's calendar
+ *           example: '2026-10-20'
+ *         preferredTime:
+ *           type: string
+ *           maxLength: 40
+ *           description: Schedule-a-tour time slot as shown on the form
+ *           example: '9:00 AM'
  *         pagePath:
  *           type: string
  *           maxLength: 300
@@ -1795,6 +1813,13 @@
  *       enum: [new, contacted, closed]
  *       example: new
  *
+ *     InquiryTopic:
+ *       type: string
+ *       enum: [inquiry, contact, tour]
+ *       default: inquiry
+ *       description: Which form the inquiry came from (inquire form, contact form, schedule-a-tour popup)
+ *       example: tour
+ *
  *     Inquiry:
  *       type: object
  *       properties:
@@ -1804,10 +1829,16 @@
  *           $ref: '#/components/schemas/ObjectId'
  *         firstName:
  *           type: string
+ *           description: Empty when the form had no name fields
  *           example: Jane
  *         lastName:
  *           type: string
+ *           description: Empty when the form had no name fields
  *           example: Smith
+ *         fullName:
+ *           type: string
+ *           description: The submitted `fullName`, else first and last name joined; empty when no name was sent
+ *           example: Jane Smith
  *         email:
  *           type: string
  *           format: email
@@ -1827,7 +1858,18 @@
  *           example: A-101
  *         message:
  *           type: string
+ *           description: Empty when no message was sent
  *           example: I would like to schedule a viewing.
+ *         topic:
+ *           $ref: '#/components/schemas/InquiryTopic'
+ *         preferredDate:
+ *           type: string
+ *           description: Schedule-a-tour date (YYYY-MM-DD) or empty
+ *           example: '2026-10-20'
+ *         preferredTime:
+ *           type: string
+ *           description: Schedule-a-tour time slot or empty
+ *           example: '9:00 AM'
  *         pagePath:
  *           type: string
  *           example: /apartments/penthouse/

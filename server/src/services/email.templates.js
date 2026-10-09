@@ -91,6 +91,22 @@ const buildBrandedEmail = ({
   };
 };
 
+const INQUIRY_TOPIC_LABELS = {
+  inquiry: "Inquiry",
+  contact: "Contact",
+  tour: "Tour request",
+};
+
+/** "2026-10-20" → "Tuesday 20 October 2026"; other values are returned as-is. */
+const formatCalendarDate = (value) => {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  if (!match) return value;
+  const date = new Date(`${value}T00:00:00Z`);
+  const part = (options) =>
+    date.toLocaleDateString("en-GB", { ...options, timeZone: "UTC" });
+  return `${part({ weekday: "long" })} ${Number(match[3])} ${part({ month: "long" })} ${match[1]}`;
+};
+
 const optionalCta = (ctaUrl, ctaLabel) =>
   ctaUrl && ctaLabel ? { label: ctaLabel, url: ctaUrl } : undefined;
 
@@ -255,39 +271,64 @@ export const emailTemplates = {
       residenceType,
       unitLabel,
       message,
+      topic,
+      preferredDate,
+      preferredTime,
       sourceUrl,
-    }) =>
-      buildBrandedEmail({
+    }) => {
+      const isTour = topic === "tour";
+      // Some forms have no name field; the email address always identifies the sender.
+      const sender = fullName || email;
+      return buildBrandedEmail({
         appName,
-        subject: `${appName} contact form — ${fullName}`,
-        preheader: `New message from ${email}`,
+        subject: `${appName} ${isTour ? "tour request" : "contact form"} — ${sender}`,
+        preheader: `New ${isTour ? "tour request" : "message"} from ${email}`,
         greeting: "Hello,",
         paragraphs: [
-          `You received a new message via the ${appName} contact form.`,
-          `From: ${fullName}`,
+          isTour
+            ? `You received a new tour request via the ${appName} website.`
+            : `You received a new message via the ${appName} contact form.`,
+          `From: ${fullName || "—"}`,
           `Reply-To email: ${email}`,
+          `Topic: ${INQUIRY_TOPIC_LABELS[topic] ?? INQUIRY_TOPIC_LABELS.inquiry}`,
           phone ? `Phone: ${phone}` : null,
           residenceType ? `Residence type: ${residenceType}` : null,
           unitLabel ? `Unit: ${unitLabel}` : null,
+          preferredDate
+            ? `Preferred date: ${formatCalendarDate(preferredDate)}`
+            : null,
+          preferredTime ? `Preferred time: ${preferredTime}` : null,
           sourceUrl ? `Submitted from: ${sourceUrl}` : null,
           "",
           message,
         ].filter((line) => line != null && line !== ""),
-        footer: `Reply directly to this email to reach ${fullName}.`,
-      }),
+        footer: `Reply directly to this email to reach ${sender}.`,
+      });
+    },
   ),
 
-  contactAutoReply: withBrand(({ appName, name }) =>
-    buildBrandedEmail({
-      appName,
-      subject: `We received your message — ${appName}`,
-      preheader: `Thanks for contacting ${appName}.`,
-      greeting: `Hi ${name || "there"},`,
-      paragraphs: [
-        "Thank you for reaching out. We have received your message and will get back to you as soon as possible.",
-        "If your inquiry is urgent, you can also reach us on WhatsApp from our website.",
-      ],
-      footer: `You received this email because you submitted the contact form on ${appName}.`,
-    }),
+  contactAutoReply: withBrand(
+    ({ appName, name, topic, preferredDate, preferredTime }) => {
+      const isTour = topic === "tour";
+      const preferred = [
+        preferredDate && formatCalendarDate(preferredDate),
+        preferredTime,
+      ]
+        .filter(Boolean)
+        .join(", ");
+      return buildBrandedEmail({
+        appName,
+        subject: `We received your ${isTour ? "tour request" : "message"} — ${appName}`,
+        preheader: `Thanks for contacting ${appName}.`,
+        greeting: name ? `Hi ${name},` : "Hello,",
+        paragraphs: [
+          isTour
+            ? `Thank you for requesting a tour${preferred ? ` (preferred: ${preferred})` : ""}. We have received your request and will contact you to confirm the visit.`
+            : "Thank you for reaching out. We have received your message and will get back to you as soon as possible.",
+          "If your inquiry is urgent, you can also reach us on WhatsApp from our website.",
+        ],
+        footer: `You received this email because you submitted the contact form on ${appName}.`,
+      });
+    },
   ),
 };

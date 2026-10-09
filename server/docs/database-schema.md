@@ -250,11 +250,16 @@ Public contact / inquire form submissions (`POST /contact`), private to the site
 ```javascript
 {
   siteId: ObjectId → sites (required),
-  firstName, lastName, email: String (required),
+  email: String (required),
+  firstName, lastName: String (default ""; empty when the form had no name fields),
+  fullName: String (default ""; submitted fullName, else "firstName lastName"),
   phone, residenceType: String (default ""),
   unitId: ObjectId → properties (default null; only stored when the unit belongs to the same site),
   unitLabel: String (default ""; free text as submitted, e.g. "A-101"),
-  message: String (required),
+  message: String (default ""),
+  topic: enum [inquiry, contact, tour] (default inquiry; which public form sent it),
+  preferredDate: String (default ""; schedule-a-tour calendar date "YYYY-MM-DD", no time zone),
+  preferredTime: String (default ""; schedule-a-tour time slot as submitted, e.g. "9:00 AM"),
   pagePath: String (default ""; site-relative path the form was submitted from),
   sourceUrl: String (site public base URL + pagePath),
   status: enum [new, contacted, closed] (default new),
@@ -266,6 +271,8 @@ Public contact / inquire form submissions (`POST /contact`), private to the site
 **Indexes:** `{ siteId: 1, createdAt: -1 }` (admin list, newest first), `{ siteId: 1, status: 1 }` (status filter). Both are `siteId`-prefixed, so they also serve plain `siteId` lookups.
 
 The inquiry is saved **before** any email is sent; delivery failures are logged and leave `emailDelivered: false`. Honeypot submissions (non-empty `website`) are not stored.
+
+`fullName`, `topic`, `preferredDate` and `preferredTime` were added later and are not backfilled: documents stored before them lack the fields, and the admin API fills them in its responses (`toInquiryResponse` in `modules/inquiries/inquiry-fields.js`). No index change — the admin search is a regex scan within the site.
 
 ## propertytypecatalogs / amenitycatalogs
 

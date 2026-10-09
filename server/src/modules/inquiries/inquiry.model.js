@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-import { INQUIRY_STATUSES } from "../../shared/constants.js";
+import { INQUIRY_STATUSES, INQUIRY_TOPICS } from "../../shared/constants.js";
 
 /**
  * Public contact / inquire form submissions. Private to the site they were
@@ -13,8 +13,11 @@ const inquirySchema = new mongoose.Schema(
       ref: "Site",
       required: true,
     },
-    firstName: { type: String, required: true, trim: true },
-    lastName: { type: String, required: true, trim: true },
+    // Names are optional; "" when the form had no name fields.
+    firstName: { type: String, trim: true, default: "" },
+    lastName: { type: String, trim: true, default: "" },
+    // As typed on single-name forms, else "firstName lastName".
+    fullName: { type: String, trim: true, default: "" },
     email: { type: String, required: true, trim: true },
     phone: { type: String, trim: true, default: "" },
     residenceType: { type: String, trim: true, default: "" },
@@ -25,7 +28,12 @@ const inquirySchema = new mongoose.Schema(
       default: null,
     },
     unitLabel: { type: String, trim: true, default: "" },
-    message: { type: String, required: true, trim: true },
+    message: { type: String, trim: true, default: "" },
+    topic: { type: String, enum: INQUIRY_TOPICS, default: "inquiry" },
+    // Schedule-a-tour requests: calendar date (YYYY-MM-DD, no time zone) and
+    // the chosen time slot as submitted (e.g. "9:00 AM").
+    preferredDate: { type: String, trim: true, default: "" },
+    preferredTime: { type: String, trim: true, default: "" },
     pagePath: { type: String, trim: true, default: "" },
     sourceUrl: { type: String, trim: true, default: "" },
     status: {

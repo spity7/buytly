@@ -30,6 +30,9 @@ const contactPayload = (overrides = {}) => ({
   ...overrides,
 });
 
+// Always in the future, whatever the server date is.
+const TOUR_DATE = `${new Date().getFullYear() + 1}-06-15`;
+
 const createUnit = (siteId, overrides = {}) =>
   Property.create({
     siteId,
@@ -122,11 +125,16 @@ describe.skipIf(!mongoAvailable)("POST /api/v1/contact (stored inquiries)", () =
     expect(stored[0]).toMatchObject({
       firstName: "Ama",
       lastName: "Mensah",
+      fullName: "Ama Mensah",
       email: "ama@example.com",
       phone: "+233 244 777 772",
       residenceType: "Penthouse",
       unitId: null,
       unitLabel: "PH-1",
+      message: "I would like to arrange a viewing of the penthouse.",
+      topic: "inquiry",
+      preferredDate: "",
+      preferredTime: "",
       pagePath: "/contact",
       sourceUrl: `${baseUrl}/contact`,
       status: "new",
@@ -145,11 +153,13 @@ describe.skipIf(!mongoAvailable)("POST /api/v1/contact (stored inquiries)", () =
         phone: "+233 244 777 772",
         residenceType: "Penthouse",
         unitLabel: "PH-1",
+        topic: "inquiry",
         sourceUrl: `${baseUrl}/contact`,
       }),
     );
     expect(autoReplySpy).toHaveBeenCalledWith("ama@example.com", {
       name: "Ama",
+      topic: "inquiry",
     });
   });
 
@@ -319,11 +329,18 @@ describe.skipIf(!mongoAvailable)("POST /api/v1/contact (stored inquiries)", () =
   });
 
   it.each([
-    ["a missing message", { message: undefined }],
-    ["a short message", { message: "Hi" }],
+    ["a missing email", { email: undefined }],
     ["an invalid unitId", { unitId: "not-an-id" }],
     ["a pagePath without a leading slash", { pagePath: "inquire" }],
     ["a too long phone", { phone: "1".repeat(41) }],
+    ["an unknown topic", { topic: "newsletter" }],
+    ["a malformed preferredDate", { preferredDate: "15/06/2027" }],
+    [
+      "an impossible preferredDate",
+      { preferredDate: TOUR_DATE.replace("-06-15", "-02-30") },
+    ],
+    ["a past preferredDate", { preferredDate: "2020-01-01" }],
+    ["a too long preferredTime", { preferredTime: "x".repeat(41) }],
   ])("returns 400 for %s and stores nothing", async (_label, overrides) => {
     const app = await getApp();
 
@@ -355,6 +372,171 @@ describe.skipIf(!mongoAvailable)("POST /api/v1/contact (stored inquiries)", () =
     const stored = await Inquiry.findOne({}).lean();
     expect(String(stored.siteId)).toBe(String(block57._id));
     expect(stored.status).toBe("new");
+  });
+
+  it("stores a nameless contact-form submission and emails it without a name", async () => {
+    const app = await getApp();
+
+    const res = await api(app, SITE_SLUG.BLOCK57)
+      .post("/api/v1/contact")
+      .send({
+        email: "visitor@example.com",
+        phone: "+233 20 000 0002",
+        message: "Please call me back.",
+        topic: "contact",
+        pagePath: "/contact/",
+        website: "",
+      });
+
+    expect(res.status).toBe(201);
+    const stored = await Inquiry.findOne({}).lean();
+    expect(stored).toMatchObject({
+      firstName: "",
+      lastName: "",
+      fullName: "",
+      email: "visitor@example.com",
+      phone: "+233 20 000 0002",
+      message: "Please call me back.",
+      topic: "contact",
+      preferredDate: "",
+      preferredTime: "",
+      pagePath: "/contact/",
+      emailDelivered: true,
+    });
+    expect(inquirySpy).toHaveBeenCalledWith(
+      "info@block-57.com",
+      expect.objectContaining({
+        fullName: "",
+        email: "visitor@example.com",
+        topic: "contact",
+      }),
+    );
+    expect(autoReplySpy).toHaveBeenCalledWith("visitor@example.com", {
+      name: "",
+      topic: "contact",
+    });
+  });
+
+  it("accepts an inquiry without a message", async () => {
+    const app = await getApp();
+
+    const res = await api(app, SITE_SLUG.BLOCK57)
+      .post("/api/v1/contact")
+      .send(contactPayload({ message: "", residenceType: "1 Bedroom" }));
+
+    expect(res.status).toBe(201);
+    const stored = await Inquiry.findOne({}).lean();
+    expect(stored.message).toBe("");
+    expect(stored.residenceType).toBe("1 Bedroom");
+    expect(stored.topic).toBe("inquiry");
+  });
+
+  it.each([
+    ["Ama Serwaa Mensah", "Ama", "Serwaa Mensah"],
+    ["Kwame", "Kwame", ""],
+  ])(
+    "splits fullName %j on the first space",
+    async (fullName, firstName, lastName) => {
+      const app = await getApp();
+
+      const res = await api(app, SITE_SLUG.BLOCK57)
+        .post("/api/v1/contact")
+        .send({ fullName: ` ${fullName} `, email: "ama@example.com" });
+
+      expect(res.status).toBe(201);
+      const stored = await Inquiry.findOne({}).lean();
+      expect(stored).toMatchObject({ firstName, lastName, fullName });
+      expect(inquirySpy).toHaveBeenCalledWith(
+        "info@block-57.com",
+        expect.objectContaining({ fullName }),
+      );
+      expect(autoReplySpy).toHaveBeenCalledWith(
+        "ama@example.com",
+        expect.objectContaining({ name: firstName }),
+      );
+    },
+  );
+
+  it("keeps explicit first and last names over fullName", async () => {
+    const app = await getApp();
+
+    const res = await api(app, SITE_SLUG.BLOCK57)
+      .post("/api/v1/contact")
+      .send(contactPayload({ lastName: "", fullName: "Ama Serwaa Mensah" }));
+
+    expect(res.status).toBe(201);
+    const stored = await Inquiry.findOne({}).lean();
+    expect(stored).toMatchObject({
+      firstName: "Ama",
+      lastName: "",
+      fullName: "Ama Serwaa Mensah",
+    });
+  });
+
+  it("stores a schedule-a-tour request and passes the tour fields to both emails", async () => {
+    const app = await getApp();
+
+    const res = await api(app, SITE_SLUG.BLOCK57)
+      .post("/api/v1/contact")
+      .send({
+        fullName: "Ama Mensah",
+        email: "ama@example.com",
+        phone: "+233 244 777 772",
+        topic: "tour",
+        preferredDate: TOUR_DATE,
+        preferredTime: " 9:00 AM ",
+        message: "",
+        pagePath: "/",
+      });
+
+    expect(res.status).toBe(201);
+    const stored = await Inquiry.findOne({}).lean();
+    expect(stored).toMatchObject({
+      firstName: "Ama",
+      lastName: "Mensah",
+      fullName: "Ama Mensah",
+      topic: "tour",
+      preferredDate: TOUR_DATE,
+      preferredTime: "9:00 AM",
+      message: "",
+      pagePath: "/",
+    });
+    expect(inquirySpy).toHaveBeenCalledWith(
+      "info@block-57.com",
+      expect.objectContaining({
+        fullName: "Ama Mensah",
+        topic: "tour",
+        preferredDate: TOUR_DATE,
+        preferredTime: "9:00 AM",
+      }),
+    );
+    expect(autoReplySpy).toHaveBeenCalledWith("ama@example.com", {
+      name: "Ama",
+      topic: "tour",
+      preferredDate: TOUR_DATE,
+      preferredTime: "9:00 AM",
+    });
+  });
+
+  it("explains an invalid preferredDate in the validation errors", async () => {
+    const app = await getApp();
+
+    const res = await api(app, SITE_SLUG.BLOCK57)
+      .post("/api/v1/contact")
+      .send({
+        email: "ama@example.com",
+        topic: "tour",
+        preferredDate: "2020-01-01",
+      });
+
+    expect(res.status).toBe(400);
+    expect(res.body.errors).toEqual([
+      {
+        field: "preferredDate",
+        message: "preferredDate cannot be in the past",
+      },
+    ]);
+    expect(await Inquiry.countDocuments()).toBe(0);
   });
 });
 
@@ -578,6 +760,84 @@ describe.skipIf(!mongoAvailable)("admin inquiries API", () => {
     // Buytly's inquiry never matches on the Block 57 site.
     const otherSite = await list("?search=buytly");
     expect(otherSite.body.data).toEqual([]);
+  });
+
+  it("searches the full name and returns the new fields, with defaults for older inquiries", async () => {
+    const app = await getApp();
+    await Inquiry.create({
+      siteId: block57Site._id,
+      firstName: "Ama",
+      lastName: "Serwaa Mensah",
+      fullName: "Ama Serwaa Mensah",
+      email: "ama@example.com",
+      topic: "tour",
+      preferredDate: TOUR_DATE,
+      preferredTime: "9:00 AM",
+      createdAt: new Date(Date.UTC(2026, 9, 2, 9, 0)),
+    });
+    // Stored before fullName, topic and the tour fields existed (no defaults).
+    const createdAt = new Date(Date.UTC(2026, 9, 1, 9, 0));
+    const { insertedId: legacyId } = await Inquiry.collection.insertOne({
+      siteId: block57Site._id,
+      firstName: "Kojo",
+      lastName: "Boateng",
+      email: "kojo@example.com",
+      message: "Please share the availability list.",
+      status: "new",
+      emailDelivered: true,
+      createdAt,
+      updatedAt: createdAt,
+    });
+    const token = await loginAsSiteAdmin(
+      app,
+      SITE_SLUG.BLOCK57,
+      "admin@block-57.example.com",
+    );
+    const list = (query) =>
+      api(app, SITE_SLUG.BLOCK57)
+        .get(`/api/v1/admin/inquiries${query}`)
+        .set("Authorization", `Bearer ${token}`);
+
+    const all = await list("");
+    expect(all.status).toBe(200);
+    expect(all.body.data).toEqual([
+      expect.objectContaining({
+        firstName: "Ama",
+        fullName: "Ama Serwaa Mensah",
+        message: "",
+        topic: "tour",
+        preferredDate: TOUR_DATE,
+        preferredTime: "9:00 AM",
+      }),
+      expect.objectContaining({
+        firstName: "Kojo",
+        fullName: "Kojo Boateng",
+        topic: "inquiry",
+        preferredDate: "",
+        preferredTime: "",
+      }),
+    ]);
+
+    // "ama serwaa" spans first and last name, so only fullName matches it.
+    const byFullName = await list(
+      `?search=${encodeURIComponent("ama serwaa")}`,
+    );
+    expect(byFullName.body.data.map((inquiry) => inquiry.email)).toEqual([
+      "ama@example.com",
+    ]);
+
+    const patched = await api(app, SITE_SLUG.BLOCK57)
+      .patch(`/api/v1/admin/inquiries/${legacyId}`)
+      .set("Authorization", `Bearer ${token}`)
+      .send({ status: "contacted" });
+    expect(patched.status).toBe(200);
+    expect(patched.body.data).toMatchObject({
+      status: "contacted",
+      fullName: "Kojo Boateng",
+      topic: "inquiry",
+      preferredDate: "",
+      preferredTime: "",
+    });
   });
 
   it("returns 400 for invalid list queries", async () => {

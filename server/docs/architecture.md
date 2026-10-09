@@ -86,8 +86,9 @@ Buyer cancel → notifyFromEvent("booking.cancelled") → Agent
 ### Contact Inquiry Flow
 
 ```
-Visitor → POST /contact → Zod validation → honeypot (`website` filled → 201, nothing stored)
-  → Inquiry saved (request siteId; unitId kept only if the unit is on the same site)
+Visitor → POST /contact → Zod validation (only email required) → honeypot (`website` filled → 201, nothing stored)
+  → names resolved (fullName split on the first space when no firstName/lastName)
+  → Inquiry saved (request siteId; topic + preferred date/time; unitId kept only if the unit is on the same site)
   → email.service: inbox (site branding.contactInboxEmail || CONTACT_INBOX_EMAIL) → emailDelivered = true → auto-reply to submitter (Reply-To: site branding.supportEmail)
   → 201 (email failures are logged, the inquiry is kept)
 Admin → GET /admin/inquiries, PATCH /admin/inquiries/:id → always scoped to the request site (no platform-admin siteId override)

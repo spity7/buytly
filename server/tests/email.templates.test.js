@@ -178,9 +178,108 @@ describe("emailTemplates", () => {
       message: "I would like help finding a property.",
     });
 
+    expect(result.text).toContain("Topic: Inquiry");
     expect(result.text).not.toContain("Phone:");
     expect(result.text).not.toContain("Residence type:");
     expect(result.text).not.toContain("Unit:");
+    expect(result.text).not.toContain("Preferred date:");
+    expect(result.text).not.toContain("Preferred time:");
     expect(result.text).not.toContain("Submitted from:");
+  });
+
+  describe("without a name or message", () => {
+    const brand = { name: "Block 57" };
+
+    it("renders the inbox email with the email address as the sender", () => {
+      const result = emailTemplates.contactInquiry({
+        brand,
+        fullName: "",
+        email: "visitor@example.com",
+        phone: "+233200000002",
+        topic: "contact",
+        sourceUrl: "https://block-57.com/contact/",
+      });
+
+      expect(result.subject).toBe(
+        "Block 57 contact form — visitor@example.com",
+      );
+      expect(result.text).toContain("From: —");
+      expect(result.text).toContain("Reply-To email: visitor@example.com");
+      expect(result.text).toContain("Topic: Contact");
+      expect(result.text).toContain("Phone: +233200000002");
+      expect(result.text).toContain(
+        "Reply directly to this email to reach visitor@example.com.",
+      );
+      for (const part of [result.subject, result.html, result.text]) {
+        expect(part).not.toMatch(/undefined|null/);
+      }
+    });
+
+    it.each([
+      ["no name", {}],
+      ["an empty name", { name: "" }],
+    ])("greets the submitter with Hello when there is %s", (_label, params) => {
+      const result = emailTemplates.contactAutoReply({ brand, ...params });
+
+      expect(result.subject).toBe("We received your message — Block 57");
+      expect(result.text).toContain("\nHello,\n");
+      expect(result.html).toContain(">Hello,</p>");
+      expect(result.text).not.toMatch(/Hi |undefined/);
+    });
+  });
+
+  describe("for a schedule-a-tour request", () => {
+    const brand = { name: "Block 57" };
+    const tour = {
+      topic: "tour",
+      preferredDate: "2026-10-20",
+      preferredTime: "9:00 AM",
+    };
+
+    it("puts the topic, preferred date and time in the inbox email", () => {
+      const result = emailTemplates.contactInquiry({
+        brand,
+        ...tour,
+        fullName: "Ama Mensah",
+        email: "ama@example.com",
+        phone: "+233244777772",
+      });
+
+      expect(result.subject).toBe("Block 57 tour request — Ama Mensah");
+      expect(result.text).toContain(
+        "You received a new tour request via the Block 57 website.",
+      );
+      expect(result.text).toContain("From: Ama Mensah");
+      expect(result.text).toContain("Topic: Tour request");
+      expect(result.text).toContain("Preferred date: Tuesday 20 October 2026");
+      expect(result.text).toContain("Preferred time: 9:00 AM");
+      expect(result.html).toContain("Preferred date: Tuesday 20 October 2026");
+    });
+
+    it("confirms the preferred slot in the auto-reply", () => {
+      const result = emailTemplates.contactAutoReply({
+        brand,
+        ...tour,
+        name: "Ama",
+      });
+
+      expect(result.subject).toBe("We received your tour request — Block 57");
+      expect(result.text).toContain("Hi Ama,");
+      expect(result.text).toContain(
+        "Thank you for requesting a tour (preferred: Tuesday 20 October 2026, 9:00 AM).",
+      );
+    });
+
+    it("leaves the slot out of the auto-reply when none was chosen", () => {
+      const result = emailTemplates.contactAutoReply({
+        brand,
+        topic: "tour",
+      });
+
+      expect(result.text).toContain(
+        "Thank you for requesting a tour. We have received your request",
+      );
+      expect(result.text).not.toContain("preferred:");
+    });
   });
 });

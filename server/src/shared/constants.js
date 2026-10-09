@@ -51,6 +51,9 @@ export const TRANSACTION_TYPES = ["buy"];
 
 export const INQUIRY_STATUSES = ["new", "contacted", "closed"];
 
+/** Which public form an inquiry came from; "inquiry" is the default. */
+export const INQUIRY_TOPICS = ["inquiry", "contact", "tour"];
+
 export const NOTIFICATION_TYPES = {
   BOOKING: "booking",
   TRANSACTION: "transaction",

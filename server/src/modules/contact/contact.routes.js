@@ -13,7 +13,7 @@ const router = Router();
  *   post:
  *     operationId: submitContactInquiry
  *     summary: Submit a public contact form message
- *     description: Stores the inquiry for the current site (listed via `GET /admin/inquiries`), then emails the site's contact inbox (`branding.contactInboxEmail`, falling back to `CONTACT_INBOX_EMAIL`) and sends an auto-reply to the submitter. Email failures are logged and still return 201. A filled `website` honeypot returns the same 201 without storing or emailing.
+ *     description: Stores the inquiry for the current site (listed via `GET /admin/inquiries`), then emails the site's contact inbox (`branding.contactInboxEmail`, falling back to `CONTACT_INBOX_EMAIL`) and sends an auto-reply to the submitter. Only `email` is required, so the same endpoint serves inquire forms, nameless contact forms and schedule-a-tour requests (`topic`, `preferredDate`, `preferredTime`). A single-field `fullName` is split into first/last name on the first space when neither `firstName` nor `lastName` is sent. Email failures are logged and still return 201. A filled `website` honeypot returns the same 201 without storing or emailing.
  *     tags: [Contact]
  *     requestBody:
  *       required: true

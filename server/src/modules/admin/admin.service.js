@@ -50,11 +50,13 @@ import {
   assertUnitPlatformVisibility,
 } from "../platform/platform-visibility.js";
 import { attachPropertyMediaUrls } from "../properties/property.service.js";
+import { toInquiryResponse } from "../inquiries/inquiry-fields.js";
 import { Inquiry } from "../inquiries/inquiry.model.js";
 
 const INQUIRY_SEARCH_FIELDS = [
   "firstName",
   "lastName",
+  "fullName",
   "email",
   "phone",
   "message",
@@ -557,7 +559,10 @@ export const adminService = {
       Inquiry.countDocuments(filter),
     ]);
 
-    return { inquiries, pagination: buildPaginationMeta(total, page, limit) };
+    return {
+      inquiries: inquiries.map(toInquiryResponse),
+      pagination: buildPaginationMeta(total, page, limit),
+    };
   },
 
   async updateInquiryStatus(inquiryId, status) {
@@ -568,7 +573,7 @@ export const adminService = {
     ).lean();
 
     if (!inquiry) throw new AppError("Inquiry not found", 404);
-    return inquiry;
+    return toInquiryResponse(inquiry);
   },
 
   async getAnalytics(query = {}, user) {
